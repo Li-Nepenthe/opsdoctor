@@ -1,6 +1,6 @@
 # 阶段 2 汇报书：订单服务、缓存与消息
 
-日期：2026-10-23。分支：`phase-02-order`。基线 main：`3970868dae0e298c3cb0b1269a6800a473e2e7a7`。本地工程验收已通过，推送后的 CI 记录见[进度看板](../../进度.md)和[实测记录](../notes.md#phase-02)。
+日期：2026-10-23。分支：`phase-02-order`。基线 main：`3970868dae0e298c3cb0b1269a6800a473e2e7a7`。本地工程验收与 [Linux CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39961041773) 均通过，记录见[进度看板](../../进度.md)和[实测记录](../notes.md#phase-02)。
 
 ## 一、总览
 
@@ -89,7 +89,7 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 | [docs/decisions.md](../../docs/decisions.md) | 119 | +27 / −0 | 设计决定 |
 | [docs/learn/README.md](../../docs/learn/README.md) | 9 | +1 / −1 | 分组目录的职责、边界与阅读入口 |
 | [docs/learn/phase-02-order.md](../../docs/learn/phase-02-order.md) | 525 | +525 / −0 | 阶段 2 学习材料：订单、缓存与消息 |
-| [docs/notes.md](../../docs/notes.md) | 300 | +58 / −0 | 实测记录 |
+| [docs/notes.md](../../docs/notes.md) | 310 | +68 / −0 | 实测记录 |
 | [docs/reports/README.md](../../docs/reports/README.md) | 9 | +1 / −1 | 分组目录的职责、边界与阅读入口 |
 | [docs/reports/phase-02-order.md](../../docs/reports/phase-02-order.md) | 702 | +702 / −0 | 阶段 2 汇报书：订单服务、缓存与消息 |
 | [docs/代码地图.md](../../docs/代码地图.md) | 191 | +75 / −6 | OpsDoctor 代码地图 |
@@ -650,7 +650,7 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 
 未注入依赖时，67 个顶层测试通过，16 个真实集成测试按约定跳过。注入六个专用 MySQL DSN 和 TEST_REDIS_ADDR 后，83 个顶层测试全部通过、0 跳过、23 个有测试的包通过。新增 40 个顶层测试，表格子用例不重复算作顶层测试。九个 Go 示例补上必要上下文后均编译通过；七段 PowerShell、CI YAML 和两段内嵌 Python 语法检查通过。
 
-详细原始数值和失败记录见 [notes](../notes.md#phase-02)。推送后的 Linux CI 将在同处追加对应提交与运行链接。
+详细原始数值和失败记录见 [notes](../notes.md#phase-02)。[Linux CI 39961041773](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39961041773) 已通过，验证提交 4a467008d4da5968342523cf43530b879433ae94；后续仅补充文档记录，非 Markdown 源码指纹不变。
 
 ## 五、工程验收结果
 

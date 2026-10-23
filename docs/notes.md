@@ -60,6 +60,16 @@ Redis 停服与恢复补验：原键重放订单 2035650，停止时响应 503�
 
 提交前再检查：七个容器全部 healthy，loadgen 生效配置 qps=0、hot_sku_id=0。真实凭据扫描通过，.env 被 Git 忽略；相对文档链接有效，全部学习验收仍未勾选。链接脚本初次误把代码里的泛型签名与 Markdown 语法示例当作路径，排除代码块/行内代码后通过；没有因此修改合法示例。
 
+### Linux CI 39961041773
+
+[运行链接](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39961041773)，源码提交 `4a467008d4da5968342523cf43530b879433ae94`。2026-10-23 06:25:14 创建，06:31:52 完成（America/Los_Angeles），结论 success。固定 ubuntu-24.04 / Go 1.27.1 的格式、tidy、vet、staticcheck、commentcheck、archcheck、无依赖 race、全新七容器 Compose、真实 MySQL/Redis race 和订单消息冒烟全部通过。
+
+真实日志摘要：commentcheck=132；库存一百次并发扣减恰好五十成功、五十不足，最终零库存；small 造数重跑不覆盖修改后的库存。四个 HTTP 接口通过，同键两次返回订单 401，用户列表只有一笔订单。
+
+CI 只做十秒、目标 20 QPS 的小规模冒烟：10.000962969 秒、199 次请求、0 错误、0 dropped、实际 19.898083876206783 QPS、P50=3ms、P99=25ms。三类请求为 140/36/23。最终 `ordered_quantity=438 sold_quantity=438 gap=0`。这些数字不替代本机全量五分钟结果。
+
+随后仅补充 Markdown 的 CI 链接、实测摘要和对应文件行数，非 Markdown 源码指纹保持上面的值。阶段分支不合并 main，学习验收未勾选，未开始阶段 3。
+
 阶段 1 记录见本文末尾；阶段 0 的结果保留当时版本，不用新版本的计数覆盖历史。
 
 ## 2026-10-23：开工检查
