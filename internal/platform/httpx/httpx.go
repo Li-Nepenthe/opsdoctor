@@ -30,6 +30,7 @@ func RequestIDs(logger *slog.Logger) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		id := ctx.GetHeader("X-Request-ID")
 		if !validRequestID(id) {
+			// 客户端没给标识或给了危险字符时重新生成，不能直接把未经检查的输入放进日志。
 			id = rand.Text()
 		}
 		fields := logging.FromContext(ctx.Request.Context())
@@ -37,6 +38,7 @@ func RequestIDs(logger *slog.Logger) gin.HandlerFunc {
 		ctx.Request = ctx.Request.WithContext(logging.WithFields(ctx.Request.Context(), fields))
 		ctx.Header("X-Request-ID", id)
 		started := time.Now()
+		// Gin 的 Next 执行后面的中间件和处理函数；它返回后才能记录最终状态码和完整耗时。
 		ctx.Next()
 		// 使用路由模板，不写原始 URL/query，避免密码等查询参数出现在日志里。
 		logger.InfoContext(ctx.Request.Context(), "HTTP 请求完成", "method", ctx.Request.Method,
@@ -47,9 +49,11 @@ func RequestIDs(logger *slog.Logger) gin.HandlerFunc {
 // validRequestID 只接受简单 ASCII 标识；无效输入会被替换，而不是原样带入日志或响应头。
 func validRequestID(id string) bool {
 	if len(id) == 0 || len(id) > maximumRequestIDBytes {
+		// 缺失时需要生成标识，过长时需要限制日志大小，两种情况都不能原样采用。
 		return false
 	}
 	for _, char := range id {
+		// 只允许字母、数字、短横线和下划线，排除换行等会干扰日志和响应头的字符。
 		if !((char >= 'a' && char <= 'z') || (char >= 'A' && char <= 'Z') || (char >= '0' && char <= '9') || char == '-' || char == '_') {
 			return false
 		}
@@ -63,14 +67,17 @@ func Recovery(logger *slog.Logger) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		defer func() {
 			if recover() == nil {
+				// recover 必须在 defer 中调用；正常返回时没有 panic，直接结束清理函数。
 				return
 			}
 			// panic 可能包含 SQL、密码或请求体，只记录固定分类，不记录其值或请求转储。
 			logger.ErrorContext(ctx.Request.Context(), "HTTP 请求异常", "error", "panic")
 			if !ctx.Writer.Written() {
+				// 响应头或正文一旦发出就不能撤回，只在尚未写出时替换成统一的 500 响应。
 				Failure(ctx, http.StatusInternalServerError, "INTERNAL", "内部错误")
 			}
 			ctx.Abort()
+			// Abort 防止继续执行剩余处理函数；它不会撤回已经写出的响应内容。
 		}()
 		ctx.Next()
 	}
@@ -81,13 +88,16 @@ func Recovery(logger *slog.Logger) gin.HandlerFunc {
 func BodyLimit(limit int64) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		if limit <= 0 {
+			// 这是服务组装时的参数错误，返回 500；不能归咎为客户端请求格式错误。
 			Failure(ctx, http.StatusInternalServerError, "INTERNAL", "内部错误")
 			return
 		}
 		if ctx.Request.ContentLength > limit {
+			// 已知长度已经超限，无需再读取正文，尽早拒绝能少占用带宽和内存。
 			Failure(ctx, http.StatusRequestEntityTooLarge, "INVALID_ARGUMENT", "请求体过大")
 			return
 		}
+		// 没有 Content-Length 的流式请求也必须限量；包装 Reader 后，每次实际读取都会累计字节数。
 		ctx.Request.Body = http.MaxBytesReader(ctx.Writer, ctx.Request.Body, limit)
 		ctx.Next()
 	}
@@ -98,6 +108,7 @@ func BodyLimit(limit int64) gin.HandlerFunc {
 func BindJSON(ctx *gin.Context, target any) bool {
 	decoder := json.NewDecoder(ctx.Request.Body)
 	decoder.DisallowUnknownFields()
+	// 未知字段往往表示参数名拼错；禁止静默忽略，让客户端及时发现问题。
 	err := decoder.Decode(target)
 	if err == nil {
 		// 第二次解码必须遇到 EOF，防止悄悄忽略请求中追加的另一个 JSON 值。
@@ -109,6 +120,7 @@ func BindJSON(ctx *gin.Context, target any) bool {
 	}
 	var tooLarge *http.MaxBytesError
 	if errors.As(err, &tooLarge) {
+		// As 按错误类型查找（也能穿过包装），把真正的超限和普通 JSON 语法错误区分开。
 		Failure(ctx, http.StatusRequestEntityTooLarge, "INVALID_ARGUMENT", "请求体过大")
 		return false
 	}

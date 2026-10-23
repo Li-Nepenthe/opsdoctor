@@ -26,6 +26,7 @@ func WithFields(ctx context.Context, fields Fields) context.Context {
 
 // FromContext 返回上下文中的关联信息；不存在时返回零值，不阻塞且可并发调用。
 func FromContext(ctx context.Context) Fields {
+	// “值, ok := x.(T)”是安全的类型断言：没有 Fields 时得到零值；这里有意忽略 ok，表示关联信息可选。
 	fields, _ := ctx.Value(contextKey{}).(Fields)
 	return fields
 }
@@ -51,6 +52,7 @@ func New(writer io.Writer, service string, level slog.Level) *slog.Logger {
 // utcTime 只规范日志顶层时间，不改业务字段；保证不同机器的记录能按 UTC 对齐。
 func utcTime(groups []string, attribute slog.Attr) slog.Attr {
 	if len(groups) == 0 && attribute.Key == slog.TimeKey && attribute.Value.Kind() == slog.KindTime {
+		// 只改顶层的系统时间，不能误改业务组里恰好也叫 time 的字段。
 		return slog.String(slog.TimeKey, attribute.Value.Time().UTC().Format(time.RFC3339Nano))
 	}
 	return attribute
@@ -66,6 +68,7 @@ func (wrapped handler) Enabled(ctx context.Context, level slog.Level) bool {
 func (wrapped handler) Handle(ctx context.Context, record slog.Record) error {
 	// 将业务属性放进调用方要求的组，再在顶层添加关联标识，避免分组后无法查询请求。
 	copyRecord := slog.NewRecord(record.Time, record.Level, record.Message, record.PC)
+	// 切片赋值只复制描述信息，底层数组可能共享；append 到 nil 切片会复制元素，避免并发日志互相改数据。
 	attributes := append([]slog.Attr(nil), wrapped.attributes...)
 	var current []slog.Attr
 	record.Attrs(func(attribute slog.Attr) bool {
@@ -75,6 +78,7 @@ func (wrapped handler) Handle(ctx context.Context, record slog.Record) error {
 	attributes = append(attributes, groupAttributes(wrapped.groups, current)...)
 	copyRecord.AddAttrs(mergeGroups(attributes)...)
 	fields := FromContext(ctx)
+	// 没有请求或调用链时不输出对应空字段，让“尚未接入”与“确实有标识”容易区分。
 	if fields.RequestID != "" {
 		copyRecord.AddAttrs(slog.String("request_id", fields.RequestID))
 	}
@@ -89,6 +93,7 @@ func (wrapped handler) Handle(ctx context.Context, record slog.Record) error {
 
 // WithAttrs 创建带固定字段的派生 Handler，不修改原对象，因此多个日志器可以安全共享。
 func (wrapped handler) WithAttrs(attributes []slog.Attr) slog.Handler {
+	// With 应生成独立的日志器；复制已有字段后再追加，不能让子日志器改变父日志器的内容。
 	copyAttributes := append([]slog.Attr(nil), wrapped.attributes...)
 	copyAttributes = append(copyAttributes, groupAttributes(wrapped.groups, attributes)...)
 	return handler{next: wrapped.next, attributes: copyAttributes, groups: wrapped.groups}
@@ -97,6 +102,7 @@ func (wrapped handler) WithAttrs(attributes []slog.Attr) slog.Handler {
 // WithGroup 创建带字段分组的派生 Handler，保留标准库的分组语义，不执行 IO。
 func (wrapped handler) WithGroup(name string) slog.Handler {
 	if name == "" {
+		// slog 约定空组名不改变分组，直接保留当前 handler。
 		return wrapped
 	}
 	groups := append([]string(nil), wrapped.groups...)
@@ -108,6 +114,7 @@ func (wrapped handler) WithGroup(name string) slog.Handler {
 func groupAttributes(groups []string, attributes []slog.Attr) []slog.Attr {
 	attributes = append([]slog.Attr(nil), attributes...)
 	for index := len(groups) - 1; index >= 0; index-- {
+		// 先包最内层，再包外层，才能让 WithGroup("a").WithGroup("b") 得到 a.b 的嵌套顺序。
 		attributes = []slog.Attr{slog.GroupAttrs(groups[index], attributes...)}
 	}
 	return attributes
@@ -120,11 +127,13 @@ func mergeGroups(attributes []slog.Attr) []slog.Attr {
 	positions := make(map[string]int)
 	for _, attribute := range attributes {
 		if attribute.Value.Kind() != slog.KindGroup {
+			// 普通字段保持原样；这个函数只合并组，不重新定义业务字段的覆盖规则。
 			merged = append(merged, attribute)
 			continue
 		}
 		// 记录首次出现的位置，既合并内容，又保留日志字段的原始顺序。
 		if index, exists := positions[attribute.Key]; exists {
+			// 固定字段和本次日志可能都属于同一个组；合成一个 JSON 对象，避免后一个同名键覆盖前一个。
 			children := append([]slog.Attr(nil), merged[index].Value.Group()...)
 			children = append(children, attribute.Value.Group()...)
 			merged[index] = slog.GroupAttrs(attribute.Key, mergeGroups(children)...)

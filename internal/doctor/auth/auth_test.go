@@ -17,20 +17,29 @@ func TestEmailAndPasswordValidation(t *testing.T) {
 		want  string // want 是规范化后的预期地址。
 		valid bool   // valid 表示该格式是否应该接受。
 	}{
+		// 允许用户误输首尾空格，并把邮箱统一成小写。
 		{"  ALICE@example.com  ", "alice@example.com", true},
+		// 邮件展示名不是登录账号，不能悄悄从中提取地址。
 		{"Alice <alice@example.com>", "", false},
-		{"missing-at", "", false}, {"", "", false},
+		// 没有 @ 的字符串不能被当成邮箱。
+		{"missing-at", "", false},
+		// 空输入必须拒绝，避免创建无法识别的账号。
+		{"", "", false},
 	} {
 		got, err := NormalizeEmail(test.input)
 		if got != test.want || (err == nil) != test.valid {
 			t.Fatalf("%q=%q/%v", test.input, got, err)
 		}
 	}
-	for _, password := range []string{"short", strings.Repeat("x", 73)} {
+	for _, password := range []string{
+		"short",                 // 少于 8 字节，不满足本项目的最低长度。
+		strings.Repeat("x", 73), // 超过 bcrypt 的 72 字节上限，不能截断后继续计算。
+	} {
 		if _, err := HashPassword(password); !errors.Is(err, ErrInvalid) {
 			t.Fatal("invalid password accepted")
 		}
 	}
+	// 摘要不能等于明文；同一密码能验证通过，错误密码必须失败。
 	hash, err := HashPassword("valid-password")
 	if err != nil || hash == "valid-password" || !VerifyPassword(hash, "valid-password") || VerifyPassword(hash, "wrong-password") {
 		t.Fatal("bcrypt contract failed")
@@ -39,6 +48,7 @@ func TestEmailAndPasswordValidation(t *testing.T) {
 
 // TestTokenConfiguration 验证启动时拒绝短密钥和无效有效期，防止签出无法使用的令牌。
 func TestTokenConfiguration(t *testing.T) {
+	// 先逐项破坏构造参数，再用有效配置验证签发时仍会拒绝空用户 ID。
 	secret := strings.Repeat("s", minimumSecretBytes)
 	if _, err := NewTokens("short", time.Hour); err == nil {
 		t.Fatal("短密钥被接受")
@@ -76,16 +86,22 @@ func TestJWTRejectsAlgorithmIssuerAudienceExpiryAndTampering(t *testing.T) {
 			method := jwt.SigningMethodHS256
 			switch name {
 			case "algorithm":
+				// 即使密钥正确，也不能接受服务端白名单之外的签名算法。
 				method = jwt.SigningMethodHS384
 			case "issuer":
+				// 其他系统签发的令牌不能拿来登录 OpsDoctor。
 				claims.Issuer = "elsewhere"
 			case "audience":
+				// 签发方正确但接收对象不同，也不能用于医生服务。
 				claims.Audience = jwt.ClaimStrings{"elsewhere"}
 			case "expired":
+				// 过期一小时，避开时钟精度边界，确认过期令牌会被拒绝。
 				claims.ExpiresAt = jwt.NewNumericDate(time.Now().Add(-time.Hour))
 			case "missing-expiry":
+				// 缺少过期时间不能被当作永不过期的令牌。
 				claims.ExpiresAt = nil
 			case "empty-subject":
+				// 验签成功也必须有用户主体，否则无法知道是谁登录。
 				claims.Subject = ""
 			}
 			token, err := jwt.NewWithClaims(method, claims).SignedString([]byte(secret))
@@ -97,6 +113,7 @@ func TestJWTRejectsAlgorithmIssuerAudienceExpiryAndTampering(t *testing.T) {
 			}
 		})
 	}
+	// 保留原签名却把载荷换成空 JSON（e30），验证改过内容的令牌无法蒙混过关。
 	parts := strings.Split(valid, ".")
 	parts[1] = "e30"
 	if _, err := tokens.Parse(strings.Join(parts, ".")); err == nil {

@@ -40,7 +40,8 @@ func integrationDatabase(t *testing.T) *sql.DB {
 			t.Error(err)
 		}
 	})
-	// DROP 仅作用于显式授权的测试库中的两个探针表；DDL 持有元数据锁，没有行索引访问。
+	// 每次测试从空表状态开始，只删除上面已确认的专用库中的这两张测试表。
+	// DROP 删除整张表，需要元数据锁；它不按索引逐行查找，也不是逐行加锁的 DELETE。
 	const dropHistorySQL = `DROP TABLE IF EXISTS schema_migrations`
 	const dropProbeSQL = `DROP TABLE IF EXISTS migration_probe`
 	for _, statement := range []string{dropProbeSQL, dropHistorySQL} {
@@ -71,12 +72,14 @@ func TestApplyIntegration(t *testing.T) {
 			t.Fatal(err)
 		}
 	}
-	// countSQL 扫描很小的历史表，只读不加锁；预期只有一条主键记录。
+	// countSQL 统计很小的历史表，InnoDB 会选择可用索引来计数；普通快照读不加行锁。
+	// 两个调用都成功了，但它们执行的是同一份迁移，所以历史里必须只有一条记录。
 	const countSQL = `SELECT COUNT(*) FROM schema_migrations`
 	var count int
 	if err := database.QueryRowContext(ctx, countSQL).Scan(&count); err != nil || count != 1 {
 		t.Fatalf("记录数 %d：%v", count, err)
 	}
+	// 保留文件名却替换 SQL，模拟“修改已执行迁移”；必须由校验和检查拒绝。
 	changed := fstest.MapFS{"testdata/0001_probe.sql": &fstest.MapFile{Data: []byte("SELECT 2")}}
 	if err := Apply(ctx, database, changed, "testdata"); err == nil {
 		t.Fatal("接受了改写的历史迁移")

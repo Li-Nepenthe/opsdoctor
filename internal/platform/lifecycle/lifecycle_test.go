@@ -10,12 +10,14 @@ import (
 
 // TestShutdownOrderAndCancellation 验证正常工作取消后仍有清理时间，并且失败不会跳过后续关闭。
 func TestShutdownOrderAndCancellation(t *testing.T) {
+	// 模拟“收到退出通知之后才清理”：parent 已取消，关闭回调却应得到仍可使用的新 context。
 	parent, cancel := context.WithCancel(context.Background())
 	cancel()
 	var order []string
 	failure := errors.New("模拟关闭失败")
 	err := Shutdown(parent, time.Second,
 		Hook{Name: "http", Close: func(ctx context.Context) error {
+			// 第一项故意失败，后面仍应关闭数据库；顺序由调用方传入的 Hook 顺序决定。
 			if ctx.Err() != nil {
 				t.Fatal("清理继承了已取消状态")
 			}
@@ -23,6 +25,7 @@ func TestShutdownOrderAndCancellation(t *testing.T) {
 			return failure
 		}},
 		Hook{Name: "database", Close: func(context.Context) error {
+			// 记录实际被调用的顺序，验证前一个错误没有导致提前返回。
 			order = append(order, "database")
 			return nil
 		}},
@@ -55,7 +58,9 @@ func TestNotifyParentCancel(t *testing.T) {
 	// 一秒只是测试的失败上限，不是服务运行时的关闭预算。
 	select {
 	case <-ctx.Done():
+		// 收到取消通知即通过，无需给整个测试进程发送 Ctrl+C。
 	case <-time.After(time.Second):
+		// 过了测试上限仍未取消，说明父 context 的取消没有传下来。
 		t.Fatal("父上下文取消未传播")
 	}
 }

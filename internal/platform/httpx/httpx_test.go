@@ -25,7 +25,11 @@ func testRouter(output *bytes.Buffer, handler gin.HandlerFunc) *gin.Engine {
 
 // TestRequestIDAndRecovery 验证合法标识保留、非法标识替换，以及 panic 不泄露原始内容。
 func TestRequestIDAndRecovery(t *testing.T) {
-	for _, id := range []string{"request-ok", "", "unsafe/value"} {
+	for _, id := range []string{
+		"request-ok",   // 合法标识应原样保留，便于客户端与服务端对照日志。
+		"",             // 没传标识时服务端应生成一个。
+		"unsafe/value", // 带非法字符时应替换，不能原样写回日志或响应头。
+	} {
 		t.Run(id, func(t *testing.T) {
 			var logs bytes.Buffer
 			router := testRouter(&logs, func(*gin.Context) { panic("private-password-value") })
@@ -60,11 +64,17 @@ func TestJSONBodyLimit(t *testing.T) {
 		stream bool   // stream 为 true 时模拟没有 Content-Length 的分块请求。
 		status int    // status 是期待的 HTTP 状态码。
 	}{
+		// 唯一合法字段加单个完整 JSON，应走成功响应。
 		{"valid", `{"name":"ok"}`, false, http.StatusOK},
+		// 未知字段可能是客户端拼错参数，不能默默忽略。
 		{"unknown", `{"extra":1}`, false, http.StatusBadRequest},
+		// 第一段合法不代表整份请求合法，后面追加第二个 JSON 必须拒绝。
 		{"second_value", `{"name":"a"} {"name":"b"}`, false, http.StatusBadRequest},
+		// JSON 被截断，解析失败应映射为 400。
 		{"malformed", `{"name":`, false, http.StatusBadRequest},
+		// 已知长度超限，应在读取正文前就返回 413。
 		{"oversized", `{"name":"` + strings.Repeat("a", int(DefaultBodyLimit)) + `"}`, false, http.StatusRequestEntityTooLarge},
+		// 未知长度也会超限，必须靠 Reader 的实际读取限制返回 413。
 		{"chunked", `{"name":"` + strings.Repeat("a", int(DefaultBodyLimit)) + `"}`, true, http.StatusRequestEntityTooLarge},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -79,6 +89,7 @@ func TestJSONBodyLimit(t *testing.T) {
 			})
 			request := httptest.NewRequest(http.MethodPost, "/test", strings.NewReader(test.body))
 			if test.stream {
+				// -1 表示事先不知道长度，模拟分块传输，确保不能只靠 Content-Length 防护。
 				request.ContentLength = -1
 			}
 			response := httptest.NewRecorder()

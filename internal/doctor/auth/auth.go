@@ -40,6 +40,7 @@ type Tokens struct {
 
 // NewTokens 校验密钥长度和有效期；无效时返回配置错误，不回显密钥，不执行 IO。
 func NewTokens(secret string, ttl time.Duration) (*Tokens, error) {
+	// 构造时就验证这些不变量，避免服务启动后才发现无法安全签发令牌。
 	if len(secret) < minimumSecretBytes {
 		return nil, fmt.Errorf("JWT_SECRET 必须至少 %d 字节", minimumSecretBytes)
 	}
@@ -79,6 +80,7 @@ func (tokens *Tokens) Parse(token string) (string, error) {
 		jwt.WithValidMethods([]string{"HS256"}), jwt.WithIssuer(issuer), jwt.WithAudience(audience),
 		jwt.WithExpirationRequired(), jwt.WithIssuedAt())
 	if err != nil || !parsed.Valid || strings.TrimSpace(claims.Subject) == "" {
+		// 签名有效但用户 ID 为空仍不能登录；对外统一报认证失败，不透露是哪一项校验没过。
 		return "", fmt.Errorf("解析令牌：%w", ErrUnauthorized)
 	}
 	return claims.Subject, nil
@@ -89,10 +91,12 @@ func (tokens *Tokens) Parse(token string) (string, error) {
 func NormalizeEmail(email string) (string, error) {
 	email = strings.ToLower(strings.TrimSpace(email))
 	if len(email) > maximumEmailBytes {
+		// 在解析前拒绝异常大的输入，长度按 UTF-8 字节计算。
 		return "", fmt.Errorf("校验邮箱：%w", ErrInvalid)
 	}
 	address, err := mail.ParseAddress(email)
 	if err != nil || address.Address != email || !strings.Contains(email, "@") {
+		// ParseAddress 也接受“名字 <邮箱>”；比较解析结果与原输入，确保登录只接受单纯的邮箱地址。
 		return "", fmt.Errorf("校验邮箱：%w", ErrInvalid)
 	}
 	return email, nil
@@ -101,6 +105,7 @@ func NormalizeEmail(email string) (string, error) {
 // HashPassword 用 bcrypt 的默认成本计算摘要；输入越界返回 ErrInvalid，底层错误保留原因。
 // bcrypt 故意消耗 CPU 来提高穷举成本，本函数同步等待计算完成；不同调用之间不共享状态。
 func HashPassword(password string) (string, error) {
+	// 先检查 bcrypt 的输入边界；尤其不能靠截断长密码来“兼容”，那会让不同密码变得等价。
 	if len(password) < minimumPasswordBytes || len(password) > maximumPasswordBytes {
 		return "", fmt.Errorf("校验密码长度：%w", ErrInvalid)
 	}

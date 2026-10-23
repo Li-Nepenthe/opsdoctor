@@ -25,7 +25,8 @@ func TestOpenIntegration(t *testing.T) {
 			t.Error(err)
 		}
 	})
-	// sessionTimeZoneSQL 只读会话变量，不访问业务表、不需要索引、不加行锁。
+	// sessionTimeZoneSQL 查询这条连接实际使用的时区，验证驱动确实把 UTC 设置发给了 MySQL。
+	// 会话变量不存放在业务表里，这条语句不查表，因此不需要表索引，也不会给数据行加锁。
 	const sessionTimeZoneSQL = `SELECT @@session.time_zone`
 	var zone string
 	if err := database.QueryRowContext(ctx, sessionTimeZoneSQL).Scan(&zone); err != nil {

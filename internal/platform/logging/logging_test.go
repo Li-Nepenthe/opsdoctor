@@ -21,7 +21,15 @@ func TestJSONFields(t *testing.T) {
 	if err := json.Unmarshal(output.Bytes(), &record); err != nil {
 		t.Fatal(err)
 	}
-	for name, want := range map[string]string{"service": "test-service", "level": "INFO", "msg": "读取完成", "request_id": "request-a", "trace_id": "trace-a", "span_id": "span-a", "operation": "test"} {
+	for name, want := range map[string]string{
+		"service":    "test-service", // 构造时设置的服务名应固定出现在每条日志中。
+		"level":      "INFO",         // DEBUG 被过滤后，只应留下 INFO 这一条。
+		"msg":        "读取完成",         // 日志正文应与调用方提供的消息一致。
+		"request_id": "request-a",    // 请求标识应从当前 context 补入。
+		"trace_id":   "trace-a",      // trace 标识用来串联同一调用链。
+		"span_id":    "span-a",       // span 标识用来定位调用链中的当前操作。
+		"operation":  "test",         // With 添加的固定业务字段不能在补标识时丢失。
+	} {
 		if record[name] != want {
 			t.Errorf("%s = %v，期望 %s", name, record[name], want)
 		}

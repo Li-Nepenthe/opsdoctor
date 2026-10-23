@@ -59,23 +59,29 @@ func Open(ctx context.Context, config Config) (*sql.DB, error) {
 // prepare 校验连接池参数并规范驱动设置，不执行 IO；解析失败不保留可能包含密码的底层错误。
 func prepare(config Config) (*mysql.Config, error) {
 	if config.MaxOpenConns <= 0 {
+		// database/sql 把 0 理解为不限制连接数；本项目要求显式上限，避免压垮本机 MySQL。
 		return nil, fmt.Errorf("DB_MAX_OPEN_CONNS 必须大于 0")
 	}
 	if config.MaxIdleConns < 0 || config.MaxIdleConns > config.MaxOpenConns {
+		// 空闲连接是总连接的一部分，不能比总数多；负数也不是有效的容量设置。
 		return nil, fmt.Errorf("DB_MAX_IDLE_CONNS 必须在 0 到 DB_MAX_OPEN_CONNS 之间")
 	}
 	if config.ConnMaxLifetime <= 0 {
+		// 标准库允许连接不过期，但本项目要求定期更换旧连接，因此拒绝无效寿命。
 		return nil, fmt.Errorf("DB_CONN_MAX_LIFETIME 必须大于 0")
 	}
 	parsed, err := mysql.ParseDSN(config.DSN)
 	if err != nil || config.DSN == "" {
+		// 底层解析错误可能带出 DSN 原文，只返回配置提示，不能把数据库密码写进错误。
 		return nil, fmt.Errorf("MySQL DSN 格式不合法，请检查对应环境变量")
 	}
 	// loc 只影响 Go 解码日期；time_zone 才会让每条新连接的 MySQL 会话使用 UTC。
 	parsed.ParseTime = true
 	parsed.Loc = time.UTC
 	parsed.MultiStatements = false
+	// 关闭多语句后，一份迁移不能夹带多条独立 SQL；迁移文件必须遵守“一文件一语句”。
 	if parsed.Params == nil {
+		// 未提供额外参数时 map 可能是 nil；先分配它才能写入会话时区。
 		parsed.Params = make(map[string]string)
 	}
 	parsed.Params["time_zone"] = "'+00:00'"

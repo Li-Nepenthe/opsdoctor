@@ -24,8 +24,11 @@ func TestLoadAndHistory(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, invalid := range []map[string]string{
+		// 已执行文件的校验和发生变化，说明旧迁移被改写。
 		{items[0].name: "changed"},
+		// 数据库记得一个本地不存在的版本，说明旧迁移被删除。
 		{"0000_removed.sql": "missing"},
+		// 数据库已执行 0002，却没执行本地的 0001，不能再把 0001 插回过去的顺序。
 		{items[1].name: items[1].checksum},
 	} {
 		if err := verifyHistory(items, invalid); err == nil {
@@ -37,9 +40,12 @@ func TestLoadAndHistory(t *testing.T) {
 // TestLoadRejectsInvalidFiles 检查不合法命名、重复序号和空文件，保证失败发生在执行 SQL 之前。
 func TestLoadRejectsInvalidFiles(t *testing.T) {
 	for name, files := range map[string]fstest.MapFS{
-		"bad_name":  {"m/1_bad.sql": &fstest.MapFile{Data: []byte("SELECT 1")}},
+		// 序号不足四位，字典序将不再可靠，加载时就要拒绝。
+		"bad_name": {"m/1_bad.sql": &fstest.MapFile{Data: []byte("SELECT 1")}},
+		// 描述不同也不能共享同一个序号，否则迁移顺序有歧义。
 		"duplicate": {"m/0001_a.sql": &fstest.MapFile{Data: []byte("SELECT 1")}, "m/0001_b.sql": &fstest.MapFile{Data: []byte("SELECT 2")}},
-		"empty":     {"m/0001_empty.sql": &fstest.MapFile{Data: []byte(" \n")}},
+		// 只有空白的文件不算一次有效迁移，不能为它写成功记录。
+		"empty": {"m/0001_empty.sql": &fstest.MapFile{Data: []byte(" \n")}},
 	} {
 		t.Run(name, func(t *testing.T) {
 			if _, err := load(files, "m"); err == nil {

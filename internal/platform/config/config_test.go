@@ -17,18 +17,31 @@ func TestReader(t *testing.T) {
 		want    any    // want 是期望的有类型值。
 		invalid bool   // invalid 表示必须拒绝该配置。
 	}{
+		// 环境变量完全没设置时，采用默认整数 20。
 		{"default", "", false, "int", 20, false},
+		// 下界 0 属于闭区间，应当接受。
 		{"minimum", "0", true, "int", 0, false},
+		// 上界 100 也属于闭区间，应当接受。
 		{"maximum", "100", true, "int", 100, false},
+		// 比上界大 1 就必须拒绝，不能截断成 100。
 		{"too_large", "101", true, "int", nil, true},
+		// 非数字要报错，且不能把可能含秘密的原始值写进错误。
 		{"bad_number", "private-value", true, "int", nil, true},
+		// 显式设置为空白表示配置有误，不能悄悄退回默认值。
 		{"empty", " ", true, "int", nil, true},
+		// 带 ms 单位的输入应转为正确的 Duration。
 		{"duration", "800ms", true, "duration", 800 * time.Millisecond, false},
+		// 不带单位的数字含义不清，必须拒绝。
 		{"no_unit", "800", true, "duration", nil, true},
+		// 格式合法但低于时长下界，同样不能通过。
 		{"negative", "-1s", true, "duration", nil, true},
+		// 布尔值使用完整的 true 字样，应正常读取。
 		{"true", "true", true, "bool", true, false},
+		// 即使其他解析器允许 1 表示真，本项目也要求可读的 true/false。
 		{"shorthand", "1", true, "bool", nil, true},
+		// 字符串首尾的误输空格会被清理，内容本身保留。
 		{"trim", " local ", true, "string", "local", false},
+		// 没有提供环境值，也没有有效默认值，必须提示必填项缺失。
 		{"required", "", false, "string", nil, true},
 	} {
 		t.Run(test.name, func(t *testing.T) {
@@ -46,6 +59,7 @@ func TestReader(t *testing.T) {
 				got, err = reader.String(test.name, "")
 			}
 			if test.invalid {
+				// 对失败用例同时检查“拒绝输入”“指明变量”和“不泄露输入”，不能只看 err 非 nil。
 				if err == nil || !strings.Contains(err.Error(), test.name) || strings.Contains(err.Error(), "private-value") {
 					t.Fatalf("错误必须定位变量且不泄露原始值：%v", err)
 				}

@@ -18,11 +18,16 @@ func TestPrepare(t *testing.T) {
 	}
 	// 错误应指向连接池配置；对 DSN 错误则不得暴露测试密码。
 	for _, change := range []func(*Config){
+		// 连接上限必须为正数，不能让 0 变成没有上限的连接池。
 		func(value *Config) { value.MaxOpenConns = 0 },
+		// 空闲连接不能多于最大连接数；21 刚好超过本例的上限 20。
 		func(value *Config) { value.MaxIdleConns = 21 },
+		// 连接寿命必须为正，避免错误配置使旧连接永远不按寿命回收。
 		func(value *Config) { value.ConnMaxLifetime = 0 },
+		// 无法解析的 DSN 应被拒绝，错误消息不能带出这个模拟密码。
 		func(value *Config) { value.DSN = "private-password-value" },
 	} {
+		// Config 按值复制，每次只改一个条件，避免前一条用例的错误污染下一条。
 		invalid := config
 		change(&invalid)
 		if _, err := prepare(invalid); err == nil || strings.Contains(err.Error(), "private-password-value") {

@@ -137,7 +137,176 @@ depends_on 不会替运行中的服务自动处理所有断线，也不会把已
 
 命名卷在容器删除后保留，因此重启不会重新执行 MySQL 首次初始化脚本。不要以为改 `.env` 的密码就能修改已经建好的数据库账户密码。固定版本、内存上限与 localhost 端口映射便于复现，但单节点部署不能提供生产高可用。
 
-## 5. 动手实验
+## 5. 本阶段用到的 Go 写法
+
+这一节可以先于 migrate 和 lifecycle 源码阅读。前五个例子都是独立的小程序，可以各自保存到仓库外的临时目录，用 `go run main.go` 运行；不要放在仓库根目录。第六个是接收已有连接的函数片段。例子只讲当前写法，完整的错误上下文和资源所有权处理仍以项目源码为准。
+
+### 5.1 具名返回值，以及 defer 为什么能修改它
+
+`func f() (result error)` 不只是标注返回类型，还声明了一个叫 result 的返回变量，初始值为 nil。执行 `return 某个值` 时，Go 先把这个值赋给 result，再执行 defer，最后把 result 交给调用方。闭包直接引用 result，因此可以在这个间隙修改它。先用整数看清顺序：[Go 语言规范](https://go.dev/ref/spec#Defer_statements)。
+
+```go
+package main
+
+import "fmt"
+
+// finish 演示返回变量在 defer 执行前已经得到 return 指定的值。
+func finish() (result int) {
+    defer func() {
+        result += 1 // 此时 result 已经是 10，调用方最终拿到 11。
+    }()
+    return 10
+}
+
+func main() {
+    fmt.Println(finish()) // 11
+}
+```
+
+回到 [migrate.go 的 Apply](../../internal/platform/migrate/migrate.go)：主体先决定 result 是成功的 nil 还是迁移错误，defer 再把解锁、归还连接时的错误合进去。它类似 Java 中退出时会执行的 finally，但这里明确修改的是 Go 的返回变量。要分清闭包引用和参数传值：若写成 `defer func(value int) { value++ }(result)`，参数在登记 defer 时就求值，修改的是副本，不会改变 result。多个 defer 后登记的先执行，所以本项目先解锁、后归还连接。
+
+### 5.2 errors.Join：保留同时发生的多个错误
+
+Go 的 error 是返回值，不是自动抛出的异常。`errors.Join` 可以把多个 error 包在一起，nil 会被忽略，全部为 nil 时结果也是 nil。它保留错误之间的关系，因此调用方仍能用 `errors.Is` 判断其中是否包含某个原因；不是把字符串拼接完就丢掉原错误。[标准库说明](https://pkg.go.dev/errors#Join)。
+
+```go
+package main
+
+import (
+    "errors"
+    "fmt"
+)
+
+func main() {
+    executeErr := errors.New("执行迁移失败")
+    cleanupErr := errors.New("归还连接失败")
+    result := errors.Join(executeErr, nil, cleanupErr)
+    fmt.Println(errors.Is(result, executeErr)) // true：原始错误仍能被识别。
+    fmt.Println(errors.Is(result, cleanupErr)) // true：清理错误也没有丢失。
+    fmt.Println(errors.Join(nil, nil) == nil)  // true：没有错误仍表示成功。
+}
+```
+
+Apply 用它合并“迁移失败”和“清理失败”，Shutdown 用它汇总多个关闭步骤的错误。相较于只返回最后一个错误，调用方能同时看到故障起点和清理结果。`errors.Join(failures...)` 中的 `...` 是把 `[]error` 切片展开成多个参数。
+
+### 5.3 context.WithoutCancel：让清理拥有自己的时间
+
+`context.WithoutCancel(parent)` 生成派生上下文，仍能通过 Value 取到父上下文的信息，但不继承取消和截止时间；它自身的 Done 为 nil，Err 为 nil。因此它需要搭配新的 WithTimeout，不能直接拿去等待 Done 或执行无限期清理。[标准库说明](https://pkg.go.dev/context#WithoutCancel)。
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+)
+
+func main() {
+    parent, cancelWork := context.WithCancel(context.Background())
+    cancelWork() // 模拟正常工作已经被取消。
+    detached := context.WithoutCancel(parent)
+    fmt.Println(parent.Err() != nil, detached.Err() == nil) // true true
+
+    // 示例给清理留一秒；项目的总预算由 Shutdown 的调用方决定。
+    const cleanupBudget = time.Second
+    cleanup, cancelCleanup := context.WithTimeout(detached, cleanupBudget)
+    defer cancelCleanup() // 提前结束也应释放定时器资源。
+    cancelCleanup()       // 示例主动结束，不需要真的等待一秒。
+    fmt.Println(cleanup.Err() == context.Canceled) // true
+}
+```
+
+[Shutdown](../../internal/platform/lifecycle/lifecycle.go) 通常在工作 context 已取消后才被调用。若原样传给 HTTP 等关闭函数，它们可能立刻放弃清理；解除旧取消、另给总预算，就能给正在处理的请求留出收尾机会。这不是恢复旧 context，也不会让任何 goroutine 自动停止；关闭回调仍必须主动响应新 context。
+
+### 5.4 signal.NotifyContext：把退出信号转换成 context 通知
+
+它返回一个 context 和一个 stop 函数。指定的系统信号到来、父 context 取消、或调用 stop，都会使返回的 context 取消。stop 还负责注销信号监听、释放资源，所以调用者要安排 `defer stop()`。[标准库说明](https://pkg.go.dev/os/signal#NotifyContext)。
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "os"
+    "os/signal"
+)
+
+func main() {
+    parent, cancel := context.WithCancel(context.Background())
+    defer cancel()
+    ctx, stop := signal.NotifyContext(parent, os.Interrupt)
+    defer stop()
+
+    cancel() // 用父取消演示通知，不向终端或其他进程发送真实信号。
+    <-ctx.Done()
+    fmt.Println("收到退出通知，可以开始清理")
+}
+```
+
+如果把示例中的主动 `cancel()` 去掉，程序就会等待你按 Ctrl+C。[Notify](../../internal/platform/lifecycle/lifecycle.go) 还登记了 Linux 容器常用的 SIGTERM。它只统一退出通知，并不自动关闭服务器或数据库；收到通知后，组装层再调用 Shutdown。可以把它理解为把 Java 中分散的退出通知转成所有组件都认识的同一种信号。
+
+### 5.5 sql.NullInt64：区分 0 与 SQL NULL
+
+普通 int64 只能保存整数，不能表达 SQL 的 NULL。`sql.NullInt64` 用两个字段表示：Valid 为 true 才说明 Int64 有意义；Valid 为 false 表示 NULL。用途类似 Java 的可空 Long，但这里是否为空写在独立字段里。它实现 Scanner 接口，因此能直接用于 `rows.Scan(&value)`。[标准库说明](https://pkg.go.dev/database/sql#NullInt64)。
+
+```go
+package main
+
+import (
+    "database/sql"
+    "fmt"
+)
+
+func main() {
+    var value sql.NullInt64
+    // 直接调用 Scan 演示解码规则，不需要连接数据库。
+    if err := value.Scan(nil); err != nil {
+        panic(err)
+    }
+    fmt.Println(value.Valid) // false：NULL，不能拿 Int64 当有效结果。
+    if err := value.Scan(int64(0)); err != nil {
+        panic(err)
+    }
+    fmt.Println(value.Valid, value.Int64) // true 0：确实读到了整数 0。
+}
+```
+
+acquire 读取 GET_LOCK 的结果时，要分清 1（获取成功）、0（等待超时）和 NULL（MySQL 返回异常结果）。所以代码必须先看 Valid，再判断 Int64，不能把 NULL 和超时 0 混成一回事。release 同样需要确认结果确实是整数 1，才认为锁已经释放。
+
+### 5.6 Conn.Raw + driver.ErrBadConn：让池丢弃一条连接
+
+`sql.Conn.Close()` 通常是结束租用、把底层连接还给连接池。`Conn.Raw` 则在回调执行期间提供底层驱动连接；回调返回 `driver.ErrBadConn` 时，database/sql 会丢弃该连接。底层对象不能拿到回调外继续使用。[Conn.Raw 说明](https://pkg.go.dev/database/sql#Conn.Raw)与[驱动错误约定](https://pkg.go.dev/database/sql/driver#ErrBadConn)。
+
+下面是函数片段，参数必须是一条已经租用的真实连接；它不负责创建连接池，也不要用 nil 试运行。测试入口已经由项目的 MySQL 集成测试提供。
+
+```go
+package example
+
+import (
+    "database/sql"
+    "database/sql/driver"
+    "errors"
+)
+
+// discardExample 放弃复用一条状态不可靠的连接。
+func discardExample(connection *sql.Conn) error {
+    err := connection.Raw(func(any) error {
+        // 不操作驱动对象，只通过返回值告诉连接池“这条连接不能再使用”。
+        return driver.ErrBadConn
+    })
+    if errors.Is(err, driver.ErrBadConn) || errors.Is(err, sql.ErrConnDone) {
+        // 主动丢弃或已经关闭，都达到了本函数的目的。
+        return nil
+    }
+    return err // 其他错误仍交给调用方处理。
+}
+```
+
+对应源码是 [discard](../../internal/platform/migrate/migrate.go)。当命名锁的获取结果不确定或解锁失败时，直接归还连接可能让下一个请求接手一条仍持锁的会话。这里宁可让池以后重新建连接，也要结束这条旧会话。只有这类无法确认会话状态的场景才需要丢弃，普通业务 SQL 出错并不意味着连接必须废弃；也不能在自己的数据库驱动里随意返回 ErrBadConn，因为某些调用路径会据此重试操作。
+
+## 6. 动手实验
 
 每次只改一个地方，观察结果后撤销**自己本次的编辑**。不改 main、不推送实验破坏、不操作业务库。
 
@@ -157,7 +326,7 @@ depends_on 不会替运行中的服务自动处理所有断线，也不会把已
 
 执行 `docker compose --env-file .env -f deploy/docker-compose.yml stop redis`，再执行 `ps --all`，你应该看到 Redis 不再 healthy，而 MySQL/Kafka 仍运行。执行 `docker compose --env-file .env -f deploy/docker-compose.yml up -d --wait redis` 恢复，再看状态。这里没有业务请求，所以只能说明依赖容器恢复，不能声称业务恢复。
 
-## 6. 常见误区
+## 7. 常见误区
 
 - “internal 自动隔离所有领域”：它限制仓库外导入，仓库内的方向还要靠项目规则。
 - “Go 的 interface 等于 Java 接口声明”：Go 是按方法集合隐式实现；接口通常由使用方定义所需能力。
@@ -170,7 +339,7 @@ depends_on 不会替运行中的服务自动处理所有断线，也不会把已
 - “测试 SKIP 等于 PASS”：没有运行就是没有证据，报告必须分清。
 - “三个容器 healthy 等于项目完成”：这里只完成阶段 0 的基础依赖，后续业务和诊断尚未实现。
 
-## 7. 必答问题
+## 8. 必答问题
 
 先自己写答案，再展开文末要点。
 
@@ -187,7 +356,7 @@ depends_on 不会替运行中的服务自动处理所有断线，也不会把已
 11. 如何证明单元测试没有碰真实数据库？如何明确开启集成测试？
 12. commentcheck、archcheck、race 分别能发现什么、不能证明什么？
 
-## 8. 本阶段新术语
+## 9. 本阶段新术语
 
 | 术语 | 一句话解释 |
 |---|---|

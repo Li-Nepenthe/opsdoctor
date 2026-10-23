@@ -31,10 +31,12 @@ func NewReader(lookup func(string) (string, bool)) Reader {
 func (reader Reader) String(name, fallback string) (string, error) {
 	value, exists := reader.lookup(name)
 	if !exists {
+		// 只有“没设置”才采用默认值；显式设置为空通常是部署写错了，应在下面报错。
 		value = fallback
 	}
 	value = strings.TrimSpace(value)
 	if value == "" {
+		// 默认值为空也说明缺少必需配置；只报变量名，避免把密码等内容带进日志。
 		return "", fmt.Errorf("环境变量 %s 不能为空", name)
 	}
 	return value, nil
@@ -49,6 +51,7 @@ func (reader Reader) Int(name string, fallback, minimum, maximum int) (int, erro
 	}
 	value, err := strconv.Atoi(text)
 	if err != nil || value < minimum || value > maximum {
+		// 格式正确还不够，连接数等配置也有范围限制；统一报允许范围，不回显原始值。
 		return 0, fmt.Errorf("环境变量 %s 必须是 %d 到 %d 之间的整数", name, minimum, maximum)
 	}
 	return value, nil
@@ -63,6 +66,7 @@ func (reader Reader) Duration(name string, fallback, minimum, maximum time.Durat
 	}
 	value, err := time.ParseDuration(text)
 	if err != nil || value < minimum || value > maximum {
+		// 单位解析和业务范围都通过才接受；例如 -1s 有合法语法，但通常不是合法超时。
 		return 0, fmt.Errorf("环境变量 %s 必须是 %s 到 %s 之间的时长（例如 5s）", name, minimum, maximum)
 	}
 	return value, nil
@@ -81,6 +85,7 @@ func (reader Reader) Bool(name string, fallback bool) (bool, error) {
 	case "false":
 		return false, nil
 	default:
+		// 不接受 1、t 等其他常见写法，让环境文件里的真假含义一眼就能看懂。
 		return false, fmt.Errorf("环境变量 %s 必须是 true 或 false", name)
 	}
 }
