@@ -6,6 +6,7 @@
 // 主要内容：
 //   - TestJSONFields：检查日志格式、UTC 时间和 context 关联信息，避免跨服务排查时无法串联请求。
 //   - TestGroupedFieldsStayCorrelated：确保业务字段分组后关联标识仍在顶层，日志查询不需要猜分组路径。
+//   - TestCurrentSpanOverridesStoredFields：进入子操作后，日志使用当前 span，而不是入口保存的旧值。
 
 package logging
 
@@ -16,7 +17,33 @@ import (
 	"log/slog"
 	"strings"
 	"testing"
+
+	"go.opentelemetry.io/otel/trace"
 )
+
+// TestCurrentSpanOverridesStoredFields 防止同一 trace 下所有日志都错误地指向入口 span。
+func TestCurrentSpanOverridesStoredFields(t *testing.T) {
+	traceID, err := trace.TraceIDFromHex("0123456789abcdef0123456789abcdef")
+	if err != nil {
+		t.Fatal(err)
+	}
+	spanID, err := trace.SpanIDFromHex("1234567890abcdef")
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx := WithFields(t.Context(), Fields{RequestID: "request-1", TraceID: "old-trace", SpanID: "old-span"})
+	ctx = trace.ContextWithSpanContext(ctx, trace.NewSpanContext(trace.SpanContextConfig{TraceID: traceID, SpanID: spanID}))
+	var output bytes.Buffer
+	New(&output, "service", slog.LevelInfo).InfoContext(ctx, "子操作完成")
+	// 断言最终 JSON，不只断言 FromContext 的中间返回值。
+	var record map[string]any
+	if err := json.Unmarshal(output.Bytes(), &record); err != nil {
+		t.Fatal(err)
+	}
+	if record["trace_id"] != traceID.String() || record["span_id"] != spanID.String() || record["request_id"] != "request-1" {
+		t.Fatalf("关联字段过期或请求编号丢失：%v", record)
+	}
+}
 
 // TestJSONFields 检查日志格式、UTC 时间和 context 关联信息，避免跨服务排查时无法串联请求。
 func TestJSONFields(t *testing.T) {

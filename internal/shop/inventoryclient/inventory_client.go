@@ -24,6 +24,7 @@ import (
 	inventoryv1 "github.com/Li-Nepenthe/opsdoctor/gen/inventory/v1"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/resilience"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/inventory"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/sony/gobreaker/v2"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -43,6 +44,7 @@ type Client struct {
 	retry         *resilience.Retrier                // 查询失败后决定是否再试。
 	getBreaker    *resilience.Breaker                // 查询接口自己的失败记录。
 	deductBreaker *resilience.Breaker                // 扣减接口自己的失败记录。
+	retryCounter  prometheus.Counter                 // app 可选接入；没有接入时测试只验证业务行为。
 }
 
 // WriteError 表示写请求的错误。连接断开不等于服务端没有执行，因此需要额外保存结果是否确定。
@@ -86,8 +88,14 @@ func (client *Client) GetStock(parent context.Context, skuID int64) (inventory.S
 	ctx, cancel := context.WithTimeout(parent, client.timeout)
 	defer cancel()
 	var response *inventoryv1.GetStockResponse
+	attempts := 0
 	err := client.retry.Do(ctx, func() error {
 		return client.getBreaker.Execute(func() error {
+			// 放在熔断器内部，只有实际向库存发送第二次及之后的请求才算重试。
+			if attempts > 0 && client.retryCounter != nil {
+				client.retryCounter.Inc()
+			}
+			attempts++
 			var err error
 			response, err = client.rpc.GetStock(ctx, &inventoryv1.GetStockRequest{SkuId: skuID})
 			return err

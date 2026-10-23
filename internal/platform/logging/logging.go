@@ -22,6 +22,8 @@ import (
 	"io"
 	"log/slog"
 	"time"
+
+	"go.opentelemetry.io/otel/trace"
 )
 
 // contextKey 是本包专用的键类型，防止其他包用相同字符串覆盖日志上下文。
@@ -31,8 +33,8 @@ type contextKey struct{}
 // 它按值放入 context，不共享可写的 map，因此无需额外的锁。
 type Fields struct {
 	RequestID string // RequestID 是 HTTP 请求标识，和响应中的 request_id 一致。
-	TraceID   string // TraceID 是调用链标识；阶段 3 接入追踪时由适配层提供。
-	SpanID    string // SpanID 是当前跨度标识；未接入追踪时保持空字符串。
+	TraceID   string // TraceID 是调用链标识；有 OTel span 时以当前 span 为准。
+	SpanID    string // SpanID 是当前操作的标识，不是整条调用链的标识。
 }
 
 // WithFields 把本次请求的关联信息放进派生上下文，让后面的 SQL 或 RPC 日志可以继续使用它。
@@ -45,6 +47,11 @@ func WithFields(ctx context.Context, fields Fields) context.Context {
 func FromContext(ctx context.Context) Fields {
 	// “值, ok := x.(T)”是安全的类型断言：没有 Fields 时得到零值。这里有意忽略 ok，表示关联信息可选。
 	fields, _ := ctx.Value(contextKey{}).(Fields)
+	// 每次写日志时再取当前 span。SQL、RPC 或消息操作会创建子 span，不能一直沿用入口的旧 ID。
+	span := trace.SpanContextFromContext(ctx)
+	if span.IsValid() {
+		fields.TraceID, fields.SpanID = span.TraceID().String(), span.SpanID().String()
+	}
 	return fields
 }
 

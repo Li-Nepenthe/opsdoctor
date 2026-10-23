@@ -1,0 +1,46 @@
+// 只发现当前 Compose 项目的容器，避免顺带收集用户其他项目的日志。
+discovery.docker "shop" {
+  host = "unix:///var/run/docker.sock"
+  refresh_interval = "5s"
+  filter {
+    name = "label"
+    values = ["com.docker.compose.project=opsdoctor"]
+  }
+}
+
+discovery.relabel "shop" {
+  targets = discovery.docker.shop.targets
+  rule {
+    source_labels = ["__meta_docker_container_label_com_docker_compose_service"]
+    target_label = "service"
+  }
+  // 只保存项目 Go 进程的 JSON 日志；监控组件自身的运行日志仍可通过 compose logs 查看。
+  rule {
+    source_labels = ["service"]
+    regex = "order-service|inventory-service|order-worker|loadgen|alertsink"
+    action = "keep"
+  }
+}
+
+loki.source.docker "shop" {
+  host = "unix:///var/run/docker.sock"
+  targets = discovery.relabel.shop.output
+  forward_to = [loki.process.shop.receiver]
+}
+
+loki.process "shop" {
+  stage.json {
+    expressions = { level = "level" }
+  }
+  stage.labels {
+    values = { level = "" }
+  }
+  // trace_id 留在 JSON 正文里，查询时解析。若把每个 trace 变成索引标签，序列会无限增加。
+  forward_to = [loki.write.local.receiver]
+}
+
+loki.write "local" {
+  endpoint {
+    url = "http://loki:3100/loki/api/v1/push"
+  }
+}

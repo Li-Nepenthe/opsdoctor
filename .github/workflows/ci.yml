@@ -13,7 +13,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20 # 包含首次下载、race 编译和容器初始化，超时直接失败。
+    timeout-minutes: 30 # 阶段 3 多了十个容器，给首次镜像下载和真实管道冒烟留出时间。
     env:
       LOADGEN_QPS: "0" # 空库准备期间不发送业务流量，后面单独运行有时长的冒烟压测。
       LOADGEN_PRODUCT_COUNT: "100" # CI 使用 small 造数，不请求不存在的商品。
@@ -80,10 +80,13 @@ jobs:
           import json
           import urllib.request
           import uuid
+          import os
+          from pathlib import Path
 
+          trace_id = uuid.uuid4().hex
           # 四个真实 HTTP 接口都经过运行中的订单服务，不把内部函数返回值当成接口验收。
           def call(path, body=None, key=None):
-              headers = {}
+              headers = {'traceparent': '00-' + trace_id + '-1234567890abcdef-01'}
               data = None
               if body is not None:
                   data = json.dumps(body).encode()
@@ -107,6 +110,7 @@ jobs:
           assert detail['data']['quantity'] == 2
           assert len(page['data']['items']) == 1 and page['data']['items'][0]['order_id'] == order_id
           print('四个 HTTP 接口和同键回放通过，订单编号：', order_id)
+          (Path(os.environ['RUNNER_TEMP']) / 'trace-id.txt').write_text(trace_id)
           PY
           # 单独端口和十秒时长避免与 Compose 中暂停的 loadgen 冲突。
           go run ./cmd/loadgen --qps 20 --duration 10s --products 100 --control 127.0.0.1:6071 > "$RUNNER_TEMP/loadgen-smoke.jsonl"
@@ -130,6 +134,60 @@ jobs:
             sleep 1
           done
           test "$passed" = true
+      - name: 指标、调用链、日志和 Grafana 接线冒烟
+        run: |
+          docker compose --env-file .env -f deploy/docker-compose.yml exec -T prometheus promtool check config /etc/prometheus/prometheus.yml
+          python3 - <<'PY'
+          import base64
+          import json
+          import os
+          import time
+          import urllib.parse
+          import urllib.request
+          from pathlib import Path
+
+          values = dict(line.split('=', 1) for line in Path('.env').read_text().splitlines() if '=' in line and not line.startswith('#'))
+          auth = 'Basic ' + base64.b64encode(('admin:' + values['GRAFANA_ADMIN_PASSWORD']).encode()).decode()
+          trace_id = (Path(os.environ['RUNNER_TEMP']) / 'trace-id.txt').read_text()
+
+          def get(url, grafana=False):
+              headers = {'Authorization': auth} if grafana else {}
+              with urllib.request.urlopen(urllib.request.Request(url, headers=headers), timeout=5) as response:
+                  return json.load(response)
+
+          def verify():
+              # up 只能证明采集端点可达；还要检查 exporter 能登录对应的中间件。
+              for expression, count in [('up', 8), ('mysql_up', 1), ('redis_up', 1)]:
+                  data = get('http://127.0.0.1:9090/api/v1/query?' + urllib.parse.urlencode({'query': expression}))['data']['result']
+                  assert len(data) == count and all(float(row['value'][1]) == 1 for row in data), expression
+              with urllib.request.urlopen('http://127.0.0.1:3100/ready', timeout=5) as response:
+                  assert response.status == 200
+              for uid in ['prometheus', 'loki', 'jaeger']:
+                  health = get('http://127.0.0.1:3000/api/datasources/uid/' + uid + '/health', True)
+                  assert health['status'] == 'OK', uid
+              dashboard = get('http://127.0.0.1:3000/api/dashboards/uid/shop-overview', True)['dashboard']
+              assert len(dashboard['panels']) == 12
+              trace = get('http://127.0.0.1:16686/api/traces/' + trace_id)['data'][0]
+              names = {process['serviceName'] for process in trace['processes'].values()}
+              assert {'order-service', 'inventory-service', 'order-worker'} <= names, names
+              # 从 Grafana 代理访问 Loki，避免 Loki 单独可用而 Grafana 数据源接错地址。
+              expression = '{service=~"order-service|inventory-service|order-worker"} | json | trace_id="' + trace_id + '"'
+              logs = get('http://127.0.0.1:3000/api/datasources/proxy/uid/loki/loki/api/v1/query_range?' + urllib.parse.urlencode({'query': expression, 'since': '15m', 'limit': 100}), True)
+              services = {row['stream']['service'] for row in logs['data']['result']}
+              assert {'order-service', 'inventory-service', 'order-worker'} <= services, services
+              print('八个采集目标、三个数据源、十二面板、跨三个服务的 trace 和日志通过')
+
+          # 采集、批量导出和日志传送都是异步过程，有限等待后必须真实成功，不能吞掉最后一次错误。
+          deadline = time.monotonic() + 90
+          while True:
+              try:
+                  verify()
+                  break
+              except Exception:
+                  if time.monotonic() >= deadline:
+                      raise
+                  time.sleep(2)
+          PY
       - name: 失败时记录容器状态
         if: failure()
         run: docker compose --env-file .env -f deploy/docker-compose.yml ps --all

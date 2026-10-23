@@ -16,6 +16,7 @@ package loadgen
 
 import (
 	"context"
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
 	"io"
 	"log/slog"
 	mathrand "math/rand/v2"
@@ -40,7 +41,7 @@ func testGenerator() *generator {
 	settings := Config{Target: "http://example.invalid", QPS: 200, ProductCount: 500000, Workers: 2, RequestTimeout: time.Second}
 	control := &controlState{settings: controlSettings{QPS: settings.QPS}, productCount: settings.ProductCount}
 	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) { return nil, context.Canceled })}
-	return newGenerator(settings, control, client, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	return newGenerator(settings, control, client, slog.New(slog.NewTextHandler(io.Discard, nil)), telemetry.NewMetrics("loadgen-test"))
 }
 
 // TestTrafficDistribution 不要求每十次恰好七二一，而是核对大量固定随机样本的比例。

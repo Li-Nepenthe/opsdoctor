@@ -117,3 +117,39 @@ Go 库用 `go list -m -json <模块>@latest` 查询稳定版本后固定；不�
 - 用户授权：在对话中明确同意只放行精确路径 `cmd/README.md`，并要求在计划书第 3.4 节写明“cmd/ 目录本身可以放 README.md”。两处已同步。
 - 最小调整：只修改 `locationProblem` 的这一条路径判断，新增对应正例，并继续拒绝 `cmd/demo/README.md`、`cmd/demo/doc.go` 和 `cmd/demo/extra.go`。
 - 放弃的方案：放宽整个 cmd 子树、取消薄入口约束，或为了绕过工具把必需的目录说明省掉。除此项与用户要求的 commentcheck 扩展，阶段 0 的 Go 文件只改说明；以忽略注释和位置的 AST 比较及 Go 指令逐行比较核验。
+
+
+## 2026-10-23：阶段 3 的版本与观测口径
+
+- 用户明确验收阶段 2，授权合并并进入阶段 3。main 上的 `623f7c2` 与后来增加的 `fed64bf` 都保留，合并后推送，再创建 `phase-03-observability`。不勾学习验收，不做医生或阶段 4 的故障注入器。
+- 版本依据：Go 模块使用 `go list -m -json ...@latest`，监控镜像使用对应官方 GitHub 仓库的稳定发布。全部固定准确版本；当前镜像已实际拉取成功。
+
+| 组件 | 固定版本 |
+|---|---|
+| OTel SDK、OTLP gRPC exporter | v1.47.0 |
+| otelgin、otelgrpc | v0.72.0 |
+| XSAM/otelsql | v0.44.0 |
+| redisotel | v9.23.0，与 go-redis 一致 |
+| prometheus/client_golang | v1.25.0，沿用阶段 2 |
+| Prometheus | v3.15.1 |
+| Alertmanager | v0.34.1 |
+| Grafana | 13.2.4 |
+| Jaeger | 2.22.0 |
+| Loki | 3.7.9 |
+| Alloy | v1.21.2 |
+| mysqld-exporter | v0.21.0 |
+| redis_exporter | v1.95.0 |
+| kafka-exporter | v1.11.0 |
+
+- 插件依赖带入的 mimetype v1.4.15 已被上游撤回；安装时看到了撤回提示，改用未撤回的 v1.4.16。其他间接版本由 go.mod/go.sum 固定。
+- 每个进程独立创建注册表和 TracerProvider，不修改全局 OTel 状态。通过构造参数或启动前注册把依赖交给适配器，单元测试不需要连接监控后端。
+- 所有 Prometheus 采集器由统一 registerer 添加 service。HTTP 标签使用模板路由；未知路径与未知方法分别合并，订单号、幂等键和 trace ID 不进入指标标签。
+- Kafka span 手动传播 W3C traceparent/tracestate；SQL 用插件记录模板而不记录绑定参数，Redis 关闭原始命令记录。日志写出时读取当前 span，避免子操作还打印入口 span ID。
+- 沿用用户对 `needs_review` 的授权，补齐第 5.8.5 节遗漏的该标签值。它只计进入待核对的次数，重复读取不再增加。缓存读取错误单列 error，不能伪装为正常未命中。
+- 消费仓储多返回一个 duplicate 标识，消费层据此区分 processed 和 duplicate；直到位点提交成功才记录成功，任何中途失败记 failed。原来的事务顺序和去重行为保持不变。
+- 订单提交后的 Kafka 发送按用户要求改用 WithoutCancel 加独立超时，保留上下文值。它只能缩小客户端取消造成的漏发窗口，不能替代 Outbox；进程崩溃或 Kafka 故障仍可能缺消息。
+- Jaeger 使用内存后端，最多五千条 trace；默认根请求采样十分之一，已有父节点则跟随父节点。目的是控制本机资源。放弃全量长时间追踪和引入额外存储；配置可以改为全采样做短时实验。
+- 只读 metrics 数据库账号限制三个连接，只有 PROCESS、REPLICATION CLIENT 和指定库 SELECT。已有业务卷用同一个初始化脚本补建账号，不删除数据卷。Grafana 密码、监控账号密码和推送令牌从环境读取。
+- Alloy 需要 Docker socket 发现和读取日志。只挂给采集器，并明确 `:ro` 不是 Docker API 的权限隔离；医生不会获得该挂载。日志采集过滤到 opsdoctor 项目的五个 Go 服务，不顺带收集其他项目。
+
+配置参考：[Jaeger v2 配置](https://www.jaegertracing.io/docs/2.22/deployment/configuration/)、[Alloy Docker 日志源](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.docker/)、[MySQL exporter](https://github.com/prometheus/mysqld_exporter)。按本阶段固定版本实测，不把最新版文档中的示例当成已通过的配置。

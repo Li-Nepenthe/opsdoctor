@@ -23,26 +23,19 @@ import (
 	"os"
 	"time"
 
-	inventoryv1 "github.com/Li-Nepenthe/opsdoctor/gen/inventory/v1"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/adminserver"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/httpx"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/lifecycle"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/logging"
-	"github.com/Li-Nepenthe/opsdoctor/internal/platform/mysqlx"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/resilience"
-	"github.com/Li-Nepenthe/opsdoctor/internal/shop/events"
-	"github.com/Li-Nepenthe/opsdoctor/internal/shop/inventoryclient"
-	"github.com/Li-Nepenthe/opsdoctor/internal/shop/migrations"
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/order"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/product"
 	"github.com/gin-gonic/gin"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/redis/go-redis/v9"
+	"go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/connectivity"
-	"google.golang.org/grpc/credentials/insecure"
 )
 
 // 装配时使用固定的资源边界。业务超时仍由 config.go 中的环境变量决定。
@@ -53,7 +46,7 @@ const (
 	headerTimeout    = 3 * time.Second  // 请求头很小，限制慢速发送者占住连接的时间。
 	idleTimeout      = 30 * time.Second // 短期复用 HTTP 连接，长期空闲后回收。
 	processingMargin = time.Second      // 给时钟偏差和最后的状态写回留出余量。
-	cleanupSteps     = 3                // 最慢失败路径依次补偿、删除占位、标记待核对。
+	cleanupSteps     = 3                // 失败时补偿、删占位、待核对；成功时发消息、存结果、待核对。
 	shutdownMargin   = 5 * time.Second  // 在最慢业务路径之外给连接排空留余量。
 )
 
@@ -63,77 +56,29 @@ func Run(parent context.Context) (result error) {
 	if err != nil {
 		return err
 	}
-	logger := logging.New(os.Stdout, "order-service", slog.LevelInfo)
+	observability, err := telemetry.New(parent, "order-service")
+	if err != nil {
+		return err
+	}
+	defer func() { result = errors.Join(result, observability.Shutdown(parent)) }()
+	settings.Database.TracerProvider = observability.Provider
+	logger := logging.New(os.Stdout, observability.Service, slog.LevelInfo)
 	ctx, stop := lifecycle.Notify(parent)
 	defer stop()
 	startup, cancel := context.WithTimeout(ctx, startupTimeout)
 	defer cancel()
-	database, err := mysqlx.Open(startup, settings.Database)
+	// Run 只持有整组依赖的关闭责任。具体连接顺序放在 dependencies.go，失败时也会清理。
+	resources, err := openDependencies(startup, settings, observability, logger)
 	if err != nil {
 		return err
 	}
-	defer func() { result = errors.Join(result, database.Close()) }()
-	if err := migrations.Apply(startup, database); err != nil {
-		return err
-	}
-	// 禁止 Redis 自动重试：SET NX 响应丢失时，重发可能把“已经占位”误当成另一个请求。
-	redisClient := redis.NewClient(&redis.Options{Addr: settings.RedisAddress, MaxRetries: -1, DialTimeout: redisIOTimeout, ReadTimeout: redisIOTimeout, WriteTimeout: redisIOTimeout, ContextTimeoutEnabled: true, PoolSize: redisPoolSize})
-	defer func() { result = errors.Join(result, redisClient.Close()) }()
-	if err := redisClient.Ping(startup).Err(); err != nil {
-		return fmt.Errorf("启动时无法访问 Redis")
-	}
-	connection, err := grpc.NewClient(settings.InventoryTarget, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDisableRetry())
-	if err != nil {
-		return fmt.Errorf("创建库存连接：%w", err)
-	}
-	defer func() { result = errors.Join(result, connection.Close()) }()
-	if err := connectInventory(startup, connection); err != nil {
-		return err
-	}
-	stock, err := inventoryclient.New(inventoryv1.NewInventoryServiceClient(connection), settings.Inventory, logger)
+	defer func() { result = errors.Join(result, resources.close()) }()
+	httpServer, admin, processingBudget, err := servers(settings, resources, logger, observability)
 	if err != nil {
 		return err
 	}
-	if err := events.EnsureTopic(startup, settings.KafkaBrokers); err != nil {
-		return err
-	}
-	publisher := events.NewPublisher(settings.KafkaBrokers)
-	defer func() { result = errors.Join(result, publisher.Close()) }()
-	cache, err := product.NewRedisCache(redisClient, settings.CacheJitter)
-	if err != nil {
-		return err
-	}
-	products := product.NewService(product.NewMySQLRepository(database), cache, stock, settings.Singleflight, logger)
-	// 最慢路径可能经历补偿、删占位和标记待核对三次收尾。再留一秒时钟与调度余量。
-	processingBudget := settings.HTTPBudget + cleanupSteps*settings.CleanupBudget + processingMargin
-	idempotency, err := order.NewRedisIdempotency(redisClient, settings.IdempotencyTTL, processingBudget)
-	if err != nil {
-		return err
-	}
-	registry := prometheus.NewRegistry()
-	reviews, err := newReviewRecorder(logger, registry)
-	if err != nil {
-		return err
-	}
-	orders := order.NewService(order.NewMySQLRepository(database), products, stock, publisher, idempotency, reviews, settings.CleanupBudget, logger)
-	router, err := routes(settings, products, orders, logger)
-	if err != nil {
-		return err
-	}
-	httpServer := &http.Server{Addr: settings.HTTPAddress, Handler: router, ReadHeaderTimeout: headerTimeout, ReadTimeout: settings.HTTPBudget, WriteTimeout: processingBudget + processingMargin, IdleTimeout: idleTimeout}
-	admin := adminserver.New(settings.AdminAddress, func(probe context.Context) error {
-		if err := database.PingContext(probe); err != nil {
-			return err
-		}
-		return redisClient.Ping(probe).Err()
-	})
-	// 本阶段只导出用户指定的待核对计数，未注册其他默认运行时或进程指标。
-	adminMux := http.NewServeMux()
-	adminMux.Handle("/", admin.Handler)
-	adminMux.Handle("GET /metrics", promhttp.HandlerFor(registry, promhttp.HandlerOpts{}))
-	admin.Handler = adminMux
 	cancel()
-	logger.Info("订单服务配置已加载", "version", "phase-02", "http_addr", settings.HTTPAddress, "admin_addr", settings.AdminAddress,
+	logger.Info("订单服务配置已加载", "version", telemetry.Version, "http_addr", settings.HTTPAddress, "admin_addr", settings.AdminAddress,
 		"rate_limit_rps", settings.RateRPS, "rate_limit_burst", settings.RateBurst, "request_timeout", settings.HTTPBudget.String(),
 		"inventory_timeout", settings.Inventory.Timeout.String(), "getstock_max_retries", settings.Inventory.Retry.MaxRetries,
 		"retry_backoff", settings.Inventory.Retry.Backoff.String(), "breaker_enabled", settings.Inventory.Breaker.Enabled,
@@ -160,14 +105,22 @@ func connectInventory(ctx context.Context, connection *grpc.ClientConn) error {
 	}
 }
 
-// routes 先安装请求标识和恢复，再限流、限制正文与时间，最后才进入业务。
-func routes(settings Config, products *product.Service, orders *order.Service, logger *slog.Logger) (*gin.Engine, error) {
+// routes 最外层建立 span 并计时，连被限流拒绝的请求也能被观测到。
+// 请求标识和恢复位于业务之前，确保普通错误响应也能带上关联信息。
+func routes(settings Config, products *product.Service, orders *order.Service, logger *slog.Logger, observability *telemetry.Runtime) (*gin.Engine, error) {
 	limit, err := resilience.RateLimit(settings.RateRPS, settings.RateBurst)
 	if err != nil {
 		return nil, err
 	}
 	router := gin.New()
-	router.Use(httpx.RequestIDs(logger), httpx.Recovery(logger), limit, httpx.BodyLimit(httpx.DefaultBodyLimit), resilience.RequestBudget(settings.HTTPBudget))
+	// 外层监控负责看见所有结果，内层保护负责把 panic、限流和超时变成明确响应。
+	router.Use(
+		otelgin.Middleware(observability.Service,
+			otelgin.WithTracerProvider(observability.Provider), otelgin.WithPropagators(observability.Propagator)),
+		observability.Metrics.HTTPMiddleware(),
+		httpx.RequestIDs(logger), httpx.Recovery(logger), limit,
+		httpx.BodyLimit(httpx.DefaultBodyLimit), resilience.RequestBudget(settings.HTTPBudget),
+	)
 	productHandler, orderHandler := product.NewHandler(products), order.NewHandler(orders)
 	router.GET("/products/:id", productHandler.Get)
 	router.POST("/orders", orderHandler.Create)

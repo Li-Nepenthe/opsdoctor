@@ -68,4 +68,9 @@ func (breaker *Breaker) Execute(operation func() error) error {
 }
 
 // State 读取底层状态，测试用它检查恢复过程，而不是猜测内部计数。
-func (breaker *Breaker) State() string { return breaker.inner.State().String() }
+func (breaker *Breaker) State() string {
+	if !breaker.enabled {
+		return "closed" // 禁用时不会拒绝流量，不能把旧的内部状态显示成仍在保护。
+	}
+	return breaker.inner.State().String()
+}

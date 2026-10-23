@@ -16,6 +16,7 @@ package loadgen
 import (
 	"context"
 	"crypto/rand"
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
 	"log/slog"
 	mathrand "math/rand/v2"
 	"net/http"
@@ -53,22 +54,23 @@ type job struct {
 
 // generator 把调度数据和发送依赖放在一起，随机源只允许 schedule 所在 goroutine 使用。
 type generator struct {
-	settings Config         // 构造后固定的目标、超时和工作者数量。
-	control  *controlState  // 控制接口修改速率与热点，内部用锁保护。
-	client   *http.Client   // 复用连接，所有工作者共享。
-	stats    *statistics    // 统计内部保护并发写入。
-	logger   *slog.Logger   // 十秒报告与最终报告均输出 JSON。
-	random   *mathrand.Rand // 只在调度循环中使用。
-	zipf     *mathrand.Zipf // 与 random 同属一个调度循环。
-	runID    string         // 每次运行的随机前缀，避免重启后重复使用旧幂等键。
-	sequence uint64         // 仅调度循环增加，和 runID 一起组成键。
+	settings Config             // 构造后固定的目标、超时和工作者数量。
+	control  *controlState      // 控制接口修改速率与热点，内部用锁保护。
+	client   *http.Client       // 复用连接，所有工作者共享。
+	metrics  *telemetry.Metrics // app 注入指标，与日志统计同时记下每次尝试。
+	stats    *statistics        // 统计内部保护并发写入。
+	logger   *slog.Logger       // 十秒报告与最终报告均输出 JSON。
+	random   *mathrand.Rand     // 只在调度循环中使用。
+	zipf     *mathrand.Zipf     // 与 random 同属一个调度循环。
+	runID    string             // 每次运行的随机前缀，避免重启后重复使用旧幂等键。
+	sequence uint64             // 仅调度循环增加，和 runID 一起组成键。
 }
 
 // newGenerator 用 v=100 分散最热的一小组商品，仍让它们远比长尾商品常见。
 // 这样阶段 1 每件商品的一百件库存能承受五分钟基准。指定 hot_sku_id 则可集中到一个商品。
-func newGenerator(settings Config, control *controlState, client *http.Client, logger *slog.Logger) *generator {
+func newGenerator(settings Config, control *controlState, client *http.Client, logger *slog.Logger, metrics *telemetry.Metrics) *generator {
 	random := mathrand.New(mathrand.NewPCG(mathrand.Uint64(), mathrand.Uint64()))
-	return &generator{settings: settings, control: control, client: client, logger: logger, random: random,
+	return &generator{metrics: metrics, settings: settings, control: control, client: client, logger: logger, random: random,
 		zipf: mathrand.NewZipf(random, zipfShape, zipfOffset, uint64(settings.ProductCount-1)), runID: rand.Text(), stats: newStatistics(time.Now())}
 }
 

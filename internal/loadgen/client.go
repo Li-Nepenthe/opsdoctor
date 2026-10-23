@@ -30,6 +30,13 @@ func (generator *generator) execute(ctx context.Context, value job) {
 		started := time.Now()
 		failed, timedOut := generator.attempt(ctx, value)
 		generator.stats.record(value.kind, time.Since(started), failed)
+		result := "success"
+		if failed {
+			result = "failed"
+		}
+		// 数组下标来自内部枚举，标签只会有三种操作，不使用实际 URL。
+		operation := [...]string{"product", "order", "list"}[value.kind]
+		generator.metrics.Loadgen.WithLabelValues(operation, result).Inc()
 		if value.kind != orderRequest || !timedOut || ctx.Err() != nil {
 			return
 		}

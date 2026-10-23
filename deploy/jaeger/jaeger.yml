@@ -1,0 +1,42 @@
+# 单进程内存存储适合本机演练。最多保留五千条 trace，重启后清空，不宣称长期存档。
+extensions:
+  jaeger_storage:
+    backends:
+      memory:
+        memory:
+          max_traces: 5000
+  jaeger_query:
+    storage:
+      traces: memory
+    http:
+      endpoint: 0.0.0.0:16686
+  healthcheckv2:
+    use_v2: true
+    http:
+      endpoint: 0.0.0.0:13133
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+processors:
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 400 # 小于容器 512 MiB，给 Go 和网络缓冲留余量。
+    spike_limit_mib: 80
+  batch:
+    timeout: 1s
+    send_batch_size: 512
+exporters:
+  jaeger_storage_exporter:
+    trace_storage: memory
+service:
+  extensions: [jaeger_storage, jaeger_query, healthcheckv2]
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [jaeger_storage_exporter]
+  telemetry:
+    logs:
+      level: info

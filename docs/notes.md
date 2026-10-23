@@ -1,5 +1,69 @@
 # 实测记录
 
+<a id="phase-03"></a>
+
+## 2026-10-23：阶段 3 开发记录
+
+首次监控栈启动遇到两个实际问题：Loki 3.7.9 精简镜像没有 wget，容器里的服务可运行，但复制来的健康探测报 executable not found，导致 Alloy 依赖等待失败。去掉无法执行的镜像内探测，改由宿主机与 CI 访问 /ready，Alloy 使用自身重试等待 Loki。另一个是 Jaeger 2.22.0 已移除 /api/services；直接请求为 404，Grafana 的 Jaeger 数据源健康 API 也实测为 400 + request failed: 404。已查官方发布说明和未关闭问题 #87，按计划书第 2.2 节询问是否例外固定兼容的 2.20.0，尚未擅自改版本。
+
+用户确认阶段 2 后，检查干净工作区，拉取远端，将阶段 2 合入 main 并推送。main 已有的权限边界和阶段 9 OpenSearch 计划更新一并保留；新分支为 phase-03-observability。完整读完合并后的 1986 行计划书。
+
+先修复订单提交后的消息发送取消问题：用 WithoutCancel 保留值，另加 cleanupTimeout。测试在 repository.Create 返回时取消原请求，检查 Publish 仍可执行、含有限 deadline、保留上下文值。相关订单回归通过。
+
+随后接入统一注册表、显式 Provider、HTTP/gRPC/SQL/Redis 追踪和 Kafka 传播。第一轮编译提示需要 go mod tidy，整理模块后通过。首次 commentcheck 指出 doc.go 缺新文件、telemetry.NewMetrics 缺内部讲解，逐项补齐。全仓库无外部依赖的普通测试通过，最终 race 与真实依赖验收另记。
+
+监控镜像版本从官方稳定发布查询并固定，九个镜像已全部拉取成功。首次 Compose 启动前只补了本机 .env 缺少的随机凭据，没有打印或覆盖已有值。保留已有 MySQL、Redis、Kafka 数据卷，loadgen 设置 QPS=0。旧 MySQL 卷不会再次运行 init，因此手动运行 004_metrics_user.sh 补建只读监控账号，执行成功。
+
+
+### 管道与故障验收（07:29–07:52，America/Los_Angeles）
+
+源码基线 `9e0d78c23b0e2f2f904ffb576c9aca7ed48d4707`，阶段 3 工作区；最终阶段提交会包含这些变更。默认采样 0.1，验证请求显式发送 W3C traceparent 的采样标志 01，保证这次实验可查。时间记录区分宿主机与容器；本次观察到两者约差 12 秒，告警耗时使用宿主机 monotonic 计时，不混减两台时钟。
+
+- 真实下单：用户 880000303、商品 499997、数量 1，HTTP 201，订单 2038577，金额 1999 分。trace ID `de18cb3a9dd94612b021dc9c4ff56854`。
+- `GET http://127.0.0.1:16686/api/traces/<trace-id>` 返回 29 个 span，属于 order-service、inventory-service、order-worker。覆盖 HTTP、Redis、gRPC 客户端/服务端、库存 SQL、订单 SQL、Kafka 发送/消费、销量 SQL。消费 span `ae1ce99c2028c91a` 的父节点为生产 span `f7caf9152ff30ab1`。库存服务端父节点等于订单侧 gRPC 客户端 span。
+- 通过 Grafana `/api/datasources/proxy/uid/loki/loki/api/v1/query_range` 查询 `{service=~"order-service|inventory-service|order-worker"} | json | trace_id="de18cb3a9dd94612b021dc9c4ff56854"`，得到三个服务的三条日志。每条有该 trace ID、各自 span ID；启动日志不属于这条请求。
+- 读取 Grafana `/api/dashboards/uid/shop-overview`，按返回的十二个面板配置逐个提交 `/api/ds/query`。十二个面板均无查询错误、含非空数据：QPS、P99、错误率、连接池、缓存命中率、消费积压、goroutine、进程内存、熔断、重试、连接池等待、幂等。
+- Prometheus `/api/v1/targets` 八个目标全部 UP；另查 `mysql_up=1`、`redis_up=1`，证明 exporter 不只是端口能访问。
+- 目标 200 QPS 时执行 `docker compose --env-file .env -f deploy/docker-compose.yml stop order-worker`。从发起停止到 alertsink 收到 `ConsumerLagHigh` 为 **167.064 秒**，小于三分钟。约第 31.754 秒首次观察到 lag=1183；告警要求 >1000 持续两分钟，还需评估和分组等待。
+- 原始接收日志：容器时间 `2026-10-23T14:35:40.576248984Z`，level=INFO，status=firing，alertname=ConsumerLagHigh，alert_service=order-worker。恢复 worker 后 `14:36:40.572312443Z` 收到同名 resolved。没有把另一个 ServiceUnavailable 告警混作积压告警。
+- 流量已暂停为 QPS=0。最终 lag=0，`go run ./cmd/shopctl check` 输出 `ordered_quantity=2066809 sold_quantity=2066809 gap=0`。本次没有删除数据卷、清除幂等记录、重新造数或补库存。
+
+### 全栈内存快照（07:42:54）
+
+命令 `docker stats --no-stream --format '{{json .}}'`，只汇总本项目的 17 个容器。采样时控制参数为 QPS=200、hot_sku_id=0。Docker 看到 16 个逻辑 CPU、16294768640 字节内存（约 15.18 GiB）。**实际容器内存合计 1938.2 MiB，约 1.89 GiB**；配置上限合计 5056 MiB，约 4.94 GiB。快照不是峰值，也不包括整个 Docker 虚拟机、Windows、镜像缓存的全部内存。MySQL 当时为 680.5/768 MiB，不能仅按总空闲量断言每个容器都有同样余量。
+
+| 容器 | 实际内存 | 上限 |
+|---|---:|---:|
+| alertmanager | 13.19MiB | 64MiB |
+| alertsink | 14.85MiB | 64MiB |
+| alloy | 70.71MiB | 256MiB |
+| grafana | 183.9MiB | 256MiB |
+| inventory-service | 14.98MiB | 128MiB |
+| jaeger | 196.5MiB | 512MiB |
+| kafka | 420.2MiB | 1GiB |
+| kafka-exporter | 13.8MiB | 64MiB |
+| loadgen | 16.68MiB | 128MiB |
+| loki | 166.1MiB | 512MiB |
+| mysqld-exporter | 10.09MiB | 64MiB |
+| order-service | 25.18MiB | 256MiB |
+| order-worker | 14.53MiB | 128MiB |
+| prometheus | 41.59MiB | 512MiB |
+| redis | 44.1MiB | 256MiB |
+| redis-exporter | 11.3MiB | 64MiB |
+| shop-mysql | 680.5MiB | 768MiB |
+
+这次流量用于填充看板与故障验收，不是新的无故障性能基准。压测器累计记录包含开始前暂停时间和实验过程：1144.235817297 秒、156073 次尝试、98 错误、57 dropped、累计平均 136.39933101262935 QPS、P50=3ms、P99=30ms。不能拿目标 200 替换这个实际累计均值，也不能把混合实验的 P99 与阶段 2 基准直接作性能提升比较。阶段 2 五分钟结果仍保留在原章节。
+
+### 代码与配置回归
+
+订单 app 接入插件后变长，按计划拆成 dependencies.go 的连接准备与 servers.go 的服务装配。原有的打开顺序、失败清理、排空后关闭依赖顺序保留；重新构建订单和库存容器，均 healthy。新增测试验证发布时请求取消仍保留值与有效预算、子 span 覆盖旧日志关联、管理端点、消费分类、Kafka 传播、HTTP/RPC 指标和告警令牌校验。
+
+最终一轮无外部依赖检查：gofmt 无输出，go vet、staticcheck、commentcheck、archcheck 均退出 0。commentcheck=147 个非生成 Go 文件。`go test -race ./... -count=1 -timeout=180s -json`：75 个顶层测试通过，16 个集成测试因未注入环境明确跳过，25 个有测试包通过。
+
+单独注入六个专用测试库与 TEST_REDIS_ADDR 后，16 个 Integration 测试全部通过，包括 20 次相同消息中 19 次被识别为重复。本机旧 .env 缺 ORDER/SALES 两个 DSN；首次脚本在读缺少的键时退出。随后回退替换写法不能匹配不带查询参数的 DSN，被自动审批拒绝，测试没有执行。修正为从已有 TEST_MYSQL_DSN 分离库名、明确写入新库名，并逐个校验后才执行。没有对 shop 执行测试清理。
+
+CI 已增加八个采集目标、exporter 后端连接、Loki 就绪、三数据源健康、看板、跨服务 trace 与日志的冒烟。YAML 及三个内嵌 Python 段语法通过；尚未推送，不能声称远端 CI 通过。Grafana/Jaeger 兼容问题待用户决定，工程验收尚未全部完成。
+
 <a id="phase-02"></a>
 
 ## 2026-10-23：阶段 2 开工记录

@@ -94,7 +94,7 @@
 从仓库根目录运行，PowerShell 和 bash 的完整示例见 [README](README.md)。
 
 - 首次准备：PowerShell 执行 `Copy-Item .env.example .env`；bash 执行 `cp .env.example .env`。已有 `.env` 不要覆盖。
-- 启动三个服务、压测工具与基础依赖：`docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240`（首次空库先设 `LOADGEN_QPS=0`，造数后再通过控制接口开始流量）
+- 启动三个服务、压测工具、基础依赖与监控栈：`docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240`（首次空库先设 `LOADGEN_QPS=0`，造数后再通过控制接口开始流量）
 - 查看健康状态：`docker compose --env-file .env -f deploy/docker-compose.yml ps`
 - 停止并保留数据：`docker compose --env-file .env -f deploy/docker-compose.yml down`
 - 安装检查工具：`go install honnef.co/go/tools/cmd/staticcheck@v0.8.2`

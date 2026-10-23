@@ -1,0 +1,33 @@
+# 十秒抓取一次足够观察本机的分钟级症状，也不会让监控本身频繁争抢数据库连接。
+global:
+  scrape_interval: 10s
+  scrape_timeout: 5s
+  evaluation_interval: 10s
+rule_files:
+  - /etc/prometheus/rules/*.yml
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: [alertmanager:9093]
+scrape_configs:
+  - job_name: shop
+    honor_labels: true # 应用已经添加 service，保留它，不产生 exported_service。
+    static_configs:
+      - targets: [order-service:6061]
+        labels: {service: order-service}
+      - targets: [inventory-service:6062]
+        labels: {service: inventory-service}
+      - targets: [order-worker:6063]
+        labels: {service: order-worker}
+      - targets: [loadgen:6070]
+        labels: {service: loadgen}
+      - targets: [alertsink:8091]
+        labels: {service: alertsink}
+  - job_name: middleware
+    static_configs:
+      - targets: [mysqld-exporter:9104]
+        labels: {service: shop-mysql}
+      - targets: [redis-exporter:9121]
+        labels: {service: redis}
+      - targets: [kafka-exporter:9308]
+        labels: {service: kafka}

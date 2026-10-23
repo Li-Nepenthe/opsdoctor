@@ -15,17 +15,15 @@ import (
 	"log/slog"
 	"testing"
 
-	"github.com/prometheus/client_golang/prometheus"
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 )
 
 // TestReviewRecorder 验证调用一次便同时产生告警和计数，避免接口接上了却没有实际记录。
 func TestReviewRecorder(t *testing.T) {
 	var output bytes.Buffer
-	registry := prometheus.NewRegistry()
-	recorder, err := newReviewRecorder(slog.New(slog.NewJSONHandler(&output, nil)), registry)
-	if err != nil {
-		t.Fatal(err)
-	}
+	registry := telemetry.NewMetrics("order-service")
+	recorder := newReviewRecorder(slog.New(slog.NewJSONHandler(&output, nil)), registry)
 	recorder.RecordReview(t.Context(), 123, 456, "request-1", "deduct_outcome_unknown")
 	var entry map[string]any
 	if err := json.Unmarshal(output.Bytes(), &entry); err != nil {
@@ -35,11 +33,19 @@ func TestReviewRecorder(t *testing.T) {
 		t.Fatalf("告警字段不完整：%v", entry)
 	}
 	// Gather 返回真实注册表里的值，检查的不是一个单独的测试计数变量。
-	metrics, err := registry.Gather()
-	if err != nil || len(metrics) != 1 {
+	metrics, err := registry.Registry.Gather()
+	if err != nil || len(metrics) == 0 {
 		t.Fatalf("指标注册：%v %v", metrics, err)
 	}
-	family := metrics[0]
+	if testutil.ToFloat64(registry.Idempotency.WithLabelValues("needs_review")) != 1 {
+		t.Fatal("待核对未计入统一注册表")
+	}
+	var family = metrics[0]
+	for _, candidate := range metrics {
+		if candidate.GetName() == "idempotency_requests_total" {
+			family = candidate
+		}
+	}
 	if family.GetName() != "idempotency_requests_total" || len(family.Metric) != 1 || family.Metric[0].GetCounter().GetValue() != 1 {
 		t.Fatalf("指标内容：%v", family)
 	}

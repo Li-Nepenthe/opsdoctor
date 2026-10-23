@@ -8,3 +8,12 @@ Compose 负责基础设施与已实现服务，配置文件按组件归类。不
 - [mysql](mysql/README.md)：首次建库与测试权限。
 
 阅读建议：从 [docker-compose.yml](docker-compose.yml) 看服务依赖、端口和健康检查；密码从根目录被忽略的 .env 注入。
+
+阶段 3 新增：
+
+- [prometheus](prometheus/README.md)：指标采集与症状规则。
+- [jaeger](jaeger/README.md)：调用链接收与查询。
+- [loki](loki/README.md)：日志存储。
+- [alloy](alloy/README.md)：容器日志采集。
+- [grafana](grafana/README.md)：数据源与看板。
+- [alertmanager](alertmanager/README.md)：分组和带令牌推送。

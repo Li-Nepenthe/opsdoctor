@@ -1,6 +1,6 @@
 // 本文件：记录下单进入“结果待核对”的告警与计数。
 //
-// 这是用户明确要求在阶段 2 实现的一个指标。其余监控与调用链仍留给阶段 3。
+// 阶段 2 的待核对计数现在使用统一注册表，与普通幂等结果放在同一指标中。
 // order 通过 ReviewRecorder 接口调用这里，不直接导入 Prometheus。
 //
 // 主要内容：
@@ -15,6 +15,8 @@ import (
 	"context"
 	"log/slog"
 
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
+
 	"github.com/prometheus/client_golang/prometheus"
 )
 
@@ -25,14 +27,10 @@ type reviewRecorder struct {
 }
 
 // newReviewRecorder 使用 app 自己的注册表，不污染全局注册表，也便于测试重复创建服务。
-func newReviewRecorder(logger *slog.Logger, registry *prometheus.Registry) (*reviewRecorder, error) {
-	counter := prometheus.NewCounterVec(prometheus.CounterOpts{Name: "idempotency_requests_total", Help: "进入幂等结果待核对状态的次数。", ConstLabels: prometheus.Labels{"service": "order-service"}}, []string{"result"})
-	if err := registry.Register(counter); err != nil {
-		return nil, err
-	}
-	needsReview := counter.WithLabelValues("needs_review")
+func newReviewRecorder(logger *slog.Logger, metrics *telemetry.Metrics) *reviewRecorder {
+	needsReview := metrics.Idempotency.WithLabelValues("needs_review")
 	needsReview.Add(0) // 没有待核对事件时也导出零值，便于确认采集路径已经接通。
-	return &reviewRecorder{logger: logger, needsReview: needsReview}, nil
+	return &reviewRecorder{logger: logger, needsReview: needsReview}
 }
 
 // RecordReview 使用固定原因分类，不把原始连接错误、DSN 或请求体写入告警。

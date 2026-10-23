@@ -8,6 +8,7 @@
 //   - TestCreateFailureBoundaries：验证每个失败位置的补偿和待核对规则。
 //   - TestConcurrentIdempotency：重复请求并发进入，只有一个实际创建订单。
 //   - TestCompensationSurvivesCancellation：上游取消后仍给补偿有限预算。
+//   - TestPublishSurvivesCancellation：订单提交后客户断开，仍发送消息并保留上下文里的值。
 //   - TestValidateCreate：无效参数在扣库存前被拒绝。
 //
 // 阅读建议：先读失败表格旁的解释，再对照 Create 中对应的分支。
@@ -91,14 +92,44 @@ func (stock *fakeStock) Release(ctx context.Context, _ int64, _ int32) error {
 
 // fakePublisher 记录发送次数，发送失败不应让订单再创建一次。
 type fakePublisher struct {
-	calls atomic.Int32 // 用于断言重复请求不会再次发布。
-	err   error        // 模拟 Kafka 暂时不可用。
+	calls     atomic.Int32          // 用于断言重复请求不会再次发布。
+	err       error                 // 模拟 Kafka 暂时不可用。
+	onPublish func(context.Context) // 在发送时检查请求取消是否错误地传到了收尾操作。
 }
 
 // Publish 不处理消息内容，因为字段编码由 events 包的测试负责。
-func (publisher *fakePublisher) Publish(context.Context, events.OrderCreated) error {
+func (publisher *fakePublisher) Publish(ctx context.Context, _ events.OrderCreated) error {
 	publisher.calls.Add(1)
+	if publisher.onPublish != nil {
+		publisher.onPublish(ctx)
+	}
 	return publisher.err
+}
+
+// TestPublishSurvivesCancellation 模拟数据库刚提交，客户端就断开连接的时刻。
+func TestPublishSurvivesCancellation(t *testing.T) {
+	value := newFixture()
+	type requestKey struct{} // 自己的键类型不会和其他包保存的上下文值混在一起。
+	ctx, cancel := context.WithCancel(context.WithValue(context.Background(), requestKey{}, "trace-value"))
+	defer cancel()
+	value.repository.onCreate = cancel
+	value.publisher.onPublish = func(publishCtx context.Context) {
+		// 必须真的发生过取消，否则这个测试无法重现旧代码的失败条件。
+		if ctx.Err() == nil || publishCtx.Err() != nil {
+			t.Fatalf("请求应已取消，消息应仍可发送：request=%v publish=%v", ctx.Err(), publishCtx.Err())
+		}
+		deadline, ok := publishCtx.Deadline()
+		if !ok || time.Until(deadline) <= 0 || time.Until(deadline) > value.service.cleanupTimeout {
+			t.Fatal("消息发送必须有独立且有限的预算")
+		}
+		if publishCtx.Value(requestKey{}) != "trace-value" {
+			t.Fatal("消息上下文丢失了请求保存的值")
+		}
+	}
+	_, err := value.service.Create(ctx, CreateRequest{UserID: 1, SKUID: 1, Quantity: 1}, "after-commit")
+	if err != nil || value.publisher.calls.Load() != 1 || value.store.value.State != stateCompleted {
+		t.Fatalf("提交后的消息与幂等收尾未完成：err=%v publish=%d state=%s", err, value.publisher.calls.Load(), value.store.value.State)
+	}
 }
 
 // fakeReviews 统计进入待核对的次数，重复读取同一状态不应重复计数。

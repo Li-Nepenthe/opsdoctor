@@ -1,0 +1,34 @@
+# 这里只写用户能观察到的症状。规则不能预先给出“索引被删了”之类的原因。
+groups:
+  - name: shop-symptoms
+    rules:
+      - alert: OrderLatencyHigh
+        expr: histogram_quantile(0.99, sum by (service, le) (rate(http_server_request_duration_seconds_bucket{service="order-service",route="/orders",method="POST"}[1m]))) > 1
+        for: 1m # 连续一分钟才报，过滤偶尔一次慢请求。
+        labels: {severity: warning}
+        annotations:
+          summary: 下单接口 P99 持续超过一秒
+      - alert: HTTPErrorRateHigh
+        expr: sum by (service) (rate(http_server_request_duration_seconds_count{status=~"5.."}[1m])) / sum by (service) (rate(http_server_request_duration_seconds_count[1m])) > 0.05
+        for: 1m
+        labels: {severity: warning}
+        annotations:
+          summary: 服务端错误比例持续超过百分之五
+      - alert: ConsumerLagHigh
+        expr: sum(kafka_consumergroup_lag{consumergroup="order-worker",topic="order.created"}) > 1000
+        for: 2m # 默认约 40 笔订单/秒，积压到门槛再持续两分钟，总计应小于三分钟。
+        labels: {service: order-worker, severity: warning}
+        annotations:
+          summary: 订单消息积压持续超过一千条
+      - alert: GoroutinesGrowing
+        expr: deriv(go_goroutines{service=~"order-service|inventory-service|order-worker"}[2m]) > 1
+        for: 1m # 一分钟持续每秒增长超过一个，避免把短暂并发增加当成泄漏原因。
+        labels: {severity: warning}
+        annotations:
+          summary: 服务 goroutine 数持续上涨
+      - alert: ServiceUnavailable
+        expr: up{job="shop",service=~"order-service|inventory-service|order-worker"} == 0
+        for: 30s
+        labels: {severity: warning}
+        annotations:
+          summary: 服务管理端口连续无法采集

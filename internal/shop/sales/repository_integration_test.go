@@ -61,17 +61,33 @@ func TestIntegrationDuplicateSales(t *testing.T) {
 	database := integrationDatabase(t)
 	repository := NewMySQLRepository(database)
 	event := events.OrderCreated{OrderID: 1, UserID: 1, SKUID: 1, Quantity: 3, AmountCents: 300, CreatedAt: time.Now().UTC()}
-	results := make(chan error, 20)
+	type outcome struct {
+		duplicate bool  // 已处理过的消息不再增加销量，但应单独计数。
+		err       error // 数据库失败和正常重复不能混为一谈。
+	}
+	results := make(chan outcome, 20)
 	start := make(chan struct{})
 	for range 20 {
-		go func() { <-start; results <- repository.Apply(t.Context(), event) }()
+		go func() {
+			<-start
+			duplicate, err := repository.Apply(t.Context(), event)
+			results <- outcome{duplicate: duplicate, err: err}
+		}()
 	}
 	close(start)
 	// 收齐结果后再读销量，避免把仍在处理中的消息误当成漏统计。
+	duplicates := 0
 	for range 20 {
-		if err := <-results; err != nil {
-			t.Fatal(err)
+		result := <-results
+		if result.err != nil {
+			t.Fatal(result.err)
 		}
+		if result.duplicate {
+			duplicates++
+		}
+	}
+	if duplicates != 19 {
+		t.Fatalf("重复次数=%d，预期只有首次写入不是重复", duplicates)
 	}
 	var sold, processed int64
 	if err := database.QueryRowContext(t.Context(), "SELECT sold FROM product_sales WHERE sku_id = 1").Scan(&sold); err != nil {
@@ -94,7 +110,7 @@ func TestIntegrationSalesRollback(t *testing.T) {
 	}
 	repository := NewMySQLRepository(database)
 	event := events.OrderCreated{OrderID: 1, SKUID: 1, Quantity: 1}
-	if err := repository.Apply(t.Context(), event); err == nil {
+	if _, err := repository.Apply(t.Context(), event); err == nil {
 		t.Fatal("溢出没有失败")
 	}
 	var count int
@@ -105,7 +121,7 @@ func TestIntegrationSalesRollback(t *testing.T) {
 	if _, err := database.ExecContext(t.Context(), "UPDATE product_sales SET sold = 0 WHERE sku_id = 1"); err != nil {
 		t.Fatal(err)
 	}
-	if err := repository.Apply(t.Context(), event); err != nil {
+	if _, err := repository.Apply(t.Context(), event); err != nil {
 		t.Fatal(err)
 	}
 	var sold int64

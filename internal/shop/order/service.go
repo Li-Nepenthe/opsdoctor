@@ -132,7 +132,13 @@ func (service *Service) Create(ctx context.Context, request CreateRequest, key s
 		return Created{}, service.safeFailure(ctx, reservation, err)
 	}
 	event := events.OrderCreated{OrderID: saved.OrderID, UserID: saved.UserID, SKUID: saved.SKUID, Quantity: saved.Quantity, AmountCents: saved.AmountCents, CreatedAt: saved.CreatedAt}
-	if err := service.publisher.Publish(ctx, event); err != nil {
+	// 订单已经提交，发送消息也是收尾工作，不能因为客户断开连接就放弃。
+	// WithoutCancel 保留请求中的值（包括调用链），只去掉原来的取消信号和 deadline。
+	// 再加自己的超时，避免 Kafka 不可用时一直占住处理请求的 goroutine。
+	publishCtx, cancelPublish := context.WithTimeout(context.WithoutCancel(ctx), service.cleanupTimeout)
+	publishErr := service.publisher.Publish(publishCtx, event)
+	cancelPublish()
+	if publishErr != nil {
 		// 订单已经存在，消息失败不能再当作下单失败重做。这一缺口留给人工核对，不实现 Outbox。
 		service.logger.WarnContext(ctx, "订单已创建，但创建消息未确认发送", "order_id", saved.OrderID, "sku_id", saved.SKUID)
 	}

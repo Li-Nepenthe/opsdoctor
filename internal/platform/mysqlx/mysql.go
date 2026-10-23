@@ -16,7 +16,10 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/XSAM/otelsql"
 	"github.com/go-sql-driver/mysql"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // 这些超时控制网络和资源回收。它们不代替每次请求自己的 context deadline。
@@ -29,10 +32,11 @@ const (
 
 // Config 描述一个服务独占的连接池，实际环境变量在服务 app 包读取。
 type Config struct {
-	DSN             string        // DSN 来自 MYSQL_DSN 或 DOCTOR_MYSQL_DSN，包含密码，禁止写日志。
-	MaxOpenConns    int           // DB_MAX_OPEN_CONNS，必须大于 0，限制同一服务的并发连接数。
-	MaxIdleConns    int           // DB_MAX_IDLE_CONNS，范围为 0 到 MaxOpenConns。
-	ConnMaxLifetime time.Duration // DB_CONN_MAX_LIFETIME，必须大于 0，单位为 Duration。
+	DSN             string               // DSN 来自 MYSQL_DSN 或 DOCTOR_MYSQL_DSN，包含密码，禁止写日志。
+	MaxOpenConns    int                  // DB_MAX_OPEN_CONNS，必须大于 0，限制同一服务的并发连接数。
+	MaxIdleConns    int                  // DB_MAX_IDLE_CONNS，范围为 0 到 MaxOpenConns。
+	ConnMaxLifetime time.Duration        // DB_CONN_MAX_LIFETIME，必须大于 0，单位为 Duration。
+	TracerProvider  trace.TracerProvider // app 注入调用链；命令行与原有连接测试可留空。
 }
 
 // Open 创建连接池并 Ping 验证可达性。最多等待 connectTimeout 或更短的 ctx deadline。
@@ -47,7 +51,16 @@ func Open(ctx context.Context, config Config) (*sql.DB, error) {
 	if err != nil {
 		return nil, fmt.Errorf("创建 MySQL 连接器：配置不合法")
 	}
-	database := sql.OpenDB(connector)
+	var database *sql.DB
+	if config.TracerProvider == nil {
+		// 手动管理命令不需要启动追踪后台任务，保留普通连接方式。
+		database = sql.OpenDB(connector)
+	} else {
+		// 插件记录带 ? 的 SQL 模板，不记录参数值。诊断需要知道慢在哪条 SQL，但不需要业务行内容。
+		database = otelsql.OpenDB(connector, otelsql.WithTracerProvider(config.TracerProvider),
+			otelsql.WithAttributes(attribute.String("db.system.name", "mysql"), attribute.String("db.namespace", driverConfig.DBName)),
+			otelsql.WithSpanOptions(otelsql.SpanOptions{OmitConnResetSession: true, OmitRows: true, OmitConnectorConnect: true, DisableErrSkip: true}))
+	}
 	database.SetMaxOpenConns(config.MaxOpenConns)
 	database.SetMaxIdleConns(config.MaxIdleConns)
 	database.SetConnMaxLifetime(config.ConnMaxLifetime)

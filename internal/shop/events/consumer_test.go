@@ -7,6 +7,7 @@
 //   - TestConsumerCommitOrder：验证失败不提交、重复送达可再次提交。
 //   - TestConsumerFinishesCurrentMessage：收到停止信号仍做完当前消息。
 //   - TestRejectInvalidMessage：拒绝损坏内容和与订单编号不符的 key。
+//   - TestConsumerObservations：从消息头延续 trace，并按实际处理结果计数。
 //
 // 阅读建议：先看提交时的断言，它比“函数最后返回 nil”更能证明处理顺序。
 
@@ -22,7 +23,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
+	"github.com/prometheus/client_golang/prometheus/testutil"
 	"github.com/segmentio/kafka-go"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // fakeReader 在同一个消费 goroutine 中使用，不需要为这些计数器加锁。
@@ -32,6 +36,43 @@ type fakeReader struct {
 	committed int                   // 成功提交了几次。
 	commitErr error                 // 非空时模拟 broker 未确认提交。
 	onCommit  func(context.Context) // 提交时检查数据库是否已经完成。
+}
+
+// TestConsumerObservations 检查真正进入 process 的上下文，防止只测传播器却忘了消费时提取。
+func TestConsumerObservations(t *testing.T) {
+	for _, testcase := range []struct {
+		name      string // 对应指标结果。
+		duplicate bool   // 数据库明确告诉消费者是否已处理。
+		commitErr error  // 提交失败时即使数据库已成功也不能记 processed。
+	}{
+		{"processed", false, nil},              // 新订单完成数据库与位点提交。
+		{"duplicate", true, nil},               // 重复消息也需要提交当前位点。
+		{"failed", false, errors.New("未确认位点")}, // 保留失败，等待后续重投。
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			reader := &fakeReader{commitErr: testcase.commitErr}
+			consumer := testConsumer(t, reader, func(context.Context, OrderCreated) error { return nil })
+			parent, producer := consumer.telemetry.Provider.Tracer("test").Start(t.Context(), "publish")
+			defer producer.End()
+			headers := telemetry.KafkaHeaders{}
+			consumer.telemetry.Propagator.Inject(parent, &headers)
+			message := testMessage(t)
+			message.Headers = headers
+			consumer.handle = func(ctx context.Context, _ OrderCreated) (bool, error) {
+				span := trace.SpanContextFromContext(ctx)
+				if span.TraceID() != producer.SpanContext().TraceID() || span.SpanID() == producer.SpanContext().SpanID() {
+					t.Error("消费者没有创建同一 trace 下的新操作")
+				}
+				return testcase.duplicate, nil
+			}
+			if err := consumer.process(t.Context(), message); (err != nil) != (testcase.commitErr != nil) {
+				t.Fatalf("处理结果=%v", err)
+			}
+			if testutil.ToFloat64(consumer.telemetry.Metrics.Messages.WithLabelValues(OrderCreatedTopic, testcase.name)) != 1 {
+				t.Fatal("结果计数错误")
+			}
+		})
+	}
 }
 
 // FetchMessage 队列为空时等待取消，模拟消费者平时没有新消息的状态。
@@ -71,7 +112,18 @@ func testMessage(t *testing.T) kafka.Message {
 // testConsumer 把日志送到 Discard，让预期失败不会混进测试输出。
 func testConsumer(t *testing.T, reader *fakeReader, handle func(context.Context, OrderCreated) error) *Consumer {
 	t.Helper()
-	consumer, err := NewConsumer(reader, handle, time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
+	runtime, err := telemetry.New(t.Context(), "consumer-test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() {
+		if err := runtime.Shutdown(context.Background()); err != nil {
+			t.Error(err)
+		}
+	})
+	// 旧用例只关注处理顺序，新用例另外覆盖 duplicate 指标。
+	consumer, err := NewConsumer(reader, func(ctx context.Context, event OrderCreated) (bool, error) { return false, handle(ctx, event) }, time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)), runtime)
 	if err != nil {
 		t.Fatal(err)
 	}

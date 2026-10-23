@@ -11,3 +11,5 @@
 - [shopctl](shopctl/main.go)：造数、手动调用库存和只读核对销量。
 
 阅读建议：沿 main 中唯一的 app 调用往里读；不要为后续阶段提前建立空入口。
+
+- [alertsink](alertsink/main.go)：阶段 3 的临时告警通知入口。

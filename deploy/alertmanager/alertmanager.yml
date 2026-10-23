@@ -1,0 +1,18 @@
+# 同一服务的同类症状合成一次通知，减少一场故障同时产生的大量推送。
+route:
+  receiver: alertsink
+  group_by: [alertname, service]
+  group_wait: 5s
+  group_interval: 15s
+  repeat_interval: 1h
+receivers:
+  - name: alertsink
+    webhook_configs:
+      - url: http://alertsink:8091/api/v1/alerts
+        send_resolved: true
+        max_alerts: 100
+        http_config:
+          authorization:
+            type: Bearer
+            # 启动时从环境变量写入容器的临时内存文件，仓库里不保存令牌。
+            credentials_file: /run/secrets/alert-token

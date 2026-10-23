@@ -26,8 +26,10 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/lifecycle"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/logging"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/mysqlx"
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/inventory"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/migrations"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"google.golang.org/grpc"
 )
 
@@ -37,7 +39,13 @@ func Run(parent context.Context) (result error) {
 	if err != nil {
 		return err
 	}
-	logger := logging.New(os.Stdout, "inventory-service", slog.LevelInfo)
+	observability, err := telemetry.New(parent, "inventory-service")
+	if err != nil {
+		return err
+	}
+	defer func() { result = errors.Join(result, observability.Shutdown(parent)) }()
+	settings.Database.TracerProvider = observability.Provider
+	logger := logging.New(os.Stdout, observability.Service, slog.LevelInfo)
 	ctx, stop := lifecycle.Notify(parent)
 	defer stop()
 	// 启动使用独立的短预算。成功后取消它释放定时器，不能把它传给长期运行的服务器。
@@ -48,16 +56,19 @@ func Run(parent context.Context) (result error) {
 		return err
 	}
 	defer func() { result = errors.Join(result, database.Close()) }()
+	if err := observability.Metrics.Database(database, "shop"); err != nil {
+		return err
+	}
 	if err := migrations.Apply(startup, database); err != nil {
 		return fmt.Errorf("迁移 shop：%w", err)
 	}
 	cancel()
-	server := grpc.NewServer(grpc.ChainUnaryInterceptor(grpcx.Logging(logger), grpcx.Recovery(logger)))
+	server := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler(otelgrpc.WithTracerProvider(observability.Provider), otelgrpc.WithPropagators(observability.Propagator))), grpc.ChainUnaryInterceptor(observability.Metrics.Server(), grpcx.Logging(logger), grpcx.Recovery(logger)))
 	service := inventory.NewService(inventory.NewMySQLStockRepository(database))
 	inventoryv1.RegisterInventoryServiceServer(server, inventory.NewGRPCServer(service))
-	admin := adminserver.New(settings.AdminAddress, database.PingContext)
+	admin := adminserver.New(settings.AdminAddress, database.PingContext, observability.Metrics.Registry)
 	// 只输出无敏感信息的生效参数。日志中不出现 DSN 或整个配置结构体。
-	logger.Info("库存服务配置已加载", "grpc_addr", settings.GRPCAddress, "admin_addr", settings.AdminAddress,
+	logger.Info("库存服务配置已加载", "version", telemetry.Version, "grpc_addr", settings.GRPCAddress, "admin_addr", settings.AdminAddress,
 		"db_max_open_conns", settings.Database.MaxOpenConns, "db_max_idle_conns", settings.Database.MaxIdleConns,
 		"db_conn_max_lifetime", settings.Database.ConnMaxLifetime.String())
 	return serve(ctx, settings.GRPCAddress, server, admin, logger)

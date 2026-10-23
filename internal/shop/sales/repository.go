@@ -42,11 +42,12 @@ func NewMySQLRepository(database *sql.DB) *MySQLRepository {
 	return &MySQLRepository{database: database}
 }
 
-// Apply 的 result 是具名返回值。defer 在函数返回前还能修改它，用来保留回滚失败的信息。
-func (repository *MySQLRepository) Apply(ctx context.Context, event events.OrderCreated) (result error) {
+// Apply 返回的 duplicate 表示已经记过这笔订单，消费者因此能区分“新增”和“重复”。
+// result 是具名返回值，defer 可以把回滚失败也保留在最终错误里。
+func (repository *MySQLRepository) Apply(ctx context.Context, event events.OrderCreated) (duplicate bool, result error) {
 	tx, err := repository.database.BeginTx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("开始销量事务：%w", err)
+		return false, fmt.Errorf("开始销量事务：%w", err)
 	}
 	defer func() {
 		// 成功 Commit 后 Rollback 返回 ErrTxDone，这是正常的清理路径。
@@ -60,18 +61,18 @@ func (repository *MySQLRepository) Apply(ctx context.Context, event events.Order
 		var mysqlError *mysql.MySQLError
 		if errors.As(err, &mysqlError) && mysqlError.Number == 1062 {
 			// 已有凭据说明此前事务已提交。本次不再加销量，回滚这个空事务即可。
-			return nil
+			return true, nil
 		}
-		return fmt.Errorf("登记已处理订单：%w", err)
+		return false, fmt.Errorf("登记已处理订单：%w", err)
 	}
 	if _, err := tx.ExecContext(ctx, addSalesSQL, event.SKUID, event.Quantity, event.Quantity); err != nil {
-		return fmt.Errorf("累加商品销量：%w", err)
+		return false, fmt.Errorf("累加商品销量：%w", err)
 	}
 	// 即使 Commit 的响应丢失，下一次也会通过主键去重，安全地重复处理。
 	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("提交销量事务：%w", err)
+		return false, fmt.Errorf("提交销量事务：%w", err)
 	}
-	return nil
+	return false, nil
 }
 
 // Check 只查询总量，不修改任何订单或销量，也不会把差值自动修正成零。

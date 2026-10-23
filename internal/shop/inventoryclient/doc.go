@@ -6,6 +6,7 @@
 // 文件清单：
 //   - doc.go：说明谁使用本包，以及连接由谁管理。
 //   - inventory_client.go：为库存调用加超时、重试和熔断，并转换错误。
+//   - metrics.go：登记熔断状态与实际查询重试次数。
 //   - inventory_client_test.go：用假的 RPC 客户端检查调用次数和错误分类。
 //
 // 建议先读 GetStock，再比较 Deduct 和 Release 为什么没有重试。

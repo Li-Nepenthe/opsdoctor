@@ -26,6 +26,7 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/lifecycle"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/logging"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/mysqlx"
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/app"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/events"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/migrations"
@@ -56,7 +57,13 @@ func Run(parent context.Context) (result error) {
 		}
 		brokers[index] = broker
 	}
-	logger := logging.New(os.Stdout, "order-worker", slog.LevelInfo)
+	observability, err := telemetry.New(parent, "order-worker")
+	if err != nil {
+		return err
+	}
+	defer func() { result = errors.Join(result, observability.Shutdown(parent)) }()
+	databaseConfig.TracerProvider = observability.Provider
+	logger := logging.New(os.Stdout, observability.Service, slog.LevelInfo)
 	ctx, stop := lifecycle.Notify(parent)
 	defer stop()
 	startup, cancel := context.WithTimeout(ctx, startupTimeout)
@@ -66,6 +73,9 @@ func Run(parent context.Context) (result error) {
 		return err
 	}
 	defer func() { result = errors.Join(result, database.Close()) }()
+	if err := observability.Metrics.Database(database, "shop"); err != nil {
+		return err
+	}
 	if err := migrations.Apply(startup, database); err != nil {
 		return err
 	}
@@ -75,14 +85,14 @@ func Run(parent context.Context) (result error) {
 	kafkaReader := events.NewReader(brokers)
 	defer func() { result = errors.Join(result, kafkaReader.Close()) }()
 	service := sales.NewService(sales.NewMySQLRepository(database))
-	consumer, err := events.NewConsumer(kafkaReader, service.Handle, messageTimeout, logger)
+	consumer, err := events.NewConsumer(kafkaReader, service.Handle, messageTimeout, logger, observability)
 	if err != nil {
 		return err
 	}
-	admin := adminserver.New(address, database.PingContext)
+	admin := adminserver.New(address, database.PingContext, observability.Metrics.Registry)
 	cancel()
 	// 只输出生效参数，不输出 DSN。消费组名固定，重启才能接着上次的位置读。
-	logger.Info("订单消费者配置已加载", "version", "phase-02", "admin_addr", address, "group", "order-worker", "message_timeout", messageTimeout.String())
+	logger.Info("订单消费者配置已加载", "version", telemetry.Version, "admin_addr", address, "group", "order-worker", "message_timeout", messageTimeout.String())
 	return serve(ctx, consumer, admin, messageTimeout+shutdownMargin, logger)
 }
 

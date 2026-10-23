@@ -2,7 +2,7 @@
 
 用 Go 构建可复现的微服务故障靶场，再逐步实现带证据报告的故障诊断 Agent。
 
-当前是**阶段 2：订单服务、缓存与消息**。已有商品缓存、订单 HTTP 接口、库存 gRPC、Kafka 销量消费、压测控制和服务治理。按用户要求提供待核对幂等请求的计数，其余指标、调用链和医生能力留到后续阶段。最新验收状态以[进度看板](进度.md)为准。
+当前是**阶段 3：可观测性与告警**。订单、库存、销量消费已接入指标、调用链和关联日志。Grafana 看板、消费积压告警与临时接收器用于观察真实靶场，医生系统尚未开发。最新验收状态以[进度看板](进度.md)为准。
 
 - 唯一需求来源：[项目计划书](项目计划书.md)
 - 开发规则：[AGENTS.md](AGENTS.md)
@@ -12,11 +12,11 @@
 - 阶段 0：[汇报书](docs/reports/phase-00-foundation.md)、[学习材料](docs/learn/phase-00-foundation.md)
 - 阶段 1：[汇报书](docs/reports/phase-01-inventory.md)、[学习材料](docs/learn/phase-01-inventory.md)
 
-## 启动阶段 2 环境
+## 启动阶段 3 环境
 
 需要 Go **1.27.1**、已启动的 Docker Desktop（Linux containers）。Windows 运行 `-race` 还需要 gcc 在 PATH 中、`CGO_ENABLED=1`。新装工具后重新打开终端。
 
-所有命令都从仓库根目录运行。仅第一次复制示例文件，不覆盖你已经配置的 `.env`。
+所有命令都从仓库根目录运行。仅第一次复制示例文件，不覆盖你已经配置的 `.env`。已有配置需参照 `.env.example` 补上 `GRAFANA_ADMIN_PASSWORD`、`MYSQL_EXPORTER_PASSWORD`、至少 32 字符的 `ALERT_WEBHOOK_TOKEN`；三者都使用你自己的本机值。Grafana 的环境密码只用于首次创建管理员，已有数据卷不会随环境变量自动改密码。
 
 PowerShell：
 
@@ -36,7 +36,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait
 docker compose --env-file .env -f deploy/docker-compose.yml ps
 ```
 
-应该看到 `inventory-service`、`order-service`、`order-worker`、`loadgen`、`shop-mysql`、`redis`、`kafka` 全部 `healthy`。显式指定 `--env-file .env`，避免 Compose 从 `deploy/` 找错配置。首次构建需要下载固定版本 Go/Alpine 镜像和模块。
+应该看到 17 个容器运行，有健康探测的容器显示 `healthy`。部分官方精简镜像没有探测命令，`--wait` 对这类容器只能确认进程运行；还要按下方命令确认 Loki 就绪、采集目标和数据源可用。显式指定 `--env-file .env`，避免 Compose 从 `deploy/` 找错配置。首次构建需要下载固定版本 Go/Alpine 镜像和模块。
 
 端口仅映射到 `127.0.0.1`：3306、6379、9092、订单 HTTP 8081、库存 gRPC 9001、三个服务管理端口 6061/6062/6063、压测控制 6070。管理端口的 `/health` 应返回 `ok`。服务自动迁移五张 shop 表，创建或检查三分区 `order.created` 主题，但不自动造数。容器内 Kafka 地址是 `kafka:29092`，宿主机是 `127.0.0.1:9092`。
 
@@ -49,6 +49,39 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 ```
 
 `.env.example` 只含演示假值；`.env` 和 `.obsidian/` 被 Git 忽略。不要把实际密码、API Key 或 Token 写进代码、日志或提交。
+
+## 查看指标、调用链、日志与告警
+
+已有阶段 2 数据卷不会重跑 MySQL 初始化脚本。第一次升级保留卷并补建监控账号：
+
+```text
+docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/004_metrics_user.sh
+```
+
+脚本从容器环境取密码，账号只能读监控需要的数据。它不会修改已经存在的账号密码。Prometheus 的 `mysql_up` 应为 1，只有 exporter 的 `up=1` 还不能证明它能登录 MySQL。
+
+| 入口 | 用途 |
+|---|---|
+| http://127.0.0.1:3000 | Grafana，用户名 admin，密码来自本机环境；打开 shop 总览 |
+| http://127.0.0.1:9090/targets | Prometheus，应有八个采集目标，全部 UP |
+| http://127.0.0.1:16686 | Jaeger，查看一笔请求经过的服务与操作 |
+| http://127.0.0.1:9093 | Alertmanager，查看触发与恢复的告警 |
+| http://127.0.0.1:3100/ready | Loki，返回 ready 才能开始日志验收 |
+| http://127.0.0.1:6061/metrics | 订单服务指标；库存、消费者分别使用 6062、6063 |
+| http://127.0.0.1:6061/debug/pprof/goroutine?debug=1 | 订单进程当前 goroutine；只在管理端口开放 |
+
+Grafana Explore 选择 Loki，用 `{service="order-service"} | json` 查看日志。拿到某条日志的 trace_id 后，用 `{service=~"order-service|inventory-service|order-worker"} | json | trace_id="填入实际值"` 查整条请求；点击 TraceID 可跳转调用链。默认根请求采样 10%，没有被采样的请求仍有日志，但 Jaeger 里没有保存它的 span。启动日志没有所属请求，因此不会有 trace ID。
+
+采集和导出都需要一点时间。开始流量后，给看板的两分钟速率窗口留出时间。`http_server_request_duration_seconds_count` 是 HTTP 请求数，P99 由桶计算，只是近似值。熔断状态用 0/1/2 表示关闭/半开/打开；待核对计数已经并入统一注册表。
+
+告警只报告“延迟高、错误多、积压、goroutine 增长、采集目标不可达”等症状。`alertsink` 的日志应出现 `ConsumerLagHigh`，不能把 `ServiceUnavailable` 当成消费积压验收通过。
+
+```text
+docker compose --env-file .env -f deploy/docker-compose.yml logs --since 5m alertsink
+docker stats --no-stream
+```
+
+Prometheus 保留七天且最多 1 GB 数据，Loki 保留 48 小时；Jaeger 使用内存保存最近 5000 条 trace，重启会清空。所有发布端口仅绑定 `127.0.0.1`。Alloy 独占日志采集所需的 Docker socket；挂载 `:ro` 不会把 Docker API 变成只读权限，不能把这个挂载交给后续医生程序。
 
 ## 检查代码
 
@@ -169,7 +202,7 @@ Invoke-RestMethod 'http://127.0.0.1:8081/orders?user_id=1001&page=1&page_size=20
 
 两次下单都返回 201，同一个订单编号与金额。处理中返回 409 `REQUEST_IN_PROGRESS`；结果不确定返回 409 `REQUEST_OUTCOME_UNKNOWN`，这时应核对日志和订单，不能换一个键重做。幂等键可选，但不带键就没有请求去重保证。同一键改变用户、商品或数量返回 400。
 
-待核对日志包含 `order_id`、`sku_id`、`idempotency_key`。`order_id=0` 表示尚未得到订单号。`http://127.0.0.1:6061/metrics` 提供本阶段明确要求的 `idempotency_requests_total{result="needs_review",service="order-service"}`；计数随进程重启归零，不替代日志记录。
+待核对日志包含 `order_id`、`sku_id`、`idempotency_key`。`order_id=0` 表示尚未得到订单号。`http://127.0.0.1:6061/metrics` 的统一注册表继续提供 `idempotency_requests_total{result="needs_review",service="order-service"}`；计数随进程重启归零，不替代日志记录。
 
 ## 控制压测与核对销量
 
@@ -199,7 +232,7 @@ go run ./cmd/shopctl check
 go run ./cmd/loadgen --qps 200 --duration 5m --control 127.0.0.1:6071
 ```
 
-本阶段在 Compose 内部网络完成了无少发的基准，显式使用 256 个工作者。下面这条命令使用已有容器中的二进制，6071 是容器内部的临时控制端口。先确认主 loadgen 的 QPS 为 0，并等命令输出 `scope=total` 后再开始其他故障实验：
+阶段 2 在 Compose 内部网络完成了无少发的基准，显式使用 256 个工作者。下面这条命令使用已有容器中的二进制，6071 是容器内部的临时控制端口。先确认主 loadgen 的 QPS 为 0，并等命令输出 `scope=total` 后再开始其他故障实验：
 
 ```text
 docker compose --env-file .env -f deploy/docker-compose.yml exec -T loadgen /app/server --qps 200 --duration 5m --workers 256 --control :6071
@@ -226,9 +259,9 @@ buf generate
 - 下单仍有跨服务一致性缺口：补偿可能失败；订单已写入但发消息失败会少统计销量。本阶段不实现 Outbox。
 - 扣库存超时不一定代表没有扣成功。根治需要 Deduct 自身携带请求 ID 去重，本阶段不改这个 RPC 契约。
 - 结果待核对须人工检查。Redis 暂时不能写状态时，原占位超过完整处理预算后会转成待核对；幂等窗口过去或数据卷丢失后不再保证去重。
-- 认证尚未接线；日志的 trace/span 字段只是关联信息载体，OpenTelemetry 在阶段 3 接入。
+- 认证尚未接线；监控入口仅用于本机实验，不能直接暴露到公网。
 - 迁移是一文件一条 SQL，要求可重入；DDL 隐式提交，不保证整批迁移原子回滚。
 - `archcheck` 检查可静态识别的导入、路径和 embed；它不是运行时文件访问沙箱。
 - Compose 是单节点、本机实验环境，不提供生产级高可用；Redis 幂等保存依赖本机持久卷，内存满时拒绝新写入。
 
-本阶段的[汇报书](docs/reports/phase-02-order.md)和[学习材料](docs/learn/phase-02-order.md)记录交付、实际失败与恢复过程。结束后停止开发，等待你学习并决定何时进入阶段 3。
+阶段 2 的[汇报书](docs/reports/phase-02-order.md)和[学习材料](docs/learn/phase-02-order.md)保留原有验收记录；阶段 3 的完成状态见顶部进度链接。

@@ -24,6 +24,9 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/lifecycle"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/logging"
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
+	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
 // 控制请求很小，单独限制它的等待时间，不借用业务压测的超时配置。
@@ -59,14 +62,17 @@ func Run(parent context.Context, arguments []string, reader config.Reader, outpu
 		MaxIdleConns: settings.Workers, MaxIdleConnsPerHost: settings.Workers, MaxConnsPerHost: settings.Workers, IdleConnTimeout: clientIdleTimeout, ResponseHeaderTimeout: settings.RequestTimeout}
 	defer transport.CloseIdleConnections()
 	control := &controlState{settings: controlSettings{QPS: settings.QPS}, productCount: settings.ProductCount}
-	generator := newGenerator(settings, control, &http.Client{Transport: transport}, logger)
-	server := &http.Server{Addr: settings.ControlAddress, Handler: controlRouter(control, generator.stats, logger), ReadHeaderTimeout: controlRequestTimeout, ReadTimeout: controlRequestTimeout, WriteTimeout: controlRequestTimeout, IdleTimeout: clientIdleTimeout}
+	metrics := telemetry.NewMetrics("loadgen")
+	generator := newGenerator(settings, control, &http.Client{Transport: transport}, logger, metrics)
+	router := controlRouter(control, generator.stats, logger)
+	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{})))
+	server := &http.Server{Addr: settings.ControlAddress, Handler: router, ReadHeaderTimeout: controlRequestTimeout, ReadTimeout: controlRequestTimeout, WriteTimeout: controlRequestTimeout, IdleTimeout: clientIdleTimeout}
 	finished := make(chan error, 2) // HTTP 与调度循环各写一次，主流程收齐。
 	go func() { finished <- server.Serve(listener) }()
 	go func() { generator.run(ctx); finished <- nil }()
 	reportsDone := make(chan struct{})
 	go func() { printWindows(ctx, generator.stats, logger); close(reportsDone) }()
-	logger.Info("压测已启动", "version", "phase-02", "target_qps", settings.QPS, "products", settings.ProductCount, "workers", settings.Workers, "duration", settings.Duration.String(), "zipf_s", zipfShape, "zipf_v", zipfOffset)
+	logger.Info("压测已启动", "version", telemetry.Version, "target_qps", settings.QPS, "products", settings.ProductCount, "workers", settings.Workers, "duration", settings.Duration.String(), "zipf_s", zipfShape, "zipf_v", zipfOffset)
 	var result error
 	remaining := 2
 	select {
