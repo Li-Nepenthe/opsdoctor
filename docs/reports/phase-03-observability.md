@@ -79,8 +79,8 @@
 |---|---|---:|---:|
 | [.env.example](../../.env.example) | 环境变量名称与演示值 | 87 | +10 / −0 |
 | [.github/workflows/ci.yml](../../.github/workflows/ci.yml) | 固定 runner 上增加观测管道冒烟 | 197 | +60 / −2 |
-| [AGENTS.md](../../AGENTS.md) | AGENTS.md | 114 | +1 / −1 |
-| [README.md](../../README.md) | 所在目录的职责、入口与操作说明 | 267 | +41 / −8 |
+| [AGENTS.md](../../AGENTS.md) | AGENTS.md | 115 | +1 / −1 |
+| [README.md](../../README.md) | 所在目录的职责、入口与操作说明 | 267 | +42 / −9 |
 | [cmd/README.md](../../cmd/README.md) | 所在目录的职责、入口与操作说明 | 15 | +2 / −0 |
 | [cmd/alertsink/main.go](../../cmd/alertsink/main.go) | 命令薄入口 | 19 | +19 / −0 |
 | [deploy/README.md](../../deploy/README.md) | 所在目录的职责、入口与操作说明 | 19 | +9 / −0 |
@@ -110,9 +110,10 @@
 | [deploy/prometheus/rules/shop.yml](../../deploy/prometheus/rules/shop.yml) | 这里只写用户能观察到的症状。规则不能预先给出“索引被删了”之类的原因。 | 34 | +34 / −0 |
 | [docs/decisions.md](../../docs/decisions.md) | 设计决定 | 155 | +36 / −0 |
 | [docs/learn/phase-03-observability.md](../../docs/learn/phase-03-observability.md) | 阶段 3 学习材料：可观测性与告警 | 393 | +393 / −0 |
-| [docs/notes.md](../../docs/notes.md) | 实测记录 | 374 | +64 / −0 |
-| [docs/reports/phase-03-observability.md](../../docs/reports/phase-03-observability.md) | 阶段 3 汇报书：可观测性与告警 | 431 | +431 / −0 |
-| [docs/代码地图.md](../../docs/代码地图.md) | OpsDoctor 代码地图 | 206 | +206 / −5 |
+| [docs/notes.md](../../docs/notes.md) | 实测记录 | 378 | +68 / −0 |
+| [docs/reports/phase-03-observability.md](../../docs/reports/phase-03-observability.md) | 阶段 3 汇报书：可观测性与告警 | 434 | +434 / −0 |
+| [docs/代码地图.md](../../docs/代码地图.md) | OpsDoctor 代码地图 | 206 | +20 / −5 |
+| [docs/数据台账.md](../../docs/数据台账.md) | 数据台账 | 70 | +17 / −0 |
 | [go.mod](../../go.mod) | 固定 Go 直接和间接依赖 | 80 | +39 / −18 |
 | [go.sum](../../go.sum) | 依赖内容校验和 | 199 | +85 / −37 |
 | [internal/loadgen/app.go](../../internal/loadgen/app.go) | 启动压测进程，管理控制端口、统计输出和退出。 | 119 | +9 / −3 |
@@ -157,8 +158,8 @@
 | [internal/shop/sales/repository.go](../../internal/shop/sales/repository.go) | 在一个 MySQL 事务里完成订单去重和销量累加。 | 86 | +9 / −8 |
 | [internal/shop/sales/repository_integration_test.go](../../internal/shop/sales/repository_integration_test.go) | 在真实 MySQL 中验证销量去重与事务回滚。 | 152 | +22 / −6 |
 | [internal/shop/sales/service.go](../../internal/shop/sales/service.go) | 在处理订单消息之前验证业务字段。 | 38 | +5 / −4 |
-| [进度.md](../../进度.md) | OpsDoctor 进度看板 | 163 | +163 / −8 |
-| [项目计划书.md](../../项目计划书.md) | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 | 1991 | +1991 / −4 |
+| [进度.md](../../进度.md) | OpsDoctor 进度看板 | 163 | +10 / −10 |
+| [项目计划书.md](../../项目计划书.md) | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 | 2021 | +10 / −3 |
 <!-- PHASE_FILES_END -->
 
 按改动包列出新增导出成员与关键函数。既有函数若接线变化较大也保留，便于逐行学习；普通不变成员不重复列出。
@@ -391,6 +392,8 @@ CI YAML 和三个内嵌 Python 脚本语法通过。远端 CI 尚未运行，不
 | 完整监控栈接线 | 待完成 | Grafana 的 Jaeger 数据源对 2.22.0 返回 404，等待兼容版本决定 |
 
 以上运行命令、时间、原始数值和限制见 [notes 阶段 3](../notes.md#phase-03)。最终暂停流量后 lag=0，`ordered_quantity=2066809 sold_quantity=2066809 gap=0`。
+
+本阶段台账条目为 [P3-1 至 P3-10](../数据台账.md#阶段-3可观测性与告警验收进行中)，包含成功结果、混合实验错误和版本兼容失败。
 
 全栈内存快照：17 个容器实际合计 **1938.2 MiB，约 1.89 GiB**，配置上限合计 5056 MiB。采样时目标流量 200 QPS，Docker 可见 16 逻辑 CPU、约 15.18 GiB 内存。MySQL 占 680.5/768 MiB，Grafana 183.9/256 MiB；其余逐容器值见 notes。这个快照说明本次能运行，不是峰值上界，也不包括 Windows 与 Docker 虚拟机的全部开销。
 

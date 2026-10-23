@@ -56,11 +56,15 @@
 
 ### 代码与配置回归
 
+整理清单时发现本地 main 已新增 171f2ed（后续多系统计划）与 e6139da（数据台账规范）。先以 482aa22 保存阶段 3 实现，再把 main 合入本阶段分支。环境变量表一处冲突保留两代约定：阶段 3 的 ALERT_WEBHOOK_TOKEN 继续用于临时接收器，阶段 5 才启用 SHOP_ALERT_TOKEN 和 TARGETS_DIR。收尾流程改为九步，新增本阶段台账 P3-1 至 P3-10。未修改或推送 main。
+
 订单 app 接入插件后变长，按计划拆成 dependencies.go 的连接准备与 servers.go 的服务装配。原有的打开顺序、失败清理、排空后关闭依赖顺序保留；重新构建订单和库存容器，均 healthy。新增测试验证发布时请求取消仍保留值与有效预算、子 span 覆盖旧日志关联、管理端点、消费分类、Kafka 传播、HTTP/RPC 指标和告警令牌校验。
 
 最终一轮无外部依赖检查：gofmt 无输出，go vet、staticcheck、commentcheck、archcheck 均退出 0。commentcheck=147 个非生成 Go 文件。`go test -race ./... -count=1 -timeout=180s -json`：75 个顶层测试通过，16 个集成测试因未注入环境明确跳过，25 个有测试包通过。
 
 单独注入六个专用测试库与 TEST_REDIS_ADDR 后，16 个 Integration 测试全部通过，包括 20 次相同消息中 19 次被识别为重复。本机旧 .env 缺 ORDER/SALES 两个 DSN；首次脚本在读缺少的键时退出。随后回退替换写法不能匹配不带查询参数的 DSN，被自动审批拒绝，测试没有执行。修正为从已有 TEST_MYSQL_DSN 分离库名、明确写入新库名，并逐个校验后才执行。没有对 shop 执行测试清理。
+
+文档校验：四个最小 Go 示例均编译运行成功；十四段 PowerShell 示例只做语法解析，没有执行其中的故障实验。初版链接检查误把 AGENTS 的行内 Markdown 示例当成真实链接，忽略代码区域后，实际文件链接全部有效。Compose 十七个服务的固定镜像、内存上限、回环端口检查通过；容器内 promtool 检查采集配置与五条规则成功。
 
 CI 已增加八个采集目标、exporter 后端连接、Loki 就绪、三数据源健康、看板、跨服务 trace 与日志的冒烟。YAML 及三个内嵌 Python 段语法通过；尚未推送，不能声称远端 CI 通过。Grafana/Jaeger 兼容问题待用户决定，工程验收尚未全部完成。
 
