@@ -374,7 +374,14 @@ func requirePositive(t *testing.T, value int) {
     t.Helper()
     if value <= 0 { t.Fatalf("需要正数，得到 %d", value) }
 }
-// 测试内：t.Cleanup(func() { /* 释放本测试资源 */ })。
+func TestContext(t *testing.T) {
+    ctx := t.Context()
+    requirePositive(t, 1)
+    t.Cleanup(func() {
+        // testing 在调用 Cleanup 前取消测试 context。
+        if ctx.Err() == nil { t.Error("测试 context 应已取消") }
+    })
+}
 ```
 
 ## 7. 动手实验

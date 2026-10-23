@@ -221,3 +221,22 @@ seed 回滚测试制造订单主键冲突，确认本批先写的商品也回滚
 重新构建当前业务源码的 Compose 成功，`ps --format '{{.Service}} {{.Health}}'` 得到 inventory-service、kafka、redis、shop-mysql 全部 healthy；`Invoke-RestMethod http://127.0.0.1:6062/health` 得到 ok。文档 PowerShell 代码块只做语法解析，没有执行其中的破坏实验；7 段均无语法错误。文件地图和相对文档链接检查通过，忽略的 .env 未纳入 Git，未发现本机真实密码或私钥/令牌模式进入待提交文件。
 
 最终非 Markdown 源文件 93 个，归一化 CRLF 为 LF 后，按路径排序计算每文件 SHA-256，再对 `路径 + TAB + 文件哈希 + LF` 拼接结果计算 SHA-256：`dcda6bee0d7937567b82434b74028c844cca48fc3ff7068c8f7297b3938bff7d`。这个指纹包含代码、测试、协议、部署和 CI，文档后补 CI 链接不会改变它。
+
+### Linux CI 39943928805
+
+[运行链接](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39943928805)，源码提交 `54bd24f024001b57a5b4faa9d974c619957c24d8`。2026-10-23 04:07:53 创建，04:11:29 完成（America/Los_Angeles），结论 success。ubuntu-24.04 / Go 1.27.1 的格式、tidy、vet、staticcheck、两种规则、无外部依赖 race、全新 Compose、真实 MySQL race 与 CLI 冒烟全部通过。
+
+日志摘录：
+
+```text
+100 次并发扣减：成功=50，不足=50，最终库存=0
+100ms deadline：客户端=DeadlineExceeded，服务端=context deadline exceeded，总等待=102.604738ms（原查询 5s）
+small：products=100 orders=400；重跑 skipped=true，已修改库存保持 7
+products=100 stock=100 orders=400 inserted_products=100 skipped=false seed_elapsed=16ms total_elapsed=20ms
+products=100 stock=100 orders=400 inserted_products=0 skipped=true seed_elapsed=3ms total_elapsed=6ms
+sku_id=1 available=100
+sku_id=1 deducted=1
+sku_id=1 available=99
+```
+
+CI 只跑 small，不把它的 20ms 当作全量造数时间。完整规模的 75.651 秒来自前面的本机记录。收尾另对学习材料 10 段 Go 示例在临时模块中补上必要包/导入进行编译：全部通过；t.Context/Cleanup 示例测试也通过。随后只修改文档记录与文件行数清单，不改业务源码或检查工具。

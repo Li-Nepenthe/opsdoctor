@@ -87,8 +87,8 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、staticcheck 0.8.2 与 ub
 | [docs/decisions.md](../../docs/decisions.md) | 92 | +39 / −0 | 设计决定 |
 | [docs/learn/README.md](../../docs/learn/README.md) | 9 | +9 / −0 | 分组目录职责、边界、子目录和阅读入口 |
 | [docs/learn/phase-00-foundation.md](../../docs/learn/phase-00-foundation.md) | 473 | +88 / −15 | 阶段 0 学习材料：先把地基讲清楚 |
-| [docs/learn/phase-01-inventory.md](../../docs/learn/phase-01-inventory.md) | 487 | +487 / −0 | 阶段 1 学习材料：库存服务（gRPC + MySQL） |
-| [docs/notes.md](../../docs/notes.md) | 223 | +95 / −0 | 实测记录 |
+| [docs/learn/phase-01-inventory.md](../../docs/learn/phase-01-inventory.md) | 494 | +494 / −0 | 阶段 1 学习材料：库存服务（gRPC + MySQL） |
+| [docs/notes.md](../../docs/notes.md) | 242 | +114 / −0 | 实测记录 |
 | [docs/reports/README.md](../../docs/reports/README.md) | 9 | +9 / −0 | 分组目录职责、边界、子目录和阅读入口 |
 | [docs/reports/phase-01-inventory.md](../../docs/reports/phase-01-inventory.md) | 540 | +540 / −0 | 阶段 1 汇报书：库存服务（gRPC + MySQL） |
 | [docs/代码地图.md](../../docs/代码地图.md) | 122 | +122 / −0 | OpsDoctor 代码地图 |
@@ -435,7 +435,7 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、staticcheck 0.8.2 与 ub
 |---|---|---|
 | GetStock | sku_id int64 → sku_id int64、available int32 | gRPC 9001 |
 | Deduct / Release | sku_id int64、quantity int32 → 空响应 | gRPC 9001；成功 OK |
-| GET /health | 数据库 Ping；文本 ok / unavailable | HTTP 6062；200 / 503 |
+| GET /health | 数据库 Ping；文本 ok / not ready | HTTP 6062；200 / 503 |
 
 参数错误 InvalidArgument，不存在 NotFound，库存不足 FailedPrecondition，超时 DeadlineExceeded，主动取消 Canceled，暂时数据库故障 Unavailable，其余 Internal。外部只得到固定安全说明，不泄露驱动原始错误。没有指标/pprof/订单 HTTP 接口。
 
@@ -508,7 +508,7 @@ CI 保持 ubuntu-24.04 / Go 1.27.1，新增库存构建、四组隔离数据库�
 | 追加：三层说明与代码地图 | 通过 | 70 个手写文件检查、72 文件地图；目录 README、doc.go 清单和两阶段回放齐全 |
 | Compose 当前源码构建 | 通过 | 四个容器 healthy，/health 与库存 RPC 可用 |
 
-本地结果的环境和版本见 notes；远端 CI 运行链接在推送后补入同一记录。学习验收不由这些测试代替。
+本地结果的环境和版本见 notes。[Linux CI 39943928805](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39943928805) 已成功，验收源码提交为 `54bd24f024001b57a5b4faa9d974c619957c24d8`；包括全新 Compose、真实 MySQL 与 small 两次造数、库存 100 → 99 冒烟。此后的收尾提交只补文档，非 Markdown 源码指纹保持不变。学习验收不由这些测试代替。
 
 ## 六、偏离计划之处
 
