@@ -12,5 +12,6 @@
 - [lifecycle](lifecycle/doc.go)：信号与清理预算。
 - [grpcx](grpcx/doc.go)：gRPC 日志、恢复与停机。
 - [adminserver](adminserver/doc.go)：管理端口健康检查。
+- [resilience](resilience/doc.go)：入口限流、有预算的重试和熔断。
 
-阅读建议：先读 config/mysqlx/lifecycle，理解启动依赖；需要看请求处理时再读 httpx/grpcx。指标和治理包尚未建立。
+阅读建议：先读 config/mysqlx/lifecycle，理解启动依赖；需要看请求处理时再读 httpx/grpcx/resilience。本阶段的待核对计数由 orderservice 装配，完整可观测性包留到阶段 3。

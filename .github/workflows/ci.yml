@@ -14,6 +14,9 @@ jobs:
   quality:
     runs-on: ubuntu-24.04
     timeout-minutes: 20 # 包含首次下载、race 编译和容器初始化，超时直接失败。
+    env:
+      LOADGEN_QPS: "0" # 空库准备期间不发送业务流量，后面单独运行有时长的冒烟压测。
+      LOADGEN_PRODUCT_COUNT: "100" # CI 使用 small 造数，不请求不存在的商品。
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -50,15 +53,15 @@ jobs:
           cp .env.example .env
           docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240
           docker compose --env-file .env -f deploy/docker-compose.yml ps
-      - name: MySQL 集成测试与竞态检查
+      - name: MySQL 和 Redis 集成测试与竞态检查
         # .env.example 只含演示假值；通过环境注入，不把密码写入工作流。
         run: |
           while IFS= read -r line; do
             case "$line" in
-              TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*) export "$line" ;;
+              TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*) export "$line" ;;
             esac
           done < .env
-          go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed -run Integration -count=1 -timeout=90s -v
+          go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -v
       - name: 库存服务与 small 造数冒烟
         run: |
           while IFS= read -r line; do
@@ -71,6 +74,62 @@ jobs:
           go run ./cmd/shopctl stock get --sku 1
           go run ./cmd/shopctl stock deduct --sku 1 --quantity 1
           go run ./cmd/shopctl stock get --sku 1
+      - name: 订单 HTTP、幂等和消息冒烟
+        run: |
+          python3 - <<'PY'
+          import json
+          import urllib.request
+          import uuid
+
+          # 四个真实 HTTP 接口都经过运行中的订单服务，不把内部函数返回值当成接口验收。
+          def call(path, body=None, key=None):
+              headers = {}
+              data = None
+              if body is not None:
+                  data = json.dumps(body).encode()
+                  headers['Content-Type'] = 'application/json'
+                  headers['Idempotency-Key'] = key
+              request = urllib.request.Request('http://127.0.0.1:8081' + path, data=data, headers=headers)
+              with urllib.request.urlopen(request, timeout=5) as response:
+                  return response.status, json.load(response)
+
+          status, product = call('/products/99')
+          assert status == 200 and product['data']['stock']['status'] == 'ok'
+          key = 'ci-' + uuid.uuid4().hex
+          body = {'user_id': 990000002, 'sku_id': 99, 'quantity': 2}
+          first_status, first = call('/orders', body, key)
+          second_status, second = call('/orders', body, key)
+          assert first_status == second_status == 201
+          assert first['data'] == second['data']
+          order_id = first['data']['order_id']
+          _, detail = call('/orders/' + str(order_id))
+          _, page = call('/orders?user_id=990000002&page=1&page_size=20')
+          assert detail['data']['quantity'] == 2
+          assert len(page['data']['items']) == 1 and page['data']['items'][0]['order_id'] == order_id
+          print('四个 HTTP 接口和同键回放通过，订单编号：', order_id)
+          PY
+          # 单独端口和十秒时长避免与 Compose 中暂停的 loadgen 冲突。
+          go run ./cmd/loadgen --qps 20 --duration 10s --products 100 --control 127.0.0.1:6071 > "$RUNNER_TEMP/loadgen-smoke.jsonl"
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+
+          rows = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'loadgen-smoke.jsonl').read_text().splitlines() if line.startswith('{')]
+          result = next(row['statistics'] for row in rows if row.get('scope') == 'total')
+          assert result['requests'] >= 150 and result['errors'] == 0 and result['dropped'] == 0, result
+          print('真实 HTTP 压测冒烟：', result)
+          PY
+          while IFS= read -r line; do
+            case "$line" in MYSQL_DSN=*) export "$line" ;; esac
+          done < .env
+          # Kafka 消费是异步的，给它有限追平时间，再要求真实总量一致。
+          passed=false
+          for attempt in $(seq 1 30); do
+            if go run ./cmd/shopctl check; then passed=true; break; fi
+            sleep 1
+          done
+          test "$passed" = true
       - name: 失败时记录容器状态
         if: failure()
         run: docker compose --env-file .env -f deploy/docker-compose.yml ps --all

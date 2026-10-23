@@ -1,6 +1,6 @@
 // Package inventory 实现库存查询、扣减和归还，分开业务、数据与传输职责。
 //
-// inventoryservice 负责组装；GRPCServer 调用 Service，Service 经 StockRepository 调用 MySQL 实现。本包不生成订单或发送消息。
+// inventoryservice 负责组装。GRPCServer 调用 Service，Service 经 StockRepository 调用 MySQL 实现。本包不生成订单或发送消息。
 //
 // 包内文件：
 //   - doc.go：说明包的位置、边界和阅读路线。

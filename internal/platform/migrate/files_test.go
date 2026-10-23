@@ -1,7 +1,11 @@
 // 本文件：验证迁移文件和历史校验规则。
 //
 // 用内存文件系统制造错误样例，证明坏文件与被改写的历史会被发现。
-// 先看 TestLoadAndHistory，再看 TestLoadRejectsInvalidFiles；这些测试不承担真实 MySQL 锁语义的验证。
+// 先看 TestLoadAndHistory，再看 TestLoadRejectsInvalidFiles。这些测试不承担真实 MySQL 锁语义的验证。
+//
+// 主要内容：
+//   - TestLoadAndHistory：验证排序、校验和和只追加规则。用内存文件系统，不需要数据库。
+//   - TestLoadRejectsInvalidFiles：检查不合法命名、重复序号和空文件，保证失败发生在执行 SQL 之前。
 
 package migrate
 
@@ -10,7 +14,7 @@ import (
 	"testing/fstest"
 )
 
-// TestLoadAndHistory 验证排序、校验和和只追加规则；用内存文件系统，不需要数据库。
+// TestLoadAndHistory 验证排序、校验和和只追加规则。用内存文件系统，不需要数据库。
 func TestLoadAndHistory(t *testing.T) {
 	files := fstest.MapFS{
 		"migrations/0002_second.sql": &fstest.MapFile{Data: []byte("SELECT 'a;b'")},

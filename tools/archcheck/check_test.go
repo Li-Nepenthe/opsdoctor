@@ -1,7 +1,13 @@
 // 本文件：用故意违规的假模块检验架构规则。
 //
 // fixture 只把样例交给 parser，不编译被禁止的导入。
-// 先看跨领域依赖，再看 cmd 目录约束和场景答案读取；每个反例都要能给出文件位置，避免检查器只在当前仓库恰巧通过。
+// 先看跨领域依赖，再看 cmd 目录约束和场景答案读取。每个反例都要能给出文件位置，避免检查器只在当前仓库恰巧通过。
+//
+// 主要内容：
+//   - fixture：创建独立的假模块，检查器只解析这些文件，不需要下载被禁止的依赖。
+//   - TestForbiddenImports：覆盖领域隔离和分层违规，包括不能靠“包名前缀相似”产生误报的边界。
+//   - TestLocations：验证根目录 Go 文件和 cmd 多文件会被拒绝，合法的薄入口不会误报。
+//   - TestScenarioReads：验证直接、拼接、Join、常量和 embed 路径都不能从医生包读取标准答案。
 
 package main
 
@@ -108,7 +114,7 @@ func TestLocations(t *testing.T) {
 
 // TestScenarioReads 验证直接、拼接、Join、常量和 embed 路径都不能从医生包读取标准答案。
 func TestScenarioReads(t *testing.T) {
-	// 同一个风险使用多种写法；只有直接字面量能被识别的检查很容易被无意绕过。
+	// 同一个风险使用多种写法。只有直接字面量能被识别的检查很容易被无意绕过。
 	for _, source := range []string{
 		// 直接传入答案路径，是最基本的读取违规。
 		"package sample\nimport \"os\"\nfunc f(){ os.ReadFile(\"eval/scenarios/S01.yaml\") }",
@@ -118,7 +124,7 @@ func TestScenarioReads(t *testing.T) {
 		"package sample\nimport (\"os\"; \"path/filepath\")\nfunc f(){ os.ReadFile(filepath.Join(\"eval\",\"scenarios\",\"S01.yaml\")) }",
 		// 路径前缀放在常量里，读取调用处只引用名字，不能因此漏掉。
 		"package sample\nimport \"os\"\nconst base = \"eval/scenarios\"\nfunc f(){ os.ReadFile(base+\"/S01.yaml\") }",
-		// embed 在编译时读文件；没有运行时的读取函数也必须拒绝。
+		// embed 在编译时读文件。没有运行时的读取函数也必须拒绝。
 		"package sample\nimport \"embed\"\n//go:embed eval/scenarios/*.yaml\nvar files embed.FS",
 	} {
 		root := fixture(t, "internal/doctor/agent/agent.go", source)

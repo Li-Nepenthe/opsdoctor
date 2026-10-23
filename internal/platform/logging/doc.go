@@ -1,6 +1,6 @@
 // Package logging 把服务与请求关联信息加入 JSON 日志。
 //
-// 各 app 创建 Logger，HTTP/gRPC 层补充 context；本包依赖 slog，不采集调用链或决定业务日志内容。
+// 各 app 创建 Logger，HTTP/gRPC 层补充 context。本包依赖 slog，不采集调用链或决定业务日志内容。
 //
 // 包内文件：
 //   - doc.go：说明包的位置、边界和阅读路线。

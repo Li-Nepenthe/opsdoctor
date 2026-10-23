@@ -1,7 +1,15 @@
 // 本文件：离线验证参数规则、取消和仓储错误传递。
 //
 // fakeRepository 用调用次数证明无效请求没有触碰数据层。
-// 先读 TestServiceValidation 的边界案例，再读 TestServiceCancellationAndError；并发防超卖由真实数据库测试承担，假仓储不冒充锁实现。
+// 先读 TestServiceValidation 的边界案例，再读 TestServiceCancellationAndError。并发防超卖由真实数据库测试承担，假仓储不冒充锁实现。
+//
+// 主要内容：
+//   - GetStock：返回固定快照，把业务层测试与 MySQL 分离。
+//   - Deduct：只统计调用，用来验证参数校验发生在仓储之前。
+//   - Release：与 Deduct 使用相同的假错误来源，验证补偿入口同样遵守业务规则。
+//   - TestServiceValidation：检查三种入口的边界，并证明仓储错误不会被业务层吞掉。
+//   - callService：让同一组边界案例覆盖三个公开方法，保持测试断言集中。
+//   - TestServiceCancellationAndError：确认取消不访问仓储、仓储错误保持可识别，不被重新制造成普通字符串。
 
 package inventory
 
@@ -11,7 +19,7 @@ import (
 	"testing"
 )
 
-// fakeRepository 保存单次测试的调用次数；本文件串行使用它，不拿普通 int 做并发计数。
+// fakeRepository 保存单次测试的调用次数。本文件串行使用它，不拿普通 int 做并发计数。
 type fakeRepository struct {
 	calls int   // calls 证明非法参数不会进入数据层。
 	err   error // err 是由测试注入的领域或底层错误。
@@ -87,7 +95,7 @@ func TestServiceCancellationAndError(t *testing.T) {
 	for _, operation := range []string{"get", "deduct", "release"} {
 		repository := &fakeRepository{err: ErrUnavailable}
 		service := NewService(repository)
-		// t.Context 随测试结束而取消；派生 cancel 用来模拟调用方主动放弃。
+		// t.Context 随测试结束而取消。派生 cancel 用来模拟调用方主动放弃。
 		ctx, cancel := context.WithCancel(t.Context())
 		cancel()
 		if err := callService(service, ctx, operation, 1, 1); !errors.Is(err, context.Canceled) || repository.calls != 0 {

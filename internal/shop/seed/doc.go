@@ -1,6 +1,6 @@
 // Package seed 建立靶场的商品、库存与历史订单基线。
 //
-// shopctl 调用 Run；每批五表一起提交，SQL 在 repository.go。这里不发送 Kafka 消息，不执行真实下单；造数期间不要同时业务写入或并发造数。
+// shopctl 调用 Run。每批五表一起提交，SQL 在 repository.go。这里不发送 Kafka 消息，不执行真实下单。造数期间不要同时业务写入或并发造数。
 //
 // 包内文件：
 //   - doc.go：说明包的位置、边界和阅读路线。

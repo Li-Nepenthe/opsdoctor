@@ -1,7 +1,10 @@
 // 本文件：验证连接池默认值和参数之间的约束。
 //
-// TestDatabaseConfig 使用假环境验证缺 DSN、小池与空闲数的组合；无需连接数据库。
+// TestDatabaseConfig 使用假环境验证缺 DSN、小池与空闲数的组合。无需连接数据库。
 // 重点看只把 open 改为 2 为什么还会因为默认 idle=10 而失败。
+//
+// 主要内容：
+//   - TestDatabaseConfig：验证默认连接预算和互相约束的 open/idle，错误里不得回显 DSN。
 
 package app
 

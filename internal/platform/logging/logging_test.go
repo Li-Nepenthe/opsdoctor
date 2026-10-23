@@ -2,6 +2,10 @@
 //
 // 日志写进内存后按 JSON 解析，避免只凭字符串看起来相似就判通过。
 // 先看 TestJSONFields，再看 TestGroupedFieldsStayCorrelated 如何防止 request_id 被藏到业务分组里。
+//
+// 主要内容：
+//   - TestJSONFields：检查日志格式、UTC 时间和 context 关联信息，避免跨服务排查时无法串联请求。
+//   - TestGroupedFieldsStayCorrelated：确保业务字段分组后关联标识仍在顶层，日志查询不需要猜分组路径。
 
 package logging
 

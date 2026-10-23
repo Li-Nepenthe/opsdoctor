@@ -1,7 +1,10 @@
 // 本文件：离线区分暂时故障和 SQL 配置错误。
 //
 // TestDatabaseErrorClassification 构造驱动错误，不连接数据库。
-// 先看断连、锁等待与死锁，再对比权限和语法错误；全部映射成 UNAVAILABLE 会诱导调用方错误重试。
+// 先看断连、锁等待与死锁，再对比权限和语法错误。全部映射成 UNAVAILABLE 会诱导调用方错误重试。
+//
+// 主要内容：
+//   - TestDatabaseErrorClassification：区分暂时不可用和永久配置错误，防止所有 SQL 错误都变成可重试。
 
 package inventory
 

@@ -3,6 +3,10 @@
 // parseStock 先拒绝非法输入，runStock 再建立客户端与 deadline。
 // 它不直接改库存表，便于用户走完整请求链。
 // 先读参数范围，尤其是 int64 转 int32 前的检查，再看 Deduct 为什么只调用一次。
+//
+// 主要内容：
+//   - parseStock：在建立客户端前拒绝错误参数，防止“敲错命令却已经改了数据”。
+//   - runStock：创建一个短生命周期客户端。本机靶场使用明文 HTTP/2，不能原样部署到公网。
 
 package shopctl
 
@@ -45,11 +49,11 @@ func parseStock(arguments []string, output io.Writer) (stockOptions, error) {
 	if flags.NArg() != 0 || *skuID <= 0 || *quantity <= 0 || *quantity > math.MaxInt32 || *timeout <= 0 {
 		return stockOptions{}, fmt.Errorf("参数不合法：sku/quantity/timeout 必须为正，quantity 不得超过 int32，不能有多余位置参数")
 	}
-	// 先检查范围再转 int32；Go 的整数转换不会抛异常，直接转换过大的值会截断。
+	// 先检查范围再转 int32。Go 的整数转换不会抛异常，直接转换过大的值会截断。
 	return stockOptions{operation: arguments[0], skuID: *skuID, quantity: int32(*quantity), timeout: *timeout}, nil
 }
 
-// runStock 创建一个短生命周期客户端；本机靶场使用明文 HTTP/2，不能原样部署到公网。
+// runStock 创建一个短生命周期客户端。本机靶场使用明文 HTTP/2，不能原样部署到公网。
 func runStock(parent context.Context, arguments []string, reader config.Reader, output io.Writer) (result error) {
 	options, err := parseStock(arguments, output)
 	if err != nil {
@@ -59,7 +63,7 @@ func runStock(parent context.Context, arguments []string, reader config.Reader, 
 	if err != nil {
 		return err
 	}
-	// NewClient 只组装连接管理器，不在这里阻塞连接；首次 RPC 的 context 也覆盖连接等待。
+	// NewClient 只组装连接管理器，不在这里阻塞连接。首次 RPC 的 context 也覆盖连接等待。
 	connection, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDisableRetry())
 	if err != nil {
 		return fmt.Errorf("创建库存客户端：%w", err)
@@ -76,7 +80,7 @@ func runStock(parent context.Context, arguments []string, reader config.Reader, 
 		_, err = fmt.Fprintf(output, "sku_id=%d available=%d\n", stock.GetSkuId(), stock.GetAvailable())
 		return err
 	}
-	// Deduct 可能已经提交但响应丢失，不能自行循环重试；失败时将真实状态交给操作者判断。
+	// Deduct 可能已经提交但响应丢失，不能自行循环重试。失败时将真实状态交给操作者判断。
 	if _, err := client.Deduct(ctx, &inventoryv1.DeductRequest{SkuId: options.skuID, Quantity: options.quantity}); err != nil {
 		return fmt.Errorf("扣减库存：%w", err)
 	}

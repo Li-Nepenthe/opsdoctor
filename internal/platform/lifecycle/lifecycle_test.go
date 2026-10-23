@@ -1,7 +1,12 @@
 // 本文件：验证清理顺序、取消信号和停机预算。
 //
 // 用记录调用顺序的假 Hook 代替真实服务，使失败能定位到生命周期规则本身。
-// 先看正常关闭与错误合并，再看超时；Notify 的测试通过父 context 取消，避免向测试进程发送系统信号。
+// 先看正常关闭与错误合并，再看超时。Notify 的测试通过父 context 取消，避免向测试进程发送系统信号。
+//
+// 主要内容：
+//   - TestShutdownOrderAndCancellation：验证正常工作取消后仍有清理时间，并且失败不会跳过后续关闭。
+//   - TestShutdownDeadline：用响应取消的假服务验证总预算，不创建真实服务器或后台线程。
+//   - TestNotifyParentCancel：验证无需向测试进程发系统信号也能停止监听，避免影响并行测试。
 
 package lifecycle
 
@@ -22,7 +27,7 @@ func TestShutdownOrderAndCancellation(t *testing.T) {
 	failure := errors.New("模拟关闭失败")
 	err := Shutdown(parent, time.Second,
 		Hook{Name: "http", Close: func(ctx context.Context) error {
-			// 第一项故意失败，后面仍应关闭数据库；顺序由调用方传入的 Hook 顺序决定。
+			// 第一项故意失败，后面仍应关闭数据库。顺序由调用方传入的 Hook 顺序决定。
 			if ctx.Err() != nil {
 				t.Fatal("清理继承了已取消状态")
 			}
@@ -43,7 +48,7 @@ func TestShutdownOrderAndCancellation(t *testing.T) {
 
 // TestShutdownDeadline 用响应取消的假服务验证总预算，不创建真实服务器或后台线程。
 func TestShutdownDeadline(t *testing.T) {
-	// 10ms 足以触发预算路径；测试依赖 Done 信号而不是依赖操作系统精确计时。
+	// 10ms 足以触发预算路径。测试依赖 Done 信号而不是依赖操作系统精确计时。
 	const budget = 10 * time.Millisecond
 	err := Shutdown(context.Background(), budget, Hook{Name: "blocked", Close: func(ctx context.Context) error {
 		<-ctx.Done()

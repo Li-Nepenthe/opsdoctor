@@ -1,7 +1,12 @@
 // 本文件：验证 gRPC 错误契约和内存通道往返。
 //
-// 先看 TestGRPCErrorMapping 的七类错误，再看 TestGRPCRoundTrip 的序列化与分派；testClient 负责建立和关闭内存连接。
+// 先看 TestGRPCErrorMapping 的七类错误，再看 TestGRPCRoundTrip 的序列化与分派。testClient 负责建立和关闭内存连接。
 // 真正的数据库与取消传播留给集成测试，而不是用假返回值冒充。
+//
+// 主要内容：
+//   - TestGRPCErrorMapping：覆盖契约全部错误码。包装后的错误也必须能映射，且不能泄漏底层文字。
+//   - TestGRPCRoundTrip：用内存连接运行真实序列化与服务分派。单元测试不监听 TCP、不依赖外部服务。
+//   - testClient：构造真实 gRPC 内存通道。Cleanup 按后注册先执行的顺序关闭客户端、服务端和监听器。
 
 package inventory
 
@@ -22,7 +27,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-// TestGRPCErrorMapping 覆盖契约全部错误码；包装后的错误也必须能映射，且不能泄漏底层文字。
+// TestGRPCErrorMapping 覆盖契约全部错误码。包装后的错误也必须能映射，且不能泄漏底层文字。
 func TestGRPCErrorMapping(t *testing.T) {
 	cases := []struct {
 		name string     // name 说明客户端应如何理解失败。
@@ -48,7 +53,7 @@ func TestGRPCErrorMapping(t *testing.T) {
 	}
 }
 
-// TestGRPCRoundTrip 用内存连接运行真实序列化与服务分派；单元测试不监听 TCP、不依赖外部服务。
+// TestGRPCRoundTrip 用内存连接运行真实序列化与服务分派。单元测试不监听 TCP、不依赖外部服务。
 func TestGRPCRoundTrip(t *testing.T) {
 	client := testClient(t, &fakeRepository{})
 	stock, err := client.GetStock(t.Context(), &inventoryv1.GetStockRequest{SkuId: 7})
@@ -67,7 +72,7 @@ func TestGRPCRoundTrip(t *testing.T) {
 	}
 }
 
-// testClient 构造真实 gRPC 内存通道；Cleanup 按后注册先执行的顺序关闭客户端、服务端和监听器。
+// testClient 构造真实 gRPC 内存通道。Cleanup 按后注册先执行的顺序关闭客户端、服务端和监听器。
 func testClient(t *testing.T, repository StockRepository) inventoryv1.InventoryServiceClient {
 	t.Helper()
 	listener := bufconn.Listen(1024 * 1024) // 1 MiB 只用于测试内存传输，足以容纳几个很小的 protobuf 请求。

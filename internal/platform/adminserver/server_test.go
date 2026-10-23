@@ -1,7 +1,10 @@
 // 本文件：在内存中验证健康状态和管理接口边界。
 //
-// TestHealth 给 New 注入成功或失败的探测函数，确认 200/503 与脱敏响应；还检查尚未实现的 /metrics 是 404。
+// TestHealth 给 New 注入成功或失败的探测函数，确认 200/503 与脱敏响应。还检查尚未实现的 /metrics 是 404。
 // 先读用例意图，再看 Recorder 如何替代真实网络响应。
+//
+// 主要内容：
+//   - TestHealth：使用 Recorder 直接调用 handler，不启动 TCP 服务，验证状态和探测上下文。
 
 package adminserver
 

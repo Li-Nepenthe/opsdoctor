@@ -1,6 +1,6 @@
 // Package migrate 在同一数据库会话持锁执行嵌入式迁移。
 //
-// 业务 migrations 包调用 Apply；这里负责文件校验、命名锁和历史，不承诺 MySQL DDL 可以整体回滚。
+// 业务 migrations 包调用 Apply。这里负责文件校验、命名锁和历史，不承诺 MySQL DDL 可以整体回滚。
 //
 // 包内文件：
 //   - doc.go：说明包的位置、边界和阅读路线。

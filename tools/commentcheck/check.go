@@ -1,7 +1,18 @@
 // 本文件：扫描 Go 声明并检查代码层注释。
 //
-// scan 遍历文件，inspectFile 解析 AST，再分派函数和声明规则；新增文件层规则交给 files.go，避免职责混在一起。
-// 先看包说明如何汇总，再读 inspectFunction；-list 的符号也在这次扫描中收集。
+// scan 遍历文件，inspectFile 解析 AST，再分派函数和声明规则。新增文件层规则交给 files.go，避免职责混在一起。
+// 先看包说明如何汇总，再读 inspectFunction。-list 的符号也在这次扫描中收集。
+//
+// 主要内容：
+//   - scan：遍历 patterns 指定的目录（支持 ./...）。语法错误和读取错误直接返回，不静默漏检。
+//   - inspectFile：解析单个文件并检查声明。标准生成标记由 ast.IsGenerated 识别，生成物跳过。
+//   - packageDocument：只给 cmd/<程序>/main.go 开入口例外，避免普通包靠随意文件名绕过 doc.go 规则。
+//   - inspectFunction：检查文档和长函数内部注释，并记录方法接收者，防止同名方法在清单里混淆。
+//   - receiverName：直接读取 AST 类型表达式。支持指针和泛型接收者，不引入反射或类型加载依赖。
+//   - inspectDeclaration：检查包级类型、常量、变量。常量和变量允许组注释，局部变量不在机器检查范围。
+//   - hasDoc：不把空白注释或单独的 go: 指令当成说明，防止只有形式却没有可读内容。
+//   - firstSentence：以换行或中文句号结束第一句。清单是初稿，不替代完整文档注释。
+//   - writeList：按包和位置稳定排序，输出 Markdown 表格。写入错误会返回，避免生成不完整的汇报书。
 
 package main
 
@@ -20,7 +31,7 @@ import (
 // maximumUncommentedLines 是计划书规定的边界：函数体超过 15 行必须至少有一条内部注释。
 const maximumUncommentedLines = 15
 
-// symbol 是 -list 的一行；字段只保存源码信息，不执行或反射被检查的对象。
+// symbol 是 -list 的一行。字段只保存源码信息，不执行或反射被检查的对象。
 type symbol struct {
 	packagePath string // packagePath 是目录及包名，避免不同目录的同名包混在一起。
 	name        string // name 是类型、函数或带接收者的方法名称。
@@ -36,7 +47,7 @@ type scanResult struct {
 	sources  []sourceFile // sources 保留文件说明，用于核对包内清单和生成代码地图。
 }
 
-// scan 遍历 patterns 指定的目录（支持 ./...）；语法错误和读取错误直接返回，不静默漏检。
+// scan 遍历 patterns 指定的目录（支持 ./...）。语法错误和读取错误直接返回，不静默漏检。
 func scan(patterns []string) (scanResult, error) {
 	// 第 1 步：本次扫描独占这些表。seen 防止重复检查文件，另外两张表记录包是否有说明。
 	result := scanResult{}
@@ -44,7 +55,7 @@ func scan(patterns []string) (scanResult, error) {
 	packages := make(map[string]string)
 	documented := make(map[string]bool)
 	for _, pattern := range patterns {
-		// ./... 表示从当前目录递归扫描；WalkDir 本身就会递归，所以先去掉这个后缀。
+		// ./... 表示从当前目录递归扫描。WalkDir 本身就会递归，所以先去掉这个后缀。
 		root := strings.TrimSuffix(filepath.ToSlash(pattern), "/...")
 		if root == "..." {
 			// 单独输入 ... 也按当前目录处理，避免把它误当成真实目录名。
@@ -60,7 +71,7 @@ func scan(patterns []string) (scanResult, error) {
 				return filepath.SkipDir
 			}
 			if entry.IsDir() || filepath.Ext(path) != ".go" {
-				// 返回 nil 仍会继续走进目录；只有 Go 文件需要交给语法解析器。
+				// 返回 nil 仍会继续走进目录。只有 Go 文件需要交给语法解析器。
 				return nil
 			}
 			absolute, err := filepath.Abs(path)
@@ -68,7 +79,7 @@ func scan(patterns []string) (scanResult, error) {
 				return err
 			}
 			if seen[absolute] {
-				// 参数可能同时包含 ./... 和某个子目录；用绝对路径避免同一文件重复报错。
+				// 参数可能同时包含 ./... 和某个子目录。用绝对路径避免同一文件重复报错。
 				return nil
 			}
 			seen[absolute] = true
@@ -79,7 +90,7 @@ func scan(patterns []string) (scanResult, error) {
 		}
 	}
 	// 第 2 步：等文件扫描完再核对包说明，否则可能在读到 doc.go 之前就误报缺失。
-	// doc.go 必须含包注释；仅有同名空文件不能冒充包级说明。
+	// doc.go 必须含包注释。仅有同名空文件不能冒充包级说明。
 	for key, location := range packages {
 		if !documented[key] {
 			result.problems = append(result.problems, location+": 包缺少带包注释的 doc.go（cmd 入口应在 main.go 写包注释）")
@@ -91,9 +102,9 @@ func scan(patterns []string) (scanResult, error) {
 	return result, nil
 }
 
-// inspectFile 解析单个文件并检查声明；标准生成标记由 ast.IsGenerated 识别，生成物跳过。
+// inspectFile 解析单个文件并检查声明。标准生成标记由 ast.IsGenerated 识别，生成物跳过。
 func inspectFile(path string, result *scanResult, packages map[string]string, documented map[string]bool) error {
-	// AST（抽象语法树）把源码分成声明、函数等节点；ParseComments 保留注释，FileSet 负责还原文件和行号。
+	// AST（抽象语法树）把源码分成声明、函数等节点。ParseComments 保留注释，FileSet 负责还原文件和行号。
 	positions := token.NewFileSet()
 	file, err := parser.ParseFile(positions, path, nil, parser.ParseComments)
 	if err != nil {
@@ -116,7 +127,7 @@ func inspectFile(path string, result *scanResult, packages map[string]string, do
 		packages[key] = positions.Position(file.Package).String()
 	}
 	if packageDocument(path, file) {
-		// 普通包要求 doc.go；cmd 按计划书只能有 main.go，所以在入口文件承载同样的包说明。
+		// 普通包要求 doc.go。cmd 按计划书只能有 main.go，所以在入口文件承载同样的包说明。
 		documented[key] = true
 	}
 	for _, declaration := range file.Decls {
@@ -146,38 +157,38 @@ func packageDocument(path string, file *ast.File) bool {
 
 // inspectFunction 检查文档和长函数内部注释，并记录方法接收者，防止同名方法在清单里混淆。
 func inspectFunction(function *ast.FuncDecl, file *ast.File, positions *token.FileSet, key string, result *scanResult) {
-	// 方法名附带接收者；随后分别检查声明前的文档和函数体内部的解释。
+	// 方法名附带接收者。随后分别检查声明前的文档和函数体内部的解释。
 	name := function.Name.Name
 	if function.Recv != nil {
-		// 有接收者的是方法，例如 (*Reader).String；附上类型名才能与其他类型的同名方法区分。
+		// 有接收者的是方法，例如 (*Reader).String。附上类型名才能与其他类型的同名方法区分。
 		name = receiverName(function.Recv.List[0].Type) + "." + name
 	}
 	location := positions.Position(function.Pos()).String()
 	if !hasDoc(function.Doc) {
-		// 文档必须紧邻函数声明；函数体里的说明不能替代它对调用方的使用说明。
+		// 文档必须紧邻函数声明。函数体里的说明不能替代它对调用方的使用说明。
 		result.problems = append(result.problems, location+": 函数或方法 "+name+" 缺少文档注释")
 	}
 	result.symbols = append(result.symbols, symbol{key, name, location, firstSentence(function.Doc)})
 	if function.Body == nil {
-		// 有些函数由汇编等外部代码实现，Go 文件里只有声明；仍要求文档，但无函数体可检查。
+		// 有些函数由汇编等外部代码实现，Go 文件里只有声明。仍要求文档，但无函数体可检查。
 		return
 	}
-	// 去掉左右花括号所在行，按物理行数计算；这是计划书的简单门槛，不是代码复杂度分析。
+	// 去掉左右花括号所在行，按物理行数计算。这是计划书的简单门槛，不是代码复杂度分析。
 	lines := positions.Position(function.Body.Rbrace).Line - positions.Position(function.Body.Lbrace).Line - 1
 	if lines <= maximumUncommentedLines {
-		// 恰好 15 行还不触发长函数规则；“超过 15 行”从第 16 行开始。
+		// 恰好 15 行还不触发长函数规则。“超过 15 行”从第 16 行开始。
 		return
 	}
 	for _, comment := range file.Comments {
 		if comment.Pos() > function.Body.Lbrace && comment.End() < function.Body.Rbrace {
-			// 注释必须完整落在函数体内；找到一条就满足机器规则，解释质量仍要人工读。
+			// 注释必须完整落在函数体内。找到一条就满足机器规则，解释质量仍要人工读。
 			return
 		}
 	}
 	result.problems = append(result.problems, location+": 函数体超过 15 行但没有内部注释")
 }
 
-// receiverName 直接读取 AST 类型表达式；支持指针和泛型接收者，不引入反射或类型加载依赖。
+// receiverName 直接读取 AST 类型表达式。支持指针和泛型接收者，不引入反射或类型加载依赖。
 func receiverName(expression ast.Expr) string {
 	switch node := expression.(type) {
 	case *ast.Ident:
@@ -198,7 +209,7 @@ func receiverName(expression ast.Expr) string {
 	}
 }
 
-// inspectDeclaration 检查包级类型、常量、变量；常量和变量允许组注释，局部变量不在机器检查范围。
+// inspectDeclaration 检查包级类型、常量、变量。常量和变量允许组注释，局部变量不在机器检查范围。
 func inspectDeclaration(declaration *ast.GenDecl, positions *token.FileSet, key string, result *scanResult) {
 	// import 是依赖声明，不是需要逐项写文档的类型或包级状态。
 	if declaration.Tok == token.IMPORT {
@@ -209,7 +220,7 @@ func inspectDeclaration(declaration *ast.GenDecl, positions *token.FileSet, key 
 		case *ast.TypeSpec:
 			doc := node.Doc
 			if doc == nil && len(declaration.Specs) == 1 {
-				// 单独的 type T 声明，其注释可能挂在外层 GenDecl；一组多个类型则必须分别说明。
+				// 单独的 type T 声明，其注释可能挂在外层 GenDecl。一组多个类型则必须分别说明。
 				doc = declaration.Doc
 			}
 			location := positions.Position(node.Pos()).String()
@@ -220,7 +231,7 @@ func inspectDeclaration(declaration *ast.GenDecl, positions *token.FileSet, key 
 			result.symbols = append(result.symbols, symbol{key, node.Name.Name, location, firstSentence(doc)})
 		case *ast.ValueSpec:
 			if hasDoc(declaration.Doc) || hasDoc(node.Doc) || hasDoc(node.Comment) {
-				// 常量和变量允许组说明、项目前说明或行尾说明；任一种存在就符合这一条规则。
+				// 常量和变量允许组说明、项目前说明或行尾说明。任一种存在就符合这一条规则。
 				continue
 			}
 			for _, name := range node.Names {
@@ -234,10 +245,10 @@ func inspectDeclaration(declaration *ast.GenDecl, positions *token.FileSet, key 
 // hasDoc 不把空白注释或单独的 go: 指令当成说明，防止只有形式却没有可读内容。
 func hasDoc(doc *ast.CommentGroup) bool { return doc != nil && strings.TrimSpace(doc.Text()) != "" }
 
-// firstSentence 以换行或中文句号结束第一句；清单是初稿，不替代完整文档注释。
+// firstSentence 以换行或中文句号结束第一句。清单是初稿，不替代完整文档注释。
 func firstSentence(doc *ast.CommentGroup) string {
 	if !hasDoc(doc) {
-		// 缺少注释的声明仍会列入阅读清单，只把摘要留空；报错由前面的检查负责。
+		// 缺少注释的声明仍会列入阅读清单，只把摘要留空。报错由前面的检查负责。
 		return ""
 	}
 	text := strings.TrimSpace(doc.Text())
@@ -249,9 +260,9 @@ func firstSentence(doc *ast.CommentGroup) string {
 	return strings.ReplaceAll(text, "|", "\\|")
 }
 
-// writeList 按包和位置稳定排序，输出 Markdown 表格；写入错误会返回，避免生成不完整的汇报书。
+// writeList 按包和位置稳定排序，输出 Markdown 表格。写入错误会返回，避免生成不完整的汇报书。
 func writeList(output io.Writer, symbols []symbol) error {
-	// 第 1 步：先按包、再按位置文本排序；顺序稳定即可，这里没有把行号单独按整数排序。
+	// 第 1 步：先按包、再按位置文本排序。顺序稳定即可，这里没有把行号单独按整数排序。
 	sort.Slice(symbols, func(left, right int) bool {
 		if symbols[left].packagePath != symbols[right].packagePath {
 			return symbols[left].packagePath < symbols[right].packagePath

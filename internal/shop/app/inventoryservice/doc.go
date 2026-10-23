@@ -1,6 +1,6 @@
 // Package inventoryservice 组装库存进程并拥有它创建的资源。
 //
-// cmd/inventory-service 调用 Run；本包接上配置、迁移、库存和通用服务器，不能把 SQL 或库存规则写进入口。
+// cmd/inventory-service 调用 Run。本包接上配置、迁移、库存和通用服务器，不能把 SQL 或库存规则写进入口。
 //
 // 包内文件：
 //   - doc.go：说明包的位置、边界和阅读路线。
