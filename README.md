@@ -70,7 +70,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql b
 | http://127.0.0.1:6061/metrics | 订单服务指标；库存、消费者分别使用 6062、6063 |
 | http://127.0.0.1:6061/debug/pprof/goroutine?debug=1 | 订单进程当前 goroutine；只在管理端口开放 |
 
-Grafana Explore 选择 Loki，用 `{service="order-service"} | json` 查看日志。拿到某条日志的 trace_id 后，用 `{service=~"order-service|inventory-service|order-worker"} | json | trace_id="填入实际值"` 查整条请求；点击 TraceID 可跳转调用链。默认根请求采样 10%，没有被采样的请求仍有日志，但 Jaeger 里没有保存它的 span。启动日志没有所属请求，因此不会有 trace ID。
+Grafana Explore 选择 Loki，用 `{service="order-service"} | json` 查看日志。拿到某条日志的 trace_id 后，用 `{service=~"order-service|inventory-service|order-worker"} | json | trace_id="填入实际值"` 查整条请求；点击 TraceID 可跳转调用链。Jaeger 按用户批准固定 2.20.0，兼容证据及恢复最新版的条件见 [decisions](docs/decisions.md#jaeger-compatibility)。默认根请求采样 10%，没有被采样的请求仍有日志，但 Jaeger 里没有保存它的 span。启动日志没有所属请求，因此不会有 trace ID。
 
 采集和导出都需要一点时间。开始流量后，给看板的两分钟速率窗口留出时间。`http_server_request_duration_seconds_count` 是 HTTP 请求数，P99 由桶计算，只是近似值。熔断状态用 0/1/2 表示关闭/半开/打开；待核对计数已经并入统一注册表。
 
@@ -260,6 +260,7 @@ buf generate
 - 扣库存超时不一定代表没有扣成功。根治需要 Deduct 自身携带请求 ID 去重，本阶段不改这个 RPC 契约。
 - 结果待核对须人工检查。Redis 暂时不能写状态时，原占位超过完整处理预算后会转成待核对；幂等窗口过去或数据卷丢失后不再保证去重。
 - 认证尚未接线；监控入口仅用于本机实验，不能直接暴露到公网。
+- span 批量导出有五秒预算，监控后端不可用时可能丢记录；业务成功不保证每次都能查到完整 trace。
 - 迁移是一文件一条 SQL，要求可重入；DDL 隐式提交，不保证整批迁移原子回滚。
 - `archcheck` 检查可静态识别的导入、路径和 embed；它不是运行时文件访问沙箱。
 - Compose 是单节点、本机实验环境，不提供生产级高可用；Redis 幂等保存依赖本机持久卷，内存满时拒绝新写入。

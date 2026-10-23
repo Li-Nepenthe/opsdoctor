@@ -165,6 +165,10 @@ jobs:
               for uid in ['prometheus', 'loki', 'jaeger']:
                   health = get('http://127.0.0.1:3000/api/datasources/uid/' + uid + '/health', True)
                   assert health['status'] == 'OK', uid
+              # Jaeger 升级曾移除这些路径，不能只测仍可用的按 ID 查询而漏掉搜索故障。
+              for path in ['/api/services', '/api/services/order-service/operations', '/api/traces?service=order-service&limit=20&lookback=1h']:
+                  result = get('http://127.0.0.1:3000/api/datasources/proxy/uid/jaeger' + path, True)
+                  assert result['data'], path
               dashboard = get('http://127.0.0.1:3000/api/dashboards/uid/shop-overview', True)['dashboard']
               assert len(dashboard['panels']) == 12
               trace = get('http://127.0.0.1:16686/api/traces/' + trace_id)['data'][0]

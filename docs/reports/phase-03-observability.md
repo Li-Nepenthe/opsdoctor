@@ -1,6 +1,6 @@
 # 阶段 3 汇报书：可观测性与告警
 
-**状态：尚未完成收尾。** 本地业务与观测管道已验证，Grafana 与 Jaeger 的版本兼容决定待用户确认；尚未推送阶段分支，远端 CI 未运行。工程验收不勾选，学习验收留给用户本人。
+**状态：本地工程验收通过，正在完成推送与 Linux CI。** Jaeger 的单项版本例外已获用户批准，并用同一份 Grafana 配置完成两版对照。学习验收留给用户本人。
 
 ## 一、总览
 
@@ -10,7 +10,7 @@
 
 ### 做了什么
 
-新增独立的监控注册表和追踪对象，由各服务入口显式传入。用现成插件观察 HTTP、gRPC、SQL、Redis，手动传递 Kafka 消息头。Compose 从七个容器扩为十七个，固定镜像、限制内存、只向本机发布端口。看板的十二个面板、Grafana 日志查询和告警触发恢复均已实测；Grafana 的 Jaeger 数据源仍有版本兼容阻塞。按用户要求修复订单提交后客户端取消导致发送提前取消的问题。
+新增独立的监控注册表和追踪对象，由各服务入口显式传入。用现成插件观察 HTTP、gRPC、SQL、Redis，手动传递 Kafka 消息头。Compose 从七个容器扩为十七个，固定镜像、限制内存、只向本机发布端口。看板的十二个面板、Grafana 日志查询和告警触发恢复均已实测；Grafana 的 Jaeger 数据源已通过用户批准的 2.20.0 固定版本接通。按用户要求修复订单提交后客户端取消导致发送提前取消的问题。
 
 ### 计划完成情况
 
@@ -19,8 +19,8 @@
 | 三个服务的指标 | 已完成 | 统一 service 标签、HTTP/RPC、连接池、缓存、生产消费、治理、幂等、版本与运行时 |
 | OTel 与 Kafka 传播 | 已完成 | 一笔真实下单得到三个服务的完整父子关系 |
 | slog 关联字段 | 已完成 | 当前 span 的 trace_id/span_id；启动日志没有请求关联 |
-| 九个监控组件加入 Compose | 部分完成 | 另加 alertsink，共十个新容器；Jaeger 版本兼容选择待确认 |
-| Grafana 自动数据源与看板 | 部分完成 | 十二面板有数据、Loki 可查；Jaeger 数据源健康失败尚未解决 |
+| 九个监控组件加入 Compose | 已完成 | 另加 alertsink，共十个新容器；仅 Jaeger 使用用户批准的兼容版本 |
+| Grafana 自动数据源与看板 | 已完成 | 十二面板有数据；三个数据源健康，Jaeger 列表、搜索、详情和 Loki 关联查询通过 |
 | 症状规则与推送 | 已完成 | 五条规则，真实积压告警与恢复均到达 |
 
 未开始阶段 4，没有开发医生系统。
@@ -37,7 +37,7 @@
 | mimetype | v1.4.16，间接依赖 | 模块依赖 | 安装时 v1.4.15 已撤回，改用有效版本 | 保留被撤回版本 |
 | Prometheus | v3.15.1 | 指标采集、规则评估 | 计划指定，固定稳定版 | 额外指标平台 |
 | Alertmanager | v0.34.1 | 分组、去重、通知 | 计划指定 | 在业务服务里发送告警 |
-| Jaeger | 当前 2.22.0 | OTLP 接收与 trace 查询 | 计划要求最新稳定版 | 兼容的 2.20.0 待用户批准 |
+| Jaeger | 2.20.0 | OTLP 接收与 trace 查询 | 用户批准的单项兼容例外 | 2.22.0 移除 Grafana 所需旧 API；保留失败对照 |
 | Grafana | 13.2.4 | 三数据源和总览看板 | 计划指定 | 手工逐次建看板 |
 | Loki | 3.7.9 | 本机日志保存 | 计划指定，保留 48 小时 | 引入其他日志存储 |
 | Alloy | v1.21.2 | Docker 日志采集 | 计划指定 | 每个应用直接写 Loki |
@@ -72,15 +72,15 @@
 
 ### 文件与类型函数清单
 
-下面两张清单由当前工作区和 `commentcheck -list` 生成。提交前还需与 `git diff --stat main...phase-03-observability` 核对。文件行数为当前总行数；增删量为对 main 的差异。
+下面两张清单由 Git 差异和 `commentcheck -list` 生成；以 `git diff --stat main...phase-03-observability` 核对文件范围。文件行数为当前总行数；增删量为对 main 的差异。
 
 <!-- PHASE_FILES_START -->
 | 文件 | 作用 | 当前行数 | 对共同基线增 / 删 |
 |---|---|---:|---:|
 | [.env.example](../../.env.example) | 环境变量名称与演示值 | 87 | +10 / −0 |
-| [.github/workflows/ci.yml](../../.github/workflows/ci.yml) | 固定 runner 上增加观测管道冒烟 | 197 | +60 / −2 |
+| [.github/workflows/ci.yml](../../.github/workflows/ci.yml) | 固定 runner 上增加观测管道冒烟 | 201 | +64 / −2 |
 | [AGENTS.md](../../AGENTS.md) | AGENTS.md | 115 | +1 / −1 |
-| [README.md](../../README.md) | 所在目录的职责、入口与操作说明 | 267 | +42 / −9 |
+| [README.md](../../README.md) | 所在目录的职责、入口与操作说明 | 268 | +43 / −9 |
 | [cmd/README.md](../../cmd/README.md) | 所在目录的职责、入口与操作说明 | 15 | +2 / −0 |
 | [cmd/alertsink/main.go](../../cmd/alertsink/main.go) | 命令薄入口 | 19 | +19 / −0 |
 | [deploy/README.md](../../deploy/README.md) | 所在目录的职责、入口与操作说明 | 19 | +9 / −0 |
@@ -88,7 +88,7 @@
 | [deploy/alertmanager/alertmanager.yml](../../deploy/alertmanager/alertmanager.yml) | 同一服务的同类症状合成一次通知，减少一场故障同时产生的大量推送。 | 18 | +18 / −0 |
 | [deploy/alloy/README.md](../../deploy/alloy/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
 | [deploy/alloy/config.alloy](../../deploy/alloy/config.alloy) | 只发现当前 Compose 项目的容器，避免顺带收集用户其他项目的日志。 | 46 | +46 / −0 |
-| [deploy/docker-compose.yml](../../deploy/docker-compose.yml) | 阶段 3 共 17 个容器；内存设上限，宿主机端口只映射到本机。 | 403 | +183 / −5 |
+| [deploy/docker-compose.yml](../../deploy/docker-compose.yml) | 阶段 3 共 17 个容器；内存设上限，宿主机端口只映射到本机。 | 404 | +184 / −5 |
 | [deploy/docker/go.Dockerfile](../../deploy/docker/go.Dockerfile) | 所有 Go 服务共用此文件，CMD_NAME 对应 cmd/ 下的程序名；固定编译器与 Alpine 版本。 | 17 | +2 / −1 |
 | [deploy/grafana/README.md](../../deploy/grafana/README.md) | 所在目录的职责、入口与操作说明 | 8 | +8 / −0 |
 | [deploy/grafana/dashboards/README.md](../../deploy/grafana/dashboards/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
@@ -98,7 +98,7 @@
 | [deploy/grafana/provisioning/dashboards/shop.yml](../../deploy/grafana/provisioning/dashboards/shop.yml) | 看板 JSON 由仓库维护。页面中的临时调整不会覆盖版本控制里的原稿。 | 12 | +12 / −0 |
 | [deploy/grafana/provisioning/datasources/README.md](../../deploy/grafana/provisioning/datasources/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
 | [deploy/grafana/provisioning/datasources/sources.yml](../../deploy/grafana/provisioning/datasources/sources.yml) | Grafana 启动时创建三类数据源，用户不必手工填写容器内地址。 | 38 | +38 / −0 |
-| [deploy/jaeger/README.md](../../deploy/jaeger/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
+| [deploy/jaeger/README.md](../../deploy/jaeger/README.md) | 所在目录的职责、入口与操作说明 | 9 | +9 / −0 |
 | [deploy/jaeger/jaeger.yml](../../deploy/jaeger/jaeger.yml) | 单进程内存存储适合本机演练。最多保留五千条 trace，重启后清空，不宣称长期存档。 | 42 | +42 / −0 |
 | [deploy/loki/README.md](../../deploy/loki/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
 | [deploy/loki/loki.yml](../../deploy/loki/loki.yml) | 本机单副本，日志存到独立卷。服务只映射到回环地址，不把无认证的接口开放到局域网。 | 41 | +41 / −0 |
@@ -108,12 +108,12 @@
 | [deploy/prometheus/prometheus.yml](../../deploy/prometheus/prometheus.yml) | 十秒抓取一次足够观察本机的分钟级症状，也不会让监控本身频繁争抢数据库连接。 | 33 | +33 / −0 |
 | [deploy/prometheus/rules/README.md](../../deploy/prometheus/rules/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
 | [deploy/prometheus/rules/shop.yml](../../deploy/prometheus/rules/shop.yml) | 这里只写用户能观察到的症状。规则不能预先给出“索引被删了”之类的原因。 | 34 | +34 / −0 |
-| [docs/decisions.md](../../docs/decisions.md) | 设计决定 | 155 | +36 / −0 |
-| [docs/learn/phase-03-observability.md](../../docs/learn/phase-03-observability.md) | 阶段 3 学习材料：可观测性与告警 | 393 | +393 / −0 |
-| [docs/notes.md](../../docs/notes.md) | 实测记录 | 378 | +68 / −0 |
-| [docs/reports/phase-03-observability.md](../../docs/reports/phase-03-observability.md) | 阶段 3 汇报书：可观测性与告警 | 434 | +434 / −0 |
+| [docs/decisions.md](../../docs/decisions.md) | 设计决定 | 181 | +62 / −0 |
+| [docs/learn/phase-03-observability.md](../../docs/learn/phase-03-observability.md) | 阶段 3 学习材料：可观测性与告警 | 395 | +395 / −0 |
+| [docs/notes.md](../../docs/notes.md) | 实测记录 | 414 | +104 / −0 |
+| [docs/reports/phase-03-observability.md](../../docs/reports/phase-03-observability.md) | 阶段 3 汇报书：可观测性与告警 | 435 | +435 / −0 |
 | [docs/代码地图.md](../../docs/代码地图.md) | OpsDoctor 代码地图 | 206 | +20 / −5 |
-| [docs/数据台账.md](../../docs/数据台账.md) | 数据台账 | 70 | +17 / −0 |
+| [docs/数据台账.md](../../docs/数据台账.md) | 数据台账 | 75 | +22 / −0 |
 | [go.mod](../../go.mod) | 固定 Go 直接和间接依赖 | 80 | +39 / −18 |
 | [go.sum](../../go.sum) | 依赖内容校验和 | 199 | +85 / −37 |
 | [internal/loadgen/app.go](../../internal/loadgen/app.go) | 启动压测进程，管理控制端口、统计输出和退出。 | 119 | +9 / −3 |
@@ -159,7 +159,7 @@
 | [internal/shop/sales/repository_integration_test.go](../../internal/shop/sales/repository_integration_test.go) | 在真实 MySQL 中验证销量去重与事务回滚。 | 152 | +22 / −6 |
 | [internal/shop/sales/service.go](../../internal/shop/sales/service.go) | 在处理订单消息之前验证业务字段。 | 38 | +5 / −4 |
 | [进度.md](../../进度.md) | OpsDoctor 进度看板 | 163 | +10 / −10 |
-| [项目计划书.md](../../项目计划书.md) | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 | 2021 | +10 / −3 |
+| [项目计划书.md](../../项目计划书.md) | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 | 2022 | +11 / −3 |
 <!-- PHASE_FILES_END -->
 
 按改动包列出新增导出成员与关键函数。既有函数若接线变化较大也保留，便于逐行学习；普通不变成员不重复列出。
@@ -385,23 +385,23 @@ CI YAML 和三个内嵌 Python 脚本语法通过。远端 CI 尚未运行，不
 
 | 计划验收项 | 当前结论 | 真实证据 |
 |---|---|---|
-| Jaeger 完整下单调用链 | 通过直接 Jaeger 查询 | trace de18cb3a9dd94612b021dc9c4ff56854，29 span、三个服务、八个环节完整，父子关系核对 |
+| Jaeger 完整下单调用链 | 通过 | 固定 2.20.0 后 trace 2cd8e6e7f7ab413eb88850d3d0c18ede，29 span、三个服务、八个环节完整，Grafana trace 查询也通过 |
 | Grafana 按 trace_id 查全条日志 | 通过 | 通过 Grafana Loki 数据源代理得到三个服务的三条关联日志 |
 | 看板面板都有数据 | 通过 | 从 Grafana 读取看板后逐个查询十二面板，都有非空数据，无错误 |
 | 停 worker 后三分钟内收到消费延迟告警 | 通过 | 目标 200 QPS，167.064 秒收到 ConsumerLagHigh；恢复后收到 resolved |
-| 完整监控栈接线 | 待完成 | Grafana 的 Jaeger 数据源对 2.22.0 返回 404，等待兼容版本决定 |
+| 完整监控栈接线 | 通过 | 同配置对照：2.22.0 /api/services=404，2.20.0=200；健康、列表、搜索、详情全部通过 |
 
-以上运行命令、时间、原始数值和限制见 [notes 阶段 3](../notes.md#phase-03)。最终暂停流量后 lag=0，`ordered_quantity=2066809 sold_quantity=2066809 gap=0`。
+以上运行命令、时间、原始数值和限制见 [notes 阶段 3](../notes.md#phase-03)。最终暂停流量后 lag=0，`ordered_quantity=2066811 sold_quantity=2066811 gap=0`。
 
-本阶段台账条目为 [P3-1 至 P3-10](../数据台账.md#阶段-3可观测性与告警验收进行中)，包含成功结果、混合实验错误和版本兼容失败。
+本阶段台账条目为 [P3-1 至 P3-15](../数据台账.md#阶段-3可观测性与告警)，包含成功结果、混合实验错误和版本兼容失败。
 
-全栈内存快照：17 个容器实际合计 **1938.2 MiB，约 1.89 GiB**，配置上限合计 5056 MiB。采样时目标流量 200 QPS，Docker 可见 16 逻辑 CPU、约 15.18 GiB 内存。MySQL 占 680.5/768 MiB，Grafana 183.9/256 MiB；其余逐容器值见 notes。这个快照说明本次能运行，不是峰值上界，也不包括 Windows 与 Docker 虚拟机的全部开销。
+全栈内存保留两次快照：2.22.0、目标 200 QPS 时，17 个容器合计 **1938.2 MiB，约 1.89 GiB**；最终 2.20.0、流量暂停时为 **1850.944 MiB，约 1.81 GiB**。配置上限合计 5056 MiB；Docker 可见 16 逻辑 CPU、约 15.18 GiB 内存。最终 MySQL 已占 **758.3/768 MiB**，接近上限，不能因全栈总量较低就继续加压。逐容器值见 notes。快照不是峰值，也不包括 Windows 与 Docker 虚拟机的全部开销；两次条件不同，不能计算版本优化比例。
 
 这轮混合实验累计有 98 错误、57 dropped，包含暂停与故障过程，不能当成新的性能基准。简历可引用阶段 2 的实际五分钟结果并说明环境，也可引用本阶段完整链路、三类数据关联和积压发现实验；不能写未实现的自动诊断准确率或修复收益。
 
 ## 六、偏离计划之处
 
-当前没有擅自改变技术栈。最新 Jaeger 与最新 Grafana 的接口不兼容，按计划书第 2.2 节已请求固定 Jaeger 2.20.0 的例外许可，尚未收到确认，未改版本。[决定记录](../decisions.md)记录当前版本和原因；批准后再同步计划与记录。
+用户已明确批准仅固定 Jaeger 2.20.0。其他组件继续按第 2.6 节选最新稳定版。同一 Grafana 数据源配置的 SHA-256、具体 404 路径、两版返回、上游 #87 与解除条件均写入[兼容决定](../decisions.md#jaeger-compatibility)，计划书也已同步。未来修复后升级最新版，必须重新验证 Grafana；阶段 5 的直接查询适配器以 2.20.0 实测为准，以后升级同步回归适配器。本阶段没有提前开发适配器。
 
 订单发送上下文修复由用户明确要求。沿用用户对 needs_review 的要求，将其补入第 5.8.5 节标签表并并入统一注册表。新增缓存 error 分类，避免把 Redis 故障伪装成 miss。
 
@@ -409,8 +409,9 @@ Loki 官方镜像缺少 wget，所以不保留无法执行的容器内健康命�
 
 ## 七、已知问题与遗留事项
 
-- Grafana / Jaeger 兼容问题仍阻塞最终验收和推送收尾。
-- Jaeger 内存数据在重启后丢失，默认只采样十分之一根请求；Loki、Prometheus 也有保留窗口。这是本机实验配置。
+- Jaeger 固定旧版是有解除条件的临时兼容例外，期间无法取得后续版本全部修复。
+- Jaeger 内存数据在重启后丢失，默认只采样十分之一根请求；Loki、Prometheus 也有保留窗口。后端重建期间真实发生过五秒导出超时，一条已成功订单的 trace 缺少库存和消费者 span；恢复后的新请求完整，旧丢失记录不会补回。
+- 最终验收第一次下单曾因库存调用超时进入待核对。只读核对没有订单、库存未变，原幂等占位保留；没有足够证据确定超时根因，不声称已根治。详细失败与恢复过程见 notes。
 - 客户端取消修复不等于可靠消息。订单提交后进程崩溃或 Kafka 故障仍可能少记销量；本阶段不做 Outbox。
 - 根治扣库存超时的不确定性，需要 Deduct 自身携带请求 ID 去重；本阶段不实现。待核对结果仍需人工处理。
 - Alloy 的 Docker socket 挂载有较大权限，`:ro` 不是 Docker API 权限隔离。后续医生绝不获得该挂载，按第 5.5.9 节控制权限。

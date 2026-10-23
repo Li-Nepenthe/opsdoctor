@@ -264,7 +264,8 @@ services:
       retries: 20
 
   jaeger:
-    image: jaegertracing/jaeger:2.22.0
+    # 用户批准的唯一版本例外：新版移除 Grafana 仍在调用的查询路径，详见 docs/decisions.md。
+    image: jaegertracing/jaeger:2.20.0
     command: ["--config=/etc/jaeger/config.yml"]
     volumes: ["./jaeger/jaeger.yml:/etc/jaeger/config.yml:ro"]
     ports: ["127.0.0.1:16686:16686", "127.0.0.1:4317:4317"]

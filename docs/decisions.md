@@ -134,7 +134,7 @@ Go 库用 `go list -m -json <模块>@latest` 查询稳定版本后固定；不�
 | Prometheus | v3.15.1 |
 | Alertmanager | v0.34.1 |
 | Grafana | 13.2.4 |
-| Jaeger | 2.22.0 |
+| Jaeger | 2.20.0，用户批准的唯一版本例外，见下文 |
 | Loki | 3.7.9 |
 | Alloy | v1.21.2 |
 | mysqld-exporter | v0.21.0 |
@@ -153,3 +153,29 @@ Go 库用 `go list -m -json <模块>@latest` 查询稳定版本后固定；不�
 - Alloy 需要 Docker socket 发现和读取日志。只挂给采集器，并明确 `:ro` 不是 Docker API 的权限隔离；医生不会获得该挂载。日志采集过滤到 opsdoctor 项目的五个 Go 服务，不顺带收集其他项目。
 
 配置参考：[Jaeger v2 配置](https://www.jaegertracing.io/docs/2.22/deployment/configuration/)、[Alloy Docker 日志源](https://grafana.com/docs/alloy/latest/reference/components/loki/loki.source.docker/)、[MySQL exporter](https://github.com/prometheus/mysqld_exporter)。按本阶段固定版本实测，不把最新版文档中的示例当成已通过的配置。
+
+<a id="jaeger-compatibility"></a>
+
+## 2026-10-23：Jaeger 2.20.0 的单项版本例外
+
+**决定与授权。** 用户明确批准本阶段固定 `jaegertracing/jaeger:2.20.0`，并要求保留对照证据、解除条件和阶段 5 适配器的升级约束。这个例外只针对 Jaeger；其他组件继续按计划书第 2.6 节在阶段开始时选最新稳定版。没有引入其他追踪产品，也没有把所有依赖降到旧版本。
+
+**怎样排除本项目配置错误。** Grafana 始终为 13.2.4，容器没有重建，Jaeger 数据源 URL 始终为 `http://jaeger:16686`。两次测试使用同一个 `deploy/grafana/provisioning/datasources/sources.yml`，SHA-256 均为 `110e07eb43712c494bd9e60b30ec2a2a9bf692082b8039e5ba7e5b7d85f212e2`。Jaeger 服务端配置也未改，只更换镜像标签。对照发生在本机 08:44 和 08:46（America/Los_Angeles）。
+
+| 实际请求 | Jaeger 2.22.0 | Jaeger 2.20.0 |
+|---|---|---|
+| 直接访问 Jaeger：`GET http://127.0.0.1:16686/api/services` | HTTP 404，`404 page not found` | HTTP 200，返回 data 数组 |
+| 经 Grafana 代理：`GET http://127.0.0.1:3000/api/datasources/proxy/uid/jaeger/api/services` | HTTP 404，`404 page not found` | HTTP 200，返回 data 数组 |
+| Grafana：`GET http://127.0.0.1:3000/api/datasources/uid/jaeger/health` | HTTP 400，status=ERROR，message=`request failed: 404 Not Found` | HTTP 200，status=OK，message=`Data source is working` |
+
+返回 404 的 Jaeger 路径明确是 **`GET /api/services`**；Grafana 的 health 路径返回的是 400，它在消息中报告下游的 404，不能把两者混写。2.20.0 刚重启时内存后端为空，所以最初 data 是空数组；新请求进入后列表有内容。换版本没有改变 Grafana 的配置，故障现象随 Jaeger 版本改变，与上游已确认的接口移除相符。
+
+**上游依据。** [Grafana Jaeger 数据源问题 #87](https://github.com/grafana/grafana-jaeger-datasource/issues/87) 说明服务/操作列表、搜索仍依赖旧路径；[Jaeger v2.21.0 发布说明](https://github.com/jaegertracing/jaeger/releases/tag/v2.21.0) 和 [移除旧 HTTP 接口的变更 #9260](https://github.com/jaegertracing/jaeger/pull/9260) 记录了这个破坏性变更。2026-10-23 查询时 #87 仍为 open。没有只开一个实验开关来绕过健康检查：上游说明该开关仍留有搜索与属性解析问题。
+
+**2.20.0 的实际查询验收。** 新订单 trace `2cd8e6e7f7ab413eb88850d3d0c18ede` 包含三个业务服务和 29 个 span。经同一个 Grafana 代理查询 `/api/services`、`/api/services/order-service/operations`、`/api/traces?service=order-service&limit=20&lookback=1h`、`/api/traces/{trace_id}` 全部返回 200 且非空。再调用 Grafana `/api/ds/query` 查询该 ID，得到一个有效 trace 数据帧，关联日志也可通过 Loki 数据源查询。CI 加入列表和搜索冒烟，避免以后只测按 ID 查询而漏掉这类兼容问题。
+
+**解除条件。** 当 Grafana 或 Jaeger 修复该兼容问题后，升级到届时最新稳定版。先复测数据源健康、服务与操作列表、带条件搜索、trace 详情及日志跳转；覆盖真实 span 的字符串、数值、布尔属性和父子关系。阶段 5 适配器已经存在时，也必须同时通过下面的回归。全部通过后更新 Compose、计划书、这条决定及实测记录，才解除例外；不能只把镜像标签改回最新版就认定完成。
+
+**阶段 5 的约束。** 医生会直接调用 Jaeger 查询接口，其适配器必须以本项目固定的 **2.20.0 实测** 为准，按这个版本的请求参数和返回结构编写测试。本阶段只记录约束，没有提前实现医生。以后升级 Jaeger 时，同步回归适配器的搜索、详情、属性解析、父子关系、空结果与错误处理，不得只验证 Grafana。若迁移到新 API，要同时更新适配器和测试数据，不能让医生继续依赖已经移除的路径。
+
+**代价与限制。** 固定旧版本期间拿不到之后版本的全部修复，所以这是带解除条件的临时例外。Jaeger 使用内存存储，重建会清空旧 trace；切换期间库存与消费者的一批 span 曾因五秒导出超时未送达，新请求在连接恢复后才得到完整 trace。此失败和一次下单待核对均保留在 notes，不把它们改写成全程无故障。

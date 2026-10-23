@@ -68,6 +68,42 @@
 
 CI 已增加八个采集目标、exporter 后端连接、Loki 就绪、三数据源健康、看板、跨服务 trace 与日志的冒烟。YAML 及三个内嵌 Python 段语法通过；尚未推送，不能声称远端 CI 通过。Grafana/Jaeger 兼容问题待用户决定，工程验收尚未全部完成。
 
+### 兼容例外批准后的对照与恢复（08:44–08:53）
+
+用户批准仅固定 Jaeger 2.20.0，其他组件仍按最新稳定版规则。先保存 2.22.0 的原始响应，再只替换 Jaeger 镜像，数据源和 Jaeger 配置未改。Grafana 数据源配置 SHA-256 两次同为 `110e07eb43712c494bd9e60b30ec2a2a9bf692082b8039e5ba7e5b7d85f212e2`。直接 `/api/services` 和 Grafana 代理同路径由 404 变为 200，Grafana `/api/datasources/uid/jaeger/health` 由 400/ERROR 变为 200/OK。详细路径和上游链接在 [兼容决定](decisions.md#jaeger-compatibility)。
+
+第一次新下单失败：用户 880000304、商品 499994，约 830ms 后返回 409，日志 reason=deduct_outcome_unknown，order_id=0，trace `e23cbbae6cc045f68343dca288810b7c`。只读 SQL 未找到该用户订单，库存仍为 100；幂等键 `phase03-final-ee53d76496c84f6dbb5e7ade877eb468` 原样保留，没有删除或重做。后续三次只读商品查询恢复正常，分别约 56.838/8.520/5.407ms。现有证据不足以确定这次库存调用超时的根因，不把它归因于 Jaeger 或声称已根治。
+
+随后用独立用户 880000305 和商品 499993 新建另一笔验收订单，返回 201，订单 2066809。但 trace `a22b789638174b639fa2b1979e3c5794` 只有订单侧 span。库存和消费者日志带同一个 trace ID，证明关联传播到了服务；两者在容器时间 15:48:28、15:48:26 分别报告 `traces export: processor export timeout`。这批记录没送达，等待后也不能恢复。本地 CI 同口径脚本因此确实失败，未把它当成通过。
+
+连接恢复后的独立订单：用户 880000306、商品 499992、数量 1，订单 **2066810**，HTTP 201，金额 1999。trace **2cd8e6e7f7ab413eb88850d3d0c18ede** 有 **29 个 span、三个服务**。库存服务端 span `3d7f82c1597ec109` 的父节点是客户端 `668add961d6be982`；消费者 `dbb5939fa22618aa` 的父节点是生产者 `7193cf093011b752`。没有重做前面待核对的订单。
+
+经 Grafana 代理的服务列表返回四项（含 Jaeger 自身）、order-service 操作列表十五项、过去一小时 trace 搜索十二项、该 ID 详情一项，均为 HTTP 200。Grafana `/api/ds/query` 实际返回一个可用 trace 数据帧。本地运行 CI 的观测脚本，八个目标、三数据源、十二面板定义、三服务 trace 与关联日志全部通过。十二面板数据查询的完整验证仍引用前面的原始记录，不把“面板定义有十二个”偷换成这一刻所有速率面板都非空。
+
+最终流量仍暂停，`shopctl check` 为 `ordered_quantity=2066811 sold_quantity=2066811 gap=0`。08:53:39 的新内存快照为 **1850.944 MiB，约 1.81 GiB**，此时 Jaeger=2.20.0、目标 QPS=0。与先前 2.22.0、目标 200 QPS 的快照条件不同，不据此计算优化比例。MySQL 为 **758.3/768 MiB**，接近单容器上限；全栈总量不高也不能说明这个容器还有足够加压余量。
+
+| 容器 | 实际内存 | 上限 |
+|---|---:|---:|
+| alertmanager | 13.2MiB | 64MiB |
+| alertsink | 15.01MiB | 64MiB |
+| alloy | 68.68MiB | 256MiB |
+| grafana | 152.5MiB | 256MiB |
+| inventory-service | 18.7MiB | 128MiB |
+| jaeger | 15.26MiB | 512MiB |
+| kafka | 497.5MiB | 1GiB |
+| kafka-exporter | 14.6MiB | 64MiB |
+| loadgen | 20.96MiB | 128MiB |
+| loki | 120.9MiB | 512MiB |
+| mysqld-exporter | 10.44MiB | 64MiB |
+| order-service | 19.02MiB | 256MiB |
+| order-worker | 23.71MiB | 128MiB |
+| prometheus | 52.98MiB | 512MiB |
+| redis | 39.27MiB | 256MiB |
+| redis-exporter | 9.914MiB | 64MiB |
+| shop-mysql | 758.3MiB | 768MiB |
+
+批准后的最终检查再次通过：gofmt、go vet、staticcheck、commentcheck、archcheck、全仓库 race（75 个顶层测试通过、16 个真实依赖测试明确跳过）。专用依赖的 16 项通过记录见前面；源码没有变化，不为凑次数重跑相同集成测试。随后更新文件地图、汇报、学习材料和台账，准备推送并等待 Linux CI。
+
 <a id="phase-02"></a>
 
 ## 2026-10-23：阶段 2 开工记录
