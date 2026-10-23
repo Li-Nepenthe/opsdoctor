@@ -7,4 +7,4 @@
 - [reports](reports/README.md)：每阶段做了什么和验收证据。
 - [learn](learn/README.md)：阅读顺序、开发回放、Go 写法和实验。
 
-阅读建议：先读 [代码地图](代码地图.md)，再看对应阶段报告与学习材料；[decisions](decisions.md) 记录取舍，[notes](notes.md) 保留真实运行与失败记录。
+阅读建议：先读 [代码地图](代码地图.md)，再看对应阶段报告与学习材料；[decisions](decisions.md) 记录取舍，[notes](notes.md) 保留真实运行与失败记录，[数据台账](数据台账.md) 从中挑出能对外引用的关键数字。
