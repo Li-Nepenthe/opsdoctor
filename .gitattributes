@@ -1,0 +1,4 @@
+# 工作区和 Git 中都统一为 LF，避免 Windows 与 Linux 互相改整份文件。
+* text=auto eol=lf
+*.png binary
+*.jpg binary

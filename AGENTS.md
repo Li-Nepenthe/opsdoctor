@@ -87,4 +87,18 @@
 
 ## 7. 常用命令
 
-阶段 0 完成后，由 Astra 在这里补充：如何启动整套环境、如何运行测试和各项检查。
+从仓库根目录运行，PowerShell 和 bash 的完整示例见 [README](README.md)。
+
+- 首次准备：PowerShell 执行 `Copy-Item .env.example .env`；bash 执行 `cp .env.example .env`。已有 `.env` 不要覆盖。
+- 启动基础依赖：`docker compose --env-file .env -f deploy/docker-compose.yml up -d --wait --wait-timeout 240`
+- 查看健康状态：`docker compose --env-file .env -f deploy/docker-compose.yml ps`
+- 停止并保留数据：`docker compose --env-file .env -f deploy/docker-compose.yml down`
+- 安装检查工具：`go install honnef.co/go/tools/cmd/staticcheck@v0.8.2`
+- 格式检查/修正：`gofmt -l internal tools` / `gofmt -w internal tools`
+- 静态检查：`go vet ./...`、`staticcheck ./...`
+- 项目规则：`go run ./tools/commentcheck ./...`、`go run ./tools/archcheck ./...`
+- 阅读清单：`go run ./tools/commentcheck -list ./...`
+- 单元与竞态测试：`go test -race ./... -count=1 -timeout=180s`
+- MySQL 集成测试：按 README 注入 `TEST_MYSQL_DSN`、`TEST_MIGRATE_MYSQL_DSN` 后，执行 `go test -race ./internal/platform/mysqlx ./internal/platform/migrate -run Integration -count=1 -timeout=90s -v`。
+
+Windows 的 `-race` 需要 gcc 可见且 `CGO_ENABLED=1`。迁移测试只允许 `opsdoctor_migrate_test` 专用库；不要将测试 DSN 指向业务库。阶段 0 没有业务服务启动命令。

@@ -1,0 +1,68 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'phase-*']
+  pull_request:
+  workflow_dispatch:
+
+# 只读权限足够检出和验证源码，检查任务不应修改仓库。
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20 # 包含首次下载、race 编译和容器初始化，超时直接失败。
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-go@v7.0.0
+        with:
+          go-version: '1.27.1'
+          cache-dependency-path: go.sum
+      - name: 检查格式
+        run: |
+          files=$(gofmt -l internal tools)
+          if [ -n "$files" ]; then
+            echo "$files"
+            exit 1
+          fi
+      - name: 检查模块文件没有遗漏
+        run: |
+          go mod tidy
+          git diff --exit-code -- go.mod go.sum
+      - name: Vet
+        run: go vet ./...
+      - name: Staticcheck
+        run: |
+          go install honnef.co/go/tools/cmd/staticcheck@v0.8.2
+          staticcheck ./...
+      - name: 注释和架构
+        run: |
+          go run ./tools/commentcheck ./...
+          go run ./tools/archcheck ./...
+      - name: 单元测试与竞态检查（无外部依赖）
+        run: go test -race ./... -count=1 -timeout=180s
+      - name: 启动固定版本基础设施并等待健康
+        run: |
+          cp .env.example .env
+          docker compose --env-file .env -f deploy/docker-compose.yml up -d --wait --wait-timeout 240
+          docker compose --env-file .env -f deploy/docker-compose.yml ps
+      - name: MySQL 集成测试与竞态检查
+        # .env.example 只含演示假值；通过环境注入，不把密码写入工作流。
+        run: |
+          while IFS= read -r line; do
+            case "$line" in
+              TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*) export "$line" ;;
+            esac
+          done < .env
+          go test -race ./internal/platform/mysqlx ./internal/platform/migrate -run Integration -count=1 -timeout=90s -v
+      - name: 失败时记录容器状态
+        if: failure()
+        run: docker compose --env-file .env -f deploy/docker-compose.yml ps --all
+      - name: 关闭 CI 的临时容器
+        if: always()
+        # 不删除用户数据：这是 CI runner 的独立项目，并且不使用 down -v。
+        run: docker compose --env-file .env -f deploy/docker-compose.yml down
