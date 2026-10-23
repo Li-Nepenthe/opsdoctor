@@ -78,9 +78,9 @@
 | 文件 | 作用 | 当前行数 | 对共同基线增 / 删 |
 |---|---|---:|---:|
 | [.env.example](../../.env.example) | 环境变量名称与演示值 | 87 | +10 / −0 |
-| [.github/workflows/ci.yml](../../.github/workflows/ci.yml) | 固定 runner 上增加观测管道冒烟 | 201 | +64 / −2 |
+| [.github/workflows/ci.yml](../../.github/workflows/ci.yml) | 固定 runner 上增加观测管道冒烟 | 204 | +68 / −3 |
 | [AGENTS.md](../../AGENTS.md) | AGENTS.md | 115 | +1 / −1 |
-| [README.md](../../README.md) | 所在目录的职责、入口与操作说明 | 268 | +43 / −9 |
+| [README.md](../../README.md) | 所在目录的职责、入口与操作说明 | 270 | +45 / −9 |
 | [cmd/README.md](../../cmd/README.md) | 所在目录的职责、入口与操作说明 | 15 | +2 / −0 |
 | [cmd/alertsink/main.go](../../cmd/alertsink/main.go) | 命令薄入口 | 19 | +19 / −0 |
 | [deploy/README.md](../../deploy/README.md) | 所在目录的职责、入口与操作说明 | 19 | +9 / −0 |
@@ -102,18 +102,18 @@
 | [deploy/jaeger/jaeger.yml](../../deploy/jaeger/jaeger.yml) | 单进程内存存储适合本机演练。最多保留五千条 trace，重启后清空，不宣称长期存档。 | 42 | +42 / −0 |
 | [deploy/loki/README.md](../../deploy/loki/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
 | [deploy/loki/loki.yml](../../deploy/loki/loki.yml) | 本机单副本，日志存到独立卷。服务只映射到回环地址，不把无认证的接口开放到局域网。 | 41 | +41 / −0 |
-| [deploy/mysql/init/004_metrics_user.sh](../../deploy/mysql/init/004_metrics_user.sh) | !/bin/bash | 16 | +16 / −0 |
-| [deploy/mysql/init/README.md](../../deploy/mysql/init/README.md) | 所在目录的职责、入口与操作说明 | 11 | +2 / −0 |
+| [deploy/mysql/init/004_metrics_user.sh](../../deploy/mysql/init/004_metrics_user.sh) | !/bin/bash | 20 | +20 / −0 |
+| [deploy/mysql/init/README.md](../../deploy/mysql/init/README.md) | 所在目录的职责、入口与操作说明 | 13 | +4 / −0 |
 | [deploy/prometheus/README.md](../../deploy/prometheus/README.md) | 所在目录的职责、入口与操作说明 | 8 | +8 / −0 |
 | [deploy/prometheus/prometheus.yml](../../deploy/prometheus/prometheus.yml) | 十秒抓取一次足够观察本机的分钟级症状，也不会让监控本身频繁争抢数据库连接。 | 33 | +33 / −0 |
 | [deploy/prometheus/rules/README.md](../../deploy/prometheus/rules/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
 | [deploy/prometheus/rules/shop.yml](../../deploy/prometheus/rules/shop.yml) | 这里只写用户能观察到的症状。规则不能预先给出“索引被删了”之类的原因。 | 34 | +34 / −0 |
 | [docs/decisions.md](../../docs/decisions.md) | 设计决定 | 181 | +62 / −0 |
-| [docs/learn/phase-03-observability.md](../../docs/learn/phase-03-observability.md) | 阶段 3 学习材料：可观测性与告警 | 395 | +395 / −0 |
-| [docs/notes.md](../../docs/notes.md) | 实测记录 | 414 | +104 / −0 |
+| [docs/learn/phase-03-observability.md](../../docs/learn/phase-03-observability.md) | 阶段 3 学习材料：可观测性与告警 | 403 | +403 / −0 |
+| [docs/notes.md](../../docs/notes.md) | 实测记录 | 422 | +112 / −0 |
 | [docs/reports/phase-03-observability.md](../../docs/reports/phase-03-observability.md) | 阶段 3 汇报书：可观测性与告警 | 435 | +435 / −0 |
 | [docs/代码地图.md](../../docs/代码地图.md) | OpsDoctor 代码地图 | 206 | +20 / −5 |
-| [docs/数据台账.md](../../docs/数据台账.md) | 数据台账 | 75 | +22 / −0 |
+| [docs/数据台账.md](../../docs/数据台账.md) | 数据台账 | 76 | +23 / −0 |
 | [go.mod](../../go.mod) | 固定 Go 直接和间接依赖 | 80 | +39 / −18 |
 | [go.sum](../../go.sum) | 依赖内容校验和 | 199 | +85 / −37 |
 | [internal/loadgen/app.go](../../internal/loadgen/app.go) | 启动压测进程，管理控制端口、统计输出和退出。 | 119 | +9 / −3 |
@@ -379,7 +379,7 @@ go test -race ./... -count=1 -timeout=180s -json
 
 按 README 加载六个专用 TEST DSN 与 TEST_REDIS_ADDR 后，单独运行 16 个 Integration 测试全部通过。只触碰白名单测试库与 Redis DB 14/15 的测试键。旧 `.env` 缺两项 DSN 时采用明确构造和校验库名，没有用业务库替代。
 
-CI YAML 和三个内嵌 Python 脚本语法通过。远端 CI 尚未运行，不能作为已通过证据。
+CI YAML 和三个内嵌 Python 脚本语法通过。首次远端 CI 39983025343 的 Go 检查通过，但空卷 MySQL 初始化失败；已复现并修复 source 脚本污染父 shell 的问题，独立空卷复测成功。完整远端复验仍在进行。
 
 ## 五、工程验收结果
 
@@ -393,7 +393,7 @@ CI YAML 和三个内嵌 Python 脚本语法通过。远端 CI 尚未运行，不
 
 以上运行命令、时间、原始数值和限制见 [notes 阶段 3](../notes.md#phase-03)。最终暂停流量后 lag=0，`ordered_quantity=2066811 sold_quantity=2066811 gap=0`。
 
-本阶段台账条目为 [P3-1 至 P3-15](../数据台账.md#阶段-3可观测性与告警)，包含成功结果、混合实验错误和版本兼容失败。
+本阶段台账条目为 [P3-1 至 P3-16](../数据台账.md#阶段-3可观测性与告警)，包含成功结果、混合实验错误和版本兼容失败。
 
 全栈内存保留两次快照：2.22.0、目标 200 QPS 时，17 个容器合计 **1938.2 MiB，约 1.89 GiB**；最终 2.20.0、流量暂停时为 **1850.944 MiB，约 1.81 GiB**。配置上限合计 5056 MiB；Docker 可见 16 逻辑 CPU、约 15.18 GiB 内存。最终 MySQL 已占 **758.3/768 MiB**，接近上限，不能因全栈总量较低就继续加压。逐容器值见 notes。快照不是峰值，也不包括 Windows 与 Docker 虚拟机的全部开销；两次条件不同，不能计算版本优化比例。
 

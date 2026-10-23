@@ -194,7 +194,10 @@ jobs:
           PY
       - name: 失败时记录容器状态
         if: failure()
-        run: docker compose --env-file .env -f deploy/docker-compose.yml ps --all
+        # CI 只使用 .env.example 的演示凭据；保留初始化日志，才能定位空数据卷启动失败。
+        run: |
+          docker compose --env-file .env -f deploy/docker-compose.yml ps --all
+          docker compose --env-file .env -f deploy/docker-compose.yml logs --no-color --tail 100 shop-mysql
       - name: 关闭 CI 的临时容器
         if: always()
         # 不删除用户数据：这是 CI runner 的独立项目，并且不使用 down -v。

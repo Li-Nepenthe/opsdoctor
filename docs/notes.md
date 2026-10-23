@@ -104,6 +104,14 @@ CI 已增加八个采集目标、exporter 后端连接、Loki 就绪、三数据
 
 批准后的最终检查再次通过：gofmt、go vet、staticcheck、commentcheck、archcheck、全仓库 race（75 个顶层测试通过、16 个真实依赖测试明确跳过）。专用依赖的 16 项通过记录见前面；源码没有变化，不为凑次数重跑相同集成测试。随后更新文件地图、汇报、学习材料和台账，准备推送并等待 Linux CI。
 
+### 首次 Linux CI 与空库初始化修复（08:59–09:09）
+
+[CI 39983025343](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39983025343) 的源码为 `575f363`。格式、tidy、vet、staticcheck、规则检查和无依赖 race 通过；全新 Compose 的 MySQL 初始化退出 1，后面的真实依赖与管道验收全部跳过，不能计为通过。
+
+本机先用独立临时 MySQL 容器和演示凭据复现，完全不挂载业务卷。Windows 绑定挂载让脚本带执行位，首次初始化成功；将副本设为 Linux checkout 的 0644 权限后，官方入口改用 source，稳定复现 `/usr/local/bin/docker-entrypoint.sh: line 341: MYSQL_ONETIME_PASSWORD: unbound variable`。原因是 004_metrics_user.sh 的 `set -u` 修改了父 shell，官方入口后续读取可选变量时退出。
+
+修复为用圆括号包住初始化内容，在子 shell 里设置严格选项和 MYSQL_PWD。第三个独立空卷在相同 0644 权限下正常启动；随后再次 source 脚本，父 shell 的 nounset 和 MYSQL_PWD 均未改变。实际以 metrics 登录，SELECT 1、读取 performance_schema 成功，SHOW GRANTS 只有 PROCESS、REPLICATION CLIENT、shop 和 performance_schema 的 SELECT。CI 失败分支增加 MySQL 日志，便于以后定位首次初始化问题；等待修复提交的完整 CI 结果。
+
 <a id="phase-02"></a>
 
 ## 2026-10-23：阶段 2 开工记录

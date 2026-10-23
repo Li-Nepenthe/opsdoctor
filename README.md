@@ -11,6 +11,8 @@
 - 实测记录：[notes](docs/notes.md)；对外引用数字：[数据台账](docs/数据台账.md)
 - 阶段 0：[汇报书](docs/reports/phase-00-foundation.md)、[学习材料](docs/learn/phase-00-foundation.md)
 - 阶段 1：[汇报书](docs/reports/phase-01-inventory.md)、[学习材料](docs/learn/phase-01-inventory.md)
+- 阶段 2：[汇报书](docs/reports/phase-02-order.md)、[学习材料](docs/learn/phase-02-order.md)
+- 阶段 3：[汇报书](docs/reports/phase-03-observability.md)、[学习材料](docs/learn/phase-03-observability.md)
 
 ## 启动阶段 3 环境
 
