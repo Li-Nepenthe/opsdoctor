@@ -112,6 +112,16 @@ CI 已增加八个采集目标、exporter 后端连接、Loki 就绪、三数据
 
 修复为用圆括号包住初始化内容，在子 shell 里设置严格选项和 MYSQL_PWD。第三个独立空卷在相同 0644 权限下正常启动；随后再次 source 脚本，父 shell 的 nounset 和 MYSQL_PWD 均未改变。实际以 metrics 登录，SELECT 1、读取 performance_schema 成功，SHOW GRANTS 只有 PROCESS、REPLICATION CLIENT、shop 和 performance_schema 的 SELECT。CI 失败分支增加 MySQL 日志，便于以后定位首次初始化问题；等待修复提交的完整 CI 结果。
 
+### 最终 Linux CI 39984585001
+
+[运行链接](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39984585001)，源码提交 `efc9dc08d5179e557bbec639fdda3ef736b762ca`。2026-10-23 09:10:40 创建，09:19:16 完成（America/Los_Angeles），结论 success。固定 ubuntu-24.04 / Go 1.27.1 的格式、tidy、vet、staticcheck、commentcheck、archcheck、无依赖 race、全新十七容器 Compose、真实 MySQL/Redis race、库存和订单消息冒烟全部通过。指标与 Grafana 验收也通过：八个采集目标及后端连接、三个数据源健康、Jaeger 列表和搜索、十二面板定义、三个业务服务的 trace 和关联日志。
+
+CI 原始摘要：commentcheck=147；small 造数 100 商品、400 订单，首次总耗时 21ms，重跑 5ms 并跳过。四个 HTTP 接口通过，同键回放返回相同订单 401。十秒压测实际 9.999819562999999 秒、199 请求、0 错误、0 dropped、19.900359076109062 QPS、P50=3ms、P99=21ms；商品/订单/列表分别 147/36/16。最终 `ordered_quantity=438 sold_quantity=438 gap=0`。这是 CI 小规模冒烟，不替代本机全量五分钟实验。
+
+初始化复现用的三个临时容器和各自匿名测试卷已清理；本机原业务卷未修改或删除，loadgen 仍暂停。最终非 Markdown 文件 181 个，按路径排序、CRLF 归一化为 LF 后逐文件 SHA-256，再对“路径 + TAB + 文件摘要 + LF”的拼接结果计算 SHA-256：`9ca4c8d8ae1614afba6f074777a31da00c13f2a547ba323bf79282f4d0eaaa1d`。随后只补 Markdown 的验收链接、状态和文件清单，源码指纹不变；文档提交标记 `[skip ci]`，不重复跑已通过的相同源码。
+
+阶段 3 分支已推送，工程验收完成。没有合并 main，没有勾选任何学习验收，没有开始阶段 4。
+
 <a id="phase-02"></a>
 
 ## 2026-10-23：阶段 2 开工记录
