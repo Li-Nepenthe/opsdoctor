@@ -1,3 +1,8 @@
+// 本文件：用真实 MySQL 检查连接池和会话时区。
+//
+// 只有设置 TEST_MYSQL_DSN 才运行；普通单元测试可以脱离 Docker。
+// TestOpenIntegration 通过实际查询确认 UTC 生效，不能仅凭 Go 配置对象里写了时区就认定数据库已改变。
+
 package mysqlx
 
 import (

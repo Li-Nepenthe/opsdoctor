@@ -1,0 +1,9 @@
+# 构建只需要源码；本机凭据、Git 元数据和临时可执行文件不得进入构建上下文。
+.git
+.env
+.env.*
+.obsidian
+*.exe
+*.out
+*.test
+docs

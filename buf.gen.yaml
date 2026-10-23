@@ -1,0 +1,9 @@
+# 先按 README 安装固定版本的本地插件，再执行 buf generate；生成物提交，CI 直接编译。
+version: v2
+plugins:
+  - local: protoc-gen-go
+    out: gen
+    opt: paths=source_relative
+  - local: protoc-gen-go-grpc
+    out: gen
+    opt: paths=source_relative

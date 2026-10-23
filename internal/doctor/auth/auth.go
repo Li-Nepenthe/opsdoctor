@@ -1,3 +1,8 @@
+// 本文件：医生登录要用的令牌与密码规则。
+//
+// 认证尚未接到 HTTP 路由；先把凭据规则从接口层分开，后续接线时才不会把请求解析混进密码校验。
+// 先看 Error 与 Tokens，再顺着 NewTokens、Issue、Parse 阅读；最后看邮箱和 bcrypt。
+
 package auth
 
 import (
@@ -13,7 +18,8 @@ import (
 // Error 是可比较的领域错误；用常量而不是可被重新赋值的包级变量，方便 errors.Is 判断。
 type Error string
 
-// Error 实现标准库 error 接口；不阻塞，不包含调用方的密码或令牌。
+// Error 让这个具名字符串类型满足标准库 error 接口。
+// Go 按方法判断接口是否实现；有 Error() string 就够了，不需要 Java 的 implements。
 func (err Error) Error() string { return string(err) }
 
 // 错误分类供后续 HTTP 层映射状态码；这里不依赖 HTTP，也不泄露失败的具体凭据。
@@ -38,7 +44,7 @@ type Tokens struct {
 	ttl    time.Duration // ttl 是令牌存活时长，必须大于 0。
 }
 
-// NewTokens 校验密钥长度和有效期；无效时返回配置错误，不回显密钥，不执行 IO。
+// NewTokens 在程序启动时拒绝过短密钥或不合理有效期，避免请求来了才发现签名配置不能用。
 func NewTokens(secret string, ttl time.Duration) (*Tokens, error) {
 	// 构造时就验证这些不变量，避免服务启动后才发现无法安全签发令牌。
 	if len(secret) < minimumSecretBytes {
@@ -50,7 +56,7 @@ func NewTokens(secret string, ttl time.Duration) (*Tokens, error) {
 	return &Tokens{secret: []byte(secret), ttl: ttl}, nil
 }
 
-// Issue 为非空 userID 签发令牌；返回签名字符串或带上下文的签名错误，不执行网络请求。
+// Issue 把已经确认的用户 ID 写进签名令牌；拒绝空 ID，避免生成没有身份含义的登录凭据。
 func (tokens *Tokens) Issue(userID string) (string, error) {
 	// 先拒绝空用户标识，再构造服务端决定的 claims；调用方不能自选 issuer 或算法。
 	if strings.TrimSpace(userID) == "" {
@@ -72,7 +78,7 @@ func (tokens *Tokens) Issue(userID string) (string, error) {
 }
 
 // Parse 同时校验签名算法、签发方、受众、有效期和用户标识，成功返回 userID。
-// 任何无效令牌都映射为 ErrUnauthorized，避免向客户端泄露内部校验细节；可并发调用。
+// 任何无效令牌都映射为 ErrUnauthorized，客户端不应据此区分签名错误还是用户不存在。
 func (tokens *Tokens) Parse(token string) (string, error) {
 	claims := &jwt.RegisteredClaims{}
 	// 算法由服务端白名单决定，不能听任令牌头告诉我们“该怎么验证它自己”。
@@ -103,7 +109,7 @@ func NormalizeEmail(email string) (string, error) {
 }
 
 // HashPassword 用 bcrypt 的默认成本计算摘要；输入越界返回 ErrInvalid，底层错误保留原因。
-// bcrypt 故意消耗 CPU 来提高穷举成本，本函数同步等待计算完成；不同调用之间不共享状态。
+// bcrypt 故意让计算变慢以提高穷举成本；不要把它放在每次普通业务请求里重复执行。
 func HashPassword(password string) (string, error) {
 	// 先检查 bcrypt 的输入边界；尤其不能靠截断长密码来“兼容”，那会让不同密码变得等价。
 	if len(password) < minimumPasswordBytes || len(password) > maximumPasswordBytes {
@@ -117,7 +123,7 @@ func HashPassword(password string) (string, error) {
 }
 
 // VerifyPassword 比较摘要和输入；不区分错误密码与损坏摘要，统一返回 false 避免泄露细节。
-// 它同步消耗 CPU，可并发调用；先拒绝过长输入，绝不依赖隐式截断。
+// 先拒绝超出 bcrypt 边界的输入，避免用户以为完整密码都参与了比较。
 func VerifyPassword(hash, password string) bool {
 	if len(password) < minimumPasswordBytes || len(password) > maximumPasswordBytes {
 		return false

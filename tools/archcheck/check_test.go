@@ -1,3 +1,8 @@
+// 本文件：用故意违规的假模块检验架构规则。
+//
+// fixture 只把样例交给 parser，不编译被禁止的导入。
+// 先看跨领域依赖，再看 cmd 目录约束和场景答案读取；每个反例都要能给出文件位置，避免检查器只在当前仓库恰巧通过。
+
 package main
 
 import (
@@ -86,6 +91,7 @@ func TestLocations(t *testing.T) {
 		"main.go",                // 根目录不允许放 Go 入口。
 		"cmd/demo/extra.go",      // 一个 cmd 程序目录不能再塞第二份实现。
 		"cmd/demo/doc.go",        // doc.go 也不能例外，入口说明应写在 main.go。
+		"cmd/demo/README.md",     // 例外只给 cmd 根目录，不能扩大到程序目录。
 		"internal/utils/work.go", // 包名必须说明职责，不能叫 utils。
 	} {
 		if locationProblem(path) == "" {
@@ -94,6 +100,9 @@ func TestLocations(t *testing.T) {
 	}
 	if locationProblem("cmd/demo/main.go") != "" {
 		t.Fatal("合法入口被误报")
+	}
+	if locationProblem("cmd/README.md") != "" {
+		t.Fatal("cmd 分组目录的 README 被误报")
 	}
 }
 

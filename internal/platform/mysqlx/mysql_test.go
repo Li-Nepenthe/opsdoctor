@@ -1,3 +1,8 @@
+// 本文件：离线验证 MySQL 配置规范化。
+//
+// TestPrepare 不创建真实连接，专门检查池上限、空闲数、寿命、UTC 与多语句设置。
+// 先读表格里的不合法组合，再对照 mysql.go 的 prepare，理解哪些错误应在联网前发现。
+
 package mysqlx
 
 import (

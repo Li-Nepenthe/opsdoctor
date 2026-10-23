@@ -1,3 +1,8 @@
+// 本文件：在 JSON 日志中自动关联请求与服务。
+//
+// 调用方只需把关联信息放进 context，handler 在写日志时补齐字段。
+// 先读 Fields、WithFields 和 New，再看 Handle；WithAttrs/WithGroup 复制字段，是为了避免派生日志器互相改数据。
+
 package logging
 
 import (
@@ -18,20 +23,20 @@ type Fields struct {
 	SpanID    string // SpanID 是当前跨度标识；未接入追踪时保持空字符串。
 }
 
-// WithFields 返回带关联信息的派生上下文，不改变父上下文；不会阻塞，也不会返回错误。
+// WithFields 把本次请求的关联信息放进派生上下文，让后面的 SQL 或 RPC 日志可以继续使用它。
 // context 类似沿调用链传递的请求附加信息，不能用它代替业务参数。
 func WithFields(ctx context.Context, fields Fields) context.Context {
 	return context.WithValue(ctx, contextKey{}, fields)
 }
 
-// FromContext 返回上下文中的关联信息；不存在时返回零值，不阻塞且可并发调用。
+// FromContext 供日志包装层取出关联信息；启动日志没有请求上下文时，空字段就不输出。
 func FromContext(ctx context.Context) Fields {
 	// “值, ok := x.(T)”是安全的类型断言：没有 Fields 时得到零值；这里有意忽略 ok，表示关联信息可选。
 	fields, _ := ctx.Value(contextKey{}).(Fields)
 	return fields
 }
 
-// handler 在 JSON Handler 外包一层，自动补齐每次请求的标识，不创建 goroutine。
+// handler 在 JSON Handler 外包一层，避免每个业务日志调用都手动重复 request_id。
 // next 在构造后不变；并发写日志的同步由标准库 JSON Handler 负责。
 type handler struct {
 	next       slog.Handler // next 执行最终的过滤、编码和写出。
@@ -40,7 +45,7 @@ type handler struct {
 }
 
 // New 创建固定 service 字段的 JSON 日志器；writer 必须非 nil，level 控制最低级别。
-// 日志同步写入 writer，写入可能阻塞；本函数不替换 slog 的全局默认日志器。
+// 返回独立 Logger，便于给服务和测试分别指定输出；writer 写得慢时也会拖慢日志调用，所以不在这里另起后台队列隐藏积压。
 func New(writer io.Writer, service string, level slog.Level) *slog.Logger {
 	jsonHandler := slog.NewJSONHandler(writer, &slog.HandlerOptions{
 		Level:       level,
@@ -63,7 +68,7 @@ func (wrapped handler) Enabled(ctx context.Context, level slog.Level) bool {
 	return wrapped.next.Enabled(ctx, level)
 }
 
-// Handle 从当前 context 补充非空标识，并返回下层写出错误；写入可能阻塞。
+// Handle 把 context 里的关联字段补进当前记录，再交给 JSON Handler 写出。
 // 重新组装 Record 避免修改共享的底层属性存储，遵守 slog.Handler 的并发约定。
 func (wrapped handler) Handle(ctx context.Context, record slog.Record) error {
 	// 将业务属性放进调用方要求的组，再在顶层添加关联标识，避免分组后无法查询请求。
@@ -99,7 +104,7 @@ func (wrapped handler) WithAttrs(attributes []slog.Attr) slog.Handler {
 	return handler{next: wrapped.next, attributes: copyAttributes, groups: wrapped.groups}
 }
 
-// WithGroup 创建带字段分组的派生 Handler，保留标准库的分组语义，不执行 IO。
+// WithGroup 记下业务字段的分组路径，等真正写日志时再组合成 JSON；关联字段仍留在顶层。
 func (wrapped handler) WithGroup(name string) slog.Handler {
 	if name == "" {
 		// slog 约定空组名不改变分组，直接保留当前 handler。

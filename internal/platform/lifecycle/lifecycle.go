@@ -1,3 +1,8 @@
+// 本文件：把退出信号和资源清理组织成可复用流程。
+//
+// Notify 只把信号转为取消通知；Shutdown 给清理另开预算，按 app 提供的顺序调用 Hook。
+// 先看两者如何分工，尤其注意已经取消的请求 context 为什么不能原样用来排空服务器。
+
 package lifecycle
 
 import (

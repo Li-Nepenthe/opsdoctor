@@ -1,3 +1,8 @@
+// 本文件：按目录、导入和文件访问规则检查架构边界。
+//
+// check 从 go.mod 识别本模块，再由 inspectSource 分派规则。
+// 先读 locationProblem、importProblem 和 layerProblem；最后读 scenarioProblems，了解静态路径分析能发现什么、不能证明什么。
+
 package main
 
 import (
@@ -14,7 +19,7 @@ import (
 )
 
 // check 从 go.mod 获取真实模块路径后遍历源码；读取或语法错误直接返回，避免把漏检当作通过。
-// 只读文件，不加载业务依赖、不访问网络；每次检查使用独立状态，可以并发检查不同目录。
+// 这里只解析源码，不要求被检查的包先编译成功，便于在编写新包时尽早发现越界依赖。
 func check(root string) ([]string, error) {
 	// 第 1 步：读取模块路径，才能区分本仓库的业务包和第三方依赖；不能把仓库名字写死。
 	module, err := modulePath(root)
@@ -114,8 +119,9 @@ func locationProblem(path string) string {
 		// 根目录只放项目配置和文档，程序入口应放到 cmd/<程序>/main.go。
 		return "仓库根目录不得放 Go 文件"
 	}
-	if parts[0] == "cmd" && (len(parts) != 3 || parts[2] != "main.go") {
+	if parts[0] == "cmd" && path != "cmd/README.md" && (len(parts) != 3 || parts[2] != "main.go") {
 		// 三段路径必须恰好是 cmd、程序名、main.go；这也拒绝多层子目录和额外文件。
+		// cmd 根目录的 README 是分组导航，单独放行；cmd/<程序>/README.md 仍然会被拒绝。
 		return "cmd/<程序>/ 只能包含 main.go"
 	}
 	// 最后一段是文件名，只检查前面的目录，避免把 utils.go 误当成一个含糊的包名。

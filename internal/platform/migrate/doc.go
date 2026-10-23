@@ -1,5 +1,14 @@
-// Package migrate 按文件名顺序执行嵌入式 SQL 迁移，并用 MySQL 命名锁避免多进程交错迁移。
-// 调用方传入自己的 embed.FS（实现 fs.FS）和目录；本包不包含 shop 或 doctor 的业务表。
-// 每个 NNNN_描述.sql 文件只放一条可重入语句；MySQL DDL 会隐式提交，失败后不能承诺回滚。
-// 已应用文件的校验和不可改变；新增表结构应追加文件，不能改写已提交的迁移。
+// Package migrate 在同一数据库会话持锁执行嵌入式迁移。
+//
+// 业务 migrations 包调用 Apply；这里负责文件校验、命名锁和历史，不承诺 MySQL DDL 可以整体回滚。
+//
+// 包内文件：
+//   - doc.go：说明包的位置、边界和阅读路线。
+//   - files.go：读取并校验迁移文件，不执行 SQL。
+//   - files_test.go：验证迁移文件和历史校验规则。
+//   - migrate.go：在同一 MySQL 会话中串行执行迁移并记录历史。
+//   - migrate_integration_test.go：在专用数据库验证迁移和命名锁。
+//   - testdata/0001_probe.sql：仅供集成测试的可重入探针表。
+//
+// 阅读顺序：files.go → migrate.go → files_test.go → migrate_integration_test.go。
 package migrate

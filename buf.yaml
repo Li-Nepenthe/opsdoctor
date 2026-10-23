@@ -1,0 +1,9 @@
+# buf 直接编译这个模块中的 proto，不需要另外安装 protoc。
+version: v2
+modules:
+  - path: api/proto
+lint:
+  use: [STANDARD]
+breaking:
+  # 已发布的字段编号和 RPC 签名都是契约；后续改动应检查文件级兼容性。
+  use: [FILE]

@@ -93,15 +93,19 @@
 从仓库根目录运行，PowerShell 和 bash 的完整示例见 [README](README.md)。
 
 - 首次准备：PowerShell 执行 `Copy-Item .env.example .env`；bash 执行 `cp .env.example .env`。已有 `.env` 不要覆盖。
-- 启动基础依赖：`docker compose --env-file .env -f deploy/docker-compose.yml up -d --wait --wait-timeout 240`
+- 启动库存与基础依赖：`docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240`
 - 查看健康状态：`docker compose --env-file .env -f deploy/docker-compose.yml ps`
 - 停止并保留数据：`docker compose --env-file .env -f deploy/docker-compose.yml down`
 - 安装检查工具：`go install honnef.co/go/tools/cmd/staticcheck@v0.8.2`
-- 格式检查/修正：`gofmt -l internal tools` / `gofmt -w internal tools`
+- 格式检查/修正：`gofmt -l cmd gen internal tools` / `gofmt -w cmd internal tools`（生成文件通过 buf 重建）
 - 静态检查：`go vet ./...`、`staticcheck ./...`
 - 项目规则：`go run ./tools/commentcheck ./...`、`go run ./tools/archcheck ./...`
 - 阅读清单：`go run ./tools/commentcheck -list ./...`
+- 文件地图：`go run ./tools/commentcheck -map ./...`，替换 `docs/代码地图.md` 中自动生成标记之间的表格。
 - 单元与竞态测试：`go test -race ./... -count=1 -timeout=180s`
-- MySQL 集成测试：按 README 注入 `TEST_MYSQL_DSN`、`TEST_MIGRATE_MYSQL_DSN` 后，执行 `go test -race ./internal/platform/mysqlx ./internal/platform/migrate -run Integration -count=1 -timeout=90s -v`。
+- MySQL 集成测试：按 README 注入四个 TEST DSN 后，执行 `go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed -run Integration -count=1 -timeout=90s -v`。
+- 初始化：按 README 注入 MYSQL_DSN 后，执行 `go run ./cmd/shopctl seed`（小规模加 `--small`，已有数据不会重置）。
+- 手动查询/扣减：`go run ./cmd/shopctl stock get --sku 1` / `go run ./cmd/shopctl stock deduct --sku 1 --quantity 1`。
+- 重新生成契约：安装 README 固定版本工具后，`buf lint`、`buf generate`；生成物要提交。
 
-Windows 的 `-race` 需要 gcc 可见且 `CGO_ENABLED=1`。迁移测试只允许 `opsdoctor_migrate_test` 专用库；不要将测试 DSN 指向业务库。阶段 0 没有业务服务启动命令。
+Windows 的 `-race` 需要 gcc 可见且 `CGO_ENABLED=1`。迁移、库存、造数测试分别只允许各自的专用测试库；不要将测试 DSN 指向业务库。库存服务宿主机入口是 `go run ./cmd/inventory-service`，先停止同端口的 Compose 库存容器。

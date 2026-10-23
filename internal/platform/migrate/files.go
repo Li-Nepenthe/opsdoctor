@@ -1,3 +1,9 @@
+// 本文件：读取并校验迁移文件，不执行 SQL。
+//
+// Apply 先通过 load 得到有顺序、有校验和的迁移清单，再开始碰数据库。
+// 把文件规则独立出来，重复序号、空文件和命名错误都能离线验证。
+// 先看 migration，再读 load 的筛选和排序。
+
 package migrate
 
 import (
@@ -17,7 +23,7 @@ type migration struct {
 }
 
 // load 按文件系统字典序读取迁移；格式、重复序号、空文件或读取失败都会返回带文件名的错误。
-// 只读取调用方提供的 fs.FS，不访问网络；返回值归调用方独占，可以并行加载不同文件系统。
+// 接收 fs.FS 而不是磁盘目录，使生产的 embed 文件和测试的内存文件能走同一套规则。
 func load(source fs.FS, directory string) ([]migration, error) {
 	// 第 1 步：fs.ReadDir 返回按文件名排序的目录项，配合等宽序号决定执行顺序。
 	entries, err := fs.ReadDir(source, directory)

@@ -1,0 +1,46 @@
+syntax = "proto3";
+
+// inventory.v1 是库存的第一版契约；不兼容的变化必须另开 v2。
+package inventory.v1;
+
+// 分号前是 Go 导入路径，分号后是包名；生成文件统一放进 gen，业务实现不放这里。
+option go_package = "github.com/Li-Nepenthe/opsdoctor/gen/inventory/v1;inventoryv1";
+
+// InventoryService 负责可售库存；扣减和归还没有幂等键，调用方不能自动重试写操作。
+service InventoryService {
+  // GetStock 查询当前库存；商品没有库存记录时返回 NOT_FOUND。
+  rpc GetStock(GetStockRequest) returns (GetStockResponse);
+  // Deduct 原子扣减；不足时返回 FAILED_PRECONDITION，绝不写入负库存。
+  rpc Deduct(DeductRequest) returns (DeductResponse);
+  // Release 归还失败订单占用的库存；调用成功不代表分布式事务已经完成。
+  rpc Release(ReleaseRequest) returns (ReleaseResponse);
+}
+
+// GetStockRequest 用商品 ID 定位库存；本项目一个商品只有一个 SKU。
+message GetStockRequest {
+  int64 sku_id = 1; // 等于 products.id，必须大于 0；字段编号 1 不能重新分配给其他含义。
+}
+
+// GetStockResponse 返回一次查询时看到的数量，不为调用方预留库存。
+message GetStockResponse {
+  int64 sku_id = 1; // 回传商品 ID，便于调用方核对结果属于哪个商品。
+  int32 available = 2; // 当前可售数量，范围为 0 到有符号 INT 上限。
+}
+
+// DeductRequest 的数量必须为正数；负数不能被用来绕过归还接口。
+message DeductRequest {
+  int64 sku_id = 1; // 要扣减的商品 ID，必须大于 0。
+  int32 quantity = 2; // 要扣减的件数，必须大于 0。
+}
+
+// DeductResponse 暂无字段；保留独立消息类型，后续可以兼容地增加返回信息。
+message DeductResponse {}
+
+// ReleaseRequest 用于补偿；相同请求重复执行会重复增加库存。
+message ReleaseRequest {
+  int64 sku_id = 1; // 要归还的商品 ID，必须大于 0。
+  int32 quantity = 2; // 要归还的件数，必须大于 0。
+}
+
+// ReleaseResponse 用成功状态表示归还完成，暂不返回会立即过时的库存快照。
+message ReleaseResponse {}

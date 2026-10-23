@@ -1,3 +1,8 @@
+// 本文件：扫描 Go 声明并检查代码层注释。
+//
+// scan 遍历文件，inspectFile 解析 AST，再分派函数和声明规则；新增文件层规则交给 files.go，避免职责混在一起。
+// 先看包说明如何汇总，再读 inspectFunction；-list 的符号也在这次扫描中收集。
+
 package main
 
 import (
@@ -23,11 +28,12 @@ type symbol struct {
 	summary     string // summary 是文档注释第一句，作为汇报书的清单初稿。
 }
 
-// scanResult 累积一次扫描结果；每次调用独占它，不存在跨扫描共享的可变全局数据。
+// scanResult 把诊断、符号和文件导航放在一次扫描结果中，让三种输出模式使用同一份源码信息。
 type scanResult struct {
-	files    int      // files 是排除生成代码后的 Go 文件数。
-	problems []string // problems 是带源码位置的错误列表。
-	symbols  []symbol // symbols 是全部类型、函数和方法的清单，包括测试。
+	files    int          // files 是排除生成代码后的 Go 文件数。
+	problems []string     // problems 是带源码位置的错误列表。
+	symbols  []symbol     // symbols 是全部类型、函数和方法的清单，包括测试。
+	sources  []sourceFile // sources 保留文件说明，用于核对包内清单和生成代码地图。
 }
 
 // scan 遍历 patterns 指定的目录（支持 ./...）；语法错误和读取错误直接返回，不静默漏检。
@@ -76,10 +82,11 @@ func scan(patterns []string) (scanResult, error) {
 	// doc.go 必须含包注释；仅有同名空文件不能冒充包级说明。
 	for key, location := range packages {
 		if !documented[key] {
-			result.problems = append(result.problems, location+": 包缺少带包注释的 doc.go")
+			result.problems = append(result.problems, location+": 包缺少带包注释的 doc.go（cmd 入口应在 main.go 写包注释）")
 		}
 	}
 	// map 遍历顺序不固定，排序后本机和 CI 才能得到稳定的诊断顺序。
+	result.problems = append(result.problems, inventoryProblems(result.sources)...)
 	sort.Strings(result.problems)
 	return result, nil
 }
@@ -92,6 +99,11 @@ func inspectFile(path string, result *scanResult, packages map[string]string, do
 	if err != nil {
 		return err
 	}
+	source, problem := describeFile(path, file, positions)
+	result.sources = append(result.sources, source)
+	if problem != "" {
+		result.problems = append(result.problems, problem)
+	}
 	if ast.IsGenerated(file) {
 		// 标准生成标记说明文件由工具维护，手改注释会在下次生成时丢失，因此按计划书豁免。
 		return nil
@@ -103,8 +115,8 @@ func inspectFile(path string, result *scanResult, packages map[string]string, do
 		// 每个包保留一个定位点，缺少 doc.go 时只报一次包级错误，避免每个文件都重复报错。
 		packages[key] = positions.Position(file.Package).String()
 	}
-	if filepath.Base(path) == "doc.go" && hasDoc(file.Doc) {
-		// 要同时满足文件名和 package 前的说明；别的文件有包注释也不能替代规定的 doc.go。
+	if packageDocument(path, file) {
+		// 普通包要求 doc.go；cmd 按计划书只能有 main.go，所以在入口文件承载同样的包说明。
 		documented[key] = true
 	}
 	for _, declaration := range file.Decls {
@@ -118,6 +130,18 @@ func inspectFile(path string, result *scanResult, packages map[string]string, do
 		}
 	}
 	return nil
+}
+
+// packageDocument 只给 cmd/<程序>/main.go 开入口例外，避免普通包靠随意文件名绕过 doc.go 规则。
+func packageDocument(path string, file *ast.File) bool {
+	if !hasDoc(file.Doc) {
+		return false
+	}
+	if filepath.Base(path) == "doc.go" {
+		return true
+	}
+	// 查看父目录的父目录而不是包含字符串 cmd，防止 mycmd/foo 或普通 main 包误获豁免。
+	return isCommandMain(path, file)
 }
 
 // inspectFunction 检查文档和长函数内部注释，并记录方法接收者，防止同名方法在清单里混淆。

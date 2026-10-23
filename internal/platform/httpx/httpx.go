@@ -1,3 +1,8 @@
+// 本文件：HTTP 请求进入业务前后的通用保护。
+//
+// 这里统一请求标识、请求体限制、JSON 解析和 panic 恢复，让业务 handler 专注于业务。
+// 先读 RequestIDs 与 Recovery 的安装顺序，再读 BodyLimit 和 BindJSON 如何配合；Success/Failure 是最后的响应出口。
+
 package httpx
 
 import (
@@ -25,7 +30,7 @@ func RequestID(ctx *gin.Context) string {
 }
 
 // RequestIDs 校验或生成请求标识，并记录安全的访问摘要；logger 必须非 nil。
-// 返回的中间件必须先于 Recovery 安装；每个请求只修改自己的 context，可处理并发请求。
+// 必须先于 Recovery 安装，这样 panic 恢复后的失败日志和响应也能带上同一个 request_id。
 func RequestIDs(logger *slog.Logger) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		id := ctx.GetHeader("X-Request-ID")
@@ -129,7 +134,7 @@ func BindJSON(ctx *gin.Context, target any) bool {
 }
 
 // Success 写出契约规定的成功响应；status 由接口决定（例如查询 200、创建 201）。
-// data 必须可以编码为 JSON；此函数同步写出响应，不负责业务错误映射。
+// handler 先决定业务结果，再调用这里的统一外壳，避免各接口拼出不同格式。
 func Success(ctx *gin.Context, status int, data any) {
 	ctx.JSON(status, gin.H{"code": "OK", "data": data, "request_id": RequestID(ctx)})
 }

@@ -16,7 +16,7 @@ flowchart TD
     J -. 显式开启的集成测试 .-> E
 ```
 
-我们先搭建以后服务都要依赖的基础能力，并让规则可以自动检查。此时没有库存、订单或医生业务进程，所以你还不能通过 HTTP 下单，也不会看到诊断页面。Redis、Kafka 目前仅用于把部署环境跑通；不代表已经写好了缓存或消息业务。先读[汇报书](../reports/phase-00-foundation.md)了解文件全貌，再逐个阅读源码。
+我们先搭建以后服务都要依赖的基础能力，并让规则可以自动检查。此时没有库存、订单或医生业务进程，所以你还不能通过 HTTP 下单，也不会看到诊断页面。Redis、Kafka 目前仅用于把部署环境跑通；不代表已经写好了缓存或消息业务。这是阶段 0 的历史学习范围；当前分支已含阶段 1，最新文件导航见[代码地图](../代码地图.md)。先读[汇报书](../reports/phase-00-foundation.md)了解文件全貌，再逐个阅读源码。
 
 ## 2. 怎么跑起来、看什么
 
@@ -24,7 +24,7 @@ flowchart TD
 
 1. 执行 `go version`、`docker version`、`docker compose version`、`gcc --version`、`go env CGO_ENABLED`。你应该看到 Go 1.27.1、Docker Client/Server 都可用，Windows 下 gcc 可见且 CGO 为 1。gcc 是 race 的构建依赖，本项目没有让你手写 C。
 2. PowerShell：`if (-not (Test-Path .env)) { Copy-Item .env.example .env }`；bash：`test -f .env || cp .env.example .env`。你应该得到一个 Git 忽略的 `.env`，里面都是演示值；`git status --short` 不应列出它。
-3. 执行 `docker compose --env-file .env -f deploy/docker-compose.yml up -d --wait --wait-timeout 240`。你应该看到三个服务最终都 Healthy；首次下载镜像可能较慢。`--wait-timeout` 约束等待服务就绪的时间，不是镜像下载速度保证。
+3. 执行 `docker compose --env-file .env -f deploy/docker-compose.yml up -d --wait --wait-timeout 240 shop-mysql redis kafka`。你应该看到三个服务最终都 Healthy；首次下载镜像可能较慢。`--wait-timeout` 约束等待服务就绪的时间，不是镜像下载速度保证。
 4. 执行 `docker compose --env-file .env -f deploy/docker-compose.yml ps`。你应该看到 MySQL、Redis、Kafka 的状态为 healthy，端口前缀是 127.0.0.1。
 5. 执行 `go install honnef.co/go/tools/cmd/staticcheck@v0.8.2`。成功一般不输出内容；随后 `staticcheck -version` 应显示安装版本。如果命令不可见，把 GOPATH 下的 bin 加入 PATH。
 6. 依次执行下列命令。gofmt、vet、staticcheck 正常时无输出；两个项目检查器应显示通过；测试应显示各包 ok。
@@ -45,7 +45,80 @@ go test -race ./... -count=1 -timeout=180s
 
 如果刚启动就失败，先看 `ps --all`。查看 Kafka 的日志可以用 `docker compose --env-file .env -f deploy/docker-compose.yml logs --tail 80 kafka`。不要为了排查配置而把完整 `.env` 或展开后的 Compose 配置贴到公开问题里。
 
-## 3. 阅读顺序
+## 3. 开发过程回放
+
+本节依据 [实测记录](../notes.md)、[决定记录](../decisions.md) 和提交 `de44592`、`d9b24f6`、`4404d78` 补写。记录能确定工作段和实际失败，但没有保存每次编辑的先后，所以不编造“先敲了哪个函数”的细节。下面的函数清单描述实际拆分；注明为阅读顺序的地方，不等于编辑时间线。
+
+### 3.1 先确认仓库与运行环境
+
+**目标与动手前的问题。** 我先确认新仓库、唯一计划和只读复用来源，查 Go、Docker、gcc 是否可用。这样后面报告的“测试通过”才有明确环境，不能把没有运行的 Docker 或 race 写成成功。
+
+**拆分。** 这一步没有业务函数；检查使用 `git status`、`go version`、`go env CGO_ENABLED CC` 和 Docker 命令，结果放进 notes，版本选择放进 decisions。
+
+**实际顺序与验证。** 开始时发现 Docker 和 gcc 不可用，先告诉你。你同意继续代码、由自己准备 Docker，race 暂交固定 Linux CI；随后你装好工具，我刷新 PATH，再验证 Docker 引擎、Compose 和 CGO 都可用。没有自行安装系统软件。
+
+**问题与取舍。** 旧终端看不到新 PATH，不能据此断言工具仍未安装。最终 Windows 与 Linux CI 都真实跑了 race，临时替代验收没有被保留成永久缺口。
+
+### 3.2 把共用地基和认证分开
+
+**目标。** 从旧 ai-backend 的认证、配置、MySQL 与中间件经验出发，建立可供后续服务调用的包。旧仓库保持只读；不能直接把旧项目的业务目录复制过来。
+
+**动手前的问题。** 配置怎样在启动时失败、UTC 是 Go 解码设置还是数据库会话设置、迁移锁究竟归哪条连接、退出后怎样继续清理，这些问题都要在服务出现前讲清楚。
+
+**实际拆分的关键函数：**
+
+| 文件 / 函数 | 参数 → 返回 | 在流程里的作用 |
+|---|---|---|
+| config/config.go：NewReader、String/Int/Duration/Bool | 读取函数 / 变量名与默认范围 → Reader / 值与 error | 分开配置来源和规则，便于内存测试 |
+| logging/logging.go：New、WithFields、Handle | 输出与服务名 / context 与字段 → Logger / context / error | app 建日志器，请求补上下文，写出时统一关联 |
+| httpx/httpx.go：RequestIDs、Recovery、BodyLimit、BindJSON | logger / 大小 / Gin context 与目标指针 → 中间件 / bool | 让接口先经过统一保护再进入业务 |
+| mysqlx/mysql.go：prepare、Open | Config / context → 驱动配置 / *sql.DB 与 error | 先校验，再 Ping，连接池交给 app 管理 |
+| migrate/files.go：load | fs.FS 与目录 → 迁移切片与 error | SQL 执行前检查编号、内容和校验和 |
+| migrate/migrate.go：Apply、acquire、release、discard | context、池、文件 / 专用连接 → error / 锁名 | 同一会话持锁执行；释放失败丢弃会话 |
+| lifecycle/lifecycle.go：Notify、Shutdown | 父 context / 预算与 Hook → context/stop / error | 信号取消与资源清理分成两个阶段 |
+| auth/auth.go：NewTokens、Issue、Parse、HashPassword、VerifyPassword | 密钥、用户、令牌或密码 → 认证结果 | 保留认证规则，但暂不接登录路由 |
+
+**顺序与原因。** 这些基础能力和测试在 `de44592` 中一起交付。记录不足以还原各文件之间的精确编辑次序；学习时按上表从“来源与配置”走到“资源与清理”最容易理解，这里明确把它作为阅读路线。实际验证包括配置表格用例、HTTP 内存请求、JWT 伪造样例，以及真实 MySQL 的时区和迁移测试。
+
+**取舍。** 没有引入 dotenv/Viper、ORM 或另一个迁移框架。迁移一文件一条 SQL，沿用会话命名锁但不按分号拆字符串。DDL 不能整批回滚，所以迁移要可重入，不能宣称具备事务迁移能力。
+
+### 3.3 让注释和分层规则真的能失败
+
+**目标与前置问题。** 仓库要让遗漏注释和跨领域依赖在 CI 中被拒绝；只在当前好代码上运行成功，不能证明检查器有用。
+
+| 文件 / 函数 | 参数 → 返回 | 为什么拆出来 |
+|---|---|---|
+| commentcheck/check.go：scan、inspectFile | 扫描路径 / 文件与汇总状态 → 结果 / error | 遍历与单文件 AST 检查分开 |
+| inspectFunction、inspectDeclaration | AST、位置与结果 → 更新诊断 | 函数体规则和 type/const/var 规则不同 |
+| writeList | writer、符号切片 → error | 给报告生成清单，不手写一份容易漏掉的函数表 |
+| archcheck/check.go：locationProblem、importProblem、layerProblem | 路径、导入、模块 → 问题文字 | 目录、领域方向、包内分层分别解释 |
+| scenarioProblems、stringExpression | AST / 表达式与已知字符串 → 违规 / 可求值路径 | 检查可识别的答案读取，不假装分析任意运行时数据流 |
+
+**实际顺序与验证。** 写好工具与故意违规的样例后跑测试。第一次 archcheck 的 embed 路径样例失败：没有去掉 `//go:embed` 前缀，修正为逐个解析 pattern 后通过。随后 commentcheck 自查发现 11 个长函数缺内部说明；补写和拆分过程中，新函数又被抓到一次缺说明，再补齐才通过。最后还临时删除真实 `config.New` 注释，确认工具给出文件和行号，并在 finally 中恢复。
+
+**取舍。** 静态规则只负责它能可靠判断的内容，“像不像人讲解”仍须人工自查。阶段 1 的新规范后来增加了文件说明、包内清单和 `-map`；这些不是阶段 0 首次交付时就有的能力，本次回放不把它们倒写进历史。
+
+### 3.4 跑通容器，留下失败与修复证据
+
+**目标与前置问题。** 三个依赖要在本机和全新 CI 环境健康启动；密码只从环境注入，版本写死。
+
+**拆分。** 没有新增业务 Go 函数。`deploy/docker-compose.yml` 负责服务、端口、健康检查与内存预算；`deploy/mysql/init/001_test_databases.sql` 负责两个平台测试库；CI 负责按顺序执行检查和容器集成测试。
+
+**实际顺序。** 第一次 Compose 命令找不到根目录 `.env`，于是统一显式写 `--env-file .env`。随后 Kafka 因数据目录权限启动失败，检查官方镜像发现 `/var/lib/kafka/data` 属于 appuser，改用该目录，并修正本次新建空卷的属主。没有删卷重来。再运行本机全部检查，推送后查看 CI。
+
+**验证与取舍。** 当时 9 个包、23 个顶层测试通过，三个依赖 healthy；[CI 39929219914](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39929219914) 的全新卷也通过。这个证据比只说“本机能启动”更完整。没有提前写业务功能来让项目看起来更丰富。
+
+### 3.5 学习前返工，以及这次三层说明补齐
+
+**目标与前置问题。** 你指出具名返回值、错误合并、取消脱离、信号 context、SQL NULL 和坏连接丢弃难以逐行理解，要求只改讲解。
+
+**拆分与顺序。** 对应解释分别补到 migrate 的 Apply/release/discard、lifecycle 的 Notify/Shutdown 及学习材料；检查工具的分支和表格案例也逐项补理由。合并 `6f92d0e` 后删掉废弃的 CHAOS 配置，再检查无行为改动、运行全套检查并推送 `4404d78`。
+
+**验证与真实问题。** 最初按词法 token 比较时，表格排版多出的合法尾逗号被误判为变化；改用去掉注释和位置的 AST 对比，并核对 Go 指令，32 个文件一致。验证示例时，Python 的默认编码打印中文失败，改用 UTF-8 后完成。不是 Go 示例逻辑失败。
+
+**本次追加。** 你在阶段 1 期间发布 `3aa6c99`，要求目录、文件和代码三层说明。我先保存阶段 1 工作、合并 main、恢复工作区，再扩展 commentcheck，接着补全两阶段文件说明和 doc.go 清单。初次核验时，除 commentcheck 外的 28 个旧 Go 文件 AST/指令一致。随后发现 cmd/README.md 被 archcheck 误判，你明确批准只放行这一精确路径并补测试；最终核验排除这两个获准调整的 archcheck 文件后，其余 26 个旧 Go 文件仍然一致。commentcheck 是你明确要求升级的工具，单独排除。现在的源码导航见 [代码地图](../代码地图.md)，历史报告中的行号仍属于当时版本。
+
+## 4. 阅读顺序
 
 本阶段尚无 `cmd/` 服务入口，不能为了满足阅读顺序而创建空服务。实际可执行入口是两个工具的 main.go；以后阶段再从 `cmd/<服务>/main.go` 进入 app。
 
@@ -75,7 +148,7 @@ go test -race ./... -count=1 -timeout=180s
 
 每读一个函数，先用自己的话复述“调用方必须给什么、成功得到什么、失败怎么办、资源由谁关闭”。再进入下一层，避免只记语法。
 
-## 4. 关键设计与 WHY
+## 5. 关键设计与 WHY
 
 ### 一个模块，按领域隔离
 
@@ -137,11 +210,11 @@ depends_on 不会替运行中的服务自动处理所有断线，也不会把已
 
 命名卷在容器删除后保留，因此重启不会重新执行 MySQL 首次初始化脚本。不要以为改 `.env` 的密码就能修改已经建好的数据库账户密码。固定版本、内存上限与 localhost 端口映射便于复现，但单节点部署不能提供生产高可用。
 
-## 5. 本阶段用到的 Go 写法
+## 6. 本阶段用到的 Go 写法
 
 这一节可以先于 migrate 和 lifecycle 源码阅读。前五个例子都是独立的小程序，可以各自保存到仓库外的临时目录，用 `go run main.go` 运行；不要放在仓库根目录。第六个是接收已有连接的函数片段。例子只讲当前写法，完整的错误上下文和资源所有权处理仍以项目源码为准。
 
-### 5.1 具名返回值，以及 defer 为什么能修改它
+### 6.1 具名返回值，以及 defer 为什么能修改它
 
 `func f() (result error)` 不只是标注返回类型，还声明了一个叫 result 的返回变量，初始值为 nil。执行 `return 某个值` 时，Go 先把这个值赋给 result，再执行 defer，最后把 result 交给调用方。闭包直接引用 result，因此可以在这个间隙修改它。先用整数看清顺序：[Go 语言规范](https://go.dev/ref/spec#Defer_statements)。
 
@@ -165,7 +238,7 @@ func main() {
 
 回到 [migrate.go 的 Apply](../../internal/platform/migrate/migrate.go)：主体先决定 result 是成功的 nil 还是迁移错误，defer 再把解锁、归还连接时的错误合进去。它类似 Java 中退出时会执行的 finally，但这里明确修改的是 Go 的返回变量。要分清闭包引用和参数传值：若写成 `defer func(value int) { value++ }(result)`，参数在登记 defer 时就求值，修改的是副本，不会改变 result。多个 defer 后登记的先执行，所以本项目先解锁、后归还连接。
 
-### 5.2 errors.Join：保留同时发生的多个错误
+### 6.2 errors.Join：保留同时发生的多个错误
 
 Go 的 error 是返回值，不是自动抛出的异常。`errors.Join` 可以把多个 error 包在一起，nil 会被忽略，全部为 nil 时结果也是 nil。它保留错误之间的关系，因此调用方仍能用 `errors.Is` 判断其中是否包含某个原因；不是把字符串拼接完就丢掉原错误。[标准库说明](https://pkg.go.dev/errors#Join)。
 
@@ -189,7 +262,7 @@ func main() {
 
 Apply 用它合并“迁移失败”和“清理失败”，Shutdown 用它汇总多个关闭步骤的错误。相较于只返回最后一个错误，调用方能同时看到故障起点和清理结果。`errors.Join(failures...)` 中的 `...` 是把 `[]error` 切片展开成多个参数。
 
-### 5.3 context.WithoutCancel：让清理拥有自己的时间
+### 6.3 context.WithoutCancel：让清理拥有自己的时间
 
 `context.WithoutCancel(parent)` 生成派生上下文，仍能通过 Value 取到父上下文的信息，但不继承取消和截止时间；它自身的 Done 为 nil，Err 为 nil。因此它需要搭配新的 WithTimeout，不能直接拿去等待 Done 或执行无限期清理。[标准库说明](https://pkg.go.dev/context#WithoutCancel)。
 
@@ -219,7 +292,7 @@ func main() {
 
 [Shutdown](../../internal/platform/lifecycle/lifecycle.go) 通常在工作 context 已取消后才被调用。若原样传给 HTTP 等关闭函数，它们可能立刻放弃清理；解除旧取消、另给总预算，就能给正在处理的请求留出收尾机会。这不是恢复旧 context，也不会让任何 goroutine 自动停止；关闭回调仍必须主动响应新 context。
 
-### 5.4 signal.NotifyContext：把退出信号转换成 context 通知
+### 6.4 signal.NotifyContext：把退出信号转换成 context 通知
 
 它返回一个 context 和一个 stop 函数。指定的系统信号到来、父 context 取消、或调用 stop，都会使返回的 context 取消。stop 还负责注销信号监听、释放资源，所以调用者要安排 `defer stop()`。[标准库说明](https://pkg.go.dev/os/signal#NotifyContext)。
 
@@ -247,7 +320,7 @@ func main() {
 
 如果把示例中的主动 `cancel()` 去掉，程序就会等待你按 Ctrl+C。[Notify](../../internal/platform/lifecycle/lifecycle.go) 还登记了 Linux 容器常用的 SIGTERM。它只统一退出通知，并不自动关闭服务器或数据库；收到通知后，组装层再调用 Shutdown。可以把它理解为把 Java 中分散的退出通知转成所有组件都认识的同一种信号。
 
-### 5.5 sql.NullInt64：区分 0 与 SQL NULL
+### 6.5 sql.NullInt64：区分 0 与 SQL NULL
 
 普通 int64 只能保存整数，不能表达 SQL 的 NULL。`sql.NullInt64` 用两个字段表示：Valid 为 true 才说明 Int64 有意义；Valid 为 false 表示 NULL。用途类似 Java 的可空 Long，但这里是否为空写在独立字段里。它实现 Scanner 接口，因此能直接用于 `rows.Scan(&value)`。[标准库说明](https://pkg.go.dev/database/sql#NullInt64)。
 
@@ -275,7 +348,7 @@ func main() {
 
 acquire 读取 GET_LOCK 的结果时，要分清 1（获取成功）、0（等待超时）和 NULL（MySQL 返回异常结果）。所以代码必须先看 Valid，再判断 Int64，不能把 NULL 和超时 0 混成一回事。release 同样需要确认结果确实是整数 1，才认为锁已经释放。
 
-### 5.6 Conn.Raw + driver.ErrBadConn：让池丢弃一条连接
+### 6.6 Conn.Raw + driver.ErrBadConn：让池丢弃一条连接
 
 `sql.Conn.Close()` 通常是结束租用、把底层连接还给连接池。`Conn.Raw` 则在回调执行期间提供底层驱动连接；回调返回 `driver.ErrBadConn` 时，database/sql 会丢弃该连接。底层对象不能拿到回调外继续使用。[Conn.Raw 说明](https://pkg.go.dev/database/sql#Conn.Raw)与[驱动错误约定](https://pkg.go.dev/database/sql/driver#ErrBadConn)。
 
@@ -306,7 +379,7 @@ func discardExample(connection *sql.Conn) error {
 
 对应源码是 [discard](../../internal/platform/migrate/migrate.go)。当命名锁的获取结果不确定或解锁失败时，直接归还连接可能让下一个请求接手一条仍持锁的会话。这里宁可让池以后重新建连接，也要结束这条旧会话。只有这类无法确认会话状态的场景才需要丢弃，普通业务 SQL 出错并不意味着连接必须废弃；也不能在自己的数据库驱动里随意返回 ErrBadConn，因为某些调用路径会据此重试操作。
 
-## 6. 动手实验
+## 7. 动手实验
 
 每次只改一个地方，观察结果后撤销**自己本次的编辑**。不改 main、不推送实验破坏、不操作业务库。
 
@@ -326,7 +399,7 @@ func discardExample(connection *sql.Conn) error {
 
 执行 `docker compose --env-file .env -f deploy/docker-compose.yml stop redis`，再执行 `ps --all`，你应该看到 Redis 不再 healthy，而 MySQL/Kafka 仍运行。执行 `docker compose --env-file .env -f deploy/docker-compose.yml up -d --wait redis` 恢复，再看状态。这里没有业务请求，所以只能说明依赖容器恢复，不能声称业务恢复。
 
-## 7. 常见误区
+## 8. 常见误区
 
 - “internal 自动隔离所有领域”：它限制仓库外导入，仓库内的方向还要靠项目规则。
 - “Go 的 interface 等于 Java 接口声明”：Go 是按方法集合隐式实现；接口通常由使用方定义所需能力。
@@ -339,7 +412,7 @@ func discardExample(connection *sql.Conn) error {
 - “测试 SKIP 等于 PASS”：没有运行就是没有证据，报告必须分清。
 - “三个容器 healthy 等于项目完成”：这里只完成阶段 0 的基础依赖，后续业务和诊断尚未实现。
 
-## 8. 必答问题
+## 9. 必答问题
 
 先自己写答案，再展开文末要点。
 
@@ -356,7 +429,7 @@ func discardExample(connection *sql.Conn) error {
 11. 如何证明单元测试没有碰真实数据库？如何明确开启集成测试？
 12. commentcheck、archcheck、race 分别能发现什么、不能证明什么？
 
-## 9. 本阶段新术语
+## 10. 本阶段新术语
 
 | 术语 | 一句话解释 |
 |---|---|

@@ -1,3 +1,8 @@
+// 本文件：检查日志字段、UTC 时间和分组之后的关联信息。
+//
+// 日志写进内存后按 JSON 解析，避免只凭字符串看起来相似就判通过。
+// 先看 TestJSONFields，再看 TestGroupedFieldsStayCorrelated 如何防止 request_id 被藏到业务分组里。
+
 package logging
 
 import (

@@ -1,3 +1,9 @@
+// 本文件：把环境变量转换为有范围约束的配置值。
+//
+// app 在建立资源前调用 Reader，错误配置应在启动时暴露。
+// 读取函数可以注入，测试不必改进程环境。
+// 先看 String 如何区分未设置和空值，再看 Int、Duration、Bool 的额外规则。
+
 package config
 
 import (
@@ -9,25 +15,24 @@ import (
 )
 
 // Reader 持有环境变量的读取方式；测试可以传入内存中的假环境，避免污染其他测试。
-// 构造后不修改字段；并发安全性取决于传入的 lookup 是否支持并发读取。
+// lookup 在构造时确定；测试传内存查找，真实 app 传环境查找，规则本身不用知道数据来自哪里。
 type Reader struct {
 	// lookup 区分“没有设置”和“设置为空”，后者通常意味着配置错误。
 	lookup func(string) (string, bool)
 }
 
-// New 使用操作系统环境变量构造读取器；它不缓存值，不阻塞，不会返回错误。
+// New 把真实环境变量接到读取器，供各 app 在启动时使用。
 func New() Reader {
 	return NewReader(os.LookupEnv)
 }
 
-// NewReader 注入读取函数；lookup 必须非 nil，返回值遵循 os.LookupEnv 的约定。
-// 这里只组装依赖，不读环境、不阻塞；调用方应保证 lookup 在使用期间不被替换。
+// NewReader 允许测试替换配置来源；lookup 的 bool 用来区分“没设置”和“设成空串”。
 func NewReader(lookup func(string) (string, bool)) Reader {
 	return Reader{lookup: lookup}
 }
 
 // String 返回去除首尾空白的配置；未设置时采用 fallback，显式空值返回带变量名的错误。
-// 错误从不包含原始值，因为同一个读取器也可能读取密码；是否阻塞取决于 lookup。
+// 同一个读取器也会读取密码，所以错误只指出变量名和问题，不带原始值。
 func (reader Reader) String(name, fallback string) (string, error) {
 	value, exists := reader.lookup(name)
 	if !exists {
@@ -73,7 +78,7 @@ func (reader Reader) Duration(name string, fallback, minimum, maximum time.Durat
 }
 
 // Bool 只接受 true 或 false，避免 1、t 等缩写让配置难以阅读；未设置时使用 fallback。
-// 它不修改 Reader；非法值返回带变量名的错误，不包含输入内容。
+// 这样配置文件里只有两种直观写法，读者不必记住标准库还接受哪些缩写。
 func (reader Reader) Bool(name string, fallback bool) (bool, error) {
 	value, err := reader.String(name, strconv.FormatBool(fallback))
 	if err != nil {

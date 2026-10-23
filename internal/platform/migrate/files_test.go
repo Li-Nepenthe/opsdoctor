@@ -1,3 +1,8 @@
+// 本文件：验证迁移文件和历史校验规则。
+//
+// 用内存文件系统制造错误样例，证明坏文件与被改写的历史会被发现。
+// 先看 TestLoadAndHistory，再看 TestLoadRejectsInvalidFiles；这些测试不承担真实 MySQL 锁语义的验证。
+
 package migrate
 
 import (

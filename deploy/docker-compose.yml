@@ -1,6 +1,35 @@
-# 阶段 0 只启动基础依赖；所有端口只映射到本机，业务服务在后续阶段逐个加入。
+# 阶段 1 启动库存服务与基础依赖；所有宿主机端口只映射到本机。
 name: opsdoctor
 services:
+  inventory-service:
+    build:
+      context: ..
+      dockerfile: deploy/docker/go.Dockerfile
+      args:
+        CMD_NAME: inventory-service
+    image: opsdoctor/inventory-service:phase-01
+    environment:
+      MYSQL_DSN: app:${MYSQL_PASSWORD:?请设置本机 MySQL 密码}@tcp(shop-mysql:3306)/shop?parseTime=true
+      DB_MAX_OPEN_CONNS: "20"
+      DB_MAX_IDLE_CONNS: "10"
+      DB_CONN_MAX_LIFETIME: 5m
+      GRPC_ADDR: :9001
+      ADMIN_ADDR: :6062
+    depends_on:
+      shop-mysql:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:9001:9001"
+      - "127.0.0.1:6062:6062"
+    mem_limit: 128m # gRPC 和小连接池不需要大堆，避免本机靶场挤占数据库内存。
+    stop_grace_period: 15s # 大于程序的 10 秒排空预算，让强制关闭和数据库清理也有时间完成。
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "3", "-O", "/dev/null", "http://127.0.0.1:6062/health"]
+      interval: 5s
+      timeout: 4s
+      retries: 12
+      start_period: 30s # 首次启动需要迁移，再开始计算失败次数。
+
   shop-mysql:
     image: mysql:8.4.13
     # 固定 8.4 LTS 的具体补丁版本，避免拉取新镜像时悄悄改变数据库行为。

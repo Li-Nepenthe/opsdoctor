@@ -1,3 +1,8 @@
+// 本文件：在专用数据库验证迁移和命名锁。
+//
+// 测试会清理探针表，因此先检查 DSN 的库名白名单。
+// TestApplyIntegration 使用 testdata 的 SQL 验证重复运行与历史保护；先读准备步骤，再看真实连接上的断言。
+
 package migrate
 
 import (

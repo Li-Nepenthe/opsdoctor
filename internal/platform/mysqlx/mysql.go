@@ -1,3 +1,9 @@
+// 本文件：建立经过校验的 MySQL 连接池。
+//
+// app 把配置交给 Open，prepare 统一驱动选项，Ping 再确认数据库可达。
+// 把配置和连接动作分开，单元测试才能不用联网。
+// 先读连接预算常量和 Config，再看 loc 与会话 time_zone 为什么都要设置。
+
 package mysqlx
 
 import (
@@ -26,7 +32,7 @@ type Config struct {
 }
 
 // Open 创建连接池并 Ping 验证可达性；最多等待 connectTimeout 或更短的 ctx deadline。
-// 成功返回可并发使用的 *sql.DB；失败返回带上下文的错误并关闭新建池，DSN 解析错误不会回显输入。
+// *sql.DB 代表连接池，不是一条连接；创建成功后由 app 持有并在停机时关闭，仓储只借它执行查询。
 func Open(ctx context.Context, config Config) (*sql.DB, error) {
 	// 第 1 步：在连接前校验配置，避免把配置错误误判为网络故障。
 	driverConfig, err := prepare(config)
@@ -56,7 +62,7 @@ func Open(ctx context.Context, config Config) (*sql.DB, error) {
 	return database, nil
 }
 
-// prepare 校验连接池参数并规范驱动设置，不执行 IO；解析失败不保留可能包含密码的底层错误。
+// prepare 在联网前统一池参数、时区和驱动限制；解析失败只返回配置提示，不能把含密码的 DSN 带进错误。
 func prepare(config Config) (*mysql.Config, error) {
 	if config.MaxOpenConns <= 0 {
 		// database/sql 把 0 理解为不限制连接数；本项目要求显式上限，避免压垮本机 MySQL。

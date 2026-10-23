@@ -1,3 +1,8 @@
+// 本文件：在同一 MySQL 会话中串行执行迁移并记录历史。
+//
+// 命名锁属于连接，所以 Apply 必须先借出专用连接，再获取锁、核对历史和执行 SQL。
+// 先通读 Apply 的资源回收，再看 acquire、readHistory、verifyHistory；最后读 release/discard，理解释放锁失败时为何不能归还脏连接。
+
 package migrate
 
 import (
@@ -99,7 +104,7 @@ func Apply(ctx context.Context, database *sql.DB, source fs.FS, directory string
 	return nil
 }
 
-// acquire 根据当前库名隔离命名锁；返回锁名或明确的获取错误，不记录连接串。
+// acquire 把当前库名放进锁名，迁移 shop 时不必阻挡另一个独立数据库的迁移。
 func acquire(ctx context.Context, connection *sql.Conn) (string, error) {
 	var database string
 	if err := connection.QueryRowContext(ctx, databaseSQL).Scan(&database); err != nil {
@@ -125,7 +130,7 @@ func acquire(ctx context.Context, connection *sql.Conn) (string, error) {
 	return name, nil
 }
 
-// readHistory 读取已执行版本与校验和；同步查询，所有读取和关闭错误都返回给调用方。
+// readHistory 把已执行版本与校验和取到内存，后续才能判断迁移是否被偷偷改写或删除。
 func readHistory(ctx context.Context, connection *sql.Conn) (history map[string]string, result error) {
 	// rows 可能在遍历中途遇到网络错误，因此 Scan、Err 和 Close 三处都要处理。
 	rows, err := connection.QueryContext(ctx, historySQL)
@@ -149,7 +154,7 @@ func readHistory(ctx context.Context, connection *sql.Conn) (history map[string]
 	return history, nil
 }
 
-// verifyHistory 拒绝改写、移除或在旧版本前插入迁移；不联网，不修改输入数据。
+// verifyHistory 要求历史只能向后追加；否则一台老实例和一台新实例可能认为自己执行过不同的表结构。
 func verifyHistory(migrations []migration, history map[string]string) error {
 	// 先找数据库已见过的最高版本，再核对本地文件，拒绝悄悄在旧版本前补执行 SQL。
 	files := make(map[string]string)
