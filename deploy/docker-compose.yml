@@ -66,6 +66,7 @@ services:
       HTTP_REQUEST_TIMEOUT: ${HTTP_REQUEST_TIMEOUT:-3s}
       ORDER_CLEANUP_TIMEOUT: ${ORDER_CLEANUP_TIMEOUT:-2s}
       INVENTORY_CALL_TIMEOUT: ${INVENTORY_CALL_TIMEOUT:-800ms}
+      INVENTORY_GRPC_IDLE_TIMEOUT: ${INVENTORY_GRPC_IDLE_TIMEOUT:-30m}
       INVENTORY_GETSTOCK_MAX_RETRIES: ${INVENTORY_GETSTOCK_MAX_RETRIES:-2}
       INVENTORY_RETRY_BACKOFF: ${INVENTORY_RETRY_BACKOFF:-50ms}
       INVENTORY_RETRY_MIN_BUDGET: ${INVENTORY_RETRY_MIN_BUDGET:-50ms}
@@ -185,7 +186,8 @@ services:
       - ./mysql/init:/docker-entrypoint-initdb.d:ro
     # Buffer pool 只取 256 MiB，给连接、系统表与启动过程留出容器内存余量。
     command: ["--innodb-buffer-pool-size=268435456", "--max-connections=100"]
-    mem_limit: 768m
+    # 原 768 MiB 上限已接近实测占用；提高容器余量，保留原 buffer pool 和连接数，避免同时改变查询缓存容量。
+    mem_limit: 1536m
     logging: *bounded-logging
     healthcheck:
       # 真正登录并查询，而不是仅检查端口打开。密码由容器环境传递，不拼进进程参数。

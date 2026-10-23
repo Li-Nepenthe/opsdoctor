@@ -1,6 +1,6 @@
 # 阶段 3 汇报书：可观测性与告警
 
-**状态：阶段 3 工程验收完成，本地检查与 Linux CI 均通过。** Jaeger 的单项版本例外已获用户批准，并用同一份 Grafana 配置完成两版对照。学习验收留给用户本人。
+**状态：阶段 3 返工的本地检查通过，等待本轮 Linux CI。** Jaeger 的单项版本例外已获用户批准，并用同一份 Grafana 配置完成两版对照。学习验收留给用户本人。
 
 ## 一、总览
 
@@ -29,6 +29,7 @@
 
 | 技术或库 | 版本 | 用在哪里 | 为什么选它 | 放弃的替代方案 |
 |---|---|---|---|---|
+| OTLP protobuf | v1.11.0，已有间接依赖转为直接依赖 | 内存 OTLP 回归测试 | 验证实际收到 span | 只检查选项字符串 |
 | OTel SDK / OTLP gRPC exporter | v1.47.0 | telemetry、三个业务服务 | 计划指定标准追踪，官方稳定版 | 自定义追踪协议 |
 | otelgin / otelgrpc | v0.72.0 | HTTP 与 RPC 接线 | 插件处理协议头与语义 | 手工重写协议追踪 |
 | XSAM/otelsql | v0.44.0 | mysqlx | 包装 sql.Connector，保留连接池使用方式 | 每条 SQL 手写 span |
@@ -77,10 +78,10 @@
 <!-- PHASE_FILES_START -->
 | 文件 | 作用 | 当前行数 | 对共同基线增 / 删 |
 |---|---|---:|---:|
-| [.env.example](../../.env.example) | 环境变量名称与演示值 | 87 | +10 / −0 |
+| [.env.example](../../.env.example) | 环境变量名称与演示值 | 89 | +12 / −0 |
 | [.github/workflows/ci.yml](../../.github/workflows/ci.yml) | 固定 runner 上增加观测管道冒烟 | 204 | +68 / −3 |
 | [AGENTS.md](../../AGENTS.md) | AGENTS.md | 115 | +1 / −1 |
-| [README.md](../../README.md) | 所在目录的职责、入口与操作说明 | 270 | +45 / −9 |
+| [README.md](../../README.md) | 所在目录的职责、入口与操作说明 | 287 | +62 / −9 |
 | [cmd/README.md](../../cmd/README.md) | 所在目录的职责、入口与操作说明 | 15 | +2 / −0 |
 | [cmd/alertsink/main.go](../../cmd/alertsink/main.go) | 命令薄入口 | 19 | +19 / −0 |
 | [deploy/README.md](../../deploy/README.md) | 所在目录的职责、入口与操作说明 | 19 | +9 / −0 |
@@ -88,7 +89,7 @@
 | [deploy/alertmanager/alertmanager.yml](../../deploy/alertmanager/alertmanager.yml) | 同一服务的同类症状合成一次通知，减少一场故障同时产生的大量推送。 | 18 | +18 / −0 |
 | [deploy/alloy/README.md](../../deploy/alloy/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
 | [deploy/alloy/config.alloy](../../deploy/alloy/config.alloy) | 只发现当前 Compose 项目的容器，避免顺带收集用户其他项目的日志。 | 46 | +46 / −0 |
-| [deploy/docker-compose.yml](../../deploy/docker-compose.yml) | 阶段 3 共 17 个容器；内存设上限，宿主机端口只映射到本机。 | 404 | +184 / −5 |
+| [deploy/docker-compose.yml](../../deploy/docker-compose.yml) | 阶段 3 共 17 个容器；内存设上限，宿主机端口只映射到本机。 | 406 | +187 / −6 |
 | [deploy/docker/go.Dockerfile](../../deploy/docker/go.Dockerfile) | 所有 Go 服务共用此文件，CMD_NAME 对应 cmd/ 下的程序名；固定编译器与 Alpine 版本。 | 17 | +2 / −1 |
 | [deploy/grafana/README.md](../../deploy/grafana/README.md) | 所在目录的职责、入口与操作说明 | 8 | +8 / −0 |
 | [deploy/grafana/dashboards/README.md](../../deploy/grafana/dashboards/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
@@ -102,18 +103,19 @@
 | [deploy/jaeger/jaeger.yml](../../deploy/jaeger/jaeger.yml) | 单进程内存存储适合本机演练。最多保留五千条 trace，重启后清空，不宣称长期存档。 | 42 | +42 / −0 |
 | [deploy/loki/README.md](../../deploy/loki/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
 | [deploy/loki/loki.yml](../../deploy/loki/loki.yml) | 本机单副本，日志存到独立卷。服务只映射到回环地址，不把无认证的接口开放到局域网。 | 41 | +41 / −0 |
+| [deploy/mysql/README.md](../../deploy/mysql/README.md) | 所在目录的职责、入口与操作说明 | 11 | +2 / −0 |
 | [deploy/mysql/init/004_metrics_user.sh](../../deploy/mysql/init/004_metrics_user.sh) | !/bin/bash | 20 | +20 / −0 |
 | [deploy/mysql/init/README.md](../../deploy/mysql/init/README.md) | 所在目录的职责、入口与操作说明 | 13 | +4 / −0 |
 | [deploy/prometheus/README.md](../../deploy/prometheus/README.md) | 所在目录的职责、入口与操作说明 | 8 | +8 / −0 |
 | [deploy/prometheus/prometheus.yml](../../deploy/prometheus/prometheus.yml) | 十秒抓取一次足够观察本机的分钟级症状，也不会让监控本身频繁争抢数据库连接。 | 33 | +33 / −0 |
 | [deploy/prometheus/rules/README.md](../../deploy/prometheus/rules/README.md) | 所在目录的职责、入口与操作说明 | 7 | +7 / −0 |
 | [deploy/prometheus/rules/shop.yml](../../deploy/prometheus/rules/shop.yml) | 这里只写用户能观察到的症状。规则不能预先给出“索引被删了”之类的原因。 | 34 | +34 / −0 |
-| [docs/decisions.md](../../docs/decisions.md) | 设计决定 | 181 | +62 / −0 |
-| [docs/learn/phase-03-observability.md](../../docs/learn/phase-03-observability.md) | 阶段 3 学习材料：可观测性与告警 | 403 | +403 / −0 |
-| [docs/notes.md](../../docs/notes.md) | 实测记录 | 432 | +122 / −0 |
-| [docs/reports/phase-03-observability.md](../../docs/reports/phase-03-observability.md) | 阶段 3 汇报书：可观测性与告警 | 435 | +435 / −0 |
-| [docs/代码地图.md](../../docs/代码地图.md) | OpsDoctor 代码地图 | 206 | +20 / −5 |
-| [docs/数据台账.md](../../docs/数据台账.md) | 数据台账 | 77 | +24 / −0 |
+| [docs/decisions.md](../../docs/decisions.md) | 设计决定 | 196 | +77 / −0 |
+| [docs/learn/phase-03-observability.md](../../docs/learn/phase-03-observability.md) | 阶段 3 学习材料：可观测性与告警 | 433 | +433 / −0 |
+| [docs/notes.md](../../docs/notes.md) | 实测记录 | 486 | +176 / −0 |
+| [docs/reports/phase-03-observability.md](../../docs/reports/phase-03-observability.md) | 阶段 3 汇报书：可观测性与告警 | 481 | +481 / −0 |
+| [docs/代码地图.md](../../docs/代码地图.md) | OpsDoctor 代码地图 | 207 | +21 / −5 |
+| [docs/数据台账.md](../../docs/数据台账.md) | 数据台账 | 85 | +32 / −0 |
 | [go.mod](../../go.mod) | 固定 Go 直接和间接依赖 | 80 | +39 / −18 |
 | [go.sum](../../go.sum) | 依赖内容校验和 | 199 | +85 / −37 |
 | [internal/loadgen/app.go](../../internal/loadgen/app.go) | 启动压测进程，管理控制端口、统计输出和退出。 | 119 | +9 / −3 |
@@ -132,21 +134,26 @@
 | [internal/platform/logging/logging_test.go](../../internal/platform/logging/logging_test.go) | 检查日志字段、UTC 时间和分组之后的关联信息。 | 96 | +27 / −0 |
 | [internal/platform/mysqlx/mysql.go](../../internal/platform/mysqlx/mysql.go) | 建立经过校验的 MySQL 连接池。 | 115 | +18 / −5 |
 | [internal/platform/resilience/breaker.go](../../internal/platform/resilience/breaker.go) | 下游连续不健康时，暂停继续向它发送请求。 | 76 | +6 / −1 |
-| [internal/platform/telemetry/doc.go](../../internal/platform/telemetry/doc.go) | 包说明、文件清单与阅读顺序 | 15 | +15 / −0 |
+| [internal/platform/telemetry/doc.go](../../internal/platform/telemetry/doc.go) | 包说明、文件清单与阅读顺序 | 16 | +16 / −0 |
 | [internal/platform/telemetry/kafka.go](../../internal/platform/telemetry/kafka.go) | 在 Kafka 消息头中传递调用链，消息正文仍只包含订单业务字段。 | 51 | +51 / −0 |
 | [internal/platform/telemetry/metrics.go](../../internal/platform/telemetry/metrics.go) | 集中定义本阶段的指标名称、标签和注册方式。 | 90 | +90 / −0 |
 | [internal/platform/telemetry/middleware.go](../../internal/platform/telemetry/middleware.go) | 在 HTTP 与 gRPC 的入口、出口测量耗时。 | 81 | +81 / −0 |
 | [internal/platform/telemetry/telemetry_test.go](../../internal/platform/telemetry/telemetry_test.go) | 不用监控后端验证指标和跨 Kafka 的关联信息。 | 148 | +148 / −0 |
-| [internal/platform/telemetry/tracing.go](../../internal/platform/telemetry/tracing.go) | 创建进程自己的调用链提供者，并把 span 批量送到 Jaeger。 | 80 | +80 / −0 |
+| [internal/platform/telemetry/tracing.go](../../internal/platform/telemetry/tracing.go) | 创建进程自己的调用链提供者，并把 span 批量送到 Jaeger。 | 92 | +92 / −0 |
+| [internal/platform/telemetry/tracing_test.go](../../internal/platform/telemetry/tracing_test.go) | 用内存 OTLP 服务验证导出连接的 DNS 选项和空闲恢复。 | 105 | +105 / −0 |
 | [internal/shop/app/inventoryservice/app.go](../../internal/shop/app/inventoryservice/app.go) | 库存进程的资源组装与退出流程。 | 119 | +15 / −4 |
-| [internal/shop/app/orderservice/app.go](../../internal/shop/app/orderservice/app.go) | 装配订单服务的依赖、路由和退出流程。 | 173 | +26 / −73 |
-| [internal/shop/app/orderservice/dependencies.go](../../internal/shop/app/orderservice/dependencies.go) | 准备订单进程需要的连接，并明确由谁关闭它们。 | 140 | +140 / −0 |
-| [internal/shop/app/orderservice/doc.go](../../internal/shop/app/orderservice/doc.go) | 包说明、文件清单与阅读顺序 | 18 | +4 / −1 |
+| [internal/shop/app/orderservice/app.go](../../internal/shop/app/orderservice/app.go) | 装配订单服务的依赖、路由和退出流程。 | 174 | +27 / −73 |
+| [internal/shop/app/orderservice/config.go](../../internal/shop/app/orderservice/config.go) | 读取订单进程的配置，并检查各层时间预算。 | 114 | +26 / −18 |
+| [internal/shop/app/orderservice/config_test.go](../../internal/shop/app/orderservice/config_test.go) | 验证订单服务的治理参数和时间预算关系。 | 80 | +32 / −0 |
+| [internal/shop/app/orderservice/connection_test.go](../../internal/shop/app/orderservice/connection_test.go) | 验证订单服务在首次库存连接就绪后才开放入口。 | 120 | +67 / −0 |
+| [internal/shop/app/orderservice/dependencies.go](../../internal/shop/app/orderservice/dependencies.go) | 准备订单进程需要的连接，并明确由谁关闭它们。 | 154 | +154 / −0 |
+| [internal/shop/app/orderservice/doc.go](../../internal/shop/app/orderservice/doc.go) | 包说明、文件清单与阅读顺序 | 18 | +6 / −3 |
 | [internal/shop/app/orderservice/metrics.go](../../internal/shop/app/orderservice/metrics.go) | 记录下单进入“结果待核对”的告警与计数。 | 40 | +6 / −8 |
 | [internal/shop/app/orderservice/metrics_test.go](../../internal/shop/app/orderservice/metrics_test.go) | 检查待核对日志与指标的实际内容。 | 61 | +15 / −9 |
 | [internal/shop/app/orderservice/observations.go](../../internal/shop/app/orderservice/observations.go) | 在订单服务的接口外面加计数，不把 Prometheus 类型传进业务流程。 | 83 | +83 / −0 |
 | [internal/shop/app/orderservice/servers.go](../../internal/shop/app/orderservice/servers.go) | 用已经准备好的依赖装配业务，并创建两个 HTTP 入口。 | 72 | +72 / −0 |
 | [internal/shop/app/orderworker/app.go](../../internal/shop/app/orderworker/app.go) | 启动订单消息消费者，并管理它的停机顺序。 | 135 | +14 / −4 |
+| [internal/shop/app/shopctl/stock_client.go](../../internal/shop/app/shopctl/stock_client.go) | 解析库存命令并通过正式 gRPC 契约调用服务。 | 90 | +2 / −1 |
 | [internal/shop/events/consumer.go](../../internal/shop/events/consumer.go) | 逐条处理 Kafka 消息，并在数据库成功后提交读取位置。 | 150 | +52 / −19 |
 | [internal/shop/events/consumer_test.go](../../internal/shop/events/consumer_test.go) | 证明消费者在数据库成功后才提交位点。 | 215 | +53 / −1 |
 | [internal/shop/events/publisher.go](../../internal/shop/events/publisher.go) | 把订单创建消息发送到 Kafka。 | 81 | +23 / −7 |
@@ -158,8 +165,8 @@
 | [internal/shop/sales/repository.go](../../internal/shop/sales/repository.go) | 在一个 MySQL 事务里完成订单去重和销量累加。 | 86 | +9 / −8 |
 | [internal/shop/sales/repository_integration_test.go](../../internal/shop/sales/repository_integration_test.go) | 在真实 MySQL 中验证销量去重与事务回滚。 | 152 | +22 / −6 |
 | [internal/shop/sales/service.go](../../internal/shop/sales/service.go) | 在处理订单消息之前验证业务字段。 | 38 | +5 / −4 |
-| [进度.md](../../进度.md) | OpsDoctor 进度看板 | 163 | +13 / −13 |
-| [项目计划书.md](../../项目计划书.md) | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 | 2022 | +11 / −3 |
+| [进度.md](../../进度.md) | OpsDoctor 进度看板 | 163 | +12 / −12 |
+| [项目计划书.md](../../项目计划书.md) | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 | 2025 | +14 / −3 |
 <!-- PHASE_FILES_END -->
 
 按改动包列出新增导出成员与关键函数。既有函数若接线变化较大也保留，便于逐行学习；普通不变成员不重复列出。
@@ -233,10 +240,12 @@
 | `*Metrics.Server` | [middleware.go:53](../../internal/platform/telemetry/middleware.go#L53) | Server 包在恢复拦截器外层，panic 转成 Internal 后也会被记录 | inventoryservice.serve |
 | `*Metrics.Client` | [middleware.go:63](../../internal/platform/telemetry/middleware.go#L63) | Client 的 target 使用 app 提供的服务名称，不能直接使用包含任意地址的请求参数 | orderservice.openInventory |
 | `rpcCode` | [middleware.go:73](../../internal/platform/telemetry/middleware.go#L73) | rpcCode 避免本地 deadline 被笼统地记为 Unknown，方便区分超时与服务端故障 | Server、Client |
-| `Runtime` | [tracing.go:36](../../internal/platform/telemetry/tracing.go#L36) | Runtime 不写 OTel 全局变量，插件都显式接收 Provider，测试之间因此不会串到另一套调用链 | 三个业务 app、Kafka 适配器 |
-| `New` | [tracing.go:44](../../internal/platform/telemetry/tracing.go#L44) | New 的采样方式交给 SDK 读取 OTEL_TRACES_SAMPLER 与 OTEL_TRACES_SAMPLER_ARG | 对应 app 或入口 |
-| `*Runtime.Shutdown` | [tracing.go:68](../../internal/platform/telemetry/tracing.go#L68) | Shutdown 在业务排空后执行，给最后一批 span 自己的发送预算 | 三个业务 app 的 defer |
-| `Finish` | [tracing.go:75](../../internal/platform/telemetry/tracing.go#L75) | Finish 只记录固定的失败描述，原始错误可能含业务值，不能整段复制进追踪后端 | Kafka Publish / process |
+| `Runtime` | [tracing.go:38](../../internal/platform/telemetry/tracing.go#L38) | Runtime 不写 OTel 全局变量，插件都显式接收 Provider，测试之间因此不会串到另一套调用链 | 三个业务 app、Kafka 适配器 |
+| `New` | [tracing.go:46](../../internal/platform/telemetry/tracing.go#L46) | New 的采样方式交给 SDK 读取 OTEL_TRACES_SAMPLER 与 OTEL_TRACES_SAMPLER_ARG | 对应 app 或入口 |
+| `*Runtime.Shutdown` | [tracing.go:80](../../internal/platform/telemetry/tracing.go#L80) | Shutdown 在业务排空后执行，给最后一批 span 自己的发送预算 | 三个业务 app 的 defer |
+| `Finish` | [tracing.go:87](../../internal/platform/telemetry/tracing.go#L87) | Finish 只记录固定的失败描述，原始错误可能含业务值，不能整段复制进追踪后端 | Kafka Publish / process |
+| `newTraceExporter` | [tracing.go:71](../../internal/platform/telemetry/tracing.go#L71) | newTraceExporter 的额外拨号选项用于注入测试的内存连接；生产路径不需要额外选项 | telemetry.New、OTLP 内存回归 |
+
 
 #### internal/shop/app/inventoryservice
 
@@ -249,14 +258,14 @@
 
 | 名称 | 位置 | 作用 | 被谁调用 / 使用 |
 |---|---|---|---|
-| `routes` | [app.go:110](../../internal/shop/app/orderservice/app.go#L110) | routes 最外层建立 span 并计时，连被限流拒绝的请求也能被观测到 | servers |
+| `routes` | [app.go:111](../../internal/shop/app/orderservice/app.go#L111) | routes 最外层建立 span 并计时，连被限流拒绝的请求也能被观测到 | servers |
 | `Run` | [app.go:54](../../internal/shop/app/orderservice/app.go#L54) | Run 的 result 是具名返回值，defer 可以把关闭连接的错误一并交给入口 | 对应 cmd/main.go |
-| `connectInventory` | [app.go:91](../../internal/shop/app/orderservice/app.go#L91) | connectInventory 把首次 DNS 查询和握手放进启动预算，避免第一位用户替服务承担建连等待 | openInventory、连接测试 |
-| `openInventory` | [dependencies.go:107](../../internal/shop/app/orderservice/dependencies.go#L107) | openInventory 把插件放到每次真实 RPC 外层，重试发生几次就记录几次调用 | openDependencies |
-| `*dependencies.close` | [dependencies.go:125](../../internal/shop/app/orderservice/dependencies.go#L125) | close 既用于启动失败，也用于正常停机，所以只关闭实际打开过的资源 | Run、启动失败的 defer |
-| `dependencies` | [dependencies.go:37](../../internal/shop/app/orderservice/dependencies.go#L37) | dependencies 只保存进程拥有的连接 | openDependencies、servers |
-| `openDependencies` | [dependencies.go:46](../../internal/shop/app/orderservice/dependencies.go#L46) | openDependencies 失败时自己清理；成功后把关闭责任交给 Run，避免半途失败留下连接 | orderservice.Run |
-| `openRedis` | [dependencies.go:88](../../internal/shop/app/orderservice/dependencies.go#L88) | openRedis 不记录命令参数，因为幂等键和缓存正文可能包含请求数据 | openDependencies |
+| `connectInventory` | [app.go:92](../../internal/shop/app/orderservice/app.go#L92) | connectInventory 把首次 DNS 查询和握手放进启动预算，避免第一位用户替服务承担建连等待 | openInventory、连接测试 |
+| `openInventory` | [dependencies.go:109](../../internal/shop/app/orderservice/dependencies.go#L109) | openInventory 把插件放到每次真实 RPC 外层，重试发生几次就记录几次调用 | openDependencies |
+| `*dependencies.close` | [dependencies.go:139](../../internal/shop/app/orderservice/dependencies.go#L139) | close 既用于启动失败，也用于正常停机，所以只关闭实际打开过的资源 | Run、启动失败的 defer |
+| `dependencies` | [dependencies.go:39](../../internal/shop/app/orderservice/dependencies.go#L39) | dependencies 只保存进程拥有的连接 | openDependencies、servers |
+| `openDependencies` | [dependencies.go:48](../../internal/shop/app/orderservice/dependencies.go#L48) | openDependencies 失败时自己清理；成功后把关闭责任交给 Run，避免半途失败留下连接 | orderservice.Run |
+| `openRedis` | [dependencies.go:90](../../internal/shop/app/orderservice/dependencies.go#L90) | openRedis 不记录命令参数，因为幂等键和缓存正文可能包含请求数据 | openDependencies |
 | `reviewRecorder` | [metrics.go:24](../../internal/shop/app/orderservice/metrics.go#L24) | reviewRecorder 把日志与计数放在同一个动作里，避免某个失败分支只做其中一项 | services、Create 的待核对分支 |
 | `newReviewRecorder` | [metrics.go:30](../../internal/shop/app/orderservice/metrics.go#L30) | newReviewRecorder 使用 app 自己的注册表，不污染全局注册表，也便于测试重复创建服务 | services |
 | `*reviewRecorder.RecordReview` | [metrics.go:37](../../internal/shop/app/orderservice/metrics.go#L37) | RecordReview 使用固定原因分类，不把原始连接错误、DSN 或请求体写入告警 | order.Service.unknown |
@@ -268,6 +277,10 @@
 | `observedIdempotency.Reserve` | [observations.go:65](../../internal/shop/app/orderservice/observations.go#L65) | Reserve 只统计成功读到的确定状态 | order.Service.Create |
 | `services` | [servers.go:27](../../internal/shop/app/orderservice/servers.go#L27) | services 在构造函数之间传递接口，让商品、订单包不用自己打开连接或注册全局指标 | servers |
 | `servers` | [servers.go:50](../../internal/shop/app/orderservice/servers.go#L50) | servers 只创建对象，不开始监听 | Run |
+| `inventoryDialOptions` | [dependencies.go:123](../../internal/shop/app/orderservice/dependencies.go#L123) | inventoryDialOptions 保留按主机名找 IP 的能力，但不从 DNS 读取本项目不用的服务配置 | openInventory、空闲重连回归 |
+| `Config` | [config.go:35](../../internal/shop/app/orderservice/config.go#L35) | Config 中的 Database 含密码，禁止把整个结构体写进日志 | loadConfig、openDependencies |
+| `loadConfig` | [config.go:54](../../internal/shop/app/orderservice/config.go#L54) | loadConfig 用局部读取函数收集错误，用户一次就能看到多个配置问题 | orderservice.Run、配置回归 |
+
 
 #### internal/shop/app/orderworker
 
@@ -314,6 +327,12 @@
 | `Repository` | [service.go:22](../../internal/shop/sales/service.go#L22) | Repository 的 Apply 必须把去重与加销量作为一件事完成，不能只成功一半 | sales.Service 的构造参数 |
 | `*Service.Handle` | [service.go:33](../../internal/shop/sales/service.go#L33) | Handle 的 error 为 nil 时，消费者才可以提交位点；bool 用来单独统计重复消息 | Consumer.process |
 
+
+#### internal/shop/app/shopctl
+
+| 名称 | 位置 | 作用 | 被谁调用 / 使用 |
+|---|---|---|---|
+| `runStock` | [stock_client.go:57](../../internal/shop/app/shopctl/stock_client.go#L57) | runStock 创建一个短生命周期客户端 | shopctl.Run |
 <!-- PHASE_SYMBOLS_END -->
 
 ### 数据库变更
@@ -330,6 +349,7 @@
 
 | 环境变量 | 含义 | 默认值 |
 |---|---|---|
+| INVENTORY_GRPC_IDLE_TIMEOUT | 库存连接无 RPC 时的回收时间；0 关闭，允许 0–24h | 30m；返工对照临时用 10s |
 | APP_VERSION | Compose 构建写入的版本 | phase-03；直接 go run 为 dev |
 | GRAFANA_ADMIN_PASSWORD | 首次管理员密码 | 无，必须提供；示例只有演示值 |
 | MYSQL_EXPORTER_PASSWORD | metrics 账号密码 | 无，必须提供 |
@@ -352,6 +372,9 @@
 
 | 新增测试 | 文件 | 验证场景 |
 |---|---|---|
+| TestInventoryIdleConfig | orderservice/config_test.go | 默认 30m、短时实验、0 关闭、负数、超界及非法单位 |
+| TestInventoryIdleReconnect | orderservice/connection_test.go | 内存连接真实回收、重建，两次解析均禁用服务配置且 RPC 成功 |
+| TestExporterIdleReconnect | telemetry/tracing_test.go | OTLP 连接真实回收后仍跳过服务配置，后端实际收到两条 span |
 | TestPublishSurvivesCancellation | order/service_test.go | 提交后取消原 ctx，发送仍可执行且保留值、有限 deadline |
 | TestKafkaPropagation | telemetry/telemetry_test.go | trace 与远端父 span、旧头替换、无效头忽略 |
 | TestHTTPMetrics | 同上 | 模板路由、未知路径、429、panic 恢复后计数 |
@@ -363,7 +386,7 @@
 
 既有 TestIntegrationDuplicateSales 加强为同时检查 19 次重复返回与销量只加一次。其他改动后的测试保留原业务断言。
 
-本地运行：
+原验收本地运行：
 
 ```text
 gofmt -l cmd gen internal tools
@@ -379,7 +402,9 @@ go test -race ./... -count=1 -timeout=180s -json
 
 按 README 加载六个专用 TEST DSN 与 TEST_REDIS_ADDR 后，单独运行 16 个 Integration 测试全部通过。只触碰白名单测试库与 Redis DB 14/15 的测试键。旧 `.env` 缺两项 DSN 时采用明确构造和校验库名，没有用业务库替代。
 
-CI YAML 和三个内嵌 Python 脚本语法通过。首次远端 CI 39983025343 的 Go 检查通过，但空卷 MySQL 初始化失败；已复现并修复 source 脚本污染父 shell 的问题，独立空卷复测成功。随后 [Linux CI 39984585001](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39984585001) 全部通过：固定 ubuntu-24.04 / Go 1.27.1，全新十七容器 Compose、真实依赖 race、库存及订单消息冒烟、指标与 Grafana 接线均成功。验收源码提交为 `efc9dc08d5179e557bbec639fdda3ef736b762ca`。
+CI YAML 和三个内嵌 Python 脚本语法通过。首次远端 CI 39983025343 的 Go 检查通过，但空卷 MySQL 初始化失败；已复现并修复 source 脚本污染父 shell 的问题，独立空卷复测成功。原验收随后 [Linux CI 39984585001](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39984585001) 全部通过：固定 ubuntu-24.04 / Go 1.27.1，全新十七容器 Compose、真实依赖 race、库存及订单消息冒烟、指标与 Grafana 接线均成功。验收源码提交为 `efc9dc08d5179e557bbec639fdda3ef736b762ca`。
+
+返工后重新运行全部检查：gofmt、go vet、staticcheck、commentcheck、archcheck 均通过。全仓库 race 为 78 个顶层测试通过、16 个真实依赖测试明确跳过、25 个有测试的包通过；注入专用环境后 16 个 Integration 全部通过。commentcheck 覆盖 148 个非生成 Go 文件。本轮 CI 尚待推送验证。
 
 ## 五、工程验收结果
 
@@ -393,11 +418,28 @@ CI YAML 和三个内嵌 Python 脚本语法通过。首次远端 CI 39983025343 
 
 以上运行命令、时间、原始数值和限制见 [notes 阶段 3](../notes.md#phase-03)。最终暂停流量后 lag=0，`ordered_quantity=2066811 sold_quantity=2066811 gap=0`。
 
-本阶段台账条目为 [P3-1 至 P3-17](../数据台账.md#阶段-3可观测性与告警)，包含成功结果、混合实验错误和版本兼容失败。
+本阶段台账条目为 [P3-1 至 P3-25](../数据台账.md#阶段-3可观测性与告警)，包含成功结果、混合实验错误和版本兼容失败。
 
-全栈内存保留两次快照：2.22.0、目标 200 QPS 时，17 个容器合计 **1938.2 MiB，约 1.89 GiB**；最终 2.20.0、流量暂停时为 **1850.944 MiB，约 1.81 GiB**。配置上限合计 5056 MiB；Docker 可见 16 逻辑 CPU、约 15.18 GiB 内存。最终 MySQL 已占 **758.3/768 MiB**，接近上限，不能因全栈总量较低就继续加压。逐容器值见 notes。快照不是峰值，也不包括 Windows 与 Docker 虚拟机的全部开销；两次条件不同，不能计算版本优化比例。
+返工前全栈内存保留两次快照：2.22.0、目标 200 QPS 时，17 个容器合计 **1938.2 MiB，约 1.89 GiB**；最终 2.20.0、流量暂停时为 **1850.944 MiB，约 1.81 GiB**。配置上限合计 5056 MiB；Docker 可见 16 逻辑 CPU、约 15.18 GiB 内存。当时 MySQL 已占 **758.3/768 MiB**，接近旧上限，因此本次按用户授权提高到 1536 MiB。逐容器值见 notes。快照不是峰值，也不包括 Windows 与 Docker 虚拟机的全部开销；两次条件不同，不能计算版本优化比例。
 
 这轮混合实验累计有 98 错误、57 dropped，包含暂停与故障过程，不能当成新的性能基准。简历可引用阶段 2 的实际五分钟结果并说明环境，也可引用本阶段完整链路、三类数据关联和积压发现实验；不能写未实现的自动诊断准确率或修复收益。
+
+### 本次返工：DNS TXT 等待与恢复对照
+
+两轮使用相同负载：20 QPS，80% 商品查询、20% 下单，故障后各观测 25 秒、500 次请求。商品库存降级虽返回 HTTP 200，仍计入未成功。恢复时间从重启命令发起或闲置后恢复流量开始，到最后失败之后的第一次成功完成；尾段至少正常两秒。每种条件只跑一次，不算改善百分比。
+
+| 场景 | 修复前 | 修复后 |
+|---|---|---|
+| 有流量时重启 inventory-service | 1.253498s 恢复；18 次失败/降级，5 笔待核对 | 1.260281s 恢复；17 次失败/降级，4 笔待核对 |
+| 空闲配置 10s，等待 25s 后恢复 | 12.323761s 恢复；228 次失败/降级，10 笔待核对 | 500 次全部成功，0 待核对；首个请求 0.007593s 完成 |
+
+普通重启未观察到显著变化，真实停机窗口仍会失败。闲置场景则消除了本次额外解析等待。修复后闲置首笔订单 2080411，trace `8123835dfe654e0580d60bdf2b96f099` 含 24 个 span、三个业务服务，Grafana 查到三个服务日志；缓存命中等路径差异会改变 span 数量，不要求每笔都等于早先的 29 个。
+
+库存客户端、shopctl 和 OTLP 均用代码选项跳过 DNS TXT 服务配置读取，保留 IP 解析。没有修改 800ms 调用预算和幂等边界。P3-13、P3-14 的根因说明已补充，旧失败和幂等占位均保留。默认空闲配置已恢复 30m。
+
+MySQL 上限提高为 **1536 MiB**，保留 buffer pool=256 MiB、max_connections=100。目标 200 QPS 下四次内存快照为 **622.6 / 635.9 / 650.4 / 656.5 MiB**，末次全栈 **2069.870 MiB，约 2.02 GiB**。刚重建数据库进程，不能把较低占用解释为“增加上限降低内存”。
+
+资源观察轮实际 24325 请求、267 次库存不足、116 dropped；另有 53 条消息未确认告警，随后逐单核对 53/53 已有消费记录，最终订单与销量均为 2085212。没有新增待核对，但这仍不是无错误性能基准。消息未及时确认的具体原因未定，保留原有可靠消息限制。
 
 ## 六、偏离计划之处
 
@@ -405,13 +447,15 @@ CI YAML 和三个内嵌 Python 脚本语法通过。首次远端 CI 39983025343 
 
 订单发送上下文修复由用户明确要求。沿用用户对 needs_review 的要求，将其补入第 5.8.5 节标签表并并入统一注册表。新增缓存 error 分类，避免把 Redis 故障伪装成 miss。
 
+本次 DNS 选项、空闲配置和 MySQL 上限调整均来自用户明确返工要求，计划书和 [决定记录](../decisions.md#grpc-dns-txt) 已同步。
+
 Loki 官方镜像缺少 wget，所以不保留无法执行的容器内健康命令，改由宿主机和 CI 查 /ready。没有引入额外镜像或系统软件。
 
 ## 七、已知问题与遗留事项
 
 - Jaeger 固定旧版是有解除条件的临时兼容例外，期间无法取得后续版本全部修复。
 - Jaeger 内存数据在重启后丢失，默认只采样十分之一根请求；Loki、Prometheus 也有保留窗口。后端重建期间真实发生过五秒导出超时，一条已成功订单的 trace 缺少库存和消费者 span；恢复后的新请求完整，旧丢失记录不会补回。
-- 最终验收第一次下单曾因库存调用超时进入待核对。只读核对没有订单、库存未变，原幂等占位保留；没有足够证据确定超时根因，不声称已根治。详细失败与恢复过程见 notes。
+- P3-13、P3-14 在原验收时根因未定；本次结合 DNS 对照、缺失 gRPC span 和源码顺序定位到 TXT 等待，并在库存与 OTLP 连接中修复。真实停服、断网和其他后端故障仍可能造成超时或丢 span，不能推广成所有故障都已消除。旧待核对占位保持原样。
 - 客户端取消修复不等于可靠消息。订单提交后进程崩溃或 Kafka 故障仍可能少记销量；本阶段不做 Outbox。
 - 根治扣库存超时的不确定性，需要 Deduct 自身携带请求 ID 去重；本阶段不实现。待核对结果仍需人工处理。
 - Alloy 的 Docker socket 挂载有较大权限，`:ro` 不是 Docker API 权限隔离。后续医生绝不获得该挂载，按第 5.5.9 节控制权限。
@@ -423,6 +467,8 @@ Loki 官方镜像缺少 wget，所以不保留无法执行的容器内健康命�
 commentcheck 通过，三层说明已检查。新增分组目录包含 README；新包 doc.go 列出全部 Go 文件和测试，代码地图由 -map 更新。每个新普通 Go 文件有“本文件、主要内容、阅读建议”，函数说明侧重为什么这样安排。
 
 检查中修复过 doc.go 漏文件、较长函数缺内部解释的问题。还改写了“请求自己的 ctx 控制发送”等已经不准确的旧句子，说明现在使用独立收尾预算；销量接口清楚解释 bool 和 error 的区别。订单入口拆成有名字的步骤，减少同一行堆放插件选项。
+
+本次返工另外检查了库存与 OTLP 的选项注释：解释 TXT 是什么、为何不用、普通 IP 解析为何保留；空闲回收与 RPC 预算分开说明。两个内存测试把接线拆成具名辅助函数，主测试只呈现“调用、回收、再调用”的顺序。
 
 Kafka 传播、模板标签、日志当前 span、采样、GaugeFunc 读取时机、令牌摘要比较和连接关闭顺序均有针对性解释。测试表格说明各分支想排除什么问题。材料用最小例子解释切片指针接收者、接口嵌入、闭包采集与 WithoutCancel，不用固定套话替代讲解。
 

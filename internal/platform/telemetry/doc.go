@@ -9,6 +9,7 @@
 //   - tracing.go：OTLP 初始化、版本信息与有限时间的排空。
 //   - middleware.go：HTTP 和 gRPC 的耗时、状态码与限流指标。
 //   - kafka.go：把 Kafka 消息头适配给 W3C 上下文传播器。
+//   - tracing_test.go：验证 OTLP 首次和空闲重连时跳过 DNS 服务配置，且能真实发送。
 //   - telemetry_test.go：验证路由标签、RPC 状态和跨消息的父子关系。
 //
 // 建议先读 metrics.go，再读 tracing.go，最后看两种跨服务入口。

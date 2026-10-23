@@ -25,22 +25,29 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/inventoryclient"
 )
 
+// 空闲时间只控制连接资源回收，不是 RPC 的执行预算。默认值沿用 grpc-go，最大一天用于拦住明显误填。
+const (
+	defaultInventoryIdleTimeout = 30 * time.Minute
+	maximumInventoryIdleTimeout = 24 * time.Hour
+)
+
 // Config 中的 Database 含密码，禁止把整个结构体写进日志。
 type Config struct {
-	Database        mysqlx.Config          // MYSQL_DSN 与连接池设置。
-	HTTPAddress     string                 // HTTP_ADDR，默认 :8081。
-	AdminAddress    string                 // ADMIN_ADDR，默认 :6061。
-	RedisAddress    string                 // REDIS_ADDR，运行时缓存与幂等记录共用 DB 0。
-	KafkaBrokers    []string               // KAFKA_BROKERS，逗号分隔后逐项检查。
-	InventoryTarget string                 // INVENTORY_GRPC_TARGET，复用一条 gRPC 连接。
-	Inventory       inventoryclient.Config // 库存调用的超时、重试和熔断参数。
-	HTTPBudget      time.Duration          // HTTP_REQUEST_TIMEOUT，整次请求的上游预算。
-	CleanupBudget   time.Duration          // ORDER_CLEANUP_TIMEOUT，每次补偿或状态收尾的预算。
-	IdempotencyTTL  time.Duration          // IDEMPOTENCY_TTL，默认 24 小时。
-	Singleflight    bool                   // CACHE_SINGLEFLIGHT，是否合并同商品回源。
-	CacheJitter     time.Duration          // CACHE_TTL_JITTER，0 表示关闭随机过期增量。
-	RateRPS         int                    // RATE_LIMIT_RPS，令牌每秒补充数。
-	RateBurst       int                    // RATE_LIMIT_BURST，桶最多保存的令牌数。
+	Database             mysqlx.Config          // MYSQL_DSN 与连接池设置。
+	HTTPAddress          string                 // HTTP_ADDR，默认 :8081。
+	AdminAddress         string                 // ADMIN_ADDR，默认 :6061。
+	RedisAddress         string                 // REDIS_ADDR，运行时缓存与幂等记录共用 DB 0。
+	KafkaBrokers         []string               // KAFKA_BROKERS，逗号分隔后逐项检查。
+	InventoryTarget      string                 // INVENTORY_GRPC_TARGET，复用一条 gRPC 连接。
+	InventoryIdleTimeout time.Duration          // INVENTORY_GRPC_IDLE_TIMEOUT，无 RPC 多久后释放连接；0 表示不因空闲释放。
+	Inventory            inventoryclient.Config // 库存调用的超时、重试和熔断参数。
+	HTTPBudget           time.Duration          // HTTP_REQUEST_TIMEOUT，整次请求的上游预算。
+	CleanupBudget        time.Duration          // ORDER_CLEANUP_TIMEOUT，每次补偿或状态收尾的预算。
+	IdempotencyTTL       time.Duration          // IDEMPOTENCY_TTL，默认 24 小时。
+	Singleflight         bool                   // CACHE_SINGLEFLIGHT，是否合并同商品回源。
+	CacheJitter          time.Duration          // CACHE_TTL_JITTER，0 表示关闭随机过期增量。
+	RateRPS              int                    // RATE_LIMIT_RPS，令牌每秒补充数。
+	RateBurst            int                    // RATE_LIMIT_BURST，桶最多保存的令牌数。
 }
 
 // loadConfig 用局部读取函数收集错误，用户一次就能看到多个配置问题。
@@ -71,10 +78,11 @@ func loadConfig(reader config.Reader) (Config, error) {
 	value := Config{Database: database,
 		HTTPAddress: readString("HTTP_ADDR", ":8081"), AdminAddress: readString("ADMIN_ADDR", ":6061"),
 		RedisAddress: readString("REDIS_ADDR", "127.0.0.1:6379"), InventoryTarget: readString("INVENTORY_GRPC_TARGET", "127.0.0.1:9001"),
-		HTTPBudget:     readDuration("HTTP_REQUEST_TIMEOUT", 3*time.Second, time.Millisecond, 30*time.Second),
-		CleanupBudget:  readDuration("ORDER_CLEANUP_TIMEOUT", 2*time.Second, time.Millisecond, 5*time.Second),
-		IdempotencyTTL: readDuration("IDEMPOTENCY_TTL", 24*time.Hour, time.Minute, 7*24*time.Hour),
-		Singleflight:   readBool("CACHE_SINGLEFLIGHT", true), CacheJitter: readDuration("CACHE_TTL_JITTER", time.Minute, 0, time.Minute),
+		InventoryIdleTimeout: readDuration("INVENTORY_GRPC_IDLE_TIMEOUT", defaultInventoryIdleTimeout, 0, maximumInventoryIdleTimeout),
+		HTTPBudget:           readDuration("HTTP_REQUEST_TIMEOUT", 3*time.Second, time.Millisecond, 30*time.Second),
+		CleanupBudget:        readDuration("ORDER_CLEANUP_TIMEOUT", 2*time.Second, time.Millisecond, 5*time.Second),
+		IdempotencyTTL:       readDuration("IDEMPOTENCY_TTL", 24*time.Hour, time.Minute, 7*24*time.Hour),
+		Singleflight:         readBool("CACHE_SINGLEFLIGHT", true), CacheJitter: readDuration("CACHE_TTL_JITTER", time.Minute, 0, time.Minute),
 		RateRPS: readInt("RATE_LIMIT_RPS", 500, 1, 100000), RateBurst: readInt("RATE_LIMIT_BURST", 100, 1, 100000),
 		Inventory: inventoryclient.Config{Timeout: readDuration("INVENTORY_CALL_TIMEOUT", 800*time.Millisecond, time.Millisecond, 10*time.Second),
 			Retry:   resilience.RetryPolicy{MaxRetries: readInt("INVENTORY_GETSTOCK_MAX_RETRIES", 2, 0, 2), Backoff: readDuration("INVENTORY_RETRY_BACKOFF", 50*time.Millisecond, 0, time.Second), MinBudget: readDuration("INVENTORY_RETRY_MIN_BUDGET", 50*time.Millisecond, time.Millisecond, time.Second)},

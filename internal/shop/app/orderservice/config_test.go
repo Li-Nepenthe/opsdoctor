@@ -4,6 +4,7 @@
 //
 // 主要内容：
 //   - TestConfigBudgets：检查默认值、无效重试次数和上下游预算关系。
+//   - TestInventoryIdleConfig：验证空闲回收配置的默认值、关闭方式与输入边界。
 //
 // 阅读建议：单个时长合法不代表组合合法。下游必须比上游更早结束。
 
@@ -11,6 +12,7 @@ package orderservice
 
 import (
 	"testing"
+	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
 )
@@ -42,6 +44,36 @@ func TestConfigBudgets(t *testing.T) {
 			_, err := loadConfig(reader)
 			if (err == nil) != testcase.valid {
 				t.Fatalf("valid=%t err=%v", testcase.valid, err)
+			}
+		})
+	}
+}
+
+// TestInventoryIdleConfig 保留正常的 30 分钟默认值，只在实验时允许缩短，不把修复变成关闭空闲回收。
+func TestInventoryIdleConfig(t *testing.T) {
+	for _, testcase := range []struct {
+		name  string        // 用例说明。
+		raw   string        // 模拟操作者输入的时长；空值使用默认值。
+		want  time.Duration // 成功时应交给连接管理器的时间。
+		valid bool          // 格式和范围是否允许启动。
+	}{
+		{"默认", "", 30 * time.Minute, true},      // 与 grpc-go 原默认行为保持一致。
+		{"快速实验", "10s", 10 * time.Second, true}, // 能在本机快速观察空闲重建。
+		{"显式关闭", "0s", 0, true},                 // 保留 grpc-go 用零关闭回收的语义。
+		{"负数", "-1s", 0, false},                 // 负数不是有效的等待时间。
+		{"过长", "25h", 0, false},                 // 拒绝超出一天的误填参数。
+		{"错误单位", "10minutes", 0, false},         // 不能把无法解析的输入静默当成默认值。
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			reader := config.NewReader(func(key string) (string, bool) {
+				if key == "MYSQL_DSN" {
+					return "app:demo-only@tcp(127.0.0.1:3306)/shop?parseTime=true", true
+				}
+				return testcase.raw, key == "INVENTORY_GRPC_IDLE_TIMEOUT" && testcase.raw != ""
+			})
+			settings, err := loadConfig(reader)
+			if (err == nil) != testcase.valid || (err == nil && settings.InventoryIdleTimeout != testcase.want) {
+				t.Fatalf("idle=%v err=%v", settings.InventoryIdleTimeout, err)
 			}
 		})
 	}

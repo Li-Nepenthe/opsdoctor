@@ -154,6 +154,35 @@ Invoke-RestMethod http://127.0.0.1:6070/control -Method Post -ContentType 'appli
 
 **怎样修改和验证。** 用圆括号把脚本内容包起来。括号会创建子 shell，里面的严格选项和密码环境不会留在外面。再建一个独立空卷，确认初始化成功；重复 source 后，父 shell 的选项和 MYSQL_PWD 没被改变，metrics 账号也能实际登录读取监控数据。全过程使用演示凭据，没有碰原业务卷。首次 CI 失败保留在 notes。修复后的完整 Linux CI 也已通过，覆盖全新 Compose、真实依赖测试和观测管道。
 
+### 5. 真实排障：为什么查到了 IP，库存调用还是卡住
+
+**这次要做什么。** 修复用户验收发现的闲置后超时。用户暂停流量 34.5 分钟后恢复，两个库存熔断器打开，出现 12 笔待核对订单。这里的“熔断”是客户端看到失败太多后，暂时拒绝继续调用下游，避免请求不断堆积。它延长了表面上的恢复时间，但不是最初的原因。
+
+**先看现象，不急着改超时。** 以前 P3-13 只知道扣库存超时，P3-14 只知道导出 span 超时。这次先看失败调用链：HTTP 和 Redis 的片段都在，gRPC 的片段却不在。返工复现的 trace `aa757b687403442a99b36e361878ae46` 也只有 POST /orders、set、get、eval。这不能单独证明 DNS 有问题，但提醒我们：请求可能还没进入通常的 RPC 计时步骤。
+
+**把两次 DNS 查询分开测。** DNS 可以把名字翻译成 IP，A 记录存的是 IPv4 地址；TXT 记录存的是文本。grpc-go 还支持从 `_grpc_config.<主机名>` 的 TXT 记录中读取服务配置，比如连接或调用策略。我们没有使用这种配置方式，但客户端默认仍可能去查。
+
+```text
+docker compose --env-file .env -f deploy/docker-compose.yml exec -T order-service nslookup -type=A inventory-service
+docker compose --env-file .env -f deploy/docker-compose.yml exec -T order-service nslookup -type=TXT _grpc_config.inventory-service
+```
+
+本次 A 查询约 0.187 秒成功，TXT 查询约 5.175 秒后超时。Jaeger 的两次查询也表现相同。这些数包含 docker exec 开销，所以它们只用来对比现象，不能当作纯网络延迟。一次 nslookup 成功并不足以排除 DNS，还要确认程序实际查询了哪类记录。
+
+**读源码确认等待发生在哪里。** 先用 `go env GOMODCACHE` 找到本机下载的依赖，再按 go.mod 固定的 v1.84.0 阅读 grpc-go，不拿最新版的代码代替当前版本。DNS 解析器的 lookup 先执行 lookupHost，再执行 lookupTXT，两者完成后才把地址交给连接管理器。stream.go 先 waitForResolvedAddrs，再进入新建调用尝试和 TagRPC 的步骤。OTel 的 gRPC 插件通过 TagRPC 开始记录，所以解析阶段就耗尽预算时，会出现“有 HTTP span，却没有 gRPC span”。公开源码链接见[这次决定](../decisions.md#grpc-dns-txt)。
+
+**为什么运行一段时间后又出现。** grpc-go 默认在 30 分钟没有 RPC 后释放连接和解析器。下一次请求需要重新解析。启动时 connectInventory 只让第一次建连提前完成，无法替之后的每次空闲重连预热。因此，单测首次启动成功还不够。
+
+**怎样拆开改。** 先给 orderservice 的配置增加 `INVENTORY_GRPC_IDLE_TIMEOUT`，默认仍是 30m。临时改成 10s，就能在等待 25 秒后观察到连接从 ESTABLISHED 变成 TIME_WAIT，不必等半小时。然后分别改两个入口：inventoryDialOptions 给库存连接加 `grpc.WithDisableServiceConfig()`；newTraceExporter 用 `otlptracegrpc.WithDialOption` 把同一选项交给 OTLP 底层连接。shopctl 的库存命令也补上同样的选项。
+
+这不是关闭 DNS。客户端仍然按主机名解析 IP，只是不再读取本项目没有使用的服务配置。这个选项写在代码里，避免某个容器漏配环境变量。没有把容器 IP 写死，也没有通过加长 800ms 超时来掩盖额外等待。
+
+**怎样验证。** 修改前后都使用同一验收脚本：20 QPS，每五次请求中四次查商品、一次下单。商品 HTTP 200 但库存降级也算未成功。先做有流量的库存重启，再做 10s 空闲配置、无 RPC 等待 25 秒后的恢复。所有下单使用独立幂等键，不重试待核对请求。这次闲置对照从 228/500 次未成功降为 0/500，修复后首个请求约 7.6 毫秒完成。完整前后数据、样本数和恢复口径见[数据台账](../数据台账.md#阶段-3可观测性与告警)，原始现象见 notes。
+
+代码回归分两层：配置测试拒绝负数、错误单位和超长输入；内存 gRPC 与 OTLP 测试让连接真正回收后重建，检查解析器收到“无需读服务配置”的标志，还验证 RPC 和 span 实际送达。它们使用 bufconn，也就是在内存里传递网络报文，不访问外部网络。
+
+**取舍和边界。** 一次库存重启本来就有不可服务的窗口，这轮前后恢复时间约为 1.25 秒和 1.26 秒，没有观察到显著变化。真正要消除的是闲置后多出来的 TXT 等待。即便修复这个原因，真实断网和后端故障仍可能导致超时或丢 span；Deduct 的结果不确定仍需靠库存端按请求 ID 去重解决，本阶段没有实现。
+
 ## 四、阅读顺序
 
 | 顺序 | 文件 | 重点 |
@@ -349,7 +378,8 @@ foreach ($path in @('/not-a-route-1','/not-a-route-2')) {
 - 缓存命中率统计的是缓存读取，不是所有 HTTP 请求；列表和下单经过的步骤不同。
 - worker_messages_total 的 processed 与 duplicate 都需要成功提交位点。提交失败记 failed，重投时可能再见到同一订单。
 - 日志里没有 trace ID 的启动消息是正常的。未采样请求有 ID 也可能查不到 span。即使采样，导出超时也可能丢一批记录；这次后端重建期间确实发生过。
-- 本机目标 200 QPS 时约 1.89 GiB，最终暂停流量时约 1.81 GiB，都是容器快照。MySQL 最后已到 758.3/768 MiB，不能只看合计值就判断加压余量。
+- 原验收 MySQL 曾占 758.3/768 MiB。返工提高上限到 1536 MiB，保持 buffer pool 和连接数不变；200 QPS 四次快照为 622.6–656.5 MiB，全栈末次约 2.02 GiB。进程刚重启，不能把前后差值说成优化收益。
+- 资源观察轮仍有 267 次库存不足和 53 条发送未确认告警。53 笔后来都有消费记录，也不能反过来说当时的告警是错的；告警描述的是“当时没有收到确认”。
 - Grafana 与 Jaeger 的 API 兼容必须实际检查，容器都 running 不代表两个产品接通了。
 
 **已知限制。** 扣库存超时仍可能已经生效。根治需要 Deduct 携带请求 ID 并在库存端去重，本阶段没有实现。订单与 Kafka 之间也没有 Outbox；本次修复只让客户端取消不再直接终止提交后的发送。监控能显示故障，不能自动消除这些一致性缺口。

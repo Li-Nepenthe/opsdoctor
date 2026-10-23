@@ -80,6 +80,7 @@ func Run(parent context.Context) (result error) {
 	cancel()
 	logger.Info("订单服务配置已加载", "version", telemetry.Version, "http_addr", settings.HTTPAddress, "admin_addr", settings.AdminAddress,
 		"rate_limit_rps", settings.RateRPS, "rate_limit_burst", settings.RateBurst, "request_timeout", settings.HTTPBudget.String(),
+		"inventory_grpc_idle_timeout", settings.InventoryIdleTimeout.String(),
 		"inventory_timeout", settings.Inventory.Timeout.String(), "getstock_max_retries", settings.Inventory.Retry.MaxRetries,
 		"retry_backoff", settings.Inventory.Retry.Backoff.String(), "breaker_enabled", settings.Inventory.Breaker.Enabled,
 		"cache_singleflight", settings.Singleflight, "cache_ttl_jitter", settings.CacheJitter.String(), "idempotency_ttl", settings.IdempotencyTTL.String())

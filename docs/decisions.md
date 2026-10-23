@@ -179,3 +179,18 @@ Go 库用 `go list -m -json <模块>@latest` 查询稳定版本后固定；不�
 **阶段 5 的约束。** 医生会直接调用 Jaeger 查询接口，其适配器必须以本项目固定的 **2.20.0 实测** 为准，按这个版本的请求参数和返回结构编写测试。本阶段只记录约束，没有提前实现医生。以后升级 Jaeger 时，同步回归适配器的搜索、详情、属性解析、父子关系、空结果与错误处理，不得只验证 Grafana。若迁移到新 API，要同时更新适配器和测试数据，不能让医生继续依赖已经移除的路径。
 
 **代价与限制。** 固定旧版本期间拿不到之后版本的全部修复，所以这是带解除条件的临时例外。Jaeger 使用内存存储，重建会清空旧 trace；切换期间库存与消费者的一批 span 曾因五秒导出超时未送达，新请求在连接恢复后才得到完整 trace。此失败和一次下单待核对均保留在 notes，不把它们改写成全程无故障。
+
+
+<a id="grpc-dns-txt"></a>
+
+## 2026-10-23：跳过 gRPC 的 DNS 服务配置查询
+
+用户验收指出，阶段 3 的库存超时和 span 丢失与 `_grpc_config.<主机名>` 的 TXT 查询有关，明确要求库存客户端和 OTLP 导出器加入 `grpc.WithDisableServiceConfig()`。本项目没有通过 DNS 分发 gRPC 服务配置，因此在代码中统一禁用这项读取，继续通过 DNS 解析服务 IP。手动库存命令也使用同样的选项。OTLP 使用 `otlptracegrpc.WithDialOption` 传入，不依赖环境变量，也不改成固定容器 IP。
+
+新增 `INVENTORY_GRPC_IDLE_TIMEOUT`，默认 30m，0s 关闭空闲回收，范围为 0 至 24h。它只控制没有 RPC 时何时回收连接，与 800ms 的库存调用预算不同。实验临时使用 10s，生产默认仍保留 30m；启动时的 connectInventory 也保留。没有用永久关闭空闲回收来绕过问题。
+
+源码依据为仓库固定的 grpc-go v1.84.0：`internal/resolver/dns/dns_resolver.go` 的 Build 把 DisableServiceConfig 反向赋给 enableServiceConfig；lookup 先 lookupHost，再按该标志 lookupTXT，然后才交出地址。`stream.go` 在 waitForResolvedAddrs 后才进入创建 RPC 尝试和 TagRPC 的步骤。因此，解析等待已经耗尽预算的请求，可以有 HTTP span 和 Redis span，却没有 gRPC span。OTLP 导出器内部同样使用 grpc.NewClient，存在同一种等待。
+
+源码链接：[DNS 解析顺序](https://github.com/grpc/grpc-go/blob/v1.84.0/internal/resolver/dns/dns_resolver.go#L339)、[解析器选项](https://github.com/grpc/grpc-go/blob/v1.84.0/internal/resolver/dns/dns_resolver.go#L142)、[RPC 等待解析](https://github.com/grpc/grpc-go/blob/v1.84.0/stream.go#L338)、[空闲回收](https://pkg.go.dev/google.golang.org/grpc@v1.84.0#WithIdleTimeout)。本机 DNS 查询、失败 trace 与前后对照数据另记于 notes 和数据台账。
+
+用户也授权将 MySQL 上限提高到 1.5 GiB。保留原有 256 MiB buffer pool 和 100 个最大连接，只增加容器余量；758/768 MiB 的观测说明原限额偏紧，不能把所有数据库内存都当成 buffer pool。此时没有证据需要扩大缓存或调整更多数据库参数，避免同时改变查询缓存容量。调整后仍以有流量的 docker stats 实测为准，不把上限当成实际占用。

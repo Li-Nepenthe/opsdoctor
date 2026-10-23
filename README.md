@@ -268,3 +268,20 @@ buf generate
 - Compose 是单节点、本机实验环境，不提供生产级高可用；Redis 幂等保存依赖本机持久卷，内存满时拒绝新写入。
 
 阶段 2 的[汇报书](docs/reports/phase-02-order.md)和[学习材料](docs/learn/phase-02-order.md)保留原有验收记录；阶段 3 的完成状态见顶部进度链接。
+
+
+## 阶段 3：验证 gRPC 空闲恢复
+
+库存和 OTLP 客户端在代码中跳过 DNS TXT 服务配置读取，普通主机名解析仍保留。`INVENTORY_GRPC_IDLE_TIMEOUT` 默认 30m，实验时可临时缩短为 10s；它与 800ms 的 RPC 预算不同。先暂停 loadgen，再运行：
+
+```powershell
+$env:INVENTORY_GRPC_IDLE_TIMEOUT = '10s'
+docker compose --env-file .env -f deploy/docker-compose.yml up -d --no-deps --wait order-service
+Invoke-RestMethod http://127.0.0.1:8081/products/1
+Start-Sleep -Seconds 25
+Invoke-RestMethod http://127.0.0.1:8081/products/1
+Remove-Item Env:INVENTORY_GRPC_IDLE_TIMEOUT
+docker compose --env-file .env -f deploy/docker-compose.yml up -d --no-deps --wait order-service
+```
+
+两次商品查询都应返回 `stock.status=ok`。最后重建订单容器，恢复 `.env` 中的配置，示例为 30m。使用已有商品，不重新造数；更完整的前后实验与限制见阶段 3 学习材料。MySQL 上限调整为 1536 MiB，保留 256 MiB buffer pool 与最多 100 个连接，给其他数据库内存分配留出余量。

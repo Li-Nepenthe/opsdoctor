@@ -64,7 +64,8 @@ func runStock(parent context.Context, arguments []string, reader config.Reader, 
 		return err
 	}
 	// NewClient 只组装连接管理器，不在这里阻塞连接。首次 RPC 的 context 也覆盖连接等待。
-	connection, err := grpc.NewClient(target, grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDisableRetry())
+	// 命令也可能使用 Compose 主机名。只查 IP，不等待本项目不使用的 DNS TXT 服务配置。
+	connection, err := grpc.NewClient(target, grpc.WithDisableServiceConfig(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDisableRetry())
 	if err != nil {
 		return fmt.Errorf("创建库存客户端：%w", err)
 	}

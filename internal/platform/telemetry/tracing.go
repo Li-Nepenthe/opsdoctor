@@ -5,6 +5,7 @@
 //
 // 主要内容：
 //   - Runtime、New：读取标准 OTel 环境变量，创建指标和调用链组件。
+//   - newTraceExporter：跳过不需要的 DNS 服务配置查询，保留普通地址解析。
 //   - Shutdown：在有限时间内发送剩余 span，不沿用已取消的进程上下文。
 //   - Finish：给手动创建的 span 标注成功或失败，再结束计时。
 //
@@ -27,6 +28,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc"
 )
 
 // exportTimeout 让监控后端故障不能无限拖住业务进程的退出。
@@ -54,7 +56,7 @@ func New(ctx context.Context, service string) (*Runtime, error) {
 		if err != nil || parsed.Host == "" || parsed.User != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") {
 			return nil, fmt.Errorf("OTEL_EXPORTER_OTLP_ENDPOINT 必须是不含身份信息的 HTTP 或 HTTPS 地址")
 		}
-		exporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(endpoint), otlptracegrpc.WithTimeout(exportTimeout))
+		exporter, err := newTraceExporter(ctx, endpoint)
 		if err != nil {
 			return nil, fmt.Errorf("初始化 OTLP 导出器失败")
 		}
@@ -62,6 +64,16 @@ func New(ctx context.Context, service string) (*Runtime, error) {
 		options = append(options, sdktrace.WithBatcher(exporter, sdktrace.WithExportTimeout(exportTimeout)))
 	}
 	return &Runtime{Service: service, Metrics: NewMetrics(service), Provider: sdktrace.NewTracerProvider(options...), Propagator: propagation.TraceContext{}}, nil
+}
+
+// newTraceExporter 的额外拨号选项用于注入测试的内存连接；生产路径不需要额外选项。
+// 禁用服务配置始终由代码保证，不依赖操作者为每个进程设置环境变量。
+func newTraceExporter(ctx context.Context, endpoint string, dialOptions ...grpc.DialOption) (sdktrace.SpanExporter, error) {
+	// OTLP 底层也用 grpc-go。查询 _grpc_config.jaeger 的 TXT 记录会耗尽五秒导出预算，
+	// 导致业务已经完成，整批 span 却没有送达。这里不使用 DNS 下发的服务配置，只解析 IP。
+	dialOptions = append(dialOptions, grpc.WithDisableServiceConfig())
+	return otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(endpoint),
+		otlptracegrpc.WithTimeout(exportTimeout), otlptracegrpc.WithDialOption(dialOptions...))
 }
 
 // Shutdown 在业务排空后执行，给最后一批 span 自己的发送预算。

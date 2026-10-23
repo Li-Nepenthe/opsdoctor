@@ -122,6 +122,60 @@ CI 原始摘要：commentcheck=147；small 造数 100 商品、400 订单，首�
 
 阶段 3 分支已推送，工程验收完成。没有合并 main，没有勾选任何学习验收，没有开始阶段 4。
 
+### 阶段 3 返工：gRPC DNS TXT 等待（2026-10-23）
+
+用户验收提供的新证据：流量暂停 34.5 分钟后恢复，约一秒内的库存调用全部超时，两个熔断器打开，产生 12 笔待核对订单。这是用户提供的现场观察，不冒充下面由 Astra 重跑的数据。返工基线为 `1a30b1b`，仍在 phase-03-observability，不合并 main。
+
+先在 order-service 容器对比 DNS：`nslookup -type=A inventory-service` 为 0.186619 秒、成功；`nslookup -type=TXT _grpc_config.inventory-service` 为 5.175181 秒、超时。Jaeger 对应为 0.184398 秒和 5.179011 秒。时间由宿主机 monotonic 记录，包含 docker exec 的开销，所以不能称为纯 DNS 网络耗时。地址查询可用而额外 TXT 查询超时，两类请求必须分开判断。
+
+读取固定版本 grpc-go v1.84.0 的本地模块源码，确认 lookupHost → lookupTXT → 返回解析结果的顺序，和默认 30 分钟空闲后关闭解析器的行为。另读 stream.go，waitForResolvedAddrs 位于创建尝试与 TagRPC 之前。OTLP exporter v1.47.0 在 client.go 中同样调用 grpc.NewClient。源码路径和公开链接见 [决定记录](decisions.md#grpc-dns-txt)。
+
+对照实验先只加入 INVENTORY_GRPC_IDLE_TIMEOUT 配置，设置 10s，尚未禁用服务配置；镜像版本 phase-03-dns-before。MySQL 保持 768 MiB、buffer pool 256 MiB。Compose 的常驻 loadgen 暂停，独立验收脚本以目标 20 QPS 运行，固定每五个请求为四次查商品、一次下单。每笔订单使用独立幂等键且数量为一，失败不重试、不删占位。商品降级虽然 HTTP 为 200，也计入失败/降级；单独列出下单失败和待核对，不能只看 HTTP 错误率。
+
+重启实验先预热并持续发送五秒，再执行 `docker compose --env-file .env -f deploy/docker-compose.yml restart inventory-service`，计时从发起命令开始；随后观测 25 秒。闲置实验先确认一次成功库存查询，然后无 RPC 等待 25 秒，恢复流量并观测 25 秒。恢复时间定义为“最后一个失败请求完成之后，第一次成功请求完成”的时刻，且末尾至少继续正常两秒。每轮只执行一次，不能据此推导容量或普遍可用性承诺。
+
+修复前重启：故障窗口 500 次请求，18 次失败或降级，其中商品降级 13 次、下单失败 5 次、待核对 5 次；最后失败结束于 1.228447 秒，稳定恢复于 1.253498 秒。重启命令退出 0。本轮短暂重启仍可复用已解析的地址，因此不能预先把全部停机失败都算作 TXT 等待。
+
+修复前闲置：500 次请求，228 次失败或降级，其中商品降级 197 次、下单失败 31 次、待核对 10 次；最后失败结束于 12.252487 秒，稳定恢复于 12.323761 秒。netstat 显示库存连接从 ESTABLISHED 变成 TIME_WAIT，确认空闲回收已经发生。失败 trace `aa757b687403442a99b36e361878ae46`、`0572ada26c5c4c57b9e9e34b8c5df83a`、`c65d0674a60d445bb25c38e4ce166b25` 都只有 POST /orders、set、get、eval 四个 span，没有 gRPC span。原幂等键与待核对状态保留。
+
+随后在库存客户端、手动库存命令和 OTLP 导出器加入代码选项。新增内存回归让库存/OTLP 连接真正空闲回收，再检查重建解析器收到禁用服务配置标志，并验证 RPC 和 span 实际送达；配置测试覆盖默认、实验、关闭、负数、超界和错误单位。三包的定向 race 全部通过。暂不调整 MySQL，先完成同条件的修复后对照。
+
+修复后重启（09:56）：同样 500 次请求，17 次失败或降级，13 次商品降级、4 次下单失败及待核对；最后失败完成于 1.215923 秒，稳定恢复于 1.260281 秒。与修复前几乎一致，不把随机调度差异说成改善。
+
+修复后闲置（09:58）：同样等待 25 秒，确认库存连接从 ESTABLISHED 变为 TIME_WAIT；随后 500 次全部成功，首个请求 0.007593 秒完成，无新待核对。首笔订单 2080411 的 trace `8123835dfe654e0580d60bdf2b96f099` 有 24 个 span、order-service / inventory-service / order-worker 三个服务，Grafana Loki 也查到三个服务的关联日志。这笔缓存路径与原来的 29 span 样本不同，不用固定 span 总数判断完整性。
+
+两种对照完成之后才提高 MySQL 容器上限为 1536 MiB，保持原 256 MiB buffer pool 与 max_connections=100；保留业务卷。随后将默认镜像版本和空闲时间恢复为 phase-03 / 30m，重新构建三个业务服务。
+
+本轮全套本地检查通过：gofmt、vet、staticcheck、commentcheck（148）、archcheck、全仓库 race（78 个顶层通过、16 个明确跳过、25 个有测试包通过）。集成测试首次装配环境时发现本机缺 TEST_REDIS_ADDR，脚本在运行测试前退出；明确使用本机 127.0.0.1:6379 后，六个 DSN 逐个校验专用库名，再运行 16 个 Integration，全部通过。测试固定 Redis DB 14/15，没有清理业务数据。
+
+MySQL 调整后内存观察（10:03–10:05）：目标 200 QPS，约每 30 秒采样一次，共四次。MySQL 实际占用依次为 622.6、635.9、650.4、656.5 MiB，均以 1.5 GiB 为上限。17 个容器合计依次为 1942.800、2014.490、2070.132、2069.870 MiB。最后一轮约 2.02 GiB，配置上限合计由 5056 增至 5824 MiB。这是四个快照，不是全程峰值。数据库刚重建进程，不能把比旧 758.3 MiB 低解释为提高上限能降低内存。
+
+| 容器 | 最后一次有流量快照 |
+|---|---:|
+| order-service | 22.59MiB / 256MiB |
+| order-worker | 15.58MiB / 128MiB |
+| inventory-service | 16.62MiB / 128MiB |
+| shop-mysql | 656.5MiB / 1.5GiB |
+| jaeger | 95.93MiB / 512MiB |
+| loki | 200.3MiB / 512MiB |
+| loadgen | 18.04MiB / 128MiB |
+| mysqld-exporter | 10.36MiB / 64MiB |
+| kafka-exporter | 15.18MiB / 64MiB |
+| redis-exporter | 10.04MiB / 64MiB |
+| alloy | 112.7MiB / 256MiB |
+| alertmanager | 21.92MiB / 64MiB |
+| kafka | 587.2MiB / 1GiB |
+| redis | 47.97MiB / 256MiB |
+| grafana | 148.9MiB / 256MiB |
+| prometheus | 74.91MiB / 512MiB |
+| alertsink | 15.13MiB / 64MiB |
+
+实际配置复核：容器 HostConfig.Memory=1610612736 字节，SQL 查得 innodb_buffer_pool_size=268435456、max_connections=100。未扩大 buffer pool，也没有清理原数据。正常订单服务启动日志的 inventory_grpc_idle_timeout 为 30m0s。
+
+这轮累计增量为 122.194203 秒、24325 次请求、267 错误、116 dropped，实际 199.068363 QPS；商品/订单/列表分别为 16967/4968/2390。库存服务有 267 次 FailedPrecondition，源码只把库存不足映射成此状态；订单 HTTP 对应 267 次 409。没有出现新的待核对告警。原数据已运行多轮流量，部分商品库存不足；不补库存、不删数据来美化错误数。
+
+另有 53 条“订单已创建，但创建消息未确认发送”告警，集中在容器时间 17:04:13、17:04:14、17:04:25。只读逐个核对这 53 个订单号，processed_events 中有 53 条对应记录，说明它们随后实际完成了消费事务。最终 shopctl check 为 `ordered_quantity=2085212 sold_quantity=2085212 gap=0`。没有足够证据确定当时未及时确认的具体原因，不把它归因于 DNS，也不声称可靠消息问题已解决。这轮只用于有流量的资源观察，不是零错误性能基准。
+
 <a id="phase-02"></a>
 
 ## 2026-10-23：阶段 2 开工记录

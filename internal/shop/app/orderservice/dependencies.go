@@ -7,6 +7,7 @@
 //   - dependencies、openDependencies：按依赖顺序建立连接，失败时收回已经打开的资源。
 //   - openRedis：先装追踪插件，再探测 Redis 是否可用。
 //   - openInventory：创建带追踪和指标的连接，并等待首次握手完成。
+//   - inventoryDialOptions：集中说明 DNS 查询、空闲回收和监控选项。
 //   - close：按与打开相反的顺序归还连接。
 //
 // 阅读建议：先看 openDependencies 的失败分支，再看 Run 成功以后安排的 defer。
@@ -19,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"time"
 
 	inventoryv1 "github.com/Li-Nepenthe/opsdoctor/gen/inventory/v1"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/mysqlx"
@@ -65,7 +67,7 @@ func openDependencies(ctx context.Context, settings Config, runtime *telemetry.R
 	if err != nil {
 		return nil, err
 	}
-	resources.connection, err = openInventory(ctx, settings.InventoryTarget, runtime)
+	resources.connection, err = openInventory(ctx, settings.InventoryTarget, settings.InventoryIdleTimeout, runtime)
 	if err != nil {
 		return nil, err
 	}
@@ -104,13 +106,8 @@ func openRedis(ctx context.Context, address string, runtime *telemetry.Runtime) 
 }
 
 // openInventory 把插件放到每次真实 RPC 外层，重试发生几次就记录几次调用。
-func openInventory(ctx context.Context, target string, runtime *telemetry.Runtime) (*grpc.ClientConn, error) {
-	connection, err := grpc.NewClient(target,
-		grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDisableRetry(),
-		grpc.WithStatsHandler(otelgrpc.NewClientHandler(
-			otelgrpc.WithTracerProvider(runtime.Provider), otelgrpc.WithPropagators(runtime.Propagator))),
-		grpc.WithUnaryInterceptor(runtime.Metrics.Client("inventory-service")),
-	)
+func openInventory(ctx context.Context, target string, idleTimeout time.Duration, runtime *telemetry.Runtime) (*grpc.ClientConn, error) {
+	connection, err := grpc.NewClient(target, inventoryDialOptions(idleTimeout, runtime)...)
 	if err != nil {
 		return nil, fmt.Errorf("创建库存连接：%w", err)
 	}
@@ -119,6 +116,23 @@ func openInventory(ctx context.Context, target string, runtime *telemetry.Runtim
 		return nil, errors.Join(err, connection.Close())
 	}
 	return connection, nil
+}
+
+// inventoryDialOptions 保留按主机名找 IP 的能力，但不从 DNS 读取本项目不用的服务配置。
+// 测试也使用同一组选项，确认首次解析和空闲后重建都收到“无需查询服务配置”的标志。
+func inventoryDialOptions(idleTimeout time.Duration, runtime *telemetry.Runtime) []grpc.DialOption {
+	return []grpc.DialOption{
+		grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDisableRetry(),
+		// grpc-go 默认在查完 IP 后再查 _grpc_config.<主机名> 的 TXT 记录。
+		// Docker 的这次 TXT 查询会超时，超过库存的 800ms 预算；首次建连和空闲重连都会受影响。
+		// 服务配置由本项目代码决定，所以跳过 TXT 查询，普通的 IP 解析仍然保留。
+		grpc.WithDisableServiceConfig(),
+		// 默认仍是 30 分钟。可临时缩短来验证空闲重连，不能靠禁用回收掩盖 DNS 问题。
+		grpc.WithIdleTimeout(idleTimeout),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler(
+			otelgrpc.WithTracerProvider(runtime.Provider), otelgrpc.WithPropagators(runtime.Propagator))),
+		grpc.WithUnaryInterceptor(runtime.Metrics.Client("inventory-service")),
+	}
 }
 
 // close 既用于启动失败，也用于正常停机，所以只关闭实际打开过的资源。
