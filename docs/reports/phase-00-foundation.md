@@ -16,7 +16,7 @@
 | 4. 复制认证 | 已完成 | 来源 ai-backend，去除旧 domain 依赖、更新 issuer/audience，保留拒绝场景测试 |
 | 5. commentcheck / archcheck | 已完成 | 包含故意违规样例和 -list 清单输出 |
 | 6. Compose 骨架 | 已完成 | 三个依赖实际 healthy，均限制内存和本机映射端口 |
-| 7. CI | 部分完成 | 工作流已写好，本地同项检查通过；首次推送后补充远端结果 |
+| 7. CI | 已完成 | ubuntu-24.04 上静态检查、race、全新 Compose 与 MySQL 集成测试均通过 |
 | 8. 文档 | 已完成 | 本报告、学习材料、设计决定和实测记录 |
 | 9. AGENTS 常用命令 | 已完成 | 包括启动、检查、测试和清理 |
 
@@ -60,7 +60,7 @@
 
 ### 2. 新增和修改的文件
 
-下表在提交前由 Git 暂存差异生成，提交后对照 `git diff --stat main...phase-00-foundation`；“行数”是当前文件总行数，“差异”是新增/删除行数。包含本文及所有文档，不隐藏生成物或配置。
+下表由 Git 差异生成并在提交后对照 `git diff --stat main...phase-00-foundation`；“行数”是当前文件总行数，“差异”是新增/删除行数。包含本文及所有文档，不隐藏生成物或配置。
 
 <!-- FILES_START -->
 | 文件 | 作用 | 行数 | 差异（+ / -） |
@@ -77,7 +77,7 @@
 | [docs/decisions.md](../../docs/decisions.md) | 版本选择、复用来源与实现取舍 | 53 | +53 / -0 |
 | [docs/learn/phase-00-foundation.md](../../docs/learn/phase-00-foundation.md) | 逐文件阅读、设计解释、实验和必答问题 | 231 | +231 / -0 |
 | [docs/notes.md](../../docs/notes.md) | 真实运行命令、失败修复和验收证据 | 89 | +89 / -0 |
-| [docs/reports/phase-00-foundation.md](../../docs/reports/phase-00-foundation.md) | 本阶段完整变更与验收报告 | 343 | +343 / -0 |
+| [docs/reports/phase-00-foundation.md](../../docs/reports/phase-00-foundation.md) | 本阶段完整变更与验收报告 | 345 | +345 / -0 |
 | [go.mod](../../go.mod) | 模块路径、Go 与依赖版本 | 42 | +42 / -0 |
 | [go.sum](../../go.sum) | 模块内容校验和 | 95 | +95 / -0 |
 | [internal/doctor/auth/auth.go](../../internal/doctor/auth/auth.go) | 独立 JWT、邮箱和 bcrypt 能力 | 121 | +121 / -0 |
@@ -113,7 +113,7 @@
 | [tools/commentcheck/check_test.go](../../tools/commentcheck/check_test.go) | 缺注释、生成文件、长函数和列表测试 | 97 | +97 / -0 |
 | [tools/commentcheck/doc.go](../../tools/commentcheck/doc.go) | commentcheck 包的职责、调用方、依赖与边界 | 4 | +4 / -0 |
 | [tools/commentcheck/main.go](../../tools/commentcheck/main.go) | 注释检查参数、输出和失败退出 | 53 | +53 / -0 |
-| [进度.md](../../进度.md) | 只更新阶段 0 交付与验收状态 | 160 | +11 / -11 |
+| [进度.md](../../进度.md) | 只更新阶段 0 交付与验收状态 | 160 | +14 / -14 |
 | [项目计划书.md](../../项目计划书.md) | 按 5.8.4 登记新增 Compose/测试环境变量 | 1705 | +3 / -0 |
 <!-- FILES_END -->
 
@@ -300,7 +300,9 @@ gofmt、vet、staticcheck、commentcheck、archcheck 全部通过；本机 `go t
 | Compose 三个依赖 healthy | 通过 | notes 的 Compose 健康验收；原样命令在已注入环境变量时也成功 |
 | 两个检查器通过 | 通过 | commentcheck 扫描 32 个非生成 Go 文件；archcheck 无违规 |
 | 删除函数注释能定位报错 | 通过 | `config.go:18:1`、退出状态 1；恢复后通过 |
-| CI 通过 | 待验证 | 首次推送后填写远端运行链接和提交 |
+| CI 通过 | 通过 | [运行 39929219914](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39929219914)，验证提交 de4459208791899131d5f67cbc8d42310b3948d7 |
+
+验收源码提交：`de4459208791899131d5f67cbc8d42310b3948d7`。之后只补充报告、实测记录和进度；源码指纹未改变。分支已推送，未合并 main。
 
 ## 六、偏离计划之处
 

@@ -13,7 +13,7 @@
 
 ## 2026-10-23：环境补齐后的实测
 
-记录汇总时间：01:50，America/Los_Angeles。检查时仍是 `phase-00-foundation` 的未提交工作树；下方源码指纹对应这一轮最终本地验证。最终提交与 CI 链接在阶段汇报书补齐。
+记录汇总时间：01:50，America/Los_Angeles。检查时仍是 `phase-00-foundation` 的未提交工作树；下方源码指纹对应这一轮最终本地验证。对应源码提交为 de4459208791899131d5f67cbc8d42310b3948d7，远端记录如下。
 
 - 刷新进程 PATH 后，`docker version --format '{{.Client.Version}} / {{.Server.Version}}'` 返回 `29.9.2 / 29.9.2`。
 - `docker compose version` 返回 `v5.6.1`。
@@ -79,7 +79,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml ps
 
 ### CI
 
-首次推送前待运行；最终结果与验证提交在阶段汇报书中补齐。不能把已写好工作流当成 CI 已通过。
+[GitHub Actions 运行 39929219914](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39929219914) 的 quality 任务结论为 success，源码提交 de4459208791899131d5f67cbc8d42310b3948d7。ubuntu-24.04 上格式、模块一致性、vet、staticcheck、两个检查器、无外部依赖的 race、全新 Compose 健康检查、MySQL 集成 race 和清理步骤均成功。首次本机 Kafka 卷权限修正没有成为 CI 的人工前置条件，全新卷也实际启动成功。
 
 ### 最终本地验证的源码指纹
 
