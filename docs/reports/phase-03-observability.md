@@ -1,6 +1,6 @@
 # 阶段 3 汇报书：可观测性与告警
 
-**状态：阶段 3 返工的本地检查通过，等待本轮 Linux CI。** Jaeger 的单项版本例外已获用户批准，并用同一份 Grafana 配置完成两版对照。学习验收留给用户本人。
+**状态：阶段 3 返工完成，本地检查与本轮 Linux CI 全部通过，等待用户学习。** Jaeger 的单项版本例外已获用户批准，并用同一份 Grafana 配置完成两版对照。学习验收留给用户本人。
 
 ## 一、总览
 
@@ -112,10 +112,10 @@
 | [deploy/prometheus/rules/shop.yml](../../deploy/prometheus/rules/shop.yml) | 这里只写用户能观察到的症状。规则不能预先给出“索引被删了”之类的原因。 | 34 | +34 / −0 |
 | [docs/decisions.md](../../docs/decisions.md) | 设计决定 | 196 | +77 / −0 |
 | [docs/learn/phase-03-observability.md](../../docs/learn/phase-03-observability.md) | 阶段 3 学习材料：可观测性与告警 | 433 | +433 / −0 |
-| [docs/notes.md](../../docs/notes.md) | 实测记录 | 486 | +176 / −0 |
+| [docs/notes.md](../../docs/notes.md) | 实测记录 | 496 | +186 / −0 |
 | [docs/reports/phase-03-observability.md](../../docs/reports/phase-03-observability.md) | 阶段 3 汇报书：可观测性与告警 | 481 | +481 / −0 |
 | [docs/代码地图.md](../../docs/代码地图.md) | OpsDoctor 代码地图 | 207 | +21 / −5 |
-| [docs/数据台账.md](../../docs/数据台账.md) | 数据台账 | 85 | +32 / −0 |
+| [docs/数据台账.md](../../docs/数据台账.md) | 数据台账 | 86 | +33 / −0 |
 | [go.mod](../../go.mod) | 固定 Go 直接和间接依赖 | 80 | +39 / −18 |
 | [go.sum](../../go.sum) | 依赖内容校验和 | 199 | +85 / −37 |
 | [internal/loadgen/app.go](../../internal/loadgen/app.go) | 启动压测进程，管理控制端口、统计输出和退出。 | 119 | +9 / −3 |
@@ -165,7 +165,7 @@
 | [internal/shop/sales/repository.go](../../internal/shop/sales/repository.go) | 在一个 MySQL 事务里完成订单去重和销量累加。 | 86 | +9 / −8 |
 | [internal/shop/sales/repository_integration_test.go](../../internal/shop/sales/repository_integration_test.go) | 在真实 MySQL 中验证销量去重与事务回滚。 | 152 | +22 / −6 |
 | [internal/shop/sales/service.go](../../internal/shop/sales/service.go) | 在处理订单消息之前验证业务字段。 | 38 | +5 / −4 |
-| [进度.md](../../进度.md) | OpsDoctor 进度看板 | 163 | +12 / −12 |
+| [进度.md](../../进度.md) | OpsDoctor 进度看板 | 163 | +13 / −13 |
 | [项目计划书.md](../../项目计划书.md) | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 | 2025 | +14 / −3 |
 <!-- PHASE_FILES_END -->
 
@@ -404,7 +404,7 @@ go test -race ./... -count=1 -timeout=180s -json
 
 CI YAML 和三个内嵌 Python 脚本语法通过。首次远端 CI 39983025343 的 Go 检查通过，但空卷 MySQL 初始化失败；已复现并修复 source 脚本污染父 shell 的问题，独立空卷复测成功。原验收随后 [Linux CI 39984585001](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39984585001) 全部通过：固定 ubuntu-24.04 / Go 1.27.1，全新十七容器 Compose、真实依赖 race、库存及订单消息冒烟、指标与 Grafana 接线均成功。验收源码提交为 `efc9dc08d5179e557bbec639fdda3ef736b762ca`。
 
-返工后重新运行全部检查：gofmt、go vet、staticcheck、commentcheck、archcheck 均通过。全仓库 race 为 78 个顶层测试通过、16 个真实依赖测试明确跳过、25 个有测试的包通过；注入专用环境后 16 个 Integration 全部通过。commentcheck 覆盖 148 个非生成 Go 文件。本轮 CI 尚待推送验证。
+返工后重新运行全部检查：gofmt、go vet、staticcheck、commentcheck、archcheck 均通过。全仓库 race 为 78 个顶层测试通过、16 个真实依赖测试明确跳过、25 个有测试的包通过；注入专用环境后 16 个 Integration 全部通过。commentcheck 覆盖 148 个非生成 Go 文件。本轮 [Linux CI 39992861971](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39992861971) 全部通过，验证源码提交 `5687c3386b5997c89efa0129a454981aa39ee22f`。全新十七容器启动、真实依赖 race、业务及可观测性冒烟均成功。十秒冒烟 199 次请求、0 错误、0 dropped；订单件数与销量均为 445。最终收尾提交只补 Markdown 验收记录，运行代码与该 CI 提交一致。
 
 ## 五、工程验收结果
 
@@ -418,7 +418,7 @@ CI YAML 和三个内嵌 Python 脚本语法通过。首次远端 CI 39983025343 
 
 以上运行命令、时间、原始数值和限制见 [notes 阶段 3](../notes.md#phase-03)。最终暂停流量后 lag=0，`ordered_quantity=2066811 sold_quantity=2066811 gap=0`。
 
-本阶段台账条目为 [P3-1 至 P3-25](../数据台账.md#阶段-3可观测性与告警)，包含成功结果、混合实验错误和版本兼容失败。
+本阶段台账条目为 [P3-1 至 P3-26](../数据台账.md#阶段-3可观测性与告警)，包含成功结果、混合实验错误和版本兼容失败。
 
 返工前全栈内存保留两次快照：2.22.0、目标 200 QPS 时，17 个容器合计 **1938.2 MiB，约 1.89 GiB**；最终 2.20.0、流量暂停时为 **1850.944 MiB，约 1.81 GiB**。配置上限合计 5056 MiB；Docker 可见 16 逻辑 CPU、约 15.18 GiB 内存。当时 MySQL 已占 **758.3/768 MiB**，接近旧上限，因此本次按用户授权提高到 1536 MiB。逐容器值见 notes。快照不是峰值，也不包括 Windows 与 Docker 虚拟机的全部开销；两次条件不同，不能计算版本优化比例。
 

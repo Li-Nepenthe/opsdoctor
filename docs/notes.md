@@ -176,6 +176,16 @@ MySQL 调整后内存观察（10:03–10:05）：目标 200 QPS，约每 30 秒�
 
 另有 53 条“订单已创建，但创建消息未确认发送”告警，集中在容器时间 17:04:13、17:04:14、17:04:25。只读逐个核对这 53 个订单号，processed_events 中有 53 条对应记录，说明它们随后实际完成了消费事务。最终 shopctl check 为 `ordered_quantity=2085212 sold_quantity=2085212 gap=0`。没有足够证据确定当时未及时确认的具体原因，不把它归因于 DNS，也不声称可靠消息问题已解决。这轮只用于有流量的资源观察，不是零错误性能基准。
 
+### DNS 返工 Linux CI 与收尾
+
+[Linux CI 39992861971](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39992861971) 验证源码提交 `5687c3386b5997c89efa0129a454981aa39ee22f`。2026-10-23 10:10:15 创建，10:16:31 完成（America/Los_Angeles），结论 success。固定 ubuntu-24.04 / Go 1.27.1，格式、tidy、vet、staticcheck、commentcheck、archcheck、无外部依赖 race、全新十七容器启动、真实 MySQL/Redis race、库存和订单消息冒烟全部通过。八个采集目标、三个数据源、十二面板定义、跨三个服务的 trace 和关联日志也通过。
+
+本轮 CI 的 HTTP 冒烟持续 9.999990704 秒，目标 20 QPS，199 次请求、0 错误、0 dropped，实际 19.900018 QPS，P50=3ms、P99=21ms；商品/订单/列表为 141/43/15。随后核对 `ordered_quantity=445 sold_quantity=445 gap=0`。这是全新 small 数据上的十秒冒烟，不代替本机恢复实验，也不掩盖资源观察轮的业务拒绝和消息确认告警。
+
+通过检查的 182 个非 Markdown 文件，按路径排序、统一 CRLF 为 LF，再逐文件取 SHA-256 并对“路径 + 制表符 + 文件哈希 + 换行”列表取 SHA-256，结果为 `9a8993f53e3922f89cbd0ffc96dc76e13e8d98e4343ab9619894a8d34c5bd2fa`。最终收尾只补 Markdown 中的 CI 证据、文件清单和进度，用 `[skip ci]` 提交；运行代码与通过 CI 的提交一致。
+
+本机空闲配置已恢复 30m，loadgen 已暂停，保留实验产生的待核对占位和业务数据。阶段 3 返工工程验收完成，学习验收仍由用户本人勾选。分支保持 phase-03-observability，不合并 main，不开始阶段 4。
+
 <a id="phase-02"></a>
 
 ## 2026-10-23：阶段 2 开工记录
