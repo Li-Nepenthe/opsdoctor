@@ -1,6 +1,6 @@
 // Package migrations 保存 shop 五张表与嵌入入口。
 //
-// 库存 app 和 shopctl 共用 Apply；它把 SQL 交给 platform/migrate。这里不放业务查询，已提交的迁移只能追加，不能修改。
+// 库存 app 和 shopctl 共用 Apply。它把 SQL 交给 platform/migrate。这里不放业务查询，已提交的迁移只能追加，不能修改。
 //
 // 包内文件：
 //   - doc.go：说明包的位置、边界和阅读路线。

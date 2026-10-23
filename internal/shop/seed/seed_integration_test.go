@@ -1,6 +1,11 @@
 // 本文件：用独立 MySQL 库验证续跑、跳过与回滚。
 //
 // seedDatabase 先校验库名再清理，和库存测试用不同库，防止并行包互相干扰。先读正常续跑与库存保留，再看故意让订单主键冲突时，前面已插入的商品为何必须回滚。
+//
+// 主要内容：
+//   - seedDatabase：仅在专用库清理五张业务表。使用独立库避免与库存包并行测试时互相删数据。
+//   - TestIntegrationSeed：验证从已提交批次继续、重复跳过、保持用户改过的库存及五表数量一致。
+//   - TestIntegrationSeedRollback：故意制造第三张表的主键冲突，证明前面两张表不会留下半批数据。
 
 package seed
 
@@ -16,7 +21,7 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
-// seedDatabase 仅在专用库清理五张业务表；使用独立库避免与库存包并行测试时互相删数据。
+// seedDatabase 仅在专用库清理五张业务表。使用独立库避免与库存包并行测试时互相删数据。
 func seedDatabase(t *testing.T) *sql.DB {
 	t.Helper()
 	dsn := os.Getenv("TEST_SEED_MYSQL_DSN")
@@ -39,7 +44,7 @@ func seedDatabase(t *testing.T) *sql.DB {
 	if err := migrations.Apply(t.Context(), database); err != nil {
 		t.Fatal(err)
 	}
-	// 表名全部来自固定白名单，DELETE 全表只用于这个可丢弃测试库；没有外键，顺序仍按依赖从后往前。
+	// 表名全部来自固定白名单，DELETE 全表只用于这个可丢弃测试库。没有外键，顺序仍按依赖从后往前。
 	for _, table := range []string{"processed_events", "product_sales", "orders", "stock", "products"} {
 		if _, err := database.ExecContext(t.Context(), "DELETE FROM "+table); err != nil {
 			t.Fatal(err)
@@ -59,7 +64,7 @@ func TestIntegrationSeed(t *testing.T) {
 	if err != nil || result.Products != 100 || result.Orders != 400 || result.InsertedProducts != 98 {
 		t.Fatalf("续跑：%+v %v", result, err)
 	}
-	// 唯一索引命中 SKU=1，只改这一行；重跑 seed 不能把它重置。
+	// 唯一索引命中 SKU=1，只改这一行。重跑 seed 不能把它重置。
 	if _, err := database.ExecContext(t.Context(), "UPDATE stock SET available=7 WHERE sku_id=1"); err != nil {
 		t.Fatal(err)
 	}

@@ -3,6 +3,9 @@
 // Apply 先通过 load 得到有顺序、有校验和的迁移清单，再开始碰数据库。
 // 把文件规则独立出来，重复序号、空文件和命名错误都能离线验证。
 // 先看 migration，再读 load 的筛选和排序。
+//
+// 主要内容：
+//   - load：按文件系统字典序读取迁移。格式、重复序号、空文件或读取失败都会返回带文件名的错误。
 
 package migrate
 
@@ -22,7 +25,7 @@ type migration struct {
 	checksum  string // checksum 是原始文件的 SHA-256 十六进制值，检查已执行文件是否被改写。
 }
 
-// load 按文件系统字典序读取迁移；格式、重复序号、空文件或读取失败都会返回带文件名的错误。
+// load 按文件系统字典序读取迁移。格式、重复序号、空文件或读取失败都会返回带文件名的错误。
 // 接收 fs.FS 而不是磁盘目录，使生产的 embed 文件和测试的内存文件能走同一套规则。
 func load(source fs.FS, directory string) ([]migration, error) {
 	// 第 1 步：fs.ReadDir 返回按文件名排序的目录项，配合等宽序号决定执行顺序。
@@ -36,7 +39,7 @@ func load(source fs.FS, directory string) ([]migration, error) {
 	pattern := regexp.MustCompile(`^[0-9]{4}_[A-Za-z0-9_\-]+\.sql$`)
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
-			// 迁移只取当前目录的 SQL 文件；说明文件和子目录不会被误当成迁移执行。
+			// 迁移只取当前目录的 SQL 文件。说明文件和子目录不会被误当成迁移执行。
 			continue
 		}
 		name := entry.Name()
@@ -59,7 +62,7 @@ func load(source fs.FS, directory string) ([]migration, error) {
 			// 空白文件没有可执行内容，却可能占住一个迁移版本，加载阶段就明确拒绝。
 			return nil, fmt.Errorf("迁移 %s 不能为空", name)
 		}
-		// 保留完整 SQL，并对原始字节计算校验和；连注释或空白变化也会被识别为旧文件被改写。
+		// 保留完整 SQL，并对原始字节计算校验和。连注释或空白变化也会被识别为旧文件被改写。
 		migrations = append(migrations, migration{name: name, statement: string(data), checksum: fmt.Sprintf("%x", sha256.Sum256(data))})
 	}
 	return migrations, nil

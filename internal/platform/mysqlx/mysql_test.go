@@ -2,6 +2,9 @@
 //
 // TestPrepare 不创建真实连接，专门检查池上限、空闲数、寿命、UTC 与多语句设置。
 // 先读表格里的不合法组合，再对照 mysql.go 的 prepare，理解哪些错误应在联网前发现。
+//
+// 主要内容：
+//   - TestPrepare：验证 Go 日期解码和数据库会话都使用 UTC，并禁止多语句查询。
 
 package mysqlx
 
@@ -21,11 +24,11 @@ func TestPrepare(t *testing.T) {
 	if !parsed.ParseTime || parsed.Loc != time.UTC || parsed.Params["time_zone"] != "'+00:00'" || parsed.MultiStatements {
 		t.Fatal("UTC 或多语句约束没有生效")
 	}
-	// 错误应指向连接池配置；对 DSN 错误则不得暴露测试密码。
+	// 错误应指向连接池配置。对 DSN 错误则不得暴露测试密码。
 	for _, change := range []func(*Config){
 		// 连接上限必须为正数，不能让 0 变成没有上限的连接池。
 		func(value *Config) { value.MaxOpenConns = 0 },
-		// 空闲连接不能多于最大连接数；21 刚好超过本例的上限 20。
+		// 空闲连接不能多于最大连接数。21 刚好超过本例的上限 20。
 		func(value *Config) { value.MaxIdleConns = 21 },
 		// 连接寿命必须为正，避免错误配置使旧连接永远不按寿命回收。
 		func(value *Config) { value.ConnMaxLifetime = 0 },

@@ -1,6 +1,6 @@
 // Package lifecycle 将退出信号转换成取消通知，再按顺序清理资源。
 //
-// app 提供 Hook 并决定顺序；本包依赖 context 与系统信号，不知道 HTTP/gRPC 的具体关闭方法。
+// app 提供 Hook 并决定顺序。本包依赖 context 与系统信号，不知道 HTTP/gRPC 的具体关闭方法。
 //
 // 包内文件：
 //   - doc.go：说明包的位置、边界和阅读路线。

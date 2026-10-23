@@ -1,6 +1,6 @@
 // Package grpcx 处理一元 RPC 的通用拦截和有界停机。
 //
-// 库存 app 把它安装到 grpc.Server；这里依赖 gRPC 与 logging，不依赖库存协议，也不处理流式 RPC。
+// 库存 app 把它安装到 grpc.Server。这里依赖 gRPC 与 logging，不依赖库存协议，也不处理流式 RPC。
 //
 // 包内文件：
 //   - doc.go：说明包的位置、边界和阅读路线。

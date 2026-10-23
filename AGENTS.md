@@ -93,7 +93,7 @@
 从仓库根目录运行，PowerShell 和 bash 的完整示例见 [README](README.md)。
 
 - 首次准备：PowerShell 执行 `Copy-Item .env.example .env`；bash 执行 `cp .env.example .env`。已有 `.env` 不要覆盖。
-- 启动库存与基础依赖：`docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240`
+- 启动三个服务、压测工具与基础依赖：`docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240`（首次空库先设 `LOADGEN_QPS=0`，造数后再通过控制接口开始流量）
 - 查看健康状态：`docker compose --env-file .env -f deploy/docker-compose.yml ps`
 - 停止并保留数据：`docker compose --env-file .env -f deploy/docker-compose.yml down`
 - 安装检查工具：`go install honnef.co/go/tools/cmd/staticcheck@v0.8.2`
@@ -103,9 +103,11 @@
 - 阅读清单：`go run ./tools/commentcheck -list ./...`
 - 文件地图：`go run ./tools/commentcheck -map ./...`，替换 `docs/代码地图.md` 中自动生成标记之间的表格。
 - 单元与竞态测试：`go test -race ./... -count=1 -timeout=180s`
-- MySQL 集成测试：按 README 注入四个 TEST DSN 后，执行 `go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed -run Integration -count=1 -timeout=90s -v`。
+- MySQL / Redis 集成测试：按 README 注入六个 TEST DSN 和 TEST_REDIS_ADDR 后，执行 `go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -v`。
 - 初始化：按 README 注入 MYSQL_DSN 后，执行 `go run ./cmd/shopctl seed`（小规模加 `--small`，已有数据不会重置）。
 - 手动查询/扣减：`go run ./cmd/shopctl stock get --sku 1` / `go run ./cmd/shopctl stock deduct --sku 1 --quantity 1`。
+- 销量核对：暂停流量并等消费追平后，`go run ./cmd/shopctl check`。
+- 五分钟压测：先暂停 Compose 内 loadgen，再运行 `go run ./cmd/loadgen --qps 200 --duration 5m --control 127.0.0.1:6071`；按实际 QPS 和 dropped 判断生成器是否达到目标。
 - 重新生成契约：安装 README 固定版本工具后，`buf lint`、`buf generate`；生成物要提交。
 
-Windows 的 `-race` 需要 gcc 可见且 `CGO_ENABLED=1`。迁移、库存、造数测试分别只允许各自的专用测试库；不要将测试 DSN 指向业务库。库存服务宿主机入口是 `go run ./cmd/inventory-service`，先停止同端口的 Compose 库存容器。
+Windows 的 `-race` 需要 gcc 可见且 `CGO_ENABLED=1`。迁移、库存、造数、订单、销量测试分别只允许各自的专用测试库；不要将测试 DSN 指向业务库。Redis 商品/幂等测试固定用 DB 14/15，只清理自己的 key。宿主机调试服务前先停止同端口的 Compose 容器；三个服务的 ADMIN_ADDR 分别为订单 6061、库存 6062、消费者 6063。

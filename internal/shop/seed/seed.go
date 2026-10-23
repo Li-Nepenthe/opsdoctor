@@ -1,7 +1,10 @@
 // 本文件：控制完整规模与 small 模式的造数进度。
 //
-// shopctl 调用 Run；它先确认已有数据，再按商品范围逐批提交，返回真实计数与耗时。
-// 先读目标规模常量和 Result，再看跳过、续跑与失败时如何报告已提交进度；SQL 细节放在 repository.go。
+// shopctl 调用 Run。它先确认已有数据，再按商品范围逐批提交，返回真实计数与耗时。
+// 先读目标规模常量和 Result，再看跳过、续跑与失败时如何报告已提交进度。SQL 细节放在 repository.go。
+//
+// 主要内容：
+//   - Run：在已迁移的数据库中建立基线。ctx 控制所有查询与每批事务，返回已经提交的计数和错误。
 
 package seed
 
@@ -12,7 +15,7 @@ import (
 	"time"
 )
 
-// 数据规模来自阶段 1 要求；每商品四单恰好组成 200 万订单，small 仅缩小规模不改变算法。
+// 数据规模来自阶段 1 要求。每商品四单恰好组成 200 万订单，small 仅缩小规模不改变算法。
 const (
 	fullProducts     = 500_000
 	smallProducts    = 100
@@ -22,7 +25,7 @@ const (
 	priceCents       = 1999  // 固定 19.99 元，让用户能手算订单金额。
 )
 
-// Result 只包含计数与耗时，便于 CLI 打印真实结果；不包含数据库配置。
+// Result 只包含计数与耗时，便于 CLI 打印真实结果。不包含数据库配置。
 type Result struct {
 	Products         int64         // Products 是运行后基线中的商品数，库存和销量行数与它相同。
 	Orders           int64         // Orders 是历史订单数，每条数量为 1。
@@ -31,7 +34,7 @@ type Result struct {
 	Duration         time.Duration // Duration 包含检查现有数据和写入，不含 CLI 启动、连接与迁移。
 }
 
-// Run 在已迁移的数据库中建立基线；ctx 控制所有查询与每批事务，返回已经提交的计数和错误。
+// Run 在已迁移的数据库中建立基线。ctx 控制所有查询与每批事务，返回已经提交的计数和错误。
 // 中断后允许从完整批次继续，但会拒绝行数不一致的库，避免把业务数据误当成可覆盖的样本。
 func Run(ctx context.Context, database *sql.DB, small bool) (Result, error) {
 	started := time.Now()
@@ -56,7 +59,7 @@ func Run(ctx context.Context, database *sql.DB, small bool) (Result, error) {
 			result.Duration = time.Since(started)
 			return result, fmt.Errorf("生成商品 %d..%d：%w", first, last, err)
 		}
-		// 只有事务提交成功才累加进度；失败批次不会被当作已完成。
+		// 只有事务提交成功才累加进度。失败批次不会被当作已完成。
 		result.InsertedProducts += last - first + 1
 		result.Products = last
 		result.Orders = last * ordersPerProduct

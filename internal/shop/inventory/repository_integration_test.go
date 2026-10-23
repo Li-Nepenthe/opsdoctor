@@ -1,7 +1,14 @@
 // 本文件：真实 MySQL 的并发扣减与 deadline 实验。
 //
 // 测试只接受专用库，避免准备数据时碰到 shop。
-// 先读 integrationDatabase，再读 100 个 goroutine 的同步起跑与结果收集；slowRepository 仅在测试中延迟查询，生产代码没有故障开关。
+// 先读 integrationDatabase，再读 100 个 goroutine 的同步起跑与结果收集。slowRepository 仅在测试中延迟查询，生产代码没有故障开关。
+//
+// 主要内容：
+//   - integrationDatabase：只允许专用测试库。每个测试串行清理 stock，不可能清空 shop 业务库。
+//   - TestIntegrationConcurrentDeduct：让 100 个 goroutine 同时争抢 50 件。真实 InnoDB 锁与条件更新决定胜负。
+//   - TestIntegrationStockBoundaries：检查不存在、归还和整数上界，覆盖单条 UPDATE 的零影响行数分支。
+//   - GetStock：用 uk_stock_sku 找行后人为等待五秒。普通 SELECT 不持有排他行锁，ctx 应提前结束驱动等待。
+//   - TestIntegrationDeadline：验证真实 gRPC deadline 穿过 service，令驱动查询等待和服务端 handler 提前返回。
 
 package inventory
 
@@ -22,7 +29,7 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// integrationDatabase 只允许专用测试库；每个测试串行清理 stock，不可能清空 shop 业务库。
+// integrationDatabase 只允许专用测试库。每个测试串行清理 stock，不可能清空 shop 业务库。
 func integrationDatabase(t *testing.T) *sql.DB {
 	t.Helper()
 	dsn := os.Getenv("TEST_INVENTORY_MYSQL_DSN")
@@ -45,18 +52,18 @@ func integrationDatabase(t *testing.T) *sql.DB {
 	if err := migrations.Apply(t.Context(), database); err != nil {
 		t.Fatal(err)
 	}
-	// DELETE 全表只发生在被白名单保护的测试库；清理会锁住库存测试行，不与其他测试并行运行。
+	// DELETE 全表只发生在被白名单保护的测试库。清理会锁住库存测试行，不与其他测试并行运行。
 	if _, err := database.ExecContext(t.Context(), "DELETE FROM stock"); err != nil {
 		t.Fatal(err)
 	}
-	// uk_stock_sku 保证唯一；准备 50 件正好对应计划书的并发实验。
+	// uk_stock_sku 保证唯一。准备 50 件正好对应计划书的并发实验。
 	if _, err := database.ExecContext(t.Context(), "INSERT INTO stock (sku_id, available, updated_at) VALUES (1, 50, UTC_TIMESTAMP(6))"); err != nil {
 		t.Fatal(err)
 	}
 	return database
 }
 
-// TestIntegrationConcurrentDeduct 让 100 个 goroutine 同时争抢 50 件；真实 InnoDB 锁与条件更新决定胜负。
+// TestIntegrationConcurrentDeduct 让 100 个 goroutine 同时争抢 50 件。真实 InnoDB 锁与条件更新决定胜负。
 func TestIntegrationConcurrentDeduct(t *testing.T) {
 	database := integrationDatabase(t)
 	service := NewService(NewMySQLStockRepository(database))
@@ -125,7 +132,7 @@ type slowRepository struct {
 	finished              chan error // 查询 goroutine 写一次，测试读一次；容量 1 保证测试提前失败也不阻塞写入。
 }
 
-// GetStock 用 uk_stock_sku 找行后人为等待五秒；普通 SELECT 不持有排他行锁，ctx 应提前结束驱动等待。
+// GetStock 用 uk_stock_sku 找行后人为等待五秒。普通 SELECT 不持有排他行锁，ctx 应提前结束驱动等待。
 func (repository *slowRepository) GetStock(ctx context.Context, skuID int64) (Stock, error) {
 	const slowQuery = `SELECT sku_id, available FROM stock WHERE sku_id = ? AND SLEEP(5) = 0`
 	var stock Stock

@@ -1,6 +1,6 @@
 # 首次建库脚本
 
-[001_test_databases.sql](001_test_databases.sql) 创建平台测试库；[002_shop_test_databases.sql](002_shop_test_databases.sql) 创建库存与造数测试库。只授予 app 对专用库的权限，不写密码。
+[001_test_databases.sql](001_test_databases.sql) 创建平台测试库；[002_shop_test_databases.sql](002_shop_test_databases.sql) 创建库存与造数测试库；[003_order_sales_test_databases.sql](003_order_sales_test_databases.sql) 创建订单与销量测试库。只授予 app 对专用库的权限，不写密码。
 
 目录内容：
 

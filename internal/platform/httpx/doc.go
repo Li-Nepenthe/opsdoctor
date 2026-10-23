@@ -1,6 +1,6 @@
 // Package httpx 集中处理 HTTP 入口的通用保护与统一响应。
 //
-// HTTP app 安装中间件，handler 调用绑定与响应函数；本包依赖 Gin 和 logging，不实现业务接口。
+// HTTP app 安装中间件，handler 调用绑定与响应函数。本包依赖 Gin 和 logging，不实现业务接口。
 //
 // 包内文件：
 //   - doc.go：说明包的位置、边界和阅读路线。

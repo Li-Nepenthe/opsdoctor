@@ -2,6 +2,11 @@
 //
 // 这些样例故意把格式写错，所以直接调用原始 fixture，不使用会补齐文件说明的 documentedFixture。
 // 先读 TestFileDescriptions 的反例，再看 TestPackageInventory 和 TestMapMode 如何防止清单漏项与链接失效。
+//
+// 主要内容：
+//   - TestFileDescriptions：区分真正的文件导航、贴在 package 上的包文档，以及只有空标题的占位注释。
+//   - TestPackageInventory：验证完整文件名匹配。测试文件与生成物不强制列出，但仍可出现在人工说明中。
+//   - TestMapMode：核对所有文件都进入地图、相对链接能解析、生成物有标记，并拒绝相互冲突的输出模式。
 
 package main
 
@@ -44,7 +49,7 @@ func TestFileDescriptions(t *testing.T) {
 	}
 }
 
-// TestPackageInventory 验证完整文件名匹配；测试文件与生成物不强制列出，但仍可出现在人工说明中。
+// TestPackageInventory 验证完整文件名匹配。测试文件与生成物不强制列出，但仍可出现在人工说明中。
 func TestPackageInventory(t *testing.T) {
 	for _, testcase := range []struct {
 		name      string // name 描述包清单中的引用形式。
