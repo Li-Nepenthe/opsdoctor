@@ -1,7 +1,12 @@
-# 告警通知
+# deploy/alertmanager：告警通知
 
-按症状与服务分组，把通知推给临时 alertsink，不自动执行修复。
+Prometheus 只负责判断“告警条件是否成立”，发通知是 Alertmanager 的事。它把告警整理一下，再推送给接收方。
 
-- [alertmanager.yml](alertmanager.yml)：分组、推送与从临时文件读取令牌。
+[alertmanager.yml](alertmanager.yml) 的设置：
 
-建议先读配置旁的中文注释，再对照阶段 3 学习材料运行查询。
+- **分组**：同一种告警、同一个服务的多条告警，合成一次通知。一次故障往往同时触发很多条告警，合并以后不会一下子收到一大堆。
+- **推送给谁**：现在推给临时的告警接收器 alertsink（`http://alertsink:8091/api/v1/alerts`）。阶段 5 改为推给医生。
+- **恢复通知**：告警条件不再成立时，也会推一条 `resolved`（已恢复）通知。
+- **令牌**：推送时在请求头带上令牌，接收方据此确认请求确实来自 Alertmanager。令牌来自环境变量，容器启动时写进一个临时文件，不保存在仓库里。
+
+Alertmanager 只负责通知，不会自动执行任何修复。

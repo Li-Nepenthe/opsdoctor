@@ -1,7 +1,5 @@
-# 看板加载入口
+# deploy/grafana/provisioning/dashboards：看板从哪里加载
 
-指向版本控制维护的 JSON，页面编辑不会回写源码。
+[shop.yml](shop.yml) 告诉 Grafana：去容器里的 `/var/lib/grafana/dashboards` 目录加载看板，放进名为 OpsDoctor 的文件夹。Compose 把仓库里的 `deploy/grafana/dashboards` 挂载到了这个目录。
 
-- [shop.yml](shop.yml)：扫描 shop 看板目录的 provider。
-
-建议先读配置旁的中文注释，再对照阶段 3 学习材料运行查询。
+看板文件本身在 [deploy/grafana/dashboards](../../dashboards/README.md)。

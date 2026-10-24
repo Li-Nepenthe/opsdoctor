@@ -1,36 +1,56 @@
 # 阶段 3 学习材料：可观测性与告警
 
-本阶段工程验收已完成，本地检查与 Linux CI 均通过，见[进度](../../进度.md)。先读指标、调用链、日志各回答什么，再跑一笔真实订单。
+前三个阶段，系统已经能正常工作了。但出了问题，你几乎什么都“看不见”：系统慢了吗？慢在哪一步？哪个订单失败了？
 
-## 一、这个阶段做了什么
+这个阶段给系统装上“眼睛”：
 
-先把三个词分清。**指标**是一段时间内的数字，回答“系统整体有没有变慢，错误是不是变多了”。**调用链**记录一笔请求经过哪些操作，回答“这笔订单慢在哪一步”。**日志**记录当时发生的具体事情，回答“哪个订单失败了，代码给出了什么线索”。三个问题互相补充。
+- **指标**：一段时间内的数字，比如每秒请求数、P99 耗时、错误率。
+- **调用链**：一次请求经过了哪些操作、每一步花了多久。
+- **日志**：每件事发生时留下的记录。
+- **看板**：把上面三样放在一个页面里看。
+- **告警**：指标异常时自动发出通知。
+
+这也是医生能工作的前提：阶段 5 以后，医生诊断时调用的工具，查的就是这些数据。
+
+这个阶段还有一次很有价值的**真实排障**（第 3.5 节）：从一个奇怪的现象出发，一步步找到藏在 gRPC 库里的根因。面试时讲这种经历，比背概念有说服力得多。
+
+## 1. 这个阶段做了什么
+
+**三种数据，各回答一个问题：**
+
+| | 回答什么问题 | 存在哪里 | 怎么看 |
+|---|---|---|---|
+| 指标 | 系统整体怎么样？变慢了吗？错误变多了吗？ | Prometheus | Grafana 看板 |
+| 调用链 | 这一笔请求慢在哪一步？ | Jaeger | Jaeger 页面，或 Grafana |
+| 日志 | 当时具体发生了什么？哪个订单失败了？ | Loki | Grafana 的 Explore |
+
+三者互相补充。比如：看板显示下单变慢了（指标）→ 找一笔慢的下单，看它的调用链，发现慢在扣库存那一步（调用链）→ 用这笔请求的 trace_id 查日志，看库存服务当时报了什么错（日志）。
+
+**数据是怎么流动的：**
 
 ```mermaid
 flowchart LR
-    Request[一笔下单] --> Order[订单服务]
-    Order --> Redis[Redis]
-    Order --> Inventory[库存服务]
-    Inventory --> StockSQL[库存 SQL]
-    Order --> OrderSQL[订单 SQL]
-    Order --> Kafka[Kafka]
-    Kafka --> Worker[消费者]
-    Worker --> SalesSQL[销量 SQL]
-    Apps[三个服务的指标] --> Prometheus
-    Exporters[数据库和消息的采集器] --> Prometheus
-    Spans[请求经过的操作片段] --> Jaeger
-    Logs[JSON 日志] --> Alloy --> Loki
-    Prometheus --> Grafana
-    Jaeger --> Grafana
-    Loki --> Grafana
-    Prometheus --> Alertmanager --> alertsink
+    S[三个服务] -->|"/metrics，每 10 秒被采集一次"| P[Prometheus]
+    E[MySQL / Redis / Kafka 的 exporter] --> P
+    S -->|span| J[Jaeger]
+    S -->|"JSON 日志打印到标准输出"| A[Alloy] --> L[Loki]
+    P --> G[Grafana]
+    J --> G
+    L --> G
+    P -->|告警| AM[Alertmanager] --> AS[alertsink]
 ```
 
-靶场仍然做原来的商品、下单和销量业务。这一阶段给业务加上观察入口，再把数据汇集到看板。收到“消息积压”通知只表示发现了症状。临时接收器不会判断原因，也不会执行修复；医生系统还没开始。
+现在一共有 17 个容器：原来的 7 个（MySQL、Redis、Kafka、库存服务、订单服务、order-worker、压测工具），加上 Prometheus、3 个 exporter、Jaeger、Loki、Alloy、Grafana、Alertmanager 和告警接收器 alertsink。
 
-## 二、怎么跑起来、看什么
+alertsink 是临时的：它只把收到的告警写进日志，不判断原因，也不修复。阶段 5 以后由医生接替。
 
-先按 [README 的阶段 3 启动步骤](../../README.md#启动阶段-3-环境)补齐本机环境变量。已有 `.env` 不要覆盖。已有 MySQL 卷要运行 README 中的监控账号初始化命令；不要删卷。
+## 2. 怎么跑起来、看什么
+
+所有命令都在仓库根目录运行，开始前先打开 Docker Desktop。全部 17 个容器大约占 2 GB 内存。
+
+### 2.1 启动全部服务
+
+你的 `.env` 里已经有阶段 3 需要的几个变量（Grafana 管理员密码、监控账号密码、告警令牌），Astra 开发时已经补好了。如果启动时提示缺少某个变量，参照根目录 README 的“启动阶段 3 环境”一节补上。
 
 ```powershell
 $env:LOADGEN_QPS = '0'
@@ -39,20 +59,26 @@ docker compose --env-file .env -f deploy/docker-compose.yml ps
 Invoke-WebRequest http://127.0.0.1:3100/ready
 ```
 
-应该看到 17 个容器运行，带健康检查的显示 healthy；Loki 最后返回 200 和 ready。某个镜像没有健康检查时，running 只说明进程启动了，不能替代接口验收。首次 Loki 就绪可能还要等十几秒。
+你应该看到 17 个容器都在运行；配了健康检查的显示 `healthy`；最后一条（Loki）返回 `ready`。Loki 刚启动时可能要再等十几秒。
 
-已有全量数据可以直接开始小流量。首次空库按 README 造数。已有阶段 2 订单不能用 seed 重置。
+### 2.2 开一点流量，看指标
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:6070/control -Method Post -ContentType 'application/json' -Body '{"qps":20,"hot_sku_id":0}'
-Invoke-WebRequest http://127.0.0.1:6061/metrics
+(Invoke-WebRequest http://127.0.0.1:6061/metrics).Content | Select-Object -First 1
 ```
 
-应该看到指标正文。打开 `http://127.0.0.1:9090/targets`，八个目标应全部 UP。再查 `mysql_up`、`redis_up`，值也应为 1。UP 只表示 Prometheus 能访问采集器，不表示采集器能访问数据库。
+然后在浏览器打开 http://127.0.0.1:9090/targets，你应该看到 8 个采集目标都是 UP。
 
-打开 `http://127.0.0.1:3000`，用户名 admin，密码使用本机 `GRAFANA_ADMIN_PASSWORD`。找到 shop 总览，等两分钟，让速率查询有足够样本。十二个面板包括 QPS、P99、错误率、连接池、缓存、积压、goroutine、内存、熔断、重试、连接池等待和幂等。
+在 Prometheus 的首页（http://127.0.0.1:9090）输入查询 `mysql_up`，结果应该是 1。UP 只说明 Prometheus 能访问到 MySQL 的 exporter，`mysql_up=1` 才说明 exporter 能连上 MySQL。
 
-这一步手动创建一笔被采样的订单。traceparent 是跨服务传递的请求标签，末尾 01 表示需要保存调用链。
+### 2.3 看看板
+
+打开 http://127.0.0.1:3000，用户名 `admin`，密码是 `.env` 里的 `GRAFANA_ADMIN_PASSWORD`。在 OpsDoctor 文件夹里打开“shop 总览”，等两分钟，让数据积累起来。你应该看到 12 个面板都有数据：请求数、P99、错误率、连接池、缓存命中率、消息积压、goroutine 数、内存、熔断器状态、重试次数、连接等待时间、幂等处理次数。
+
+### 2.4 追踪一笔订单
+
+因为默认只记录十分之一的请求，随便下一单不一定能在 Jaeger 里查到。下面手动生成一个 trace ID，并在请求头里要求“一定记录这个请求”：
 
 ```powershell
 $traceID = [guid]::NewGuid().ToString('N')
@@ -66,150 +92,176 @@ $order.data
 $traceID
 ```
 
-全量数据中该商品还有库存时，应返回订单编号。small 数据改用已有商品编号。下单失败要先读错误码，尤其不能对 REQUEST_OUTCOME_UNKNOWN 随意换键重做。`1234567890abcdef` 是实验声明的上游父 span；上游没有导出，所以 Jaeger 不会有这段上游操作本身。
+`traceparent` 是 W3C 规定的调用链请求头，格式是“版本-trace ID-上一步的 span ID-标志”，最后的 `01` 表示“需要记录”。
 
-在 Jaeger 按刚才的 trace ID 查找。等几秒，应看到三个服务。SQL 插件可能把准备语句、执行、提交分别记成多个 span；这不代表同一条 SQL 被重复执行。不要把“必须恰好 29 个 span”当成断言，缓存是否命中会改变片段数量。
+**在 Jaeger 里看：** 打开 http://127.0.0.1:16686，在右上角的搜索框粘贴 trace ID。等几秒，你应该看到这笔订单经过了三个服务：订单服务、库存服务、order-worker。依次是：HTTP 请求 → Redis 占位 → gRPC 扣库存 → 库存服务的 SQL → 写订单的 SQL → 发 Kafka 消息 → order-worker 消费 → 加销量的 SQL。
 
-Grafana Explore 选择 Loki，把下面的占位文本换成实际 trace ID：
+一条 SQL 可能显示成好几个 span（准备、执行、提交），这不代表执行了好几次。span 的总数也会随缓存是否命中而变化，不用纠结具体数字。
+
+**在 Grafana 里查日志：** 左侧菜单打开 Explore，数据源选 Loki，输入下面的查询（把占位文字换成你的 trace ID）：
 
 ```logql
-{service=~"order-service|inventory-service|order-worker"} | json | trace_id="填入刚才的 trace ID"
+{service=~"order-service|inventory-service|order-worker"} | json | trace_id="填入你的 trace ID"
 ```
 
-应该看到库存 RPC、订单 HTTP 和消费成功日志。各条 trace_id 相同，span_id 可以不同。日志字段 TraceID 提供跳转；当前固定 Jaeger 2.20.0，数据源和实际 trace 查询均已通过；直接查 Jaeger 成功，仍不能替代检查 Grafana 的数据源接线。
+你应该看到三条日志，分别来自三个服务：订单服务的 HTTP 请求、库存服务的 gRPC 请求、order-worker 的消息处理。它们的 trace_id 相同，span_id 不同。日志旁边有一个 TraceID 链接，点击可以直接跳到这条调用链。
 
-学习结束后暂停流量：
+### 2.5 结束
 
 ```powershell
 Invoke-RestMethod http://127.0.0.1:6070/control -Method Post -ContentType 'application/json' -Body '{"qps":0}'
 ```
 
-应该看到 qps=0。等消费积压归零，再按 README 加载 MYSQL_DSN，运行 `go run ./cmd/shopctl check`，应输出 gap=0。不要让实验流量一直消耗库存。
+等消息积压归零，可以用 `shopctl check` 核对一次（方法见阶段 2 学习材料第 2.7 节），应该是 `gap=0`。不学的时候，记得停掉容器释放内存：
 
-## 三、开发过程回放
+```powershell
+docker compose --env-file .env -f deploy/docker-compose.yml down
+```
 
-这里按实际发生的顺序写。原始记录在 [notes](../notes.md#phase-03)，没有把失败的尝试改写成一次成功。
+## 3. 开发过程回放
 
-### 1. 先补上订单提交后的发送窗口
+这一节按实际发生的顺序讲。原始记录在 [notes](../notes.md#phase-03)，失败的尝试都保留着。
 
-**这次要做什么。** 订单已经进入数据库，用户断开连接时仍应该尝试把消息发给 Kafka。这个小修复来自用户明确要求。
+### 3.1 先修一个小问题：订单写成功后，消息要发出去
 
-**先想清楚什么。** 用户取消意味着不再等待响应，不代表已经提交的订单可以撤销。收尾必须有时间上限，否则停机可能一直等发送。已有 span 也不能丢，否则后面的消息会变成另一条链。
+**要做什么：** 阶段 2 验收时发现，订单写进数据库以后，发 Kafka 消息用的还是这次 HTTP 请求的 context。如果用户这时断开了连接，context 被取消，消息就发不出去，销量会少算一笔。
 
-**拆成哪些函数。** 改的是 `Service.Create(ctx, input, key) (Result, error)` 中提交成功后的 Publish 调用。增加 `TestPublishSurvivesCancellation(t)`，让替身仓储在提交后取消原 ctx，让替身发布器检查新 ctx。
+**改法：** 发消息改用“不带取消状态、但有自己时限”的 context（`context.WithoutCancel` 再加 `WithTimeout`，阶段 0 第 6.6 节讲过）。用户断开只表示他不再等响应，不代表订单可以撤销。新的 context 还保留着原来的调用链信息，所以发消息这一步仍然在同一条 trace 里。
 
-**实际顺序。** 先读原来的提交、补偿、幂等完成顺序。然后只把 Publish 的上下文改为 WithoutCancel 加 CleanupBudget。接着写取消测试，检查新 ctx 的值、deadline 和调用次数，最后接入追踪。
+**怎么验证：** 写了一个测试：订单提交后取消原来的 context，确认发送消息时拿到的 context 没有被取消、带着原来的信息、并且有时限。
 
-**怎么验证。** 测试确认原请求已取消，Publish 仍得到未取消的上下文，保留原来的值，且剩余时间有限。订单相关回归与最终 race 均通过。
+**这不是完整的解决方案：** 进程在订单提交后崩溃，或者 Kafka 本身发送失败，消息还是会丢。根本的办法是 Outbox（阶段 2 第 5.8 节），这个阶段没有实现。
 
-**问题和取舍。** 这不是消息可靠性的完整解决方案。进程在提交后崩溃，或 Kafka 发送失败，仍会少消息。Outbox 要把待发消息一起写进数据库，本阶段没有实现。
+### 3.2 把指标、调用链、日志接到业务上
 
-### 2. 把指标、span 和日志接到同一笔业务上
+**要做什么：** 每个服务输出同一套名字的指标；一笔订单能从订单服务一路追到 order-worker；日志能和调用链对上。
 
-**这次要做什么。** 每个进程输出同一套命名的指标，每笔订单能从 HTTP 追到消费者。
+**动手前先想清楚的问题：**
 
-**先想清楚什么。** 一个请求能生成很多 span，但它们必须保留同一个 trace ID。指标只记录有限类别，不能为每个订单建一组新曲线。业务规则不应该自己设置全局监控对象。
+- 一个请求会产生很多 span，但它们必须共用同一个 trace ID，才能连成一条链。
+- 指标的标签只能用种类有限的值，不能用订单号这种无限增长的值（第 5.3 节）。
+- 业务代码不应该自己去设置全局的监控对象。
 
-**函数清单。**
+**写的顺序：**
 
-| 函数 | 主要参数 → 返回值 | 负责什么 |
-|---|---|---|
-| telemetry.New | ctx、service → Runtime、error | 创建独立注册表、Provider 和传播器 |
-| NewMetrics | service → Metrics | 登记固定指标与 Go 运行时统计 |
-| HTTPMiddleware | 无 → gin.HandlerFunc | 响应完成后按模板路由计时 |
-| Metrics.Server / Client | 逻辑目标名等 → 拦截器 | 每次真实 RPC 分别计时 |
-| KafkaHeaders.Get / Set / Keys | 消息头名和值 → 读取结果等 | 让传播器能读写 Kafka 消息头 |
-| Publisher.Publish | ctx、事件 → error | 创建发送 span，注入头，等待确认 |
-| Consumer.process | ctx、消息 → error | 提取父节点，处理并提交位点 |
-| logging.FromContext | ctx、基础日志器 → 日志器 | 使用当前 span 的关联字段 |
-| MySQLRepository.Apply | ctx、事件 → duplicate、error | 返回正常重复标识，供指标区分 |
+1. 写 telemetry 包：每个服务一个独立的指标注册表、调用链的 Provider 和 Propagator。
+2. 把 Gin、gRPC、SQL、Redis 的现成插件接到各服务的组装代码上。
+3. Kafka 没有现成插件，手写消息头的读写（kafka.go）。
+4. 让日志自动带上当前 span 的 trace_id 和 span_id。
+5. 给缓存、幂等这些操作加计数：用包装的方式（第 5.9 节），业务包不用改。
+6. 补测试，再启动整套监控组件做真实验证。
 
-**实际顺序。** 先加入统一 telemetry 包，再把 Gin、gRPC、SQL、Redis 的现成插件接到 app。Kafka 没有靠自动插件，手写消息头适配。之后把日志关联改为读取当前 span，把缓存和幂等计数放到 app 的接口包装中。接着补内存测试，再启动真实管道。
+**怎么验证：** Kafka 的单元测试确认消费者拿到的 trace ID 和父 span 都对；HTTP 的单元测试确认 `/orders/1` 和 `/orders/2` 记在同一个标签 `/orders/:id` 下。真实环境里，一笔订单的调用链经过三个服务，Grafana 按 trace ID 能查到三条对应的日志。
 
-**怎么验证。** Kafka 单测同时检查 trace ID 和父 span，HTTP 单测检查两个订单路径只归入同一模板。真实请求得到了三个服务、29 个 span；Grafana 按 trace ID 查到三条对应日志。消费测试还覆盖处理成功、重复、提交位点失败。
+**遇到的问题：** commentcheck 查出新文件没写进 doc.go、长函数缺少注释，逐个补上。订单服务的 `Run` 函数变得太长，于是拆出 dependencies.go 和 servers.go，读起来不用一下子面对一大段连接代码。
 
-**问题和取舍。** 第一轮编译要求先整理 go.mod，执行 tidy 后通过。commentcheck 指出了新增文件未列入 doc.go、长函数缺内部解释，逐项补齐。订单 Run 变长后又拆出 dependencies.go、servers.go，避免学习时先面对一大段连接代码。选择显式传 Provider 的代价是参数多一些，换来每个测试独立、不会互相改全局配置。
+### 3.3 启动监控组件，用真实业务验收
 
-### 3. 启动监控栈，再用真实业务验收
+**要做什么：** 从“代码里埋了点”走到“看板能看、告警能收到”。
 
-**这次要做什么。** 从“代码有埋点”走到“看板能查询、告警能送达”。
+**遇到的问题：**
 
-**先想清楚什么。** 本机同时运行 17 个容器，需要固定版本和内存边界。旧数据卷不能删除。管理员密码和推送令牌不能进入 Git。
+1. **Loki 的健康检查失败。** Loki 的官方精简镜像里没有 `wget` 命令，健康检查执行不了。改成从宿主机和 CI 里检查它的 `/ready` 地址。
+2. **Grafana 查不了 Jaeger。** 实测发现 Jaeger 2.22.0 去掉了 Grafana 还在用的一个接口，返回 404。Astra 按规则先停下来问你，你同意后把 Jaeger 固定在 2.20.0，同样的配置就能用了。对照证据和以后什么时候可以升级，都记录在 [decisions](../decisions.md#jaeger-compatibility) 里。
+3. **旧数据卷没有监控账号。** MySQL 的监控账号由初始化脚本创建，但旧数据卷不会重新执行初始化脚本，于是在已有的数据卷上手动执行了一次。
 
-**拆分。** Compose 负责启动；`deploy/prometheus` 负责采集与规则；Grafana provisioning 负责数据源和看板；Alloy 负责读 Docker 日志；Loki 存日志；Jaeger 收 span。`alertsink.Run(ctx)` 管理 HTTP 生命周期，`Handler(token, logger)` 校验通知并写摘要，`safeLabel(value)` 限制外部字段长度。
+**结果：** 8 个采集目标都是 UP，12 个面板都有数据。200 QPS 下停掉 order-worker，167 秒后收到了 ConsumerLagHigh 告警，恢复后收到了 resolved 通知。暂停流量后积压归零，订单件数和销量件数相等。
 
-**实际顺序。** 查官方版本并固定，拉取九个监控镜像，补本机缺少的凭据，再启动。旧 MySQL 卷没有重跑 init，手动执行同一个脚本补建 metrics 账号。然后查采集目标、真实 trace、Grafana 面板和日志，最后停 worker 触发积压，恢复后核对销量。
+### 3.4 全新环境暴露了初始化脚本的问题
 
-**怎么验证。** 八个采集目标 UP，十二面板均得到数据；167.064 秒内收到 ConsumerLagHigh，恢复后收到 resolved。暂停后 lag=0，订单与销量件数都是 2066809。负载时容器内存合计约 1.89 GiB，详表在 notes。
+**现象：** GitHub 上的 CI 从空数据卷启动时，MySQL 启动失败退出了，但在本机的旧数据卷上一直是好的。
 
-**真实问题。** Loki 精简镜像没有 wget，原健康命令执行失败，改为从宿主机与 CI 检查 /ready。Jaeger 2.22 移除了 Grafana 仍调用的服务查询接口，健康检查实测失败。先按规则询问，用户批准后只替换 Jaeger 为 2.20.0；同一份数据源配置由 404 恢复为 200。解除条件和阶段 5 适配器约束已写进 decisions。集成测试脚本也曾因缺 DSN 退出；有风险的替换回退被自动审批拦下，改为明确生成并校验专用测试库后，16 项真实测试才运行通过。
+**排查：** 本机用一个全新的临时容器直接挂载脚本，启动成功；但把脚本的文件权限改成 Linux 上检出代码后的 0644（没有执行权限），就复现了失败。
 
-连接重建期间还遇到两次不同失败：一笔下单的库存调用超时进入待核对，原键保留；另一笔订单业务已成功，但库存和消费者向 Jaeger 导出超时，trace 不完整。先查对应日志与只读数据，再用独立测试订单确认连接恢复。最终新 trace 又有三个服务、29 个 span，Grafana 列表、搜索、详情和日志都通过。没有删除这两次失败，不能把“监控接通”理解为永远不会丢观测数据。
+**原因：** MySQL 官方镜像对没有执行权限的 `.sh` 脚本，会用 `source` 的方式运行。`source` 的意思是“在当前的 shell 里执行这个文件的内容”，而不是另开一个进程。脚本里写了 `set -u`（遇到未定义的变量就报错），这个设置就留在了镜像自己的启动脚本里，后面的步骤用到某个可选的未定义变量时就报错退出了。
 
-### 4. 用全新环境找出初始化脚本的问题
+**修复：** 用圆括号把脚本内容包起来。圆括号会开一个子 shell，里面的设置和密码变量都不会影响外面。修复后在全新的空数据卷上验证通过，CI 也通过了。
 
-**这次要做什么。** 远端 CI 从空数据卷启动，补上本机旧卷没有走到的首次初始化路径。
+这件事说明：在旧环境里测试通过，不等于在全新环境里也能通过。CI 每次都从空白开始，正好能发现这类问题。
 
-**实际遇到了什么。** Go 检查通过，MySQL 却退出了。本机临时容器直接挂载脚本时成功；把脚本权限设为 Linux checkout 的 0644 后，复现了可选变量未定义的错误。官方入口会用 source 读取没有执行位的脚本。source 的意思是让当前 shell 执行文件内容，所以脚本里的 `set -u` 也改变了官方入口后续的行为。
+### 3.5 真实排障：查到了 IP，为什么调用还是卡住了
 
-**怎样修改和验证。** 用圆括号把脚本内容包起来。括号会创建子 shell，里面的严格选项和密码环境不会留在外面。再建一个独立空卷，确认初始化成功；重复 source 后，父 shell 的选项和 MYSQL_PWD 没被改变，metrics 账号也能实际登录读取监控数据。全过程使用演示凭据，没有碰原业务卷。首次 CI 失败保留在 notes。修复后的完整 Linux CI 也已通过，覆盖全新 Compose、真实依赖测试和观测管道。
+这是这个阶段最值得学的一段，完整地讲一遍。
 
-### 5. 真实排障：为什么查到了 IP，库存调用还是卡住
+**现象。** 你在验收时，暂停流量 34.5 分钟后又恢复了流量。恢复后的头一两秒，所有调用库存服务的请求都等满了 800 毫秒才超时，两个熔断器都打开了，产生了 12 笔“结果待核对”的订单。十几秒后一切恢复正常。
 
-**这次要做什么。** 修复用户验收发现的闲置后超时。用户暂停流量 34.5 分钟后恢复，两个库存熔断器打开，出现 12 笔待核对订单。这里的“熔断”是客户端看到失败太多后，暂时拒绝继续调用下游，避免请求不断堆积。它延长了表面上的恢复时间，但不是最初的原因。
+此前 Astra 也遇到过两次奇怪的超时（数据台账 P3-13、P3-14），但当时没有找到原因。
 
-**先看现象，不急着改超时。** 以前 P3-13 只知道扣库存超时，P3-14 只知道导出 span 超时。这次先看失败调用链：HTTP 和 Redis 的片段都在，gRPC 的片段却不在。返工复现的 trace `aa757b687403442a99b36e361878ae46` 也只有 POST /orders、set、get、eval。这不能单独证明 DNS 有问题，但提醒我们：请求可能还没进入通常的 RPC 计时步骤。
+**第一条线索：调用链里少了一段。** 打开一笔失败订单的调用链，里面有 HTTP 请求的 span、Redis 操作的 span，唯独**没有 gRPC 调用库存服务的 span**。整个请求花了 800 毫秒，但 Redis 那几步加起来才几毫秒。那 800 毫秒花在哪里了？
 
-**把两次 DNS 查询分开测。** DNS 可以把名字翻译成 IP，A 记录存的是 IPv4 地址；TXT 记录存的是文本。grpc-go 还支持从 `_grpc_config.<主机名>` 的 TXT 记录中读取服务配置，比如连接或调用策略。我们没有使用这种配置方式，但客户端默认仍可能去查。
+gRPC 的 span 是在调用真正发出去的时候才开始记录的。没有这个 span，说明调用很可能卡在了“发出去之前”。
+
+**第二条线索：两次 DNS 查询的耗时差别很大。** 调用发出去之前要先做什么？要先把服务名 `inventory-service` 解析成 IP 地址。在订单服务的容器里分别测两种 DNS 查询：
 
 ```text
 docker compose --env-file .env -f deploy/docker-compose.yml exec -T order-service nslookup -type=A inventory-service
 docker compose --env-file .env -f deploy/docker-compose.yml exec -T order-service nslookup -type=TXT _grpc_config.inventory-service
 ```
 
-本次 A 查询约 0.187 秒成功，TXT 查询约 5.175 秒后超时。Jaeger 的两次查询也表现相同。这些数包含 docker exec 开销，所以它们只用来对比现象，不能当作纯网络延迟。一次 nslookup 成功并不足以排除 DNS，还要确认程序实际查询了哪类记录。
+- **A 记录**（服务名对应的 IP 地址）：约 0.19 秒就返回了。
+- **TXT 记录**（一种存文本的记录）：约 5.2 秒后超时。
 
-**读源码确认等待发生在哪里。** 先用 `go env GOMODCACHE` 找到本机下载的依赖，再按 go.mod 固定的 v1.84.0 阅读 grpc-go，不拿最新版的代码代替当前版本。DNS 解析器的 lookup 先执行 lookupHost，再执行 lookupTXT，两者完成后才把地址交给连接管理器。stream.go 先 waitForResolvedAddrs，再进入新建调用尝试和 TagRPC 的步骤。OTel 的 gRPC 插件通过 TagRPC 开始记录，所以解析阶段就耗尽预算时，会出现“有 HTTP span，却没有 gRPC span”。公开源码链接见[这次决定](../decisions.md#grpc-dns-txt)。
+为什么要查 TXT？grpc-go 支持一个功能：从 DNS 的 TXT 记录 `_grpc_config.<服务名>` 里读取“服务配置”（比如重试策略）。这个项目没有用这个功能，但 grpc-go 默认还是会去查。Docker 内置的 DNS 不认识这条记录，就把查询转发到外面，外面一直没有回应，于是要等 5 秒才超时。
 
-**为什么运行一段时间后又出现。** grpc-go 默认在 30 分钟没有 RPC 后释放连接和解析器。下一次请求需要重新解析。启动时 connectInventory 只让第一次建连提前完成，无法替之后的每次空闲重连预热。因此，单测首次启动成功还不够。
+**第三条线索：读源码确认顺序。** 只知道“TXT 查询慢”还不够，还要确认 gRPC 是不是真的要等它查完才发调用。于是按 go.mod 里固定的版本（v1.84.0），去本机的模块缓存里读 grpc-go 的源码：DNS 解析器先查 A 记录，再查 TXT 记录，**两个都查完**，才把地址交给连接管理器。而调用要等拿到地址才能发出去。这就解释了为什么调用卡住，以及为什么没有 gRPC 的 span。
 
-**怎样拆开改。** 先给 orderservice 的配置增加 `INVENTORY_GRPC_IDLE_TIMEOUT`，默认仍是 30m。临时改成 10s，就能在等待 25 秒后观察到连接从 ESTABLISHED 变成 TIME_WAIT，不必等半小时。然后分别改两个入口：inventoryDialOptions 给库存连接加 `grpc.WithDisableServiceConfig()`；newTraceExporter 用 `otlptracegrpc.WithDialOption` 把同一选项交给 OTLP 底层连接。shopctl 的库存命令也补上同样的选项。
+**为什么闲置一段时间后才出现。** grpc-go 默认在 30 分钟没有调用后，释放连接和解析器。之后再有调用，就要重新解析一遍，又会撞上 5 秒的 TXT 查询。阶段 2 加的“启动时先等连接建立好”只覆盖了启动那一次，管不了之后每次闲置后的重新连接。你那次恰好暂停了 34.5 分钟，超过了 30 分钟。
 
-这不是关闭 DNS。客户端仍然按主机名解析 IP，只是不再读取本项目没有使用的服务配置。这个选项写在代码里，避免某个容器漏配环境变量。没有把容器 IP 写死，也没有通过加长 800ms 超时来掩盖额外等待。
+**修复。** 创建 gRPC 客户端时加上 `grpc.WithDisableServiceConfig()`，告诉它“不要从 DNS 读服务配置”。这样就只查 A 记录，不再查 TXT。一共改了三处：订单服务调用库存服务的客户端、发送调用链数据给 Jaeger 的导出器（它底层也用 gRPC，P3-14 的 5 秒超时就是它）、shopctl 的库存命令。
 
-**怎样验证。** 修改前后都使用同一验收脚本：20 QPS，每五次请求中四次查商品、一次下单。商品 HTTP 200 但库存降级也算未成功。先做有流量的库存重启，再做 10s 空闲配置、无 RPC 等待 25 秒后的恢复。所有下单使用独立幂等键，不重试待核对请求。这次闲置对照从 228/500 次未成功降为 0/500，修复后首个请求约 7.6 毫秒完成。完整前后数据、样本数和恢复口径见[数据台账](../数据台账.md#阶段-3可观测性与告警)，原始现象见 notes。
+注意这不是关掉 DNS：服务名照样会被解析成 IP，只是不再读一个没用到的配置。也没有用“把超时从 800 毫秒加长到 6 秒”这种办法来掩盖问题。
 
-代码回归分两层：配置测试拒绝负数、错误单位和超长输入；内存 gRPC 与 OTLP 测试让连接真正回收后重建，检查解析器收到“无需读服务配置”的标志，还验证 RPC 和 span 实际送达。它们使用 bufconn，也就是在内存里传递网络报文，不访问外部网络。
+**验证。** 为了不用真等 30 分钟，把空闲时间做成了可以配置的（`INVENTORY_GRPC_IDLE_TIMEOUT`），测试时临时改成 10 秒。用同样的脚本、同样的流量对比修复前后：
 
-**取舍和边界。** 一次库存重启本来就有不可服务的窗口，这轮前后恢复时间约为 1.25 秒和 1.26 秒，没有观察到显著变化。真正要消除的是闲置后多出来的 TXT 等待。即便修复这个原因，真实断网和后端故障仍可能导致超时或丢 span；Deduct 的结果不确定仍需靠库存端按请求 ID 去重解决，本阶段没有实现。
-
-## 四、阅读顺序
-
-| 顺序 | 文件 | 重点 |
+| 场景 | 修复前 | 修复后 |
 |---|---|---|
-| 1 | [cmd/order-service/main.go](../../cmd/order-service/main.go) | 入口只调用 Run |
-| 2 | [orderservice/app.go](../../internal/shop/app/orderservice/app.go) | 资源归属与关闭顺序 |
-| 3 | [telemetry/doc.go](../../internal/platform/telemetry/doc.go)、[metrics.go](../../internal/platform/telemetry/metrics.go) | 一份注册表有哪些指标 |
-| 4 | [tracing.go](../../internal/platform/telemetry/tracing.go) | Provider、传播器、导出与退出排空 |
-| 5 | [dependencies.go](../../internal/shop/app/orderservice/dependencies.go)、[servers.go](../../internal/shop/app/orderservice/servers.go) | 先装插件，再装业务 |
-| 6 | [middleware.go](../../internal/platform/telemetry/middleware.go) | 什么时候开始和结束计时 |
-| 7 | [observations.go](../../internal/shop/app/orderservice/observations.go) | 通过接口包装加计数 |
-| 8 | [kafka.go](../../internal/platform/telemetry/kafka.go)、[publisher.go](../../internal/shop/events/publisher.go)、[consumer.go](../../internal/shop/events/consumer.go) | 消息头里的父子关系 |
-| 9 | [logging.go](../../internal/platform/logging/logging.go)、[mysql.go](../../internal/platform/mysqlx/mysql.go) | 当前 span 与 SQL 插件 |
-| 10 | [shop.yml](../../deploy/prometheus/rules/shop.yml)、[alertsink/main.go](../../cmd/alertsink/main.go)、[handler.go](../../internal/platform/alertsink/handler.go) | 从症状到认证后的通知 |
-| 11 | [deploy/README](../../deploy/README.md)、[代码地图](../代码地图.md) | 配置文件怎样组成完整管道 |
+| 闲置后恢复流量（500 个请求） | 228 个失败或降级，12.3 秒才恢复 | 全部成功，第一个请求 7.6 毫秒 |
+| 有流量时重启库存服务 | 18 个失败或降级，1.25 秒恢复 | 17 个失败或降级，1.26 秒恢复 |
 
-## 五、关键设计与 WHY
+重启库存服务这一项没有改善，这是预期之中的：容器重启后 IP 不变，gRPC 直接重连旧地址，不需要重新解析 DNS。剩下的那 1 秒多失败，是库存服务真的停机的时间。
 
-**独立注册表。** 每个 app 创建自己的 Metrics。默认全局注册表省几行接线，但同一测试进程创建两个服务时容易重复注册。显式传依赖多一些代码，行为却更容易看清。
+**这次排障能学到的方法：**
 
-**先有当前 span，再输出日志。** ctx 可以同时带着旧入口日志字段和新的子 span。写日志时优先读当前 span，trace_id 仍关联整条链，span_id 才能指向实际操作。继续使用旧入口 span 会让日志跳到错误的位置。
+1. 先看现象，不急着改参数。把超时加长也能让问题“消失”，但根因还在。
+2. 调用链里**缺了什么**，和有什么一样重要。
+3. 把一个大问题拆成能单独测量的小问题：DNS 查询分成 A 和 TXT 两种，分别计时。
+4. 读源码确认因果，而且读的是项目实际使用的那个版本。
+5. 用同样的条件对比修复前后，没有改善的结果也要如实记录。
 
-**Kafka 手动传播。** producer 把 traceparent 写进消息头，consumer 从头里取出来再 Start 新 span。JSON 业务契约不变。代价是我们要维护适配器和测试；不传则消费会另起一条 trace。
+## 4. 阅读顺序
 
-**HTTP 用模板标签。** `/orders/1`、`/orders/2` 都记为 `/orders/:id`。标签组合就是一条时间序列，订单编号无限增长会把监控存储撑大。要查具体订单，去日志或 trace。
+| 顺序 | 文件 | 重点看什么 |
+|---|---|---|
+| 1 | [telemetry/metrics.go](../../internal/platform/telemetry/metrics.go) | 每个服务有哪些共用的指标；为什么每个服务一个独立的注册表 |
+| 2 | [telemetry/tracing.go](../../internal/platform/telemetry/tracing.go) | `New` 创建了什么；退出时怎样把剩下的 span 发完；`newTraceExporter` 的 DNS 修复 |
+| 3 | [telemetry/middleware.go](../../internal/platform/telemetry/middleware.go) | HTTP 请求什么时候开始、什么时候结束计时；没有匹配到路由的请求标签是什么 |
+| 4 | [orderservice/dependencies.go](../../internal/shop/app/orderservice/dependencies.go) | 各种插件是怎样装到 MySQL、Redis、gRPC 客户端上的 |
+| 5 | [orderservice/observations.go](../../internal/shop/app/orderservice/observations.go) | 怎样在不改业务代码的情况下加计数 |
+| 6 | [telemetry/kafka.go](../../internal/platform/telemetry/kafka.go)、[events/publisher.go](../../internal/shop/events/publisher.go)、[events/consumer.go](../../internal/shop/events/consumer.go) | 调用链信息怎样写进消息头、又怎样被读出来 |
+| 7 | [logging/logging.go](../../internal/platform/logging/logging.go) 的 `FromContext` | 日志里的 trace_id 为什么要每次从当前 span 取 |
+| 8 | [prometheus/rules/shop.yml](../../deploy/prometheus/rules/shop.yml) | 5 条告警规则 |
+| 9 | [alertsink/handler.go](../../internal/platform/alertsink/handler.go) | 收到告警以后做了什么 |
+| 10 | [deploy/README.md](../../deploy/README.md) 及各子目录的 README | 每个监控组件的配置，以及它们怎样连成一套 |
 
-**直方图估计 P99。** 每个请求只给若干耗时桶计数。例如在 0.1 秒以内有 95%，在 0.25 秒以内有 99.5%，第 99 百分位就在这两个边界之间。Prometheus 按桶内分布插值，无法还原原始请求耗时，所以它是估计。
+## 5. 关键设计与为什么
+
+### 5.1 三种指标类型
+
+| 类型 | 特点 | 本项目的例子 |
+|---|---|---|
+| **Counter（计数器）** | 只会增加，程序重启后归零 | `rpc_client_retries_total`：查库存的重试次数；`idempotency_requests_total`：幂等处理次数 |
+| **Gauge（仪表）** | 可增可减，表示“当前是多少” | `circuit_breaker_state`：熔断器状态（0 关闭、1 半开、2 打开）；连接池里正在使用的连接数 |
+| **Histogram（直方图）** | 把每个值分到不同的区间里计数，用来估计分布 | `http_server_request_duration_seconds`：HTTP 请求的耗时 |
+
+Counter 的值本身没什么意义（“从启动到现在一共重试了 37 次”），有意义的是它增长的速度，所以查询时通常用 `rate()`：每秒增加了多少。程序重启后 Counter 归零，`rate()` 会自动处理这种情况。
+
+### 5.2 P99 是怎么从直方图算出来的
+
+Histogram 不保存每一个请求的耗时，而是预先划分好一组区间，只记“落在每个区间里的有多少个”。本项目的区间边界是：1ms、5ms、10ms、25ms、50ms、100ms、250ms、500ms、1s、2s、5s、10s。
+
+假设 100 个请求里，95 个在 100ms 以内，99.5 个在 250ms 以内，那么第 99 个请求（P99）一定落在 100ms 到 250ms 之间。具体是多少，Prometheus 假设请求在这个区间里均匀分布，按比例估算出来。所以 **P99 是一个估计值**，精度取决于区间划分得有多细。
+
+查询写法：
 
 ```promql
 histogram_quantile(0.99,
@@ -217,66 +269,141 @@ histogram_quantile(0.99,
 )
 ```
 
-`le` 表示这个桶的上界。先计算每秒桶计数变化，再把多条相同上界的序列相加，最后估计分位数。不能把几个实例各自的 P99 直接平均。本阶段负载工具的毫秒桶和这里的桶不同，两个 P99 也不应要求完全相等。
+从里往外读：`rate(...[2m])` 算出最近 2 分钟每个区间每秒增加了多少；`sum by (le)` 把多个实例的同一个区间加在一起（`le` 是区间的上界）；`histogram_quantile(0.99, ...)` 估算出 P99。
 
-**症状告警。** lag 大表示消息没及时处理，原因可能是 worker 停了、SQL 慢了或消费失败。规则如果直接写“缺索引”，就把未经判断的原因当成事实。for 两分钟能过滤短暂抖动，但发现也会变晚。
+**不能把几个实例各自的 P99 平均。** 正确的做法就是上面这样：先把各实例的区间计数加起来，再算 P99。
 
-**采样与资源。** 默认只保存十分之一的根请求，跨服务跟随父节点。Jaeger 限最近五千条，适合本机学习。代价是历史请求可能查不到；有 trace ID 不等于后端一定保存了它。
+### 5.3 标签基数：为什么订单号不能做标签
 
-## 六、本阶段用到的 Go 写法
+指标可以带标签，比如 `http_server_request_duration_seconds{service="order-service", route="/orders", method="POST", status="201"}`。**每一种不同的标签组合，Prometheus 都要单独存一条时间序列。**
 
-### 1. 给已有切片类型增加方法，实现适配接口
+服务只有几个，路由只有十几个，组合起来也就几百条，没问题。但如果把订单号当标签，每个新订单都会产生一条新的时间序列，200 多万个订单就是 200 多万条，Prometheus 的内存和存储很快就会撑爆。这个问题叫**高基数**。
 
-`type KafkaHeaders []kafka.Header` 定义了一个新类型，底层仍是切片。给它实现 Get、Set、Keys 后，OTel 传播器就能使用它。不需要 Java 的 implements 声明。下面只保留最小的 Set 思路：
+所以：
+
+- 路由标签用模板：`/orders/1`、`/orders/2` 都记为 `/orders/:id`。
+- 没有匹配到任何路由的请求（比如乱写的地址），统一记为 `unmatched`，否则别人随便访问不同的地址就能制造出无数条序列。
+- 要查某一笔具体的订单，去日志或调用链里查，不要用指标。
+
+### 5.4 调用链怎样跨服务传递
+
+先分清三个概念：
+
+- **trace**：一次请求的完整路径，有一个全局唯一的 trace ID。
+- **span**：路径上的一步操作，比如一次 SQL、一次 gRPC 调用。每个 span 记录了开始时间、结束时间，以及它的“父 span”是谁。
+- **context**：Go 里沿着函数调用往下传的对象，当前的 span 就放在它里面。
+
+在一个服务内部，span 跟着 context 往下传就行。**跨服务时**，要把 trace ID 和当前 span ID 放进请求里，对方收到后取出来，作为自己 span 的父节点：
+
+- **HTTP 和 gRPC**：有现成的插件，自动在请求头里写入、读出 `traceparent`。
+- **Kafka**：kafka-go 没有插件，所以项目自己写了 `KafkaHeaders`。订单服务发消息前，把 `traceparent` 写进消息头；order-worker 收到后，从消息头里读出来，再创建自己的 span。
+
+如果 Kafka 这一段不传，order-worker 的处理就会变成一条新的、孤立的 trace，下单和消费就串不起来了。
+
+### 5.5 日志里的 trace_id
+
+每条日志都会自动带上 `trace_id` 和 `span_id`，日志和调用链就能对上了。
+
+细节在于：日志包每次写日志时，都会从 context 里取**当前的** span。一次请求进来时有一个入口 span，执行 SQL 时又会创建子 span。如果一直用入口 span 的 ID，SQL 出错时写的日志就会指向错误的位置。trace_id 在整条链上都一样，span_id 则精确指向具体是哪一步。
+
+### 5.6 告警：只写症状
+
+5 条告警规则描述的都是症状：下单慢了、错误多了、消息积压了、goroutine 一直在涨、服务采集不到了。没有一条写的是“数据库缺索引”这样的原因。
+
+因为同一个症状可能有很多原因。消息积压可能是 order-worker 停了，也可能是数据库变慢了，或者消息格式坏了。告警只负责发现“有问题”，找出原因是医生的工作。
+
+每条规则还有一个持续时间（`for`），比如积压要持续 2 分钟才报。这样能过滤掉偶尔的抖动，代价是发现得晚一点。
+
+### 5.7 采样和资源
+
+- **只记录十分之一的请求。** 每个请求都记录的话，本机的 Jaeger 和网络开销都太大。但一旦某个请求被选中记录，它经过的所有服务都会跟着记录（“跟随父节点”），不会出现一条链只记了一半的情况。
+- **Jaeger 只在内存里存最近 5000 条 trace。** 本机学习够用。代价是旧的会被挤掉：拿着一个 trace ID，不一定还能查到。
+- **每个容器都设了内存上限。** MySQL 原来的上限是 768 MiB，实测已经用到 98.8%，返工时调到了 1.5 GiB。
+
+### 5.8 每个服务一个独立的指标注册表
+
+Prometheus 的 Go 库提供了一个全局默认的注册表，直接用能省几行代码。项目没有用它，而是每个服务在启动时创建自己的注册表，再显式地传给需要的组件。
+
+原因是测试：如果用全局注册表，同一个测试进程里创建两个服务时，同名的指标会被注册两次，直接报错；测试之间也会互相影响。显式传递多写几行代码，但每个测试都是独立的，依赖关系也一目了然。
+
+### 5.9 用“包装”的方式加计数
+
+要统计缓存命中了多少次，最直接的办法是去改 product 包，在缓存代码里加一行计数。但那样业务包就要依赖监控库了。
+
+项目的做法是在组装代码里（observations.go）给缓存“包一层”：包装对象实现和原来一样的接口，每次调用时先调用原来的缓存，再记一次数。业务代码完全不知道有计数这回事。这就是**装饰器模式**，第 6.2 节有例子。
+
+有一点要注意：缓存为了防止重复回源，有时会查两次缓存，这两次都会被计数。所以“缓存查询次数”不等于“HTTP 请求次数”。
+
+## 6. 本阶段用到的 Go 写法
+
+每个例子都是能独立运行的小程序。在仓库外面新建一个空目录，保存成 `main.go`，运行 `go run main.go`。
+
+### 6.1 给切片类型加方法
 
 ```go
 package main
 
 import "fmt"
 
+// Headers 是一个新类型，底层是字符串切片。可以给它加方法。
 type Headers []string
 
-func (headers *Headers) Add(value string) {
-    *headers = append(*headers, value)
+// Set 用指针接收者：append 可能会换一块新的底层数组，必须把结果写回原来的变量。
+func (headers *Headers) Set(value string) {
+	*headers = append(*headers, value)
 }
 
 func main() {
-    headers := Headers{}
-    headers.Add("traceparent")
-    fmt.Println(headers)
+	headers := Headers{}
+	headers.Set("traceparent")
+	headers.Set("tracestate")
+	fmt.Println(headers, len(headers)) // [traceparent tracestate] 2
 }
 ```
 
-为什么用指针接收者？append 可能产生新的切片头，必须把新的长度和底层数组地址写回原变量。项目中的 Set 还会替换同名旧头，不能一直追加重复的 traceparent。
+项目里的 `KafkaHeaders` 就是这样定义的：`type KafkaHeaders []kafka.Header`。给它加上 `Get`、`Set`、`Keys` 三个方法后，它就满足了 OpenTelemetry 要求的接口，调用链信息就能写进 Kafka 消息头了。
 
-### 2. 嵌入接口，再覆盖需要观察的方法
+为什么 `Set` 要用指针接收者？`append` 在容量不够时会分配一块新的数组，返回新的切片。如果接收者是值（`headers Headers`），改的只是一份拷贝，调用方的变量不会变。
 
-这与 Java 的装饰器类似：一个对象包住另一个对象，保留原调用，只在前后增加计数。Go 的嵌入让没有改写的方法继续可用。
+### 6.2 装饰器：包一层，加点东西
 
 ```go
 package main
 
 import "fmt"
 
-type Reader interface { Read() string }
-type Source struct{}
-func (Source) Read() string { return "商品" }
-
-type Observed struct { Reader }
-func (value Observed) Read() string {
-    result := value.Reader.Read()
-    fmt.Println("读了一次")
-    return result
+type Cache interface {
+	Get(key string) string
 }
 
-func main() { fmt.Println((Observed{Reader: Source{}}).Read()) }
+type redisCache struct{}
+
+func (redisCache) Get(key string) string { return "商品" + key }
+
+// countingCache 把一个 Cache 嵌入进来，只重写 Get：先调用原来的 Get，再记一次数。
+type countingCache struct {
+	Cache
+	count *int
+}
+
+func (cache countingCache) Get(key string) string {
+	result := cache.Cache.Get(key)
+	*cache.count++
+	return result
+}
+
+func main() {
+	count := 0
+	var cache Cache = countingCache{Cache: redisCache{}, count: &count}
+	cache.Get("1")
+	cache.Get("2")
+	fmt.Println("查了", count, "次") // 查了 2 次
+}
 ```
 
-项目的 observedCache、observedProducts、observedIdempotency 用这个方式加指标。代价是要明确“一次调用”是什么：缓存为了防重复回源会再查一次，那次查询也会计数，不能把缓存查询数直接当成 HTTP 请求数。
+`countingCache` 和 `redisCache` 实现的是同一个接口，所以用到 `Cache` 的业务代码不需要任何修改。项目里的 `observedCache`、`observedProducts`、`observedIdempotency` 都是这样做的，只是把 `count++` 换成了给 Prometheus 指标加 1。
 
-### 3. 让注册对象在采集时调用闭包
-
-GaugeFunc 不保存一份可能过期的熔断状态。每次 Prometheus 抓取时，它调用函数读取当前状态。闭包就是函数记住了周围用到的变量。
+### 6.3 采集时再读取当前值
 
 ```go
 package main
@@ -284,72 +411,53 @@ package main
 import "fmt"
 
 func main() {
-    state := 0
-    read := func() int { return state }
-    fmt.Println(read())
-    state = 2
-    fmt.Println(read())
+	state := 0 // 假设这是熔断器的状态
+	read := func() int { return state }
+
+	fmt.Println(read()) // 0
+	state = 2           // 熔断器打开了
+	fmt.Println(read()) // 2：每次调用都读当前的值
 }
 ```
 
-这个最小例子只有一个 goroutine。项目里读取的是熔断库带锁的 State 方法，不能把这个示例里的普通变量直接拿去并发读写。闭包本身不会自动让数据并发安全。
+熔断器状态的指标用的是 `GaugeFunc`：注册时交给 Prometheus 一个函数，Prometheus 每次来采集时调用它，读到的总是当前的状态，不用在状态变化时手动更新指标。
 
-### 4. 再看一次 WithoutCancel：保留值，重新给预算
+注意：这个例子只有一个 goroutine。项目里读取的是熔断器库提供的 `State()` 方法，它内部有锁保护。闭包本身并不会让并发读写变得安全。
 
-阶段 0 已学过它，本次用在订单提交后。WithoutCancel 去掉旧取消和旧 deadline，保留 ctx 里的值；必须再加有限超时。span 也放在 ctx 的值里，所以会跟着保留。
+## 7. 动手实验
 
-```go
-package main
+每个实验做完都要**恢复原状**，再做下一个。不要删除数据卷。
 
-import (
-    "context"
-    "fmt"
-    "time"
-)
+### 实验一：让消息积压，等告警
 
-func main() {
-    original, cancelRequest := context.WithCancel(context.Background())
-    cancelRequest()
-    cleanup, cancelCleanup := context.WithTimeout(context.WithoutCancel(original), time.Second)
-    defer cancelCleanup()
-    fmt.Println(original.Err() != nil, cleanup.Err() == nil)
-}
-```
+1. 开 200 QPS 的流量（第 2.2 节的命令，把 20 改成 200），等看板稳定。
+2. 停掉 order-worker：`docker compose --env-file .env -f deploy/docker-compose.yml stop order-worker`
+3. 在看板上看“订单消费者积压”面板，数字会一直往上涨。
+4. 大约两三分钟后，查看告警接收器的日志：
 
-输出 true true 只说明新上下文暂时可用，不表示实际 Kafka 一定发送成功。发送错误仍然要记录。
+   ```powershell
+   docker compose --env-file .env -f deploy/docker-compose.yml logs --tail 20 alertsink
+   ```
 
-## 七、动手实验
+   你应该看到一条 `"alertname":"ConsumerLagHigh"`、`"status":"firing"` 的记录。可能还会更早看到一条 `ServiceUnavailable`：order-worker 停了，它的管理端口也采集不到了。
+5. 恢复：`docker compose --env-file .env -f deploy/docker-compose.yml start order-worker`，然后暂停流量。等积压归零后再看 alertsink 的日志，应该能看到 `"status":"resolved"`。
 
-只在本机靶场做，实验前读 [当前边界](../../README.md#当前边界)。不要清理业务卷。每次先恢复再做下一次，避免两个故障互相影响。
+告警多快到达取决于流量大小：规则要求积压超过 1000 条、再持续 2 分钟。流量小的话，积压涨得慢，告警也会晚到。实测 200 QPS 时，大约 2.5 到 3 分钟。
 
-### 实验 1：让消费积压，再恢复
+### 实验二：停掉库存服务，看指标的变化
 
-全量数据有余量时，开始 200 QPS，等看板稳定，再运行：
-
-```text
-docker compose --env-file .env -f deploy/docker-compose.yml stop order-worker
-docker compose --env-file .env -f deploy/docker-compose.yml logs --since 5m alertsink
-```
-
-观察 lag 逐渐增长。超过 1000 并持续两分钟后，应收到 ConsumerLagHigh。低流量可能需要更久才到门槛，所以三分钟不是任何流量下的保证。
-
-```text
-docker compose --env-file .env -f deploy/docker-compose.yml start order-worker
-```
-
-暂停流量，等 lag=0，核对销量。应该收到 resolved。本次真实实验是 167.064 秒，不是所有机器的固定常数。
-
-### 实验 2：停库存，只做商品查询
+只查商品，不下单，避免产生“待核对”的订单。
 
 ```powershell
 docker compose --env-file .env -f deploy/docker-compose.yml stop inventory-service
-1..15 | ForEach-Object { Invoke-RestMethod http://127.0.0.1:8081/products/1 }
-docker compose --env-file .env -f deploy/docker-compose.yml start inventory-service
+1..15 | ForEach-Object { (Invoke-RestMethod http://127.0.0.1:8081/products/1).data.stock.status }
 ```
 
-应看到 stock.status=unavailable，页面所需商品信息仍可返回；看 RPC 错误、重试和熔断状态。恢复后等熔断器允许试探，再查商品，应恢复正常。这里不下单，避免为了学习制造待核对的扣库存结果。
+你应该看到 `unavailable`（降级）。去看板上看熔断器状态面板，应该变成 2（打开）。
 
-### 实验 3：用错误令牌推送通知
+恢复：`docker compose --env-file .env -f deploy/docker-compose.yml start inventory-service`。再查几次商品，熔断器经过半开（1）回到关闭（0）。
+
+### 实验三：用错误的令牌推送告警
 
 ```powershell
 try {
@@ -359,75 +467,87 @@ try {
 }
 ```
 
-应为 401。不能出现“收到告警通知”。恢复无需改配置：正常 Alertmanager 仍使用环境中的真实令牌。不要为了测试把真实令牌贴进命令历史或笔记。
+你应该看到 `Unauthorized`（401），alertsink 的日志里也不应该出现“收到告警通知”。不要为了做实验把真实的令牌写进命令里，那样它会留在命令历史中。
 
-### 实验 4：访问不同的未知路径
+### 实验四：访问不存在的地址，看指标标签
 
 ```powershell
-foreach ($path in @('/not-a-route-1','/not-a-route-2')) {
+foreach ($path in @('/not-a-route-1', '/not-a-route-2')) {
     try { Invoke-WebRequest ('http://127.0.0.1:8081' + $path) } catch { $_.Exception.Response.StatusCode }
 }
 ```
 
-两个请求都应为 404。在指标中应同属 route=unmatched，不产生两个路径标签。随后访问正常 `/products/1`，确认业务仍可用。
+两个请求都应该返回 404。然后在 Prometheus 里查询：
 
-## 八、常见误区与已知限制
+```promql
+http_server_request_duration_seconds_count{service="order-service", route="unmatched"}
+```
 
-- 指标不会告诉你每笔订单的全过程。日志里有订单号，调用链里有操作顺序，各用各的入口。
-- 计数器进程重启会从零开始。用 rate 处理变化，不能把“现在比刚才小”直接当成负请求。
-- 缓存命中率统计的是缓存读取，不是所有 HTTP 请求；列表和下单经过的步骤不同。
-- worker_messages_total 的 processed 与 duplicate 都需要成功提交位点。提交失败记 failed，重投时可能再见到同一订单。
-- 日志里没有 trace ID 的启动消息是正常的。未采样请求有 ID 也可能查不到 span。即使采样，导出超时也可能丢一批记录；这次后端重建期间确实发生过。
-- 原验收 MySQL 曾占 758.3/768 MiB。返工提高上限到 1536 MiB，保持 buffer pool 和连接数不变；200 QPS 四次快照为 622.6–656.5 MiB，全栈末次约 2.02 GiB。进程刚重启，不能把前后差值说成优化收益。
-- 资源观察轮仍有 267 次库存不足和 53 条发送未确认告警。53 笔后来都有消费记录，也不能反过来说当时的告警是错的；告警描述的是“当时没有收到确认”。
-- Grafana 与 Jaeger 的 API 兼容必须实际检查，容器都 running 不代表两个产品接通了。
+两个不同的地址都记在同一个 `route="unmatched"` 标签下，没有产生两条新的序列（第 5.3 节）。
 
-**已知限制。** 扣库存超时仍可能已经生效。根治需要 Deduct 携带请求 ID 并在库存端去重，本阶段没有实现。订单与 Kafka 之间也没有 Outbox；本次修复只让客户端取消不再直接终止提交后的发送。监控能显示故障，不能自动消除这些一致性缺口。
+## 8. 常见误区
 
-## 九、必答问题
+- **“看指标就能知道每笔订单的情况。”** 指标是汇总的数字。具体某一笔订单，要看日志和调用链。
+- **“Counter 的值变小了，说明出错了。”** 程序重启后 Counter 会归零，这是正常的。看增长速度要用 `rate()`。
+- **“缓存命中率就是 HTTP 请求的命中率。”** 统计的是缓存查询的次数。一个 HTTP 请求可能查好几次缓存，也可能一次都不查（比如订单列表）。
+- **“有 trace ID 就一定能在 Jaeger 里查到。”** 可能没被采样，可能还没发到 Jaeger，可能已经被新的 trace 挤掉了，也可能发送时出了错。
+- **“启动日志里没有 trace_id，说明日志关联坏了。”** 启动时还没有请求，自然没有 trace_id。
+- **“容器都是 running，监控就通了。”** 要实际查一次数据。Jaeger 和 Grafana 的接口不兼容，就是实际查询时才发现的。
+- **“修好了 DNS 问题，就再也不会超时了。”** 网络真的断了、库存服务真的挂了，照样会超时；扣库存超时后结果不确定的问题也依然存在。
 
-1. Counter、Gauge、Histogram 有什么区别？分别指出本项目的一个例子。
-2. P99 怎么从桶算出来？为什么不能把实例的 P99 直接平均？
-3. trace、span、context 是什么关系？HTTP、gRPC 和 Kafka 怎样保留关联？
-4. 为什么告警写“消费积压”，不写“数据库缺索引”？
-5. 为什么订单号和 trace ID 不能成为指标标签？
-6. WithoutCancel 去掉了哪些东西，保留了什么？为什么必须再加超时？
-7. up=1 和 mysql_up=1 有什么区别？
-8. 同一订单两次消费，一次成功一次重复，销量和消息指标分别怎么变化？
-9. 拿到一个 trace ID 却查不到 span，可能有哪些正常原因？
-10. 哪些数据现在可以写简历，哪些能力必须等后续实现和测量？
+## 9. 必答问题
 
-## 十、本阶段新术语
+先自己写下答案，再展开最后的参考要点对照。
 
-| 术语 | 一句话说明 |
+1. Counter、Gauge、Histogram 有什么区别？各举一个本项目里的例子。
+2. P99 是怎样从直方图算出来的？为什么只是估计值？为什么不能把几个实例的 P99 平均？
+3. trace、span、context 是什么关系？调用链信息怎样跨 HTTP、gRPC 和 Kafka 传递？
+4. 为什么告警规则写“消息积压”，而不写“数据库缺索引”？
+5. 为什么订单号、trace ID 不能做指标的标签？
+6. `up=1` 和 `mysql_up=1` 有什么区别？
+7. 同一笔订单的消息被消费了两次，一次正常处理、一次判定为重复，销量和相关的指标分别会怎样变化？
+8. 拿着一个 trace ID 却在 Jaeger 里查不到，可能有哪些原因？
+9. 讲一讲 DNS TXT 那次排障：现象是什么、线索是什么、根因是什么、怎么修、怎么验证？
+10. 为什么重启库存服务的恢复时间，修复前后没有变化？
+
+## 10. 本阶段新术语
+
+| 术语 | 解释 |
 |---|---|
-| 可观测性 | 从系统输出的信息判断它内部发生了什么 |
-| Counter | 只累计增加、重启会归零的计数器 |
-| Gauge | 可上可下的当前数值，例如连接数 |
-| Histogram | 按边界分桶计数，用来估计耗时分布 |
-| 标签基数 | 不同标签组合的数量，越多需要存的曲线越多 |
-| trace / span | 一次请求的整条路线 / 其中一段操作 |
-| Provider | 创建和管理 span 的对象，也决定采样和导出 |
-| Propagator | 把关联信息写入或读出跨进程载体的对象 |
-| OTLP | 把观测数据发到后端的一种标准协议 |
-| exporter | 把已有系统的数据翻译成监控系统能读取的形式 |
-| scrape | Prometheus 定时访问端点，取回一批指标样本 |
-| provisioning | 启动时按配置文件自动建立数据源和看板 |
-| consumer lag | 已产生的消息中，消费组还没提交完成的数量 |
-| firing / resolved | 告警正在触发 / 告警条件已经恢复 |
+| 可观测性 | 通过系统输出的数据（指标、调用链、日志）判断它内部发生了什么 |
+| 指标 | 一段时间内的数字，比如每秒请求数、P99 耗时 |
+| Counter | 只增不减的计数器，程序重启后归零 |
+| Gauge | 可增可减的当前值，比如正在使用的连接数 |
+| Histogram | 按区间计数的直方图，用来估计耗时分布 |
+| 标签 / 标签基数 | 指标的附加维度 / 不同标签组合的数量，太多会撑爆存储 |
+| 采集（scrape） | Prometheus 定时去访问 `/metrics`，取回当前的指标 |
+| exporter | 帮 MySQL、Redis 这类组件把状态翻译成 Prometheus 格式的程序 |
+| trace / span | 一次请求的完整路径 / 路径上的一步操作 |
+| traceparent | W3C 规定的请求头，用来在服务之间传递 trace ID 和父 span ID |
+| 采样 | 只记录一部分请求的调用链，节省资源 |
+| Provider / Propagator | 负责创建 span 的对象 / 负责在服务之间写入和读出调用链信息的对象 |
+| OTLP | OpenTelemetry 定义的、把观测数据发给后端的协议 |
+| LogQL / PromQL | Loki 的日志查询语言 / Prometheus 的指标查询语言 |
+| provisioning | Grafana 启动时根据配置文件自动创建数据源和看板 |
+| 症状告警 | 告警只描述看得到的现象，不推断原因 |
+| firing / resolved | 告警正在发生 / 已经恢复 |
+| 装饰器 | 用实现同一接口的对象把原对象包起来，在调用前后加上额外的逻辑 |
+| DNS A / TXT 记录 | 域名对应的 IPv4 地址 / 域名附带的一段文本 |
 
 <details>
-<summary>参考答案要点，先自己回答再展开</summary>
+<summary>必答问题参考要点（先自己回答）</summary>
 
-1. Counter 累计事件，例如重试；Gauge 当前状态，例如熔断值或连接数；Histogram 耗时桶，例如 HTTP 请求时间。
-2. 先求桶速率，再按上界合并，最后在所在桶中插值。原始样本已被压缩，分位数不具备可加性。
-3. trace 串起请求，span 描述一步，ctx 携带当前 span 与取消信息。HTTP/gRPC 插件读写头，Kafka 由本项目手动读写消息头。
-4. 同一症状有多种原因，告警应提供调查入口，不能把猜测当答案。
-5. 每个新值都可能产生新序列，长期无界增长；具体编号留给日志和调用链。
-6. 去掉原取消、错误和 deadline，保留值。新超时约束收尾，避免无限占用资源。
-7. 前者是采集端点可达，后者是 exporter 能连接并读取 MySQL。
-8. 销量只累加一次；确认提交成功后，processed 和 duplicate 各加一次。位点提交失败则记 failed。
-9. 没采样、异步导出还没到、后端重启或淘汰、只有外部父节点但它从未导出，也可能确实是导出故障。
-10. 可以写真实数据规模、明确条件下的压测、已验证的幂等与告警实验。不能写尚未完成的医生诊断准确率、修复成功率或性能提升比例。
+1. Counter 只增不减，比如重试次数；Gauge 是当前值，可增可减，比如熔断器状态、连接数；Histogram 按区间计数，比如 HTTP 请求耗时。
+2. 先算每个区间的增长速度，把各实例同一个区间的计数加起来，再找到 99% 所在的区间，在区间内按比例估算。因为没有保存每个请求的原始耗时，只知道落在哪个区间，所以是估计值。百分位不能相加或平均，必须先合并区间计数，再重新计算。
+3. trace 是一次请求的完整路径，span 是其中一步，context 携带当前的 span，在函数之间往下传。HTTP 和 gRPC 由插件自动在请求头里传递 `traceparent`；Kafka 由项目自己把 `traceparent` 写进消息头，消费者读出来作为父节点。
+4. 同一个症状可能有很多原因。告警只负责发现问题、提供调查的入口，把猜测写进告警，等于把没有验证的原因当成了结论。
+5. 每一种不同的标签组合都是一条单独的时间序列。订单号、trace ID 每个都不一样，会让序列数量无限增长，撑爆存储。具体某一笔的情况，去日志和调用链里查。
+6. `up=1` 说明 Prometheus 能访问到 exporter；`mysql_up=1` 说明 exporter 能连上 MySQL 并读到数据。前者正常、后者为 0，说明问题出在 exporter 和 MySQL 之间。
+7. 销量只加一次。`worker_messages_total` 里，处理成功的那次记为 processed，判定为重复的那次记为 duplicate，各加 1（前提是位点都提交成功了；提交失败会记为 failed）。
+8. 这个请求没有被采样；span 还在发送的路上；Jaeger 重启过或者已经被新的 trace 挤掉了；只有一个外部传进来的父 span，但那一段从来没有发给 Jaeger；或者发送真的出了错。
+9. 现象：闲置 34.5 分钟后恢复流量，库存调用全部超时，熔断器打开。线索：调用链里没有 gRPC 的 span；DNS 的 A 记录查询很快，TXT 记录查询要 5 秒才超时。根因：grpc-go 解析地址时会查 A 和 TXT，两个都查完才发调用；连接闲置 30 分钟后会被释放，再次调用时要重新解析。修复：创建 gRPC 客户端时加上 `WithDisableServiceConfig()`，不再查 TXT。验证：把空闲时间调成 10 秒，用同样的流量对比，失败从 228 个降到 0 个。
+10. 容器重启后 IP 不变，gRPC 直接重连原来的地址，不需要重新解析 DNS，所以 TXT 查询本来就不影响这个场景。剩下的 1 秒多失败，是库存服务真的停机的时间。
 
 </details>
+
+学完后，在[进度看板](../../进度.md)上勾选阶段 3 的“学习验收”。

@@ -1,8 +1,8 @@
-# 自动加载配置
+# deploy/grafana/provisioning：自动加载的配置
 
-Grafana 启动后从文件创建数据源与看板，不要求手动点选。
+Grafana 启动时会读这个目录，自动创建数据源和看板（这个机制叫 provisioning）。这样每次全新启动，看到的都是同样的配置，不用手动去页面上点。
 
-- [datasources/README.md](datasources/README.md)：数据源及 trace/log 跳转。
-- [dashboards/README.md](dashboards/README.md)：看板文件加载位置。
-
-建议先读配置旁的中文注释，再对照阶段 3 学习材料运行查询。
+| 目录 | 内容 |
+|---|---|
+| [datasources](datasources/README.md) | 三个数据源：Prometheus、Jaeger、Loki，以及调用链和日志之间的互相跳转 |
+| [dashboards](dashboards/README.md) | 告诉 Grafana 去哪个目录加载看板文件 |

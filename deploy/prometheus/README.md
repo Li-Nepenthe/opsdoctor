@@ -1,8 +1,17 @@
-# Prometheus 指标与规则
+# deploy/prometheus：指标采集和告警规则
 
-放采集配置和症状告警规则，不写故障原因或诊断答案。
+Prometheus 负责收集指标。它每 10 秒主动访问一次各服务的 `/metrics` 地址，把取回的数字存起来（这个动作叫“采集”，英文 scrape），再每 10 秒按告警规则检查一次。
 
-- [prometheus.yml](prometheus.yml)：固定采集目标、周期和 Alertmanager 地址。
-- [rules/README.md](rules/README.md)：告警规则分组。
+| 文件 | 内容 |
+|---|---|
+| [prometheus.yml](prometheus.yml) | 采集哪些地址、多久采集一次、告警发给谁（Alertmanager） |
+| [rules/shop.yml](rules/shop.yml) | 告警规则，见 [rules/README.md](rules/README.md) |
 
-建议先读配置旁的中文注释，再对照阶段 3 学习材料运行查询。
+## 采集了哪些目标
+
+一共 8 个，分两组：
+
+- **shop**：项目自己的 5 个程序，订单服务、库存服务、order-worker、压测工具、告警接收器。它们的管理端口直接提供 `/metrics`。
+- **middleware**：MySQL、Redis、Kafka 本身不提供 Prometheus 格式的指标，所以各配了一个 exporter（采集器）。exporter 连上对应的组件，读取它的状态，再翻译成 Prometheus 能读的格式。
+
+打开 http://127.0.0.1:9090/targets 可以看到这 8 个目标是否都是 UP。注意：UP 只说明 Prometheus 能访问到 exporter，不说明 exporter 能连上 MySQL。后者要看 `mysql_up` 这类指标是不是 1。
