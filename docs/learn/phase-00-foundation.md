@@ -574,10 +574,10 @@ import (
 
 func main() {
 	var value sql.NullInt64
-	value.Scan(nil) // 模拟从数据库读到 NULL
+	value.Scan(nil)          // 模拟从数据库读到 NULL
 	fmt.Println(value.Valid) // false：是 NULL
 
-	value.Scan(int64(0)) // 模拟读到整数 0
+	value.Scan(int64(0))                  // 模拟读到整数 0
 	fmt.Println(value.Valid, value.Int64) // true 0：是真的 0
 }
 ```

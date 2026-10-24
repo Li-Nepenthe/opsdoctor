@@ -1,19 +1,30 @@
-// Package product 负责商品价格查询和商品详情。
-// 详情会附带库存，但库存暂时查不到时仍返回商品信息。下单只借用这里的价格查询。
-// orderservice 和 order 调用本包。SQL 依赖 MySQL，缓存依赖 Redis，库存读取通过小接口注入。
-// 本包不扣库存，也不写订单。库存展示不能代替下单时的原子扣减。
+// Package product 负责商品查询：查商品的名称和价格，以及给前端展示的商品详情。
+//
+// 查询的顺序是“先缓存，后数据库”（这种做法叫 Cache Aside）：
+//  1. 先查 Redis。查到了（命中），直接返回。
+//  2. 没查到（未命中），去 MySQL 查（这一步叫回源），再把结果写回 Redis，下次就能命中。
+//
+// 缓存还要防三种常见问题，第 2 阶段学习材料有详细讲解：
+//   - 有人反复查一个不存在的商品：把“不存在”也缓存 30 秒（空值缓存）。
+//   - 同一个热门商品的缓存刚过期，同时来了很多请求：只让其中一个去查数据库，其余的等它的结果（singleflight）。
+//   - 大量商品的缓存在同一时刻过期：每条缓存的有效期在 10 分钟的基础上随机多加最多 1 分钟（过期抖动）。
+//
+// 商品详情还会附带当前库存。库存服务暂时不可用时，仍然返回商品信息，只是把库存标记为
+// unavailable（这叫降级）。注意：这里显示的库存只是给人看的，下单扣库存仍然要调用库存服务。
+//
+// 谁调用它：订单服务的商品详情接口；下单时也通过它查价格。
 //
 // 文件清单：
-//   - doc.go：说明商品查询的边界和阅读顺序。
-//   - model.go：商品、库存展示和错误类型。
-//   - service.go：先查缓存，再查数据库。合并同一商品的同时回源请求。
-//   - repository.go：按主键从 MySQL 读取商品。
-//   - cache.go：读写 Redis 商品缓存，设置空值缓存和随机过期时间。
-//   - http_handler.go：处理商品 ID，并按 HTTP 契约返回详情。
-//   - http_handler_test.go：区分商品查询超时与库存展示降级，核对统一错误码。
-//   - service_test.go：验证缓存路径、合并请求和库存降级。
-//   - cache_test.go：验证缓存内容与过期时间的计算。
-//   - cache_integration_test.go：在 Redis 专用数据库验证内容与真实 TTL。
+//   - doc.go：本说明。
+//   - model.go：商品、商品详情和错误类型。
+//   - service.go：先查缓存、再查数据库的流程，以及合并同时到达的相同查询。
+//   - repository.go：按商品 ID 从 MySQL 查商品。
+//   - cache.go：读写 Redis 缓存，包括空值缓存和随机有效期。
+//   - http_handler.go：商品详情的 HTTP 接口。
+//   - service_test.go：测试命中、未命中、空值、合并查询和库存降级。
+//   - cache_test.go：测试缓存内容和有效期的计算。
+//   - cache_integration_test.go：连真实 Redis，确认缓存内容和实际有效期。
+//   - http_handler_test.go：测试接口返回的状态码和错误码，比如查询超时和库存降级要区分开。
 //
-// 建议按 model.go、service.go、repository.go、cache.go 的顺序阅读，最后看 HTTP 入口。
+// 阅读顺序：model.go → service.go → repository.go → cache.go，最后看 http_handler.go。
 package product

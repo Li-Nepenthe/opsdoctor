@@ -1,15 +1,31 @@
-// Package events 定义订单创建消息，并负责它在 Kafka 中的发送与接收。
-// order 只需要 Publisher，销量流程只需要处理一条 OrderCreated。Kafka 连接由 app 管理。
-// 当前阶段没有接入调用链 SDK。后续阶段在本包补入约定的 traceparent 传播。
-// 传输依赖 kafka-go。本包不直接访问 MySQL，实际记账通过处理函数交给 sales。
+// Package events 负责“订单已创建”这条 Kafka 消息：消息长什么样、怎么发送、怎么消费。
+//
+// 为什么用消息：下单成功后要给商品加销量。订单服务不直接改销量表，而是发一条消息，
+// 由另一个程序 order-worker 慢慢处理。这样下单不用等销量更新，销量那边出问题也不影响下单。
+//
+// 发送（publisher.go）：订单写进数据库之后才发送，并且等 Kafka 确认收到才返回。
+// 消息用订单 ID 作为 key，Kafka 按 key 把消息分到 3 个分区之一。
+//
+// 消费（consumer.go）：一条一条处理，顺序是固定的：
+//  1. 从 Kafka 取一条消息。
+//  2. 交给处理函数（销量累加，在 sales 包里）写数据库。
+//  3. 数据库成功以后，才告诉 Kafka“这条处理完了”（提交位点）。
+//
+// 为什么是这个顺序：如果先提交位点、后写数据库，程序在两步之间崩溃，这条消息就被跳过了，
+// 销量少算一笔。按现在的顺序，最坏情况是数据库写完了、位点没提交，重启后这条消息会再来一次。
+// 所以消费方必须能识别重复消息，这由 sales 包负责。
+//
+// 阶段 3 起，消息头里还会带上调用链信息，让 Jaeger 能把下单和消费串成一条完整的调用链。
+//
+// 本包不直接访问 MySQL，Kafka 连接由各程序的 app 包创建和关闭。
 //
 // 文件清单：
-//   - doc.go：说明消息边界与阅读顺序。
-//   - model.go：订单创建消息的字段和校验。
-//   - publisher.go：按订单 ID 分区并同步发送消息。
-//   - consumer.go：先处理数据库，再手动提交 Kafka 位点。
-//   - topic.go：创建或检查三分区主题。
-//   - consumer_test.go：检查提交顺序、重复投递和停止时的处理边界。
+//   - doc.go：本说明。
+//   - model.go：消息 OrderCreated 的字段和校验。
+//   - publisher.go：发送消息。
+//   - consumer.go：消费消息：先处理，后提交位点。
+//   - topic.go：启动时创建或检查 order.created 主题（3 个分区）。
+//   - consumer_test.go：测试提交顺序、重复消息，以及收到停止信号时手上的消息仍会处理完。
 //
-// 先读 model.go 的契约，再看 consumer.go 为什么没有使用自动提交。
+// 阅读顺序：model.go → publisher.go → consumer.go。重点看 consumer.go 的 process。
 package events
