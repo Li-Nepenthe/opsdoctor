@@ -1,12 +1,26 @@
-// Package mysqlx 建立配置一致的 MySQL 连接池。
+// Package mysqlx 负责创建 MySQL 连接池，并把所有服务的连接设置统一起来。
 //
-// app 创建连接池，仓储借它执行 SQL。本包依赖 database/sql 与驱动，不知道业务表，也不自动迁移。
+// 为什么需要它：每个服务都要连 MySQL，有些连接设置必须保持一致，写在一个地方才不会漏：
+//   - 连接池大小：最多同时开多少条连接、保留多少条空闲连接、一条连接最多用多久。
+//     这些值必须明确给出，防止某个服务开出无数条连接，把数据库压垮。
+//   - 时区：统一用 UTC。这需要同时设置两个地方，原因写在 mysql.go 的 prepare 里。
+//   - 一次只能执行一条 SQL，防止一个字符串里夹带多条语句。
+//   - 连接、读、写都有超时，网络出问题时不会永远卡住。
 //
-// 包内文件：
-//   - doc.go：说明包的位置、边界和阅读路线。
-//   - mysql.go：建立经过校验的 MySQL 连接池。
-//   - mysql_integration_test.go：用真实 MySQL 检查连接池和会话时区。
-//   - mysql_test.go：离线验证 MySQL 配置规范化。
+// 用法：app 在启动时调用 Open，得到一个 *sql.DB。注意 *sql.DB 是连接池，不是一条连接。
+// app 持有它，仓储（repository）借它执行 SQL，服务退出时由 app 关闭。
+// Open 返回前会先 Ping 一次数据库，所以只要拿到连接池，就说明数据库确实连得上。
 //
-// 阅读顺序：mysql.go → mysql_test.go → mysql_integration_test.go。
+// 阶段 3 起，如果 app 传入 TracerProvider，每条 SQL 都会出现在调用链里。
+// 调用链只记录带 ? 的 SQL 模板，不记录参数的具体值。
+//
+// 本包不认识任何业务表，也不负责建表，建表是 migrate 包的事。
+//
+// 文件清单：
+//   - doc.go：本说明。
+//   - mysql.go：Config、Open，以及检查和统一配置的 prepare。
+//   - mysql_test.go：不连数据库，检查配置校验和统一设置是否生效。
+//   - mysql_integration_test.go：连真实 MySQL，确认会话时区确实是 UTC。需要手动开启，方法见根目录 README。
+//
+// 阅读顺序：先读 mysql.go 顶部的超时常量和 Config，再读 prepare（统一设置都在这里），最后读 Open。
 package mysqlx

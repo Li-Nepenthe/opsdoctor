@@ -1,13 +1,19 @@
-# 首次建库脚本
+# deploy/mysql/init：首次启动脚本
 
-[001_test_databases.sql](001_test_databases.sql) 创建平台测试库；[002_shop_test_databases.sql](002_shop_test_databases.sql) 创建库存与造数测试库；[003_order_sales_test_databases.sql](003_order_sales_test_databases.sql) 创建订单与销量测试库。只授予 app 对专用库的权限，不写密码。
+MySQL 官方镜像在数据目录为空时（也就是第一次启动时），会按文件名顺序执行这个目录里的脚本。
 
-目录内容：
+| 脚本 | 作用 | 出现于 |
+|---|---|---|
+| [001_test_databases.sql](001_test_databases.sql) | 创建基础设施测试用的两个库（连接测试、迁移测试） | 阶段 0 |
+| [002_shop_test_databases.sql](002_shop_test_databases.sql) | 创建库存测试库和造数测试库 | 阶段 1 |
+| [003_order_sales_test_databases.sql](003_order_sales_test_databases.sql) | 创建订单测试库和销量测试库 | 阶段 2 |
+| [004_metrics_user.sh](004_metrics_user.sh) | 创建只读的监控账号，给 mysqld-exporter 采集 MySQL 指标用 | 阶段 3 |
 
-- 当前没有子目录。
+## 为什么每个测试都有自己的库
 
-阅读建议：先了解官方镜像只在空数据目录执行初始化，再看各脚本的 IF NOT EXISTS；shop 业务表不在这里。
+集成测试会建表、删数据。如果测试连的是业务库 `shop`，一跑测试就会把造好的数据清掉。所以每类测试都有自己专用的库，测试代码也会检查库名，只允许在这些专用库里操作。脚本只给 `app` 账号这些库的权限。
 
-- [004_metrics_user.sh](004_metrics_user.sh)：从环境读取密码创建只读监控账号；已有卷可在 MySQL 容器中单独执行，不重建业务数据。
+## 两个细节
 
-脚本用子 shell 隔离严格选项。Linux 没有执行位时，官方入口会 source 它；不能让本脚本的 set -u 或密码环境影响后续启动。
+- **脚本可以重复执行。** 都用 `CREATE DATABASE IF NOT EXISTS` 这类写法，已有的数据卷上手动再执行一次也不会出错。手动执行的方法见根目录 README。
+- **004 是 shell 脚本，不是 SQL。** 因为监控账号的密码要从环境变量读取，SQL 文件做不到。脚本里用子 shell 把严格模式（`set -u` 等）包起来，避免影响 MySQL 镜像后续的启动步骤。

@@ -1,12 +1,26 @@
-# 仓库内部实现
+# internal：项目的全部实现代码
 
-Go 限制 internal 下包的外部导入；这里按通用能力与领域拆分，不放可执行程序 main 或生成协议。
+除了程序入口（`cmd/`）和自动生成的代码（`gen/`），项目的 Go 代码都在这里。
 
-目录内容：
+`internal` 这个目录名对 Go 有特殊含义：放在它下面的包，只有本仓库的代码能导入，别的项目导入不了。这样项目内部的代码可以随时调整，不用担心影响外人。
 
-- [platform](platform/README.md)：与业务无关的基础设施。
-- [shop](shop/README.md)：故障靶场业务。
-- [doctor](doctor/README.md)：医生领域，目前仅认证基础包。
-- [loadgen](loadgen/doc.go)：真实 HTTP 流量、速率控制和统计。
+## 里面有什么
 
-阅读建议：从对应 cmd 入口进入 app，再依接口走到实现；领域边界由 archcheck 检查。
+| 目录 | 放什么 |
+|---|---|
+| [platform](platform/README.md) | 通用基础设施：配置、日志、数据库连接、HTTP 中间件等。不认识任何业务概念 |
+| [shop](shop/README.md) | 靶场：库存、订单、商品、销量等电商业务 |
+| [doctor](doctor/README.md) | 医生：诊断系统。目前只有登录用的认证规则 |
+| [loadgen](loadgen/doc.go) | 压测工具的实现：生成流量、控制速率、统计结果 |
+
+## 谁能依赖谁
+
+- `shop` 和 `doctor` 都可以使用 `platform`。
+- `platform` 不能使用 `shop` 或 `doctor`，因为它是给所有人用的通用代码。
+- `shop` 和 `doctor` 之间不能互相导入。医生只能像外人一样，通过监控数据和只读账号观察靶场。
+
+这些规则由 [archcheck](../tools/archcheck/doc.go) 在 CI 里自动检查，违反了会报错。
+
+## 从哪里开始读
+
+不要从这里逐个目录往下翻。先在 [cmd](../cmd/README.md) 里挑一个程序，从它的 `main.go` 进来，再跟着函数调用往里读。

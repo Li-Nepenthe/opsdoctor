@@ -1,14 +1,28 @@
-// Package migrate 在同一数据库会话持锁执行嵌入式迁移。
+// Package migrate 负责数据库迁移：把数据库的表结构升级到和代码一致。
 //
-// 业务 migrations 包调用 Apply。这里负责文件校验、命名锁和历史，不承诺 MySQL DDL 可以整体回滚。
+// 为什么需要它：项目会不断加表、加字段。每次改动写成一个带编号的 SQL 文件
+// （0001_*.sql、0002_*.sql……），程序启动时按编号顺序执行还没执行过的文件，
+// 并在 schema_migrations 表里记录执行过哪些。这样不管在哪台机器上、启动多少次，
+// 数据库都会被改成同一个样子，既不会漏执行，也不会重复执行。
 //
-// 包内文件：
-//   - doc.go：说明包的位置、边界和阅读路线。
-//   - files.go：读取并校验迁移文件，不执行 SQL。
-//   - files_test.go：验证迁移文件和历史校验规则。
-//   - migrate.go：在同一 MySQL 会话中串行执行迁移并记录历史。
-//   - migrate_integration_test.go：在专用数据库验证迁移和命名锁。
-//   - testdata/0001_probe.sql：仅供集成测试的可重入探针表。
+// Apply 的执行过程：
+//  1. 读取全部迁移文件，检查文件名格式、编号不重复、内容不为空（files.go）。
+//  2. 从连接池借出一条连接，用它向 MySQL 申请一把锁。两个服务同时启动时，
+//     只有拿到锁的那个执行迁移，另一个等着（migrate.go）。
+//  3. 读出 schema_migrations，确认已经执行过的文件没有被修改或删除。
+//  4. 依次执行新文件，每成功一个就记录一次。
+//  5. 释放锁，归还连接。
 //
-// 阅读顺序：files.go → migrate.go → files_test.go → migrate_integration_test.go。
+// 谁调用它：internal/shop/migrations 在服务启动时调用 Apply。
+//
+// 文件清单：
+//   - doc.go：本说明。
+//   - files.go：读取并检查迁移文件（第 1 步），不碰数据库。
+//   - migrate.go：Apply 本身，负责第 2～5 步。
+//   - files_test.go：检查文件规则的单元测试。
+//   - migrate_integration_test.go：连真实 MySQL，验证迁移和加锁，包括两个调用同时迁移的情况。
+//   - testdata/0001_probe.sql：只给集成测试用的示例迁移。
+//
+// 阅读顺序：先读 files.go，了解迁移文件要满足哪些规则；再读 migrate.go 的 Apply，
+// 对照上面五步往下看。为什么加锁、执行、解锁必须用同一条连接，阶段 0 学习材料有专门的一节。
 package migrate
