@@ -1,12 +1,19 @@
-// Package app 保存 shop 程序共同的数据库配置读取步骤。
+// Package app 存放靶场几个程序共用的配置：数据库连接配置。
 //
-// inventoryservice、orderservice、orderworker 和 shopctl 子包调用 DatabaseConfig。
-// 本包依赖 config/mysqlx，不创建资源，也不放商品、库存或订单规则。
+// 库存服务、订单服务、order-worker 和 shopctl 都连同一个 MySQL。连接池的默认值
+// （最多 20 条连接、保留 10 条空闲、每条最多用 5 分钟）写在这里一份，
+// 避免各程序各写一份，慢慢变得不一致。
 //
-// 包内文件：
-//   - doc.go：说明包的位置、边界和阅读路线。
-//   - config.go：读取各 shop 程序共用的数据库配置。
-//   - config_test.go：验证连接池默认值和参数之间的约束。
+// 各程序自己的组装代码在子目录里，每个子目录对应 cmd/ 下的一个程序：
+//   - inventoryservice：库存服务。
+//   - orderservice：订单服务（阶段 2）。
+//   - orderworker：订单消息消费者（阶段 2）。
+//   - shopctl：命令行工具。
 //
-// 阅读顺序：config.go → config_test.go，再进入各子包。
+// 文件清单：
+//   - doc.go：本说明。
+//   - config.go：DatabaseConfig，读取 MYSQL_DSN 和连接池参数。
+//   - config_test.go：检查默认值，以及“空闲连接数不能超过最大连接数”这类约束。
+//
+// 阅读顺序：config.go → config_test.go，然后进入你关心的那个程序的子目录。
 package app

@@ -1,9 +1,12 @@
-# Go 镜像构建
+# deploy/docker：Go 服务的镜像构建
 
-[go.Dockerfile](go.Dockerfile) 用固定 Go 镜像编译，再将纯 Go 程序放进小型非 root 运行镜像。不复制本机环境文件。
+所有 Go 程序共用一个构建文件 [go.Dockerfile](go.Dockerfile)，通过构建参数 `CMD_NAME` 指定构建哪个程序，比如 `inventory-service`。
 
-目录内容：
+构建分两个阶段（多阶段构建）：
 
-- 当前没有子目录。
+1. **编译阶段**：用固定版本的 Go 镜像（`golang:1.27.1-alpine3.24`）编译出一个可执行文件。编译时设置 `CGO_ENABLED=0`，得到的是纯 Go 程序，不依赖系统的 C 库。
+2. **运行阶段**：只把编译好的文件复制到一个很小的 Alpine 镜像里，并用普通用户而不是 root 运行。
 
-阅读建议：先看 CMD_NAME 构建参数，再看 CGO_ENABLED=0 与多阶段 COPY；.dockerignore 位于仓库根目录。
+为什么分两个阶段：运行时不需要 Go 编译器和源代码。最终镜像小得多，而且里面没有源码、没有编译工具，被入侵时能利用的东西更少。
+
+本机的 `.env` 等文件不会被复制进镜像，排除规则写在仓库根目录的 `.dockerignore` 里。

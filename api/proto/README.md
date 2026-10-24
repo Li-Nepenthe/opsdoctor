@@ -1,9 +1,9 @@
-# protobuf 模块
+# api/proto：protobuf 文件
 
-buf.yaml 把这里作为模块根，协议目录与 package 名一一对应。不要放 Go 实现。
+buf 把这个目录当作所有 `.proto` 文件的根。目录路径和 `.proto` 里的 `package` 名字一一对应：`inventory/v1/` 下的文件，`package` 就是 `inventory.v1`。
 
-目录内容：
+| 目录 | 内容 |
+|---|---|
+| [inventory](inventory/README.md) | 库存服务的接口，按版本分目录 |
 
-- [inventory](inventory/README.md)：库存服务的版本化协议。
-
-阅读建议：从 inventory/v1 读起；生成命令统一在仓库根目录运行。
+从 `inventory/v1/inventory.proto` 开始读。

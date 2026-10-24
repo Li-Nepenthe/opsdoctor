@@ -1,17 +1,27 @@
-# 靶场业务
+# internal/shop：靶场（电商业务）
 
-当前实现库存、订单、商品缓存、消息消费与数据基线；不能依赖 doctor、chaos 或 eval。不提前建立后续阶段的空包。
+这里是被医生诊断的那个系统：一个小型电商。它故意做成一个“正常的、写得认真的”后端，这样后面注入故障时，医生面对的才像真实的系统。
 
-目录内容：
+靶场不能导入医生（`doctor`）、故障注入（`chaos`）和评测（`eval`）的代码，它必须能单独运行。
 
-- [app](app/doc.go)：共用配置，以及三个服务和 shopctl 的组装。
-- [inventory](inventory/doc.go)：模型、业务、MySQL 与 gRPC 适配。
-- [inventoryclient](inventoryclient/doc.go)：带超时、重试和熔断的库存客户端。
-- [product](product/doc.go)：商品缓存、价格查询和库存展示降级。
-- [order](order/doc.go)：下单、幂等状态、补偿与订单查询。
-- [events](events/doc.go)：订单消息契约、Kafka 发送和手动位点提交。
-- [sales](sales/doc.go)：事务去重、销量累加与总量核对。
-- [migrations](migrations/doc.go)：五张表和嵌入入口。
-- [seed](seed/doc.go)：批量建立历史基线。
+## 里面有什么
 
-阅读建议：从对应 app 进入；先读 service 需要的接口，再读 repository、cache 和消息适配。阶段 2 下单从 app/orderservice 到 order/service.go，销量消费从 app/orderworker 到 events/consumer.go 再到 sales/repository.go。
+| 包 | 作用 | 出现于 |
+|---|---|---|
+| [app](app/doc.go) | 各程序的组装代码：读配置、连依赖、启动服务、优雅停机。每个程序一个子目录 | 阶段 1 |
+| [inventory](inventory/doc.go) | 库存：查询、扣减、归还 | 阶段 1 |
+| [migrations](migrations/doc.go) | 五张表的建表 SQL | 阶段 1 |
+| [seed](seed/doc.go) | 造测试数据：50 万商品、200 万订单 | 阶段 1 |
+| [product](product/doc.go) | 商品查询，带 Redis 缓存；库存服务不可用时仍能返回商品信息 | 阶段 2 |
+| [inventoryclient](inventoryclient/doc.go) | 订单服务调用库存服务的客户端，带超时、重试和熔断 | 阶段 2 |
+| [order](order/doc.go) | 下单、查订单，以及防止重复下单的接口幂等 | 阶段 2 |
+| [events](events/doc.go) | Kafka 消息：“订单已创建”消息的格式、发送和消费 | 阶段 2 |
+| [sales](sales/doc.go) | 销量统计：消费订单消息并累加销量，同一条消息不会算两次 | 阶段 2 |
+
+## 从哪里开始读
+
+沿着一个请求读，不要逐个包翻：
+
+- **阶段 1**：从 `app/inventoryservice` 进入，读到 `inventory`。
+- **阶段 2 下单**：从 `app/orderservice` 进入，读 `order/service.go` 的 `Create`。
+- **阶段 2 销量统计**：从 `app/orderworker` 进入，读 `events/consumer.go`，再到 `sales/repository.go`。
