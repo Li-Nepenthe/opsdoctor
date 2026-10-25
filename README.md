@@ -2,7 +2,7 @@
 
 用 Go 构建可复现的微服务故障靶场，再逐步实现带证据报告的故障诊断 Agent。
 
-当前是**阶段 3：可观测性与告警**。订单、库存、销量消费已接入指标、调用链和关联日志。Grafana 看板、消费积压告警与临时接收器用于观察真实靶场，医生系统尚未开发。最新验收状态以[进度看板](进度.md)为准。
+当前正在进行**阶段 4：故障注入器与场景库**。订单、库存、销量消费已接入指标、调用链和关联日志。Grafana 看板、消费积压告警与临时接收器用于观察真实靶场，医生系统尚未开发。最新验收状态以[进度看板](进度.md)为准。
 
 - 唯一需求来源：[项目计划书](项目计划书.md)
 - 开发规则：[AGENTS.md](AGENTS.md)
@@ -83,7 +83,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml logs --since 5m aler
 docker stats --no-stream
 ```
 
-Prometheus 保留七天且最多 1 GB 数据，Loki 保留 48 小时；Jaeger 使用内存保存最近 5000 条 trace，重启会清空。所有发布端口仅绑定 `127.0.0.1`。Alloy 独占日志采集所需的 Docker socket；挂载 `:ro` 不会把 Docker API 变成只读权限，不能把这个挂载交给后续医生程序。
+Prometheus 保留七天且最多 1 GB 数据，Loki 保留 48 小时；Jaeger 从阶段 4 起使用内存保存最近 30000 条 trace，重启会清空。所有发布端口仅绑定 `127.0.0.1`。Alloy 独占日志采集所需的 Docker socket；挂载 `:ro` 不会把 Docker API 变成只读权限，不能把这个挂载交给后续医生程序。
 
 ## 检查代码
 
@@ -180,6 +180,23 @@ done < .env
 首次 `seed` 生成 50 万商品、50 万库存、200 万历史订单，并写好对应销量/已处理记录，输出真实计数和耗时。新数据的库存从 100 变为 99。重复造数显示 `skipped=true`，不会重置你扣过的库存。`seed --small` 目标为 100 商品、400 订单；完整数据已存在时也跳过，不会缩小数据库。每批事务原子提交，中断后可从完整前缀续跑；五表计数不匹配则拒绝继续。造数期间不要接收业务写入或并发运行多个 seed。
 
 阶段 2 已经产生新订单后，五表不再是最初的造数基线，seed 会拒绝继续。不要用它来重置业务或补库存。后续核对使用 `shopctl check`，保留已有订单和去重记录。
+
+阶段 4 加入显式的补库存命令。长时间压测会卖空热门商品，之后的行锁实验就可能看不到足够的更新。**只在实验前暂停流量后使用**，例如为 1–10000 号商品各补 10 万件：
+
+```powershell
+Invoke-RestMethod -Method Post -Uri http://127.0.0.1:6070/control -ContentType application/json -Body '{"qps":0}'
+go run ./cmd/shopctl stock restock --sku 1 --quantity 100000 --count 10000 --timeout 3s
+```
+
+bash：
+
+```bash
+curl -fsS -H 'Content-Type: application/json' -d '{"qps":0}' http://127.0.0.1:6070/control
+go run ./cmd/shopctl stock restock --sku 1 --quantity 100000 --count 10000 --timeout 3s
+```
+
+命令通过正式 gRPC `Release` 增加库存，成功后打印已确认的范围。省略 `--count` 就只改一个商品，最多一次处理 10000 个。若中途失败，命令指出已确认数量和待核对的商品编号。先用 `stock get` 查这个商品，再决定如何继续；不要直接重跑整批，因为增加库存不是幂等操作。
+
 
 本机全量实测总耗时 75.651 秒，重跑 0.538 秒；这是开发机的结果，不是性能承诺。原始记录见 [notes](docs/notes.md#phase-01)。CLI 的 `--timeout 800ms` 控制整个 RPC 等待，`Deduct` 没有应用层重试。
 

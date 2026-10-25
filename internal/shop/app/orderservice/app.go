@@ -46,7 +46,7 @@ const (
 	headerTimeout    = 3 * time.Second  // 请求头很小，限制慢速发送者占住连接的时间。
 	idleTimeout      = 30 * time.Second // 短期复用 HTTP 连接，长期空闲后回收。
 	processingMargin = time.Second      // 给时钟偏差和最后的状态写回留出余量。
-	cleanupSteps     = 3                // 失败时补偿、删占位、待核对；成功时发消息、存结果、待核对。
+	cleanupSteps     = 3                // 失败路径最多补偿、删占位、标记待核对；消息预算另算。
 	shutdownMargin   = 5 * time.Second  // 在最慢业务路径之外给连接排空留余量。
 )
 
@@ -81,6 +81,7 @@ func Run(parent context.Context) (result error) {
 	logger.Info("订单服务配置已加载", "version", telemetry.Version, "http_addr", settings.HTTPAddress, "admin_addr", settings.AdminAddress,
 		"rate_limit_rps", settings.RateRPS, "rate_limit_burst", settings.RateBurst, "request_timeout", settings.HTTPBudget.String(),
 		"inventory_grpc_idle_timeout", settings.InventoryIdleTimeout.String(),
+		"publish_timeout", settings.PublishBudget.String(),
 		"inventory_timeout", settings.Inventory.Timeout.String(), "getstock_max_retries", settings.Inventory.Retry.MaxRetries,
 		"retry_backoff", settings.Inventory.Retry.Backoff.String(), "breaker_enabled", settings.Inventory.Breaker.Enabled,
 		"cache_singleflight", settings.Singleflight, "cache_ttl_jitter", settings.CacheJitter.String(), "idempotency_ttl", settings.IdempotencyTTL.String())

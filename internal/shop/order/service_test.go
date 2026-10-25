@@ -208,7 +208,7 @@ type fixture struct {
 // newFixture 默认全部成功，失败用例只覆盖一个环节。
 func newFixture() fixture {
 	value := fixture{repository: &fakeRepository{}, price: &fakePrice{price: 100}, stock: &fakeStock{}, publisher: &fakePublisher{}, store: &memoryIdempotency{}, reviews: &fakeReviews{}}
-	value.service = NewService(value.repository, value.price, value.stock, value.publisher, value.store, value.reviews, time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	value.service = NewService(value.repository, value.price, value.stock, value.publisher, value.store, value.reviews, time.Second, time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	return value
 }
 
@@ -336,5 +336,21 @@ func TestValidateCreate(t *testing.T) {
 				t.Fatalf("无效请求产生了扣减：%v", err)
 			}
 		})
+	}
+}
+
+// TestPublishHasIndependentBudget 保证调整补偿预算不会顺带缩短 Kafka 的确认等待。
+func TestPublishHasIndependentBudget(t *testing.T) {
+	f := newFixture()
+	f.service.cleanupTimeout = time.Millisecond
+	f.service.publishTimeout = time.Second
+	f.publisher.onPublish = func(ctx context.Context) {
+		deadline, ok := ctx.Deadline()
+		if !ok || time.Until(deadline) <= f.service.cleanupTimeout {
+			t.Error("发送仍然用了短的补偿预算")
+		}
+	}
+	if _, err := f.service.Create(t.Context(), CreateRequest{UserID: 1, SKUID: 1, Quantity: 1}, "publish-budget"); err != nil {
+		t.Fatal(err)
 	}
 }

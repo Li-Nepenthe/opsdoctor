@@ -41,15 +41,15 @@ func services(settings Config, resources *dependencies, runtime *telemetry.Runti
 	orders := order.NewService(
 		order.NewMySQLRepository(resources.database), products, resources.stock, resources.publisher,
 		observedIdempotency{IdempotencyStore: idempotency, metrics: runtime.Metrics},
-		newReviewRecorder(logger, runtime.Metrics), settings.CleanupBudget, logger,
+		newReviewRecorder(logger, runtime.Metrics), settings.CleanupBudget, settings.PublishBudget, logger,
 	)
 	return products, orders, nil
 }
 
 // servers 只创建对象，不开始监听。serve 会先确认两个端口都能绑定，再开放流量。
 func servers(settings Config, resources *dependencies, logger *slog.Logger, runtime *telemetry.Runtime) (*http.Server, *http.Server, time.Duration, error) {
-	// 成功路径也可能依次发消息、保存结果、标记待核对，最多使用三次独立收尾预算。
-	budget := settings.HTTPBudget + cleanupSteps*settings.CleanupBudget + processingMargin
+	// 消息确认有自己的预算，幂等占位和 HTTP 排空必须一并容纳它。
+	budget := processingBudget(settings)
 	products, orders, err := services(settings, resources, runtime, logger, budget)
 	if err != nil {
 		return nil, nil, 0, err

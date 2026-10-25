@@ -6,6 +6,7 @@
 // 主要内容：
 //   - waitingBroker.RoundTrip：返回分区信息，并等测试允许后再确认发送。
 //   - TestPublisherCancellationDoesNotCancelBatch：证明两个 context 的生命周期不同。
+//   - pendingPublisher：准备测试替身，并安排正确的清理顺序。
 //
 // 阅读建议：按“进入发送 → 取消调用者 → 调用返回 → 允许批次确认”读主测试。
 
@@ -59,18 +60,7 @@ func TestPublisherCancellationDoesNotCancelBatch(t *testing.T) {
 	const testBudget = 3 * time.Second // 防止实现变化导致测试无限等待，不作为性能断言。
 	testCtx, stop := context.WithTimeout(t.Context(), testBudget)
 	defer stop()
-	runtime := &telemetry.Runtime{Metrics: telemetry.NewMetrics("test"), Provider: sdktrace.NewTracerProvider(), Propagator: propagation.TraceContext{}}
-	t.Cleanup(func() { _ = runtime.Provider.Shutdown(context.Background()) })
-	publisher := NewPublisher([]string{"memory:9092"}, runtime, slog.New(slog.NewTextHandler(io.Discard, nil)))
-	t.Cleanup(func() { _ = publisher.Close() })
-	gate := make(chan struct{}) // 只有主测试关闭；底层发送协程只读。
-	var releaseOnce sync.Once   // 正常路径与失败清理可能都要放行，只关闭一次。
-	release := func() { releaseOnce.Do(func() { close(gate) }) }
-	t.Cleanup(release)
-	broker := &waitingBroker{entered: make(chan struct{}, 1), allow: gate}
-	publisher.writer.Transport = broker
-	confirmed := make(chan error, 1) // Writer 的完成回调写一次，主测试核对最终结果。
-	publisher.writer.Completion = func(_ []kafka.Message, err error) { confirmed <- err }
+	publisher, broker, release, confirmed := pendingPublisher(t)
 	caller, cancel := context.WithCancel(testCtx)
 	defer cancel()
 	returned := make(chan error, 1) // Publish 结束后写入，容量 1 保证测试失败时也能退出。
@@ -97,4 +87,22 @@ func TestPublisherCancellationDoesNotCancelBatch(t *testing.T) {
 	case <-testCtx.Done():
 		t.Fatal("没有收到后台完成回调")
 	}
+}
+
+// pendingPublisher 准备带可控确认的真实 Writer，清理时先放开传输，再等待 Writer 排空。
+func pendingPublisher(t *testing.T) (*Publisher, *waitingBroker, func(), <-chan error) {
+	t.Helper()
+	runtime := &telemetry.Runtime{Metrics: telemetry.NewMetrics("test"), Provider: sdktrace.NewTracerProvider(), Propagator: propagation.TraceContext{}}
+	t.Cleanup(func() { _ = runtime.Provider.Shutdown(context.Background()) })
+	publisher := NewPublisher([]string{"memory:9092"}, runtime, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	t.Cleanup(func() { _ = publisher.Close() })
+	gate := make(chan struct{}) // 只有主测试关闭；底层发送协程只读。
+	var releaseOnce sync.Once   // 正常路径与失败清理可能都要放行，只关闭一次。
+	release := func() { releaseOnce.Do(func() { close(gate) }) }
+	t.Cleanup(release)
+	broker := &waitingBroker{entered: make(chan struct{}, 1), allow: gate}
+	publisher.writer.Transport = broker
+	confirmed := make(chan error, 1) // Writer 的完成回调写一次，主测试核对最终结果。
+	publisher.writer.Completion = func(_ []kafka.Message, err error) { confirmed <- err }
+	return publisher, broker, release, confirmed
 }

@@ -64,12 +64,13 @@ type Service struct {
 	idempotency    IdempotencyStore // Redis 不可用时不能绕过占位。
 	reviews        ReviewRecorder   // 记录结果待核对事件。
 	cleanupTimeout time.Duration    // 请求取消后，补偿或保存结果仍有有限的收尾时间。
+	publishTimeout time.Duration    // Kafka 确认可能慢于 Redis 收尾，阶段 4 起单独给它预算。
 	logger         *slog.Logger     // 记录已落库但未发出消息的缺口。
 }
 
 // NewService 由 app 统一传入依赖，cleanupTimeout 必须大于库存调用超时。
-func NewService(repository Repository, prices PriceReader, stock StockWriter, publisher Publisher, idempotency IdempotencyStore, reviews ReviewRecorder, cleanupTimeout time.Duration, logger *slog.Logger) *Service {
-	return &Service{repository: repository, prices: prices, stock: stock, publisher: publisher, idempotency: idempotency, reviews: reviews, cleanupTimeout: cleanupTimeout, logger: logger}
+func NewService(repository Repository, prices PriceReader, stock StockWriter, publisher Publisher, idempotency IdempotencyStore, reviews ReviewRecorder, cleanupTimeout, publishTimeout time.Duration, logger *slog.Logger) *Service {
+	return &Service{repository: repository, prices: prices, stock: stock, publisher: publisher, idempotency: idempotency, reviews: reviews, cleanupTimeout: cleanupTimeout, publishTimeout: publishTimeout, logger: logger}
 }
 
 // Create 遇到结果不明就停止自动处理，不能把“没有收到成功答复”当成“什么都没发生”。
@@ -135,7 +136,9 @@ func (service *Service) Create(ctx context.Context, request CreateRequest, key s
 	// 订单已经提交，发送消息也是收尾工作，不能因为客户断开连接就放弃。
 	// WithoutCancel 保留请求中的值（包括调用链），只去掉原来的取消信号和 deadline。
 	// 再加自己的超时，避免 Kafka 不可用时一直占住处理请求的 goroutine。
-	publishCtx, cancelPublish := context.WithTimeout(context.WithoutCancel(ctx), service.cleanupTimeout)
+	// 原来和 Redis 收尾共用两秒，甚至短于 Kafka 自己一次三秒的写入预算。
+	// 现在单独配置确认时间，让调用方有机会等到正常的发送答复；有限时间耗尽仍如实记录未确认。
+	publishCtx, cancelPublish := context.WithTimeout(context.WithoutCancel(ctx), service.publishTimeout)
 	publishStarted := time.Now()
 	publishErr := service.publisher.Publish(publishCtx, event)
 	cancelPublish()

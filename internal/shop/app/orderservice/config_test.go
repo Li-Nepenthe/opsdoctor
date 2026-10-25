@@ -26,6 +26,8 @@ func TestConfigBudgets(t *testing.T) {
 	}{
 		{"默认", nil, true}, // 默认预算应能完整覆盖下游和收尾。
 		{"下游长于上游", map[string]string{"INVENTORY_CALL_TIMEOUT": "4s"}, false},                                                                                                     // 避免上游走了下游仍在执行。
+		{"消息预算可独立配置", map[string]string{"ORDER_PUBLISH_TIMEOUT": "5s", "ORDER_CLEANUP_TIMEOUT": "2s"}, true},                                                                     // 消息确认不再被 Redis 收尾预算提前打断。
+		{"消息预算有上限", map[string]string{"ORDER_PUBLISH_TIMEOUT": "11s"}, false},                                                                                                    // 防止发送无限占住处理资源。
 		{"收尾不够", map[string]string{"ORDER_CLEANUP_TIMEOUT": "500ms"}, false},                                                                                                     // 补偿要容得下一次库存调用。
 		{"重试过多", map[string]string{"INVENTORY_GETSTOCK_MAX_RETRIES": "3"}, false},                                                                                                // 计划书最多两次重试。
 		{"可关闭防护", map[string]string{"CACHE_SINGLEFLIGHT": "false", "CACHE_TTL_JITTER": "0s", "INVENTORY_BREAKER_ENABLED": "false", "INVENTORY_GETSTOCK_MAX_RETRIES": "0"}, true}, // 明确提供对比用的正常配置。

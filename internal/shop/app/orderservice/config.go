@@ -29,6 +29,7 @@ import (
 const (
 	defaultInventoryIdleTimeout = 30 * time.Minute
 	maximumInventoryIdleTimeout = 24 * time.Hour
+	defaultPublishTimeout       = 5 * time.Second // Kafka 单次写预算为三秒；确认等待还要容纳凑批、排队和一次短暂抖动。
 )
 
 // Config 中的 Database 含密码，禁止把整个结构体写进日志。
@@ -43,6 +44,7 @@ type Config struct {
 	Inventory            inventoryclient.Config // 库存调用的超时、重试和熔断参数。
 	HTTPBudget           time.Duration          // HTTP_REQUEST_TIMEOUT，整次请求的上游预算。
 	CleanupBudget        time.Duration          // ORDER_CLEANUP_TIMEOUT，每次补偿或状态收尾的预算。
+	PublishBudget        time.Duration          // ORDER_PUBLISH_TIMEOUT，已提交订单等待消息确认的预算，默认五秒。
 	IdempotencyTTL       time.Duration          // IDEMPOTENCY_TTL，默认 24 小时。
 	Singleflight         bool                   // CACHE_SINGLEFLIGHT，是否合并同商品回源。
 	CacheJitter          time.Duration          // CACHE_TTL_JITTER，0 表示关闭随机过期增量。
@@ -81,6 +83,7 @@ func loadConfig(reader config.Reader) (Config, error) {
 		InventoryIdleTimeout: readDuration("INVENTORY_GRPC_IDLE_TIMEOUT", defaultInventoryIdleTimeout, 0, maximumInventoryIdleTimeout),
 		HTTPBudget:           readDuration("HTTP_REQUEST_TIMEOUT", 3*time.Second, time.Millisecond, 30*time.Second),
 		CleanupBudget:        readDuration("ORDER_CLEANUP_TIMEOUT", 2*time.Second, time.Millisecond, 5*time.Second),
+		PublishBudget:        readDuration("ORDER_PUBLISH_TIMEOUT", defaultPublishTimeout, time.Millisecond, 10*time.Second),
 		IdempotencyTTL:       readDuration("IDEMPOTENCY_TTL", 24*time.Hour, time.Minute, 7*24*time.Hour),
 		Singleflight:         readBool("CACHE_SINGLEFLIGHT", true), CacheJitter: readDuration("CACHE_TTL_JITTER", time.Minute, 0, time.Minute),
 		RateRPS: readInt("RATE_LIMIT_RPS", 500, 1, 100000), RateBurst: readInt("RATE_LIMIT_BURST", 100, 1, 100000),
@@ -94,10 +97,17 @@ func loadConfig(reader config.Reader) (Config, error) {
 	if value.Inventory.Timeout >= value.HTTPBudget || value.Inventory.Timeout >= value.CleanupBudget {
 		problems = append(problems, fmt.Errorf("库存调用超时必须小于 HTTP 请求预算和订单收尾预算"))
 	}
-	if value.IdempotencyTTL <= value.HTTPBudget+cleanupSteps*value.CleanupBudget+processingMargin || value.IdempotencyTTL%time.Second != 0 {
+	if value.IdempotencyTTL <= processingBudget(value) || value.IdempotencyTTL%time.Second != 0 {
 		problems = append(problems, fmt.Errorf("幂等保存时间须为整秒，并长于完整处理预算"))
 	}
 	return value, errors.Join(problems...)
+}
+
+// processingBudget 给幂等占位和优雅停机使用同一个上界，避免发送还在执行时就把请求判为待核对。
+func processingBudget(settings Config) time.Duration {
+	// 失败路径最多三次补偿/状态收尾；成功路径还可能等待消息确认。
+	// 两条路径不会全部叠加，仍取一个便于理解的保守上界，给最后一次状态更新留余量。
+	return settings.HTTPBudget + settings.PublishBudget + cleanupSteps*settings.CleanupBudget + processingMargin
 }
 
 // kafkaBrokers 要求每项都包含主机和端口，空列表项通常是配置多写了一个逗号。

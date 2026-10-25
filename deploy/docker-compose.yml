@@ -65,6 +65,7 @@ services:
       INVENTORY_GRPC_TARGET: inventory-service:9001
       HTTP_REQUEST_TIMEOUT: ${HTTP_REQUEST_TIMEOUT:-3s}
       ORDER_CLEANUP_TIMEOUT: ${ORDER_CLEANUP_TIMEOUT:-2s}
+      ORDER_PUBLISH_TIMEOUT: ${ORDER_PUBLISH_TIMEOUT:-5s}
       INVENTORY_CALL_TIMEOUT: ${INVENTORY_CALL_TIMEOUT:-800ms}
       INVENTORY_GRPC_IDLE_TIMEOUT: ${INVENTORY_GRPC_IDLE_TIMEOUT:-30m}
       INVENTORY_GETSTOCK_MAX_RETRIES: ${INVENTORY_GETSTOCK_MAX_RETRIES:-2}
@@ -95,7 +96,7 @@ services:
       - "127.0.0.1:6061:6061"
     mem_limit: 256m # Gin、三个下游客户端和连接池共用这份进程预算。
     logging: *bounded-logging
-    stop_grace_period: 60s # 大于允许配置的最大请求与收尾总预算。
+    stop_grace_period: 90s # 容纳最大请求、消息确认、三次状态收尾和关闭连接的预算。
     healthcheck:
       test: ["CMD", "wget", "-q", "-T", "3", "-O", "/dev/null", "http://127.0.0.1:6061/health"]
       interval: 5s
