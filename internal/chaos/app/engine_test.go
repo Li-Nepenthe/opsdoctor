@@ -10,6 +10,7 @@
 //   - TestInjectDoesNotOverwrite：同一时刻只允许一个活动场景。
 //   - TestSelftestKeepsUnrunRows：中途停止后仍列出未执行的场景。
 //   - TestTrialUsesScenarioBudget：场景给出更短时限时不能擅自等待三分钟。
+//   - TestBurstOverridesRejected：防止通用热点参数把商品突发重新变成热点下单。
 //
 // 阅读建议：先看各测试想保护的顺序，再看假执行器如何记录调用。
 
@@ -29,6 +30,20 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/chaos/scenario"
 	"github.com/Li-Nepenthe/opsdoctor/internal/chaos/verify"
 )
+
+// TestBurstOverridesRejected 保护场景的因果边界，不能通过命令行让暂停动作失效或把下单改到热点。
+func TestBurstOverridesRejected(t *testing.T) {
+	for _, args := range [][]string{
+		{"--qps", "400"}, // 覆盖全部 load 动作会连“先暂停”一起改掉。
+		{"--sku", "42"},  // 热点参数同时影响普通下单，会重新引发行锁。
+	} {
+		value := scenario.Scenario{Inject: []scenario.Step{{Action: "burst", FirstSKUID: 1, Count: 400, Requests: 16}}}
+		var output bytes.Buffer
+		if err := overrides(&value, args, &output); err == nil {
+			t.Fatalf("突发场景接受了不适用的覆盖参数：%v", args)
+		}
+	}
+}
 
 // fakeExecutor 保留操作次数，测试通过钩子安排某一步取消或失败。
 type fakeExecutor struct {

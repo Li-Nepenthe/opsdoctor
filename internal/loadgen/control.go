@@ -1,6 +1,7 @@
 // 本文件：通过本机控制接口调整速率和热点商品。
 //
-// POST /control 接收 qps 与 hot_sku_id。GET /control 返回生效设置和真实累计统计。
+// POST /control 接收 qps 与 hot_sku_id。POST /burst 接收一批有上限的商品查询。
+// GET /control 返回生效设置、真实累计统计，以及最后一批查询的进度。
 // 这个接口只调整生成行为，不能改写统计结果或向业务服务注入假响应。
 //
 // 主要内容：
@@ -26,7 +27,7 @@ import (
 // controlSettings 是一份可复制的配置快照，JSON 中的名字也是控制接口契约。
 type controlSettings struct {
 	QPS      int   `json:"qps"`        // 0 暂停，最大 10000。
-	HotSKUID int64 `json:"hot_sku_id"` // 0 恢复正常分布，正数指定全部商品请求的目标。
+	HotSKUID int64 `json:"hot_sku_id"` // 0 恢复正常分布，正数同时集中商品查询和下单；只读突发另用 /burst。
 }
 
 // controlState 用互斥锁保护两个字段一起更新，调度者不会看到半次更新。
@@ -67,12 +68,29 @@ func (control *controlState) update(qps *int, hot *int64) error {
 }
 
 // controlRouter 只在专用管理端口安装，Compose 把它映射到宿主机回环地址。
-func controlRouter(control *controlState, stats *statistics, logger *slog.Logger) *gin.Engine {
+func controlRouter(control *controlState, stats *statistics, bursts *burstState, logger *slog.Logger) *gin.Engine {
 	router := gin.New()
 	router.Use(httpx.RequestIDs(logger), httpx.Recovery(logger), httpx.BodyLimit(1024))
 	router.GET("/health", func(ctx *gin.Context) { ctx.String(http.StatusOK, "ok\n") })
 	router.GET("/control", func(ctx *gin.Context) {
-		httpx.Success(ctx, http.StatusOK, gin.H{"settings": control.snapshot(), "statistics": stats.snapshot(time.Now(), false)})
+		httpx.Success(ctx, http.StatusOK, gin.H{"settings": control.snapshot(), "statistics": stats.snapshot(time.Now(), false), "burst": bursts.snapshot()})
+	})
+	router.POST("/burst", func(ctx *gin.Context) {
+		var input struct {
+			SKUID    int64 `json:"sku_id"`   // 一批只查这个商品，不影响普通流量的选品分布。
+			Requests int   `json:"requests"` // 不能超过启动时配置的固定工作者数。
+		}
+		if !httpx.BindJSON(ctx, &input) {
+			return
+		}
+		report, err := bursts.submit(input.SKUID, input.Requests)
+		if err != nil {
+			httpx.Failure(ctx, http.StatusBadRequest, "INVALID_ARGUMENT", err.Error())
+			return
+		}
+		// 这里只确认接收，完成数另查 GET /control，不能先把接收数当成成功数。
+		logger.Info("已接收一批商品查询", "batch_id", report.ID, "sku_id", report.SKUID, "requests", report.Requests)
+		httpx.Success(ctx, http.StatusAccepted, report)
 	})
 	router.POST("/control", func(ctx *gin.Context) {
 		var update struct {

@@ -178,6 +178,12 @@ func overrides(value *scenario.Scenario, args []string, output io.Writer) error 
 		return fmt.Errorf("实验参数不合法")
 	}
 	usedQPS, usedSKU, usedLatency := false, false, false
+	for _, step := range value.Inject {
+		// 商品突发必须先暂停普通流量，随后只发查询。通用热点覆盖会把下单也集中起来，重新混入行锁症状。
+		if step.Action == "burst" && (*qps >= 0 || *sku >= 0) {
+			return fmt.Errorf("商品突发场景使用固定的暂停、批次和商品范围，不接受通用 qps 或 sku 覆盖")
+		}
+	}
 	for index := range value.Inject {
 		// 同一个热点编号同步用于流量和单商品缓存，避免删了 A 的缓存却压测 B。
 		step := &value.Inject[index]

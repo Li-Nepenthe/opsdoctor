@@ -38,7 +38,7 @@ func New(address string) *Client {
 	return &Client{URL: strings.TrimRight(address, "/"), HTTP: &http.Client{Timeout: 5 * time.Second}, poll: 5 * time.Second, stable: time.Minute}
 }
 
-// get 限制响应大小，并检查 Prometheus 明确报告成功，不能把错误对象当成空数据。
+// get 限制响应大小，并要求 HTTP 成功；各调用方再检查 Prometheus JSON 中的业务状态。
 func (client *Client) get(ctx context.Context, path string, output any) error {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, client.URL+path, nil)
 	if err != nil {
@@ -55,7 +55,7 @@ func (client *Client) get(ctx context.Context, path string, output any) error {
 	return json.NewDecoder(io.LimitReader(response.Body, 2<<20)).Decode(output)
 }
 
-// Query 只接受有限数值。布尔比较的空列表表示条件尚未出现，不是后端错误。
+// Query 用普通比较后的样本判断条件；没有样本表示条件尚未出现，不是后端错误。
 func (client *Client) Query(ctx context.Context, expression string) (bool, error) {
 	var response struct {
 		Status string

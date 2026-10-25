@@ -155,7 +155,7 @@ func TestStatistics(t *testing.T) {
 // TestControl 使用内存 HTTP 请求检查部分更新，非法值不能改动现有设置。
 func TestControl(t *testing.T) {
 	control := &controlState{settings: controlSettings{QPS: 200}, productCount: 100}
-	router := controlRouter(control, newStatistics(time.Now()), slog.New(slog.NewTextHandler(io.Discard, nil)))
+	router := controlRouter(control, newStatistics(time.Now()), &burstState{}, slog.New(slog.NewTextHandler(io.Discard, nil)))
 	for _, testcase := range []struct {
 		body   string          // 每一行是一次控制操作。
 		status int             // 是否接受更新。

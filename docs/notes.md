@@ -72,6 +72,74 @@ S03 启动日志确认 db_max_open_conns=2、db_max_idle_conns=2，版本为 202
 
 先暂停流量，保留原恢复记录到本机临时文件 S03-failed-original-record.json。随后从 ffccf03 导出临时源码，使用原 APP_VERSION=20261024.3 重建正常库存版本。新镜像 ID 不同，不能冒称找回了原镜像；这是按原源码、版本和公开配置做的人工恢复。修正恢复记录后执行 restore-all，再恢复原 200 QPS。后续代码在发布前给原镜像增加独立本地标签，恢复前检查内容 ID，禁止拉取或构建；增加两个针对这次失败的测试。
 
+### 阶段 4 的 18 容器快照
+
+第二轮 S02 恢复观察期间，下一场尚未注入，控制流量为 200 QPS。docker stats 单次快照合计 3088.301 MiB，约 3.02 GiB；配置上限合计 6464 MiB。不是峰值，也不包含整个 WSL/Windows。原始文件 stats-after-s02.jsonl。MySQL 当时约 996.9 MiB / 1536 MiB，Loki 431.4 MiB / 512 MiB，单个组件的余量仍要单独观察。
+
+| 容器 | 实际内存 | 上限 |
+|---|---:|---:|
+| inventory-service | 15.52MiB  |  128MiB |
+| loadgen | 18.84MiB  |  128MiB |
+| order-service | 23.71MiB  |  256MiB |
+| order-worker | 15.59MiB  |  128MiB |
+| shop-mysql | 996.9MiB  |  1.5GiB |
+| toxiproxy | 18.34MiB  |  128MiB |
+| alertsink | 16.52MiB  |  64MiB |
+| jaeger | 332.8MiB  |  1GiB |
+| kafka-exporter | 16.96MiB  |  64MiB |
+| redis-exporter | 11.77MiB  |  64MiB |
+| alloy | 164.2MiB  |  256MiB |
+| alertmanager | 14.86MiB  |  64MiB |
+| mysqld-exporter | 9.371MiB  |  64MiB |
+| redis | 84.02MiB  |  256MiB |
+| kafka | 647.7MiB  |  1GiB |
+| loki | 431.4MiB  |  512MiB |
+| prometheus | 122.4MiB  |  512MiB |
+| grafana | 147.4MiB  |  256MiB |
+
+### 镜像恢复修复的实机回归
+
+第二轮使用源码 46212ca。S03 在 96.728 秒确认连接池等待告警，126.090 秒恢复到连续一分钟健康。恢复后的容器引用 `opsdoctor/inventory-service:saved-b96ca0b0893b0f4338ea35b5cbc9948ad3e66ab2e030548423f0b6589744c851`，docker inspect 返回的内容 ID 与保存记录一致。真实容器回归证明先保留镜像引用、再核对内容的流程可用；完整第二轮结果另列，不把这一个通过项算作整轮通过。
+
+### S04 首次实测暴露的场景边界
+
+第二轮的 S04 未在三分钟内触发 CacheLoadsHigh。新订单进程的 cache_loads_total 首次完整采样为 43，之后约两分钟一直是 43；这 43 次包含部署后、热点切换前的正常请求，不能全部归因于那一次缓存删除。对应 Prometheus 查询结果保存为 S04-cache-counter.json。全过程采到的缓存回源速率最高约 18.564 次/秒，随后归零；没有用“不相关告警也响了”替它过关。
+
+400 QPS 的热点设置同时改变商品查询和下单的 SKU。行锁等待速率最高约 19793.583ms/s，实际触发的是 RowLockWaiting、InventoryLatencyHigh、DatabasePoolWaiting，属于热行竞争的影响。按计划书要求先询问用户，没有把不相关的行锁告警算作缓存告警。
+
+用户随后批准只针对商品查询的有限突发，并明确同键并发回源计数只能用于诊断，不能触发告警。开始补 `/burst` 控制接口：固定工作者全部接到任务后一起发出商品 GET；批次不能叠加，完成数和失败数按真实 HTTP 结果记录。对应单元与竞态测试通过，commentcheck 为 176 个非生成 Go 文件。当前整套 selftest 仍按启动时的旧场景继续运行，已有业务容器未切换这份新实现，避免在同一轮中途换实验定义。
+
+
+### 第二轮完整 selftest：46212ca，十项通过、S04 未通过
+
+开始 Unix 时间 1792907358.15219，结束 1792910313.022603，整轮约 2954.870 秒。业务容器仍使用这轮开始时的实现；后半段新增的商品突发代码未部署到这些容器。十一项全部执行，S04 的三分钟观察失败保留。原始输出 selftest-after-image-fix.txt，逐十秒指标为同名前缀的 metrics.jsonl。
+
+| 场景 | 事前健康 | 注入耗时 | 症状及告警（自注入起） | 恢复健康（含恢复动作） | 告警 | 结果 |
+|---|---:|---:|---:|---:|---|---|
+| S01 | 1m0.144s | 17ms | 50.095s | 2m7.435s | InventoryLatencyHigh | 通过 |
+| S02 | 1m0.153s | 19ms | 45.115s | 2m21.875s | OrderListLatencyHigh | 通过 |
+| S03 | 1m35.331s | 26.689s | 1m36.728s | 2m6.09s | DatabasePoolWaiting | 通过 |
+| S04 | 1m0.126s | 33.03s | 3m0.001s | 2m6.872s |  | 症状或相关告警未在时限内出现：context deadline exceeded |
+| S05 | 1m0.124s | 29.057s | 1m24.081s | 1m36.094s | CacheLoadsHigh | 通过 |
+| S06 | 1m0.116s | 454ms | 55.48s | 1m20.986s | ServiceUnavailable | 通过 |
+| S07 | 1m0.111s | 8ms | 1m30.056s | 1m55.188s | HTTPErrorRateHigh | 通过 |
+| S08 | 1m25.178s | 6ms | 45.031s | 2m5.24s | InventoryLatencyHigh,RowLockWaiting | 通过 |
+| S09 | 2m5.241s | 6.521s | 1m26.569s | 1m51.733s | GoroutinesGrowing | 通过 |
+| S10 | 1m0.108s | 4ms | 45.031s | 2m5.207s | InventoryLatencyHigh | 通过 |
+| S13 | 1m0.111s | 29.63s | 1m34.666s | 1m56.456s | InventoryRequestsAmplified | 通过 |
+
+### S04 初步对照与批次大小调整
+
+使用同一份订单镜像 7528a57e，只切换 CACHE_SINGLEFLIGHT；普通流量暂停。Windows 临时 loadgen 使用新 `/burst`，只发商品 GET。先测一件商品、64 次查询：开启时回源 1 次，关闭时 2 次，客户端 P99 为 25ms / 38ms，均无错误。这说明只有一次很短的失效窗口时，便宜的主键查询未必带来明显压力。
+
+随后用 100 个热门商品逐批比较，每批 64 次、间隔 200ms，总共 6400 次请求。开启组用时 20.043s，回源 100 次，窗口内商品 SQL 平均 4.989 次/秒，P99 29ms；关闭组用时 20.047s，回源 4952 次，平均 247.025 次/秒，P99 47ms。两组错误和 dropped 均为 0，行锁等待速率为 0。关闭组出现 CacheLoadsHigh；开启组没有缓存告警，但随后出现库存 DatabasePoolWaiting。历史 ALERTS 查询确认这条通用告警确实 firing，不能只把采样时的 pending 当成没响。
+
+因此保留这组数据，但不把它作为最终的干净对照。继续把每批并发降到 16，把同样 6400 次查询分为 400 批，每批间隔 50ms。正常组实测 20.322s、回源 400 次、平均商品 SQL 19.683 次/秒、P99 16ms、0 错误、0 dropped、行锁等待为 0，采样时没有告警。原始文件均以 S04-prototype- 开头。分钟级 Prometheus 速率还可能包含前后预热，正式对照会单独保留观察窗口；精确回源差值与客户端 P99 已来自本次真实请求。
+
+16 并发的关闭组随后完成：20.278s 内 6400 请求，回源 6316 次，商品 SQL 平均 311.476 次/秒，P99 20ms，0 错误、0 dropped。只出现 CacheLoadsHigh firing，行锁速率为 0。两组分钟窗口 MySQL SELECT 速率为 136.156 / 289.879 次每秒，这包含库存查询与监控查询，不等于纯商品 SQL。正常组历史查询 `max_over_time(ALERTS{alertstate="firing"}[85s] @ 1792911030)` 返回空，覆盖起始到结束后一段观察；原始结果保存为 S04-control-16-alarms.json。
+
+保留每秒 50 次的缓存回源告警门槛，不对同键并发诊断计数报警。候选场景使用 400 个热点、每批 16 次。最大批数仍有限（500），动作平均速率限制为 320 次/秒，低于默认 HTTP 限流。普通流量先暂停，预热与删除只针对这一组商品，实验后恢复。未修改通用连接池告警来迁就 64 并发的对照，未向业务 SQL 添加延迟。正式 Compose 版本仍需重新构建后复验。
+
 <a id="phase-03"></a>
 
 ## 2026-10-23：阶段 3 开发记录

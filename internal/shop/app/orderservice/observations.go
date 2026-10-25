@@ -5,7 +5,7 @@
 //
 // 主要内容：
 //   - observedCache.Get：区分正常命中、空值命中、未命中和读取失败。
-//   - observedProducts.Get：统计真正查询数据库的次数。
+//   - observedProducts.Get：统计真正查询数据库的次数，并观察同一商品是否正在重复查库。
 //   - observedIdempotency.Reserve：统计新请求、回放和处理中的重复请求。
 //
 // 阅读建议：嵌入的接口会转发没改写的方法，例如 Cache.Set；这里只包需要计数的动作。
@@ -15,6 +15,7 @@ package orderservice
 import (
 	"context"
 	"errors"
+	"sync"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/order"
@@ -47,11 +48,35 @@ func (cache observedCache) Get(ctx context.Context, id int64) (product.Product, 
 type observedProducts struct {
 	product.Repository                    // 实际查询仍使用原 MySQL 仓储。
 	metrics            *telemetry.Metrics // 只记次数，不把商品编号变成标签。
+	mu                 sync.Mutex         // 只保护在途计数，不能拿着这把锁执行数据库查询。
+	active             map[int64]int      // 只保存还没查完的商品，最后一个查询结束就删除。
 }
 
 // Get 在真正查库前计数，查询失败也算给数据库带来过一次请求。
-func (repository observedProducts) Get(ctx context.Context, id int64) (product.Product, error) {
+// 同一商品已有查询在途，说明又发起了一次重叠查询。它用于调查，不直接触发告警。
+func (repository *observedProducts) Get(ctx context.Context, id int64) (product.Product, error) {
 	repository.metrics.CacheLoads.WithLabelValues("product").Inc()
+	// 商品编号只留在进程内的临时表里，不能作为 Prometheus 标签，否则商品越多，指标就越多。
+	repository.mu.Lock()
+	if repository.active == nil {
+		repository.active = make(map[int64]int)
+	}
+	concurrent := repository.active[id] > 0
+	repository.active[id]++
+	repository.mu.Unlock()
+	concurrentCounter := repository.metrics.CacheConcurrentLoads.WithLabelValues("product")
+	if concurrent {
+		concurrentCounter.Inc()
+	}
+	defer func() {
+		// 成功、查不到和数据库错误都要释放计数，不把结束的查询永久留成“仍在途”。
+		repository.mu.Lock()
+		defer repository.mu.Unlock()
+		repository.active[id]--
+		if repository.active[id] == 0 {
+			delete(repository.active, id)
+		}
+	}()
 	return repository.Repository.Get(ctx, id)
 }
 

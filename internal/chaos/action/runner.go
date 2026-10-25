@@ -58,6 +58,8 @@ func (runner *Runner) Execute(ctx context.Context, step scenario.Step) error {
 		return runner.latency(ctx, step)
 	case "load":
 		return runner.load(ctx, step)
+	case "burst":
+		return runner.burst(ctx, step)
 	case "delete_cache", "expire_cache":
 		return runner.cache(ctx, step)
 	default:

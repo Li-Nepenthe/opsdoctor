@@ -1,24 +1,30 @@
 id: S04
 title: 热门商品缓存同时回源
 inject:
+  - {action: load, qps: 0, hot_sku_id: 0}
   - action: deploy
     service: order-service
     environment: {CACHE_SINGLEFLIGHT: "false"}
-  - {action: load, qps: 400, hot_sku_id: 1}
-  - {action: delete_cache, first_sku_id: 1, count: 1}
+  # 先用真实商品查询预热，再清除这一小组热点；没有给数据库添加人工延迟。
+  - {action: burst, first_sku_id: 1, count: 400, requests: 1}
+  - {action: delete_cache, first_sku_id: 1, count: 400}
+  # 每个商品只经历一次冷缓存突发。16 个查询一起出发，下一批至少隔 50ms。
+  - {action: burst, first_sku_id: 1, count: 400, requests: 16}
+  - {action: load, qps: 200, hot_sku_id: 0}
 restore:
   - {action: deploy, service: order-service}
   - {action: load, qps: 200, hot_sku_id: 0}
 symptom:
-  promql: 'increase(cache_loads_total{cache="product"}[1m]) > 5'
+  promql: 'rate(cache_loads_total{cache="product"}[1m]) > 50'
   within: 3m
   alerts: [CacheLoadsHigh]
 ground_truth:
   component: order-service:product_cache
   mechanism: concurrent_cache_miss
-  explanation: 热门商品缓存被删除后，多个请求同时查不到缓存。关闭合并回源后，它们分别向数据库查询同一商品。
+  explanation: 一组热门商品开始活动，页面查询在短时间内到达。缓存失效后，同商品的一批查询没有合并，分别访问数据库；没有把下单集中到同一库存行。
 evidence_milestones:
-  - 请求集中到同一商品
+  - 短时请求只查询商品，每个热点都有一批同时到达的查询
   - 启动配置显示 singleflight 被关闭
   - 缓存未命中与实际回源次数同时增加
-  - 多条调用链在同一时段查询同一商品，而不是所有商品一起过期
+  - 同键并发回源计数与多条 SQL 调用链支持重复查询判断；这个计数没有参与告警
+  - singleflight 开启时相同流量大幅减少回源，行锁等待没有升高

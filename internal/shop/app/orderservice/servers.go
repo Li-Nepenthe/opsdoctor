@@ -30,7 +30,7 @@ func services(settings Config, resources *dependencies, runtime *telemetry.Runti
 		return nil, nil, err
 	}
 	products := product.NewService(
-		observedProducts{Repository: product.NewMySQLRepository(resources.database), metrics: runtime.Metrics},
+		&observedProducts{Repository: product.NewMySQLRepository(resources.database), metrics: runtime.Metrics},
 		observedCache{Cache: cache, metrics: runtime.Metrics}, resources.stock, settings.Singleflight, logger,
 	)
 	// 只有整条业务路径和收尾预算都耗尽，旧 processing 占位才能转为待核对。

@@ -25,7 +25,8 @@ import (
 )
 
 // execute 把一次逻辑下单限制在两次 HTTP 尝试，第二次沿用同一个 job 的 key。
-func (generator *generator) execute(ctx context.Context, value job) {
+// 返回值表示最终是否失败，供单批商品查询统计使用；全程统计仍保留每次真实尝试。
+func (generator *generator) execute(ctx context.Context, value job) bool {
 	for attempt := 0; attempt < requestAttempts; attempt++ {
 		started := time.Now()
 		failed, timedOut := generator.attempt(ctx, value)
@@ -38,9 +39,10 @@ func (generator *generator) execute(ctx context.Context, value job) {
 		operation := [...]string{"product", "order", "list"}[value.kind]
 		generator.metrics.Loadgen.WithLabelValues(operation, result).Inc()
 		if value.kind != orderRequest || !timedOut || ctx.Err() != nil {
-			return
+			return failed
 		}
 	}
+	return true // 两次下单都超时，逻辑请求仍失败；每次尝试已经分别记入统计。
 }
 
 // attempt 只接受 HTTP 2xx 且 code 为 OK 的完整 JSON，避免代理返回 HTML 200 也被计成成功。

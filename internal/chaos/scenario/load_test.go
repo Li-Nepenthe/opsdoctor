@@ -5,8 +5,9 @@
 //
 // 主要内容：
 //   - TestRepositoryScenarios：确认实际交付的场景全部可加载。
-//   - TestDecodeRejectsInvalid：未知字段和缺少恢复信息不能通过。
+//   - TestDecodeRejectsInvalid：拒绝未知字段、超长时限和错误场景参数。
 //   - TestStepBoundary：拒绝任意 SQL、服务名和秘密配置。
+//   - TestBurstBoundary：检查有限批次与每批并发数的上下界。
 //
 // 阅读建议：每条表格用例旁的说明就是它防止的误操作。
 
@@ -71,6 +72,31 @@ func TestStepBoundary(t *testing.T) {
 		t.Run(testcase.name, func(t *testing.T) {
 			if err := ValidateStep(testcase.step); err == nil {
 				t.Fatal("越界动作被接受")
+			}
+		})
+	}
+}
+
+// TestBurstBoundary 同时限制总批次和每批请求数，不允许用合法商品编号绕过资源上限。
+func TestBurstBoundary(t *testing.T) {
+	for _, testcase := range []struct {
+		name     string // 说明接受或拒绝的边界。
+		first    int64  // 连续商品范围的起点。
+		count    int    // 最多五百批，每批结束后才发下一批。
+		requests int    // 最多默认的 64 个工作者。
+		ok       bool   // 是否仍在受限实验范围内。
+	}{
+		{"最小批次", 1, 1, 1, true},          // 一个商品、一次查询也合法。
+		{"完整上界", 499501, 500, 64, true},  // 最大范围恰好止于已有数据末尾。
+		{"并发越界", 1, 1, 65, false},        // 不能临时多造工作者。
+		{"批次越界", 1, 501, 64, false},      // 不能把有限突发变成无限作业。
+		{"商品越界", 499502, 500, 64, false}, // 总范围不能越过五十万。
+		{"没有请求", 1, 1, 0, false},         // 空批次不能冒充注入成功。
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			err := ValidateStep(Step{Action: "burst", FirstSKUID: testcase.first, Count: testcase.count, Requests: testcase.requests})
+			if (err == nil) != testcase.ok {
+				t.Fatalf("边界判断=%v", err)
 			}
 		})
 	}

@@ -134,64 +134,70 @@ Jaeger 保留用户批准的 2.20.0 例外，其他基础设施沿用阶段 3 �
 | 名称 | 位置 | 作用 | 被谁调用 |
 |---|---|---|---|
 | main | cmd/chaos/main.go:15:1 | main 将 Ctrl+C 变成取消信号，selftest 收到后先恢复当前场景再退出 | Go 程序入口 |
-| *Runner.Restore | internal/chaos/action/deploy.go:130:1 | Restore 对发布和流量使用注入前快照，其余动作仍按场景声明执行 | chaos/app 注入和恢复流程 |
-| Baseline | internal/chaos/action/deploy.go:26:6 | Baseline 是本机恢复记录的一部分，不含凭据 | chaos/app 注入和恢复流程 |
-| Deployment | internal/chaos/action/deploy.go:33:6 | Deployment 用镜像内容 ID 和公开环境重建原服务 | chaos/app 注入和恢复流程 |
-| *Runner.Capture | internal/chaos/action/deploy.go:39:1 | Capture 在注入之前执行 | chaos/app 注入和恢复流程 |
-| *Runner.deploy | internal/chaos/action/deploy.go:96:1 | deploy 用真实构建版本区分配置发布 | chaos/app 注入和恢复流程 |
-| *Runner.request | internal/chaos/action/http.go:28:1 | request 不自动重试写控制请求；超时后交给恢复路径处理结果不确定的情况 | chaos/app 注入和恢复流程 |
-| *Runner.latency | internal/chaos/action/http.go:63:1 | latency 使用固定名称便于重复恢复 | chaos/app 注入和恢复流程 |
-| *Runner.load | internal/chaos/action/http.go:73:1 | load 只发送明确指定的字段，省略字段不会把现有设置重置为零 | chaos/app 注入和恢复流程 |
-| Runner | internal/chaos/action/runner.go:31:6 | Runner 只保存配置，不长时间占用数据库连接 | chaos/app 注入和恢复流程 |
-| *Runner.Execute | internal/chaos/action/runner.go:42:1 | Execute 再次检查参数，防止调用方绕过 YAML 加载器后执行任意操作 | chaos/app 注入和恢复流程 |
-| *Runner.Command | internal/chaos/action/runner.go:69:1 | Command 使用参数数组，YAML 里的值不会被 PowerShell 或 bash 当成代码 | chaos/app 注入和恢复流程 |
-| *Runner.compose | internal/chaos/action/runner.go:91:1 | compose 固定配置文件与项目目录，只接受内部代码构造的子命令 | chaos/app 注入和恢复流程 |
-| *Runner.index | internal/chaos/action/storage.go:28:1 | index 不接受任意 SQL | chaos/app 注入和恢复流程 |
-| expectedIndex | internal/chaos/action/storage.go:63:1 | expectedIndex 不只检查名字，还核对列顺序和唯一性，避免把同名但结构不同的索引误删 | chaos/app 注入和恢复流程 |
-| *Runner.cache | internal/chaos/action/storage.go:86:1 | cache 使用 pipeline 一次发送多个独立命令，减少宿主机逐次往返造成的到期时间差 | chaos/app 注入和恢复流程 |
-| *Engine.operate | internal/chaos/app/app.go:121:1 | operate 用已有记录匹配 verify 和 restore，防止把另一场景的效果误当成当前场景 | cmd/chaos 与本包命令分派 |
-| overrides | internal/chaos/app/app.go:161:1 | overrides 只覆盖对应动作已有的参数；没有这种动作的场景会拒绝无效的覆盖选项 | cmd/chaos 与本包命令分派 |
-| Run | internal/chaos/app/app.go:33:1 | Run 不隐式启动流量 | cmd/chaos 与本包命令分派 |
-| newEngine | internal/chaos/app/app.go:77:1 | newEngine 只读取密码，不输出它 | cmd/chaos 与本包命令分派 |
-| *Engine.general | internal/chaos/app/app.go:97:1 | general 处理无需场景编号的命令 | cmd/chaos 与本包命令分派 |
-| Executor | internal/chaos/app/engine.go:29:6 | Executor 隔离真正的 Docker、数据库和网络操作，流程测试无需启动容器 | cmd/chaos 与本包命令分派 |
-| Observer | internal/chaos/app/engine.go:36:6 | Observer 只看监控结果，不借用注入器内部状态判断故障是否出现 | cmd/chaos 与本包命令分派 |
-| Record | internal/chaos/app/engine.go:42:6 | Record 保留当时的完整场景，恢复时不依赖后来可能已编辑过的 YAML | cmd/chaos 与本包命令分派 |
-| Engine | internal/chaos/app/engine.go:49:6 | Engine 用一个独占状态文件防止两个场景叠加，否则难以知道该恢复哪份基线 | cmd/chaos 与本包命令分派 |
-| *Engine.Inject | internal/chaos/app/engine.go:56:1 | Inject 用 O_EXCL 独占创建记录 | cmd/chaos 与本包命令分派 |
-| *Engine.Read | internal/chaos/app/engine.go:83:1 | Read 在恢复或单独 verify 时使用原记录，避免错把另一场景的状态拿来验收 | cmd/chaos 与本包命令分派 |
-| *Engine.Restore | internal/chaos/app/engine.go:96:1 | Restore 尝试全部恢复动作；一个动作失败不能阻止另一条网络链路恢复 | cmd/chaos 与本包命令分派 |
-| Row | internal/chaos/app/selftest.go:31:6 | Row 中的时间都来自实际时钟，尚未执行的步骤保持零值并在 Problem 中说明 | cmd/chaos 与本包命令分派 |
-| *Engine.Trial | internal/chaos/app/selftest.go:43:1 | Trial 先确认健康，再开始计时；原本已经有故障的系统不能用来判断本次注入的效果 | cmd/chaos 与本包命令分派 |
-| *Engine.Selftest | internal/chaos/app/selftest.go:87:1 | Selftest 不在场景间自动补库存，操作者须在实验前显式准备，避免把数据变化藏进流程 | cmd/chaos 与本包命令分派 |
-| Load | internal/chaos/scenario/load.go:26:1 | Load 只读取当前阶段明确支持的文件，不把目录中新放入的任意文件自动变成可执行场景 | chaos/app 与 chaos/action |
-| Decode | internal/chaos/scenario/load.go:47:1 | Decode 先检查内容，再逐个检查动作 | chaos/app 与 chaos/action |
-| Scenario | internal/chaos/scenario/model.go:16:6 | Scenario 把实验操作与验收条件放在一起，避免两者各自修改后不再对应 | chaos/app 与 chaos/action |
-| Step | internal/chaos/scenario/model.go:27:6 | Step 只允许已经实现的动作 | chaos/app 与 chaos/action |
-| Symptom | internal/chaos/scenario/model.go:45:6 | Symptom 的表达式采用 PromQL，即 Prometheus 用来筛选和计算指标的查询语言 | chaos/app 与 chaos/action |
-| Truth | internal/chaos/scenario/model.go:52:6 | Truth 保存解释，不参与业务行为或告警规则 | chaos/app 与 chaos/action |
-| validateInteger | internal/chaos/scenario/validate.go:111:1 | validateInteger 提前使用服务端同样的单项边界，避免明知无效还去重建容器 | chaos/app 与 chaos/action |
-| ValidateStep | internal/chaos/scenario/validate.go:21:1 | ValidateStep 先限制动作类型，再检查必要参数 | chaos/app 与 chaos/action |
-| ValidateEnvironment | internal/chaos/scenario/validate.go:76:1 | ValidateEnvironment 不接受 DSN、口令或任意环境变量，只允许实验所需的公开配置 | chaos/app 与 chaos/action |
-| Client | internal/chaos/verify/prometheus.go:29:6 | Client 的间隔和持续时间集中保存，单元测试可缩短时间，不必真的等一分钟 | chaos/app 验收流程 |
-| New | internal/chaos/verify/prometheus.go:37:1 | New 使用五秒轮询，能在十秒采集周期内及时看到新样本，又不会不断空转 | chaos/app 验收流程 |
-| *Client.get | internal/chaos/verify/prometheus.go:42:1 | get 限制响应大小，并检查 Prometheus 明确报告成功，不能把错误对象当成空数据 | chaos/app 验收流程 |
-| *Client.Query | internal/chaos/verify/prometheus.go:59:1 | Query 只接受有限数值 | chaos/app 验收流程 |
-| *Client.Alerts | internal/chaos/verify/prometheus.go:94:1 | Alerts 排除 pending，它表示条件还在观察中，尚未真的触发告警 | chaos/app 验收流程 |
-| wait | internal/chaos/verify/wait.go:123:1 | wait 允许 Ctrl+C 及时结束等待，之后 app 仍可用独立预算做恢复 | chaos/app 验收流程 |
-| Result | internal/chaos/verify/wait.go:25:6 | Result 即使失败也保留等待时间，不能只在成功时记录实验数据 | chaos/app 验收流程 |
-| *Client.Symptom | internal/chaos/verify/wait.go:33:1 | Symptom 的 ctx 由注入开始时间计算截止，部署耗时也计入三分钟，不另送三分钟 | chaos/app 验收流程 |
-| healthyQueries | internal/chaos/verify/wait.go:63:1 | healthyQueries 不把无流量当健康；三个业务端点和三个依赖采集器都必须可用 | chaos/app 验收流程 |
-| *Client.healthSample | internal/chaos/verify/wait.go:77:1 | healthSample 任一查询失败都会使本次采样失败，空数据不会掩盖监控断开 | chaos/app 验收流程 |
-| *Client.Healthy | internal/chaos/verify/wait.go:99:1 | Healthy 每次坏样本都清空连续计时；不能把分散的健康时间累加成一分钟 | chaos/app 验收流程 |
-| responseRecorder | internal/shop/app/orderservice/response_async.go:19:1 | responseRecorder 等业务处理完成后再取状态，避免把默认的 200 当成最终结果 | orderservice.Run 注册的 Gin 中间件 |
-| deliverResponse | internal/shop/app/orderservice/response_async.go:28:1 | deliverResponse 使用无缓冲通道交接结果；发送方要等接收方准备好才能结束 | orderservice.Run 注册的 Gin 中间件 |
-| responseRecorder | internal/shop/app/orderservice/response_direct.go:18:1 | responseRecorder 把请求交给后续处理器，响应内容和状态由业务决定 | orderservice.Run 注册的 Gin 中间件 |
-| stockOptions | internal/shop/app/shopctl/stock_client.go:30:6 | stockOptions 是已经通过本地校验的命令参数，不含数据库配置 | 同包流程与测试 |
-| NewPublisher | internal/shop/events/publisher.go:44:1 | NewPublisher 禁用自动建主题 | 同包流程与测试 |
-| *Client.queryAttempt | internal/shop/inventoryclient/inventory_client.go:117:1 | queryAttempt 给一次查询分配时间 | 同包流程与测试 |
-| NewService | internal/shop/order/service.go:72:1 | NewService 由 app 统一传入依赖，cleanupTimeout 必须大于库存调用超时 | 同包流程与测试 |
-| *Service.Create | internal/shop/order/service.go:77:1 | Create 遇到结果不明就停止自动处理，不能把“没有收到成功答复”当成“什么都没发生” | 同包流程与测试 |
+| *Runner.deploy | internal/chaos/action/deploy.go:103:1 | deploy 用真实构建版本区分配置发布 | Runner.Execute、Restore |
+| *Runner.Restore | internal/chaos/action/deploy.go:144:1 | Restore 对发布和流量使用注入前快照，其余动作仍按场景声明执行 | Engine.Restore |
+| Baseline | internal/chaos/action/deploy.go:26:6 | Baseline 是本机恢复记录的一部分，不含凭据 | Engine 与 Runner 的动作流程 |
+| Deployment | internal/chaos/action/deploy.go:33:6 | Deployment 用镜像内容 ID 和公开环境重建原服务 | Engine 与 Runner 的动作流程 |
+| *Runner.Capture | internal/chaos/action/deploy.go:40:1 | Capture 在注入之前执行 | Engine.Inject |
+| *Runner.request | internal/chaos/action/http.go:28:1 | request 不自动重试写控制请求；超时后交给恢复路径处理结果不确定的情况 | Runner.Capture、latency、load |
+| *Runner.latency | internal/chaos/action/http.go:63:1 | latency 使用固定名称便于重复恢复 | Runner.Execute |
+| *Runner.load | internal/chaos/action/http.go:73:1 | load 只发送明确指定的字段，省略字段不会把现有设置重置为零 | Runner.Execute |
+| Runner | internal/chaos/action/runner.go:31:6 | Runner 只保存配置，不长时间占用数据库连接 | Engine 与 Runner 的动作流程 |
+| *Runner.Execute | internal/chaos/action/runner.go:42:1 | Execute 再次检查参数，防止调用方绕过 YAML 加载器后执行任意操作 | Engine.Inject |
+| *Runner.Command | internal/chaos/action/runner.go:69:1 | Command 使用参数数组，YAML 里的值不会被 PowerShell 或 bash 当成代码 | Runner.RunCommand |
+| *Runner.compose | internal/chaos/action/runner.go:91:1 | compose 固定配置文件与项目目录，只接受内部代码构造的子命令 | Runner.Capture、Execute、deploy |
+| *Runner.index | internal/chaos/action/storage.go:28:1 | index 不接受任意 SQL | Runner.Execute |
+| expectedIndex | internal/chaos/action/storage.go:63:1 | expectedIndex 不只检查名字，还核对列顺序和唯一性，避免把同名但结构不同的索引误删 | Runner.index |
+| *Runner.cache | internal/chaos/action/storage.go:86:1 | cache 使用 pipeline 一次发送多个独立命令，减少宿主机逐次往返造成的到期时间差 | Runner.Execute |
+| *Engine.operate | internal/chaos/app/app.go:121:1 | operate 用已有记录匹配 verify 和 restore，防止把另一场景的效果误当成当前场景 | app.Run |
+| overrides | internal/chaos/app/app.go:167:1 | overrides 只覆盖对应动作已有的参数；没有这种动作的场景会拒绝无效的覆盖选项 | app.operate |
+| Run | internal/chaos/app/app.go:33:1 | Run 不隐式启动流量 | cmd/chaos.main |
+| newEngine | internal/chaos/app/app.go:77:1 | newEngine 只读取密码，不输出它 | app.Run |
+| *Engine.general | internal/chaos/app/app.go:97:1 | general 处理无需场景编号的命令 | app.Run |
+| Executor | internal/chaos/app/engine.go:29:6 | Executor 隔离真正的 Docker、数据库和网络操作，流程测试无需启动容器 | app.Run、Engine 流程与单元测试 |
+| Observer | internal/chaos/app/engine.go:36:6 | Observer 只看监控结果，不借用注入器内部状态判断故障是否出现 | app.Run、Engine 流程与单元测试 |
+| Record | internal/chaos/app/engine.go:42:6 | Record 保留当时的完整场景，恢复时不依赖后来可能已编辑过的 YAML | app.Run、Engine 流程与单元测试 |
+| Engine | internal/chaos/app/engine.go:49:6 | Engine 用一个独占状态文件防止两个场景叠加，否则难以知道该恢复哪份基线 | app.Run、Engine 流程与单元测试 |
+| *Engine.Inject | internal/chaos/app/engine.go:56:1 | Inject 用 O_EXCL 独占创建记录 | app.operate、Engine.Trial |
+| *Engine.Read | internal/chaos/app/engine.go:83:1 | Read 在恢复或单独 verify 时使用原记录，避免错把另一场景的状态拿来验收 | app.operate、app.general、Engine.Trial |
+| *Engine.Restore | internal/chaos/app/engine.go:96:1 | Restore 尝试全部恢复动作；一个动作失败不能阻止另一条网络链路恢复 | app.operate、app.general、Engine.Trial |
+| Row | internal/chaos/app/selftest.go:31:6 | Row 中的时间都来自实际时钟，尚未执行的步骤保持零值并在 Problem 中说明 | app.Run、Engine 流程与单元测试 |
+| *Engine.Trial | internal/chaos/app/selftest.go:43:1 | Trial 先确认健康，再开始计时；原本已经有故障的系统不能用来判断本次注入的效果 | Engine.Selftest |
+| *Engine.Selftest | internal/chaos/app/selftest.go:93:1 | Selftest 不在场景间自动补库存，操作者须在实验前显式准备，避免把数据变化藏进流程 | app.general |
+| Load | internal/chaos/scenario/load.go:26:1 | Load 只读取当前阶段明确支持的文件，不把目录中新放入的任意文件自动变成可执行场景 | app.Run |
+| Decode | internal/chaos/scenario/load.go:47:1 | Decode 先检查内容，再逐个检查动作 | scenario.Load |
+| Scenario | internal/chaos/scenario/model.go:16:6 | Scenario 把实验操作与验收条件放在一起，避免两者各自修改后不再对应 | 场景加载、执行器和 app 流程 |
+| Step | internal/chaos/scenario/model.go:27:6 | Step 只允许已经实现的动作 | 场景加载、执行器和 app 流程 |
+| Symptom | internal/chaos/scenario/model.go:45:6 | Symptom 的表达式采用 PromQL，即 Prometheus 用来筛选和计算指标的查询语言 | Engine.Trial、app.operate |
+| Truth | internal/chaos/scenario/model.go:52:6 | Truth 保存解释，不参与业务行为或告警规则 | 场景加载、执行器和 app 流程 |
+| validateInteger | internal/chaos/scenario/validate.go:111:1 | validateInteger 提前使用服务端同样的单项边界，避免明知无效还去重建容器 | ValidateEnvironment |
+| ValidateStep | internal/chaos/scenario/validate.go:21:1 | ValidateStep 先限制动作类型，再检查必要参数 | scenario.Decode、Runner.Execute、Restore、app.overrides |
+| ValidateEnvironment | internal/chaos/scenario/validate.go:76:1 | ValidateEnvironment 不接受 DSN、口令或任意环境变量，只允许实验所需的公开配置 | ValidateStep、Runner.Capture |
+| Client | internal/chaos/verify/prometheus.go:29:6 | Client 的间隔和持续时间集中保存，单元测试可缩短时间，不必真的等一分钟 | app.newEngine 与验收流程 |
+| New | internal/chaos/verify/prometheus.go:37:1 | New 使用五秒轮询，能在十秒采集周期内及时看到新样本，又不会不断空转 | app.newEngine 与验收流程 |
+| *Client.get | internal/chaos/verify/prometheus.go:42:1 | get 限制响应大小，并要求 HTTP 成功；各调用方再检查 Prometheus JSON 中的业务状态 | Client.Query、Alerts |
+| *Client.Query | internal/chaos/verify/prometheus.go:59:1 | Query 用普通比较后的样本判断条件；没有样本表示条件尚未出现，不是后端错误 | Client.Symptom、healthSample |
+| *Client.Alerts | internal/chaos/verify/prometheus.go:94:1 | Alerts 排除 pending，它表示条件还在观察中，尚未真的触发告警 | Client.Symptom、healthSample |
+| wait | internal/chaos/verify/wait.go:123:1 | wait 允许 Ctrl+C 及时结束等待，之后 app 仍可用独立预算做恢复 | Client.Symptom、Healthy |
+| Result | internal/chaos/verify/wait.go:25:6 | Result 即使失败也保留等待时间，不能只在成功时记录实验数据 | app.newEngine 与验收流程 |
+| *Client.Symptom | internal/chaos/verify/wait.go:33:1 | Symptom 的 ctx 由注入开始时间计算截止，部署耗时也计入三分钟，不另送三分钟 | Engine.Trial、app.operate |
+| healthyQueries | internal/chaos/verify/wait.go:63:1 | healthyQueries 不把无流量当健康；三个业务端点和三个依赖采集器都必须可用 | Client.healthSample |
+| *Client.healthSample | internal/chaos/verify/wait.go:77:1 | healthSample 任一查询失败都会使本次采样失败，空数据不会掩盖监控断开 | Client.Healthy |
+| *Client.Healthy | internal/chaos/verify/wait.go:99:1 | Healthy 每次坏样本都清空连续计时；不能把分散的健康时间累加成一分钟 | Engine.Trial、app.general |
+| processingBudget | internal/shop/app/orderservice/config.go:111:1 | processingBudget 给幂等占位和优雅停机使用同一个上界，避免发送还在执行时就把请求判为待核对 | orderservice.loadConfig、Run |
+| loadConfig | internal/shop/app/orderservice/config.go:56:1 | loadConfig 用局部读取函数收集错误，用户一次就能看到多个配置问题 | 对应 app.Run |
+| responseRecorder | internal/shop/app/orderservice/response_async.go:19:1 | responseRecorder 等业务处理完成后再取状态，避免把默认的 200 当成最终结果 | orderservice.Run |
+| deliverResponse | internal/shop/app/orderservice/response_async.go:28:1 | deliverResponse 使用无缓冲通道交接结果；发送方要等接收方准备好才能结束 | responseRecorder 后台任务 |
+| responseRecorder | internal/shop/app/orderservice/response_direct.go:18:1 | responseRecorder 把请求交给后续处理器，响应内容和状态由业务决定 | orderservice.Run |
+| restock | internal/shop/app/shopctl/stock_client.go:105:1 | restock 在实验前逐个补库存，始终通过库存服务的校验和原子更新，不直接操作表 | shopctl.runStock |
+| parseStock | internal/shop/app/shopctl/stock_client.go:39:1 | parseStock 在建立客户端前拒绝错误参数，防止“敲错命令却已经改了数据” | shopctl.runStock |
+| runStock | internal/shop/app/shopctl/stock_client.go:65:1 | runStock 创建一个短生命周期客户端 | shopctl.Run |
+| NewPublisher | internal/shop/events/publisher.go:44:1 | NewPublisher 禁用自动建主题 | orderservice.Run |
+| *Client.queryAttempt | internal/shop/inventoryclient/inventory_client.go:117:1 | queryAttempt 给一次查询分配时间 | inventoryclient.Client.GetStock |
+| *Client.GetStock | internal/shop/inventoryclient/inventory_client.go:90:1 | GetStock 的所有尝试共享一个截止时间，不能每次重试都重新获得完整预算 | product.Service.Get、客户端测试 |
+| publishErrorKind | internal/shop/order/service.go:216:1 | publishErrorKind 记录可用于排查的错误分类，而不把第三方错误中的连接地址或凭据直接写进日志 | order.Service.Create |
+| NewService | internal/shop/order/service.go:72:1 | NewService 由 app 统一传入依赖，cleanupTimeout 必须大于库存调用超时 | 对应 app 的 Run 与测试 |
+| *Service.Create | internal/shop/order/service.go:77:1 | Create 遇到结果不明就停止自动处理，不能把“没有收到成功答复”当成“什么都没发生” | order.HTTPHandler 的下单处理 |
 
 ### 4. 数据库变更
 
@@ -257,7 +263,7 @@ Jaeger 保留用户批准的 2.20.0 例外，其他基础设施沿用阶段 3 �
 
 ### 2. 已完成的检查
 
-首版通过 gofmt、go vet、staticcheck、commentcheck、archcheck 和完整无外部依赖 race 测试。commentcheck 当时检查 174 份手写 Go 文件。补齐环境参数后的真实 Integration 有 16 个顶层测试通过、0 跳过。两个构建版本都能编译，Prometheus 配置与 12 条规则通过 promtool。最终改动后的检查尚待阶段收尾再次执行。
+首版通过 gofmt、go vet、staticcheck、commentcheck、archcheck 和完整无外部依赖 race 测试（97 个顶层测试通过、16 个集成测试因未配置外部环境而跳过）。commentcheck 当时检查 174 份手写 Go 文件。补齐环境参数后的真实 Integration 有 16 个顶层测试通过、0 跳过。两个构建版本都能编译，Prometheus 配置与 12 条规则通过 promtool。最终改动后的检查尚待阶段收尾再次执行。
 
 ## 五、工程验收结果
 
@@ -267,7 +273,7 @@ Jaeger 保留用户批准的 2.20.0 例外，其他基础设施沿用阶段 3 �
 | 每场景三分钟内有症状与告警 | 未完成 | 不以操作执行成功代替观测 |
 | 每场景恢复后三分钟内健康 | 未完成 | 包含恢复动作和连续一分钟观察 |
 
-已追加数据台账 P4-1 至 P4-5。后续实验条目在实际完成后追加。
+已追加数据台账 P4-1 至 P4-6，包含首轮 selftest 中断的完整表。后续实验条目在实际完成后追加。
 
 ## 六、偏离计划之处
 
@@ -279,11 +285,12 @@ Jaeger 保留用户批准的 2.20.0 例外，其他基础设施沿用阶段 3 �
 2. 库存超时可能已经扣减。待核对占位继续保留。根治需要 Deduct 携带请求 ID 去重，本阶段不实现。
 3. Docker 引擎曾在长实验中途退出。中断轮保留，原因未定。恢复记录保存在宿主机；引擎不可用时，程序也不能保证立刻恢复容器。
 4. MySQL exporter 的锁等待指标是全实例统计，专用测试库也会影响它。故障实验期间不并行跑数据库集成测试。
-5. 所有性能和保留时长数字来自本机 Docker，不代表生产容量。
+5. 首轮 S03 暴露了只记录镜像 ID 的恢复缺陷，已修复并补回归测试；完整实测尚在进行。
+6. 所有性能和保留时长数字来自本机 Docker，不代表生产容量。
 
 ## 八、注释自查结论
 
-初查已补目录说明、包文件清单、文件的主要内容与函数内部判断理由。Go 示例已实际执行，包含单次预算、无缓冲通道、独占创建文件、命令参数数组和构建标签。最终人工自查与 commentcheck 结果待收尾补齐。
+初查已补目录说明、包文件清单、文件的主要内容与函数内部判断理由。人工复查把“保存内容 ID 就能恢复”的说明改成先保留标签、再核对 ID，也修正了把 HTTP 状态检查误写成 JSON 业务状态检查的函数说明。Go 示例已实际执行，包含单次预算、无缓冲通道、独占创建文件、命令参数数组和构建标签。最终人工自查与 commentcheck 结果待收尾补齐。
 
 ## 九、学习指引
 

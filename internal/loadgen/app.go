@@ -64,7 +64,7 @@ func Run(parent context.Context, arguments []string, reader config.Reader, outpu
 	control := &controlState{settings: controlSettings{QPS: settings.QPS}, productCount: settings.ProductCount}
 	metrics := telemetry.NewMetrics("loadgen")
 	generator := newGenerator(settings, control, &http.Client{Transport: transport}, logger, metrics)
-	router := controlRouter(control, generator.stats, logger)
+	router := controlRouter(control, generator.stats, generator.bursts, logger)
 	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{})))
 	server := &http.Server{Addr: settings.ControlAddress, Handler: router, ReadHeaderTimeout: controlRequestTimeout, ReadTimeout: controlRequestTimeout, WriteTimeout: controlRequestTimeout, IdleTimeout: clientIdleTimeout}
 	finished := make(chan error, 2) // HTTP 与调度循环各写一次，主流程收齐。

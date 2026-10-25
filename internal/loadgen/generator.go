@@ -50,12 +50,14 @@ type job struct {
 	skuID  int64       // 商品查询与下单使用同一套热门分布。
 	userID int64       // 在已造数的常见用户范围内选择。
 	key    string      // 每笔逻辑下单独立生成，重试不更换。
+	burst  *burstBatch // 非 nil 时只查商品，并等待同批工作者一起出发。
 }
 
 // generator 把调度数据和发送依赖放在一起，随机源只允许 schedule 所在 goroutine 使用。
 type generator struct {
 	settings Config             // 构造后固定的目标、超时和工作者数量。
 	control  *controlState      // 控制接口修改速率与热点，内部用锁保护。
+	bursts   *burstState        // 有上限的单次突发也交给同一组工作者。
 	client   *http.Client       // 复用连接，所有工作者共享。
 	metrics  *telemetry.Metrics // app 注入指标，与日志统计同时记下每次尝试。
 	stats    *statistics        // 统计内部保护并发写入。
@@ -71,7 +73,8 @@ type generator struct {
 func newGenerator(settings Config, control *controlState, client *http.Client, logger *slog.Logger, metrics *telemetry.Metrics) *generator {
 	random := mathrand.New(mathrand.NewPCG(mathrand.Uint64(), mathrand.Uint64()))
 	return &generator{metrics: metrics, settings: settings, control: control, client: client, logger: logger, random: random,
-		zipf: mathrand.NewZipf(random, zipfShape, zipfOffset, uint64(settings.ProductCount-1)), runID: rand.Text(), stats: newStatistics(time.Now())}
+		bursts: &burstState{queue: make(chan *burstBatch, 1), workers: settings.Workers, productCount: settings.ProductCount},
+		zipf:   mathrand.NewZipf(random, zipfShape, zipfOffset, uint64(settings.ProductCount-1)), runID: rand.Text(), stats: newStatistics(time.Now())}
 }
 
 // nextJob 用一次百分位抽签选择接口，因此长期接近 70/20/10，不保证每十个请求都恰好凑齐。
@@ -104,7 +107,14 @@ func (generator *generator) run(ctx context.Context) {
 		go func() {
 			defer workers.Done()
 			for value := range jobs {
-				generator.execute(workContext, value)
+				if value.burst != nil {
+					// 调度者把这一批交给工作者后统一放行，避免先领到任务的人已经查完缓存。
+					<-value.burst.start
+				}
+				failed := generator.execute(workContext, value)
+				if value.burst != nil {
+					generator.bursts.finish(value.burst.id, failed, 0)
+				}
 			}
 		}()
 	}
@@ -133,9 +143,13 @@ func (generator *generator) schedule(ctx context.Context, jobs chan<- job) {
 		select {
 		case <-ctx.Done():
 			return
+		case batch := <-generator.bursts.queue:
+			generator.dispatchBurst(ctx, jobs, batch)
+			// 突发占用了调度时间，不把这段时间积累成下一轮突然补发的普通流量。
+			last, credit = time.Now(), 0
 		case now := <-ticker.C:
 			settings := generator.control.snapshot()
-			elapsed := now.Sub(last).Seconds()
+			elapsed := max(0, now.Sub(last).Seconds()) // ticker 可能留下突发之前的一次通知。
 			last = now
 			if settings.QPS == 0 {
 				credit = 0

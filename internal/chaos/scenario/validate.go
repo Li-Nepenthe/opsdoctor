@@ -60,6 +60,11 @@ func ValidateStep(step Step) error {
 			break
 		}
 		return nil
+	case "burst":
+		// 每个商品独立发一批，最多五百批；每批最多 64 个请求，批间距保持平均不超过 320 次/秒。
+		if step.FirstSKUID >= 1 && step.Count >= 1 && step.Count <= 500 && step.FirstSKUID <= 500001-int64(step.Count) && step.Requests >= 1 && step.Requests <= 64 {
+			return nil
+		}
 	case "delete_cache", "expire_cache":
 		// 先限制范围，再计算尾编号，既避免越界，也防止大整数相加溢出。
 		if step.FirstSKUID < 1 || step.Count < 1 || step.Count > 10000 || step.FirstSKUID > 500001-int64(step.Count) {
