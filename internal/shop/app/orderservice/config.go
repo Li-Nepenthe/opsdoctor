@@ -88,14 +88,18 @@ func loadConfig(reader config.Reader) (Config, error) {
 		Singleflight:         readBool("CACHE_SINGLEFLIGHT", true), CacheJitter: readDuration("CACHE_TTL_JITTER", time.Minute, 0, time.Minute),
 		RateRPS: readInt("RATE_LIMIT_RPS", 500, 1, 100000), RateBurst: readInt("RATE_LIMIT_BURST", 100, 1, 100000),
 		Inventory: inventoryclient.Config{Timeout: readDuration("INVENTORY_CALL_TIMEOUT", 800*time.Millisecond, time.Millisecond, 10*time.Second),
-			Retry:   resilience.RetryPolicy{MaxRetries: readInt("INVENTORY_GETSTOCK_MAX_RETRIES", 2, 0, 2), Backoff: readDuration("INVENTORY_RETRY_BACKOFF", 50*time.Millisecond, 0, time.Second), MinBudget: readDuration("INVENTORY_RETRY_MIN_BUDGET", 50*time.Millisecond, time.Millisecond, time.Second)},
-			Breaker: resilience.BreakerConfig{Enabled: readBool("INVENTORY_BREAKER_ENABLED", true), MinRequests: uint32(readInt("INVENTORY_BREAKER_MIN_REQUESTS", 10, 1, 100000)), FailurePercent: uint32(readInt("INVENTORY_BREAKER_FAILURE_PERCENT", 50, 1, 100)), Interval: readDuration("INVENTORY_BREAKER_INTERVAL", 10*time.Second, time.Millisecond, time.Hour), OpenTimeout: readDuration("INVENTORY_BREAKER_OPEN_TIMEOUT", 5*time.Second, time.Millisecond, time.Minute), HalfOpenMax: uint32(readInt("INVENTORY_BREAKER_HALF_OPEN_MAX", 1, 1, 100))}},
+			AttemptTimeout: readDuration("INVENTORY_GETSTOCK_ATTEMPT_TIMEOUT", 0, 0, 10*time.Second),
+			Retry:          resilience.RetryPolicy{MaxRetries: readInt("INVENTORY_GETSTOCK_MAX_RETRIES", 2, 0, 10), Backoff: readDuration("INVENTORY_RETRY_BACKOFF", 50*time.Millisecond, 0, time.Second), MinBudget: readDuration("INVENTORY_RETRY_MIN_BUDGET", 50*time.Millisecond, time.Millisecond, time.Second)},
+			Breaker:        resilience.BreakerConfig{Enabled: readBool("INVENTORY_BREAKER_ENABLED", true), MinRequests: uint32(readInt("INVENTORY_BREAKER_MIN_REQUESTS", 10, 1, 100000)), FailurePercent: uint32(readInt("INVENTORY_BREAKER_FAILURE_PERCENT", 50, 1, 100)), Interval: readDuration("INVENTORY_BREAKER_INTERVAL", 10*time.Second, time.Millisecond, time.Hour), OpenTimeout: readDuration("INVENTORY_BREAKER_OPEN_TIMEOUT", 5*time.Second, time.Millisecond, time.Minute), HalfOpenMax: uint32(readInt("INVENTORY_BREAKER_HALF_OPEN_MAX", 1, 1, 100))}},
 	}
 	value.KafkaBrokers, err = kafkaBrokers(readString("KAFKA_BROKERS", "127.0.0.1:9092"))
 	problems = append(problems, err)
 	// gRPC 必须比上游更早结束，才能留出响应时间。补偿也必须容得下一次库存调用。
 	if value.Inventory.Timeout >= value.HTTPBudget || value.Inventory.Timeout >= value.CleanupBudget {
 		problems = append(problems, fmt.Errorf("库存调用超时必须小于 HTTP 请求预算和订单收尾预算"))
+	}
+	if value.Inventory.AttemptTimeout > value.Inventory.Timeout {
+		problems = append(problems, fmt.Errorf("单次 GetStock 尝试时限不能长于库存调用总时限"))
 	}
 	if value.IdempotencyTTL <= processingBudget(value) || value.IdempotencyTTL%time.Second != 0 {
 		problems = append(problems, fmt.Errorf("幂等保存时间须为整秒，并长于完整处理预算"))

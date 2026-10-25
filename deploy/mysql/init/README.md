@@ -8,6 +8,7 @@ MySQL 官方镜像在数据目录为空时（也就是第一次启动时），�
 | [002_shop_test_databases.sql](002_shop_test_databases.sql) | 创建库存测试库和造数测试库 | 阶段 1 |
 | [003_order_sales_test_databases.sql](003_order_sales_test_databases.sql) | 创建订单测试库和销量测试库 | 阶段 2 |
 | [004_metrics_user.sh](004_metrics_user.sh) | 创建只读的监控账号，给 mysqld-exporter 采集 MySQL 指标用 | 阶段 3 |
+| [005_chaos_user.sh](005_chaos_user.sh) | 为宿主机实验创建独立账号，只允许读取和改动两个指定表的结构 | 阶段 4 |
 
 ## 为什么每个测试都有自己的库
 

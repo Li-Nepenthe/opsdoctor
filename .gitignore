@@ -11,3 +11,5 @@ coverage.*
 .idea/
 .vscode/
 .DS_Store
+# 宿主机的实验恢复记录包含场景答案，既不提交，也不挂载进业务或医生容器。
+.opsdoctor-chaos.json

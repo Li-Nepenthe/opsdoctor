@@ -1,0 +1,19 @@
+id: S02
+title: 订单列表缺少联合索引
+inject:
+  - {action: drop_index, table: orders, index: idx_orders_user_created}
+restore:
+  - {action: restore_index, table: orders, index: idx_orders_user_created}
+symptom:
+  promql: 'histogram_quantile(0.99,sum by(le)(rate(http_server_request_duration_seconds_bucket{route="/orders",method="GET"}[1m]))) > 0.2'
+  within: 3m
+  alerts: [OrderListLatencyHigh, HTTPErrorRateHigh]
+ground_truth:
+  component: mysql:shop.orders
+  mechanism: missing_index
+  explanation: 列表按用户筛选并按创建时间排序，联合索引消失后需要扫描和排序大量历史订单。
+evidence_milestones:
+  - 发现慢的是 GET 订单列表而不只是下单
+  - 调用链定位到 orders 查询
+  - EXPLAIN 显示扫描行数和排序增加
+  - 核实 user_id 与 created_at 上的联合索引缺失

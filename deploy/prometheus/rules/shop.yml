@@ -32,3 +32,45 @@ groups:
         labels: {severity: warning}
         annotations:
           summary: 服务管理端口连续无法采集
+      # 这些规则只描述可见症状，不根据发布参数推断索引或网络出了什么问题。
+      - alert: InventoryLatencyHigh
+        expr: histogram_quantile(0.99,sum by(service,le)(rate(rpc_server_duration_seconds_bucket{service="inventory-service"}[1m]))) > 0.2
+        for: 30s
+        labels: {severity: warning}
+        annotations:
+          summary: 库存服务处理 RPC 的 P99 超过 200 毫秒
+      - alert: OrderListLatencyHigh
+        expr: histogram_quantile(0.99,sum by(service,le)(rate(http_server_request_duration_seconds_bucket{route="/orders",method="GET"}[1m]))) > 0.2
+        for: 30s
+        labels: {severity: warning}
+        annotations:
+          summary: 订单列表 P99 超过 200 毫秒
+      - alert: DatabasePoolWaiting
+        expr: rate(go_sql_wait_count_total[1m]) > 1
+        for: 30s
+        labels: {severity: warning}
+        annotations:
+          summary: 每秒超过一次请求需要等待数据库连接
+      - alert: InventoryCallFailures
+        expr: sum by(service)(rate(rpc_client_duration_seconds_count{code!="OK"}[1m])) / sum by(service)(rate(rpc_client_duration_seconds_count[1m])) > 0.1
+        for: 30s
+        labels: {severity: warning}
+        annotations:
+          summary: 库存 RPC 调用失败比例超过百分之十
+      - alert: InventoryRequestsAmplified
+        expr: (sum(rate(rpc_client_retries_total[1m])) > 100) and (sum(rate(rpc_server_duration_seconds_count{service="inventory-service"}[1m])) / sum(rate(http_server_request_duration_seconds_count{service="order-service"}[1m])) > 2)
+        for: 30s
+        labels: {service: order-service, severity: warning}
+        annotations:
+          summary: 库存查询重试增加，下游请求量超过入口两倍
+      - alert: RowLockWaiting
+        expr: rate(mysql_global_status_innodb_row_lock_time[1m]) > 10
+        for: 30s
+        labels: {service: shop-mysql, severity: warning}
+        annotations:
+          summary: 数据库每秒累计行锁等待超过十毫秒
+      - alert: CacheLoadsHigh
+        expr: rate(cache_loads_total{cache="product"}[1m]) > 50
+        labels: {severity: warning}
+        annotations:
+          summary: 商品缓存每秒回源超过五十次

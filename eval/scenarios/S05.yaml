@@ -1,0 +1,22 @@
+id: S05
+title: 大量商品缓存共同到期
+inject:
+  - action: deploy
+    service: order-service
+    environment: {CACHE_TTL_JITTER: "0s"}
+  - {action: expire_cache, first_sku_id: 1, count: 10000, ttl_seconds: 10}
+restore:
+  - {action: deploy, service: order-service}
+symptom:
+  promql: 'increase(cache_loads_total{cache="product"}[1m]) > 100'
+  within: 3m
+  alerts: [CacheLoadsHigh]
+ground_truth:
+  component: order-service:product_cache
+  mechanism: aligned_expiration
+  explanation: 已存在的一批商品缓存共同到期，接下来的请求同时失去缓存保护，许多不同商品需要重新查库。
+evidence_milestones:
+  - 启动配置的 TTL 抖动为零
+  - 缓存剩余时间集中，随后未命中和回源增加
+  - 慢查询涉及多个商品，区分单热点击穿
+  - 数据库压力随这一批缓存重新填充而下降

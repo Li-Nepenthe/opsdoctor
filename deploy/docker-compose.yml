@@ -1,4 +1,4 @@
-# 阶段 3 共 17 个容器；内存设上限，宿主机端口只映射到本机。
+# 阶段 4 共 18 个容器；内存设上限，宿主机端口只映射到本机。
 name: opsdoctor
 x-logging: &bounded-logging
   driver: json-file
@@ -12,10 +12,10 @@ services:
       dockerfile: deploy/docker/go.Dockerfile
       args:
         CMD_NAME: inventory-service
-        APP_VERSION: ${APP_VERSION:-phase-03}
-    image: opsdoctor/inventory-service:phase-03
+        APP_VERSION: ${APP_VERSION:-20261024.3}
+    image: ${INVENTORY_IMAGE:-opsdoctor/inventory-service:20261024.3}
     environment:
-      MYSQL_DSN: app:${MYSQL_PASSWORD:?请设置本机 MySQL 密码}@tcp(shop-mysql:3306)/shop?parseTime=true
+      MYSQL_DSN: app:${MYSQL_PASSWORD:?请设置本机 MySQL 密码}@tcp(toxiproxy:13306)/shop?parseTime=true
       DB_MAX_OPEN_CONNS: ${DB_MAX_OPEN_CONNS:-20}
       DB_MAX_IDLE_CONNS: ${DB_MAX_IDLE_CONNS:-10}
       DB_CONN_MAX_LIFETIME: ${DB_CONN_MAX_LIFETIME:-5m}
@@ -27,6 +27,8 @@ services:
       OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.1}
     depends_on:
       shop-mysql:
+        condition: service_healthy
+      toxiproxy:
         condition: service_healthy
     ports:
       - "127.0.0.1:9001:9001"
@@ -47,8 +49,9 @@ services:
       dockerfile: deploy/docker/go.Dockerfile
       args:
         CMD_NAME: order-service
-        APP_VERSION: ${APP_VERSION:-phase-03}
-    image: opsdoctor/order-service:phase-03
+        APP_VERSION: ${APP_VERSION:-20261024.3}
+        GO_TAGS: ${ORDER_GO_TAGS:-}
+    image: ${ORDER_IMAGE:-opsdoctor/order-service:20261024.3}
     environment:
       MYSQL_DSN: app:${MYSQL_PASSWORD:?请设置本机 MySQL 密码}@tcp(shop-mysql:3306)/shop?parseTime=true
       DB_MAX_OPEN_CONNS: ${DB_MAX_OPEN_CONNS:-20}
@@ -60,15 +63,16 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-parentbased_traceidratio}
       OTEL_TRACES_SAMPLER_ARG: ${OTEL_TRACES_SAMPLER_ARG:-0.1}
-      REDIS_ADDR: redis:6379
+      REDIS_ADDR: toxiproxy:16379
       KAFKA_BROKERS: kafka:29092
-      INVENTORY_GRPC_TARGET: inventory-service:9001
+      INVENTORY_GRPC_TARGET: toxiproxy:19001
       HTTP_REQUEST_TIMEOUT: ${HTTP_REQUEST_TIMEOUT:-3s}
       ORDER_CLEANUP_TIMEOUT: ${ORDER_CLEANUP_TIMEOUT:-2s}
       ORDER_PUBLISH_TIMEOUT: ${ORDER_PUBLISH_TIMEOUT:-5s}
       INVENTORY_CALL_TIMEOUT: ${INVENTORY_CALL_TIMEOUT:-800ms}
       INVENTORY_GRPC_IDLE_TIMEOUT: ${INVENTORY_GRPC_IDLE_TIMEOUT:-30m}
       INVENTORY_GETSTOCK_MAX_RETRIES: ${INVENTORY_GETSTOCK_MAX_RETRIES:-2}
+      INVENTORY_GETSTOCK_ATTEMPT_TIMEOUT: ${INVENTORY_GETSTOCK_ATTEMPT_TIMEOUT:-0s}
       INVENTORY_RETRY_BACKOFF: ${INVENTORY_RETRY_BACKOFF:-50ms}
       INVENTORY_RETRY_MIN_BUDGET: ${INVENTORY_RETRY_MIN_BUDGET:-50ms}
       INVENTORY_BREAKER_ENABLED: ${INVENTORY_BREAKER_ENABLED:-true}
@@ -110,7 +114,7 @@ services:
       dockerfile: deploy/docker/go.Dockerfile
       args:
         CMD_NAME: order-worker
-        APP_VERSION: ${APP_VERSION:-phase-03}
+        APP_VERSION: ${APP_VERSION:-20261024.3}
     image: opsdoctor/order-worker:phase-03
     environment:
       MYSQL_DSN: app:${MYSQL_PASSWORD:?请设置本机 MySQL 密码}@tcp(shop-mysql:3306)/shop?parseTime=true
@@ -147,7 +151,7 @@ services:
       dockerfile: deploy/docker/go.Dockerfile
       args:
         CMD_NAME: loadgen
-        APP_VERSION: ${APP_VERSION:-phase-03}
+        APP_VERSION: ${APP_VERSION:-20261024.3}
     image: opsdoctor/loadgen:phase-03
     environment:
       LOADGEN_TARGET: http://order-service:8081
@@ -177,6 +181,7 @@ services:
     environment:
       MYSQL_DATABASE: shop
       MYSQL_EXPORTER_PASSWORD: ${MYSQL_EXPORTER_PASSWORD:?请设置监控账号密码}
+      CHAOS_MYSQL_PASSWORD: ${CHAOS_MYSQL_PASSWORD:?请设置独立实验账号密码}
       MYSQL_USER: app
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请复制 .env.example 为 .env 并指定 --env-file .env}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请设置本机 MySQL root 密码}
@@ -197,6 +202,21 @@ services:
       timeout: 3s # 单次本机查询通常很快，异常时尽快失败。
       retries: 30 # 初次初始化允许约两分半的等待。
       start_period: 30s # 初始化期间的失败不提前耗尽重试次数。
+
+  toxiproxy:
+    image: ghcr.io/shopify/toxiproxy:2.13.0
+    command: ["-host", "0.0.0.0", "-config", "/config/proxies.json"]
+    volumes:
+      - ./toxiproxy/proxies.json:/config/proxies.json:ro
+    ports:
+      - "127.0.0.1:8474:8474" # 只有宿主机操作者可以从映射端口改变网络规则。
+    mem_limit: 128m # TCP 转发与有限延迟队列共用上限，不能挤占数据库预算。
+    logging: *bounded-logging
+    healthcheck:
+      test: ["CMD", "/toxiproxy-cli", "list"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
 
   redis:
     image: redis:8.10.2
@@ -381,7 +401,7 @@ services:
       dockerfile: deploy/docker/go.Dockerfile
       args:
         CMD_NAME: alertsink
-        APP_VERSION: ${APP_VERSION:-phase-03}
+        APP_VERSION: ${APP_VERSION:-20261024.3}
     image: opsdoctor/alertsink:phase-03
     environment:
       ALERTSINK_ADDR: :8091

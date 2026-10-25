@@ -1,0 +1,5 @@
+[
+  {"name":"order-inventory","listen":"0.0.0.0:19001","upstream":"inventory-service:9001","enabled":true},
+  {"name":"inventory-mysql","listen":"0.0.0.0:13306","upstream":"shop-mysql:3306","enabled":true},
+  {"name":"order-redis","listen":"0.0.0.0:16379","upstream":"redis:6379","enabled":true}
+]

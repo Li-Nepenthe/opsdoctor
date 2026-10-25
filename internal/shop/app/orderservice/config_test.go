@@ -29,7 +29,14 @@ func TestConfigBudgets(t *testing.T) {
 		{"消息预算可独立配置", map[string]string{"ORDER_PUBLISH_TIMEOUT": "5s", "ORDER_CLEANUP_TIMEOUT": "2s"}, true},                                                                     // 消息确认不再被 Redis 收尾预算提前打断。
 		{"消息预算有上限", map[string]string{"ORDER_PUBLISH_TIMEOUT": "11s"}, false},                                                                                                    // 防止发送无限占住处理资源。
 		{"收尾不够", map[string]string{"ORDER_CLEANUP_TIMEOUT": "500ms"}, false},                                                                                                     // 补偿要容得下一次库存调用。
-		{"重试过多", map[string]string{"INVENTORY_GETSTOCK_MAX_RETRIES": "3"}, false},                                                                                                // 计划书最多两次重试。
+		{"最大重试", map[string]string{"INVENTORY_GETSTOCK_MAX_RETRIES": "10"}, true},                                                                                                // 实验允许放大，但总时限仍生效。
+		{"重试过多", map[string]string{"INVENTORY_GETSTOCK_MAX_RETRIES": "11"}, false},                                                                                               // 和通用重试器的硬上限一致。
+		{"负重试", map[string]string{"INVENTORY_GETSTOCK_MAX_RETRIES": "-1"}, false},                                                                                                // 负数没有可执行含义。
+		{"继承总时限", map[string]string{"INVENTORY_GETSTOCK_ATTEMPT_TIMEOUT": "0s"}, true},                                                                                           // 默认不改变以往行为。
+		{"短单次时限", map[string]string{"INVENTORY_GETSTOCK_ATTEMPT_TIMEOUT": "100ms"}, true},                                                                                        // 单次失败后仍留时间给下一次。
+		{"单次等于总时限", map[string]string{"INVENTORY_GETSTOCK_ATTEMPT_TIMEOUT": "800ms"}, true},                                                                                      // 允许等号，但超时后没有重试余量。
+		{"单次超过总时限", map[string]string{"INVENTORY_GETSTOCK_ATTEMPT_TIMEOUT": "801ms"}, false},                                                                                     // 拒绝看似有效却无法兑现的配置。
+		{"负单次时限", map[string]string{"INVENTORY_GETSTOCK_ATTEMPT_TIMEOUT": "-1ms"}, false},                                                                                        // 只有零能表达沿用总时限。
 		{"可关闭防护", map[string]string{"CACHE_SINGLEFLIGHT": "false", "CACHE_TTL_JITTER": "0s", "INVENTORY_BREAKER_ENABLED": "false", "INVENTORY_GETSTOCK_MAX_RETRIES": "0"}, true}, // 明确提供对比用的正常配置。
 		{"错误失败率", map[string]string{"INVENTORY_BREAKER_FAILURE_PERCENT": "101"}, false},                                                                                          // 百分比不超过一百。
 		{"空 broker 项", map[string]string{"KAFKA_BROKERS": "127.0.0.1:9092,"}, false},                                                                                             // 末尾逗号不能生成一个空地址。

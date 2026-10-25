@@ -48,6 +48,8 @@ jobs:
           go run ./tools/archcheck ./...
       - name: 单元测试与竞态检查（无外部依赖）
         run: go test -race ./... -count=1 -timeout=180s
+      - name: 检查另一构建版本能编译
+        run: go build -tags leakbug -o "$RUNNER_TEMP/order-service-alternate" ./cmd/order-service
       - name: 启动固定版本基础设施并等待健康
         run: |
           cp .env.example .env
@@ -74,6 +76,26 @@ jobs:
           go run ./cmd/shopctl stock get --sku 1
           go run ./cmd/shopctl stock deduct --sku 1 --quantity 1
           go run ./cmd/shopctl stock get --sku 1
+      - name: 网络实验与恢复冒烟
+        run: |
+          go run ./cmd/chaos list
+          # small 数据不用于完整故障验收；这里检查真实代理规则的增加与恢复。
+          trap 'go run ./cmd/chaos restore-all' EXIT
+          go run ./cmd/chaos inject S07 --latency-ms 50
+          python3 - <<'PY'
+          import json, urllib.request
+          with urllib.request.urlopen('http://127.0.0.1:8474/proxies/order-inventory') as response:
+              proxy = json.load(response)
+          assert any(t['name'] == 'transport-delay' and t['attributes']['latency'] == 50 for t in proxy['toxics'])
+          with urllib.request.urlopen('http://127.0.0.1:8081/products/99', timeout=5) as response:
+              assert json.load(response)['data']['stock']['status'] == 'ok'
+          PY
+          go run ./cmd/chaos restore S07
+          python3 - <<'PY'
+          import json, urllib.request
+          with urllib.request.urlopen('http://127.0.0.1:8474/proxies/order-inventory') as response:
+              assert json.load(response)['toxics'] == []
+          PY
       - name: 订单 HTTP、幂等和消息冒烟
         run: |
           python3 - <<'PY'

@@ -1,0 +1,21 @@
+id: S03
+title: 库存数据库连接池过小
+inject:
+  - action: deploy
+    service: inventory-service
+    environment: {DB_MAX_OPEN_CONNS: "2", DB_MAX_IDLE_CONNS: "2"}
+restore:
+  - {action: deploy, service: inventory-service}
+symptom:
+  promql: 'rate(go_sql_wait_count_total{service="inventory-service"}[1m]) > 1'
+  within: 3m
+  alerts: [DatabasePoolWaiting, InventoryLatencyHigh]
+ground_truth:
+  component: inventory-service:database_pool
+  mechanism: pool_capacity
+  explanation: 并发请求超过两条可用连接后，需要先排队借连接，留给真正 SQL 的时间被压缩。
+evidence_milestones:
+  - 启动日志显示连接池上限从原值变为 2
+  - 连接使用数接近上限，等待次数和等待时间增长
+  - 查询执行计划仍使用正确索引
+  - 区分借连接等待和数据库内部的行锁等待

@@ -1,0 +1,19 @@
+id: S07
+title: 库存调用链路延迟
+inject:
+  - {action: latency, proxy: order-inventory, stream: downstream, latency_ms: 800}
+restore:
+  - {action: clear_latency, proxy: order-inventory}
+symptom:
+  promql: 'histogram_quantile(0.99,sum by(le)(rate(rpc_client_duration_seconds_bucket{service="order-service"}[1m]))) > 0.5'
+  within: 3m
+  alerts: [InventoryCallFailures, HTTPErrorRateHigh]
+ground_truth:
+  component: order-service->inventory-service
+  mechanism: network_latency
+  explanation: 库存服务的响应在网络中等待，调用方先用完预算。持续失败让熔断器打开，商品页降级而扣减结果可能待核对。
+evidence_milestones:
+  - 客户端 gRPC span 很长，服务端处理明显更短
+  - 库存 SQL 及执行计划没有同步变慢
+  - 库存调用出现 DeadlineExceeded，随后熔断打开
+  - 商品返回库存暂不可用，并出现待核对记录

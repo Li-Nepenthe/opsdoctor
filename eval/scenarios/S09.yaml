@@ -1,0 +1,19 @@
+id: S09
+title: 发布后后台任务无法结束
+inject:
+  - {action: deploy, service: order-service, image: "opsdoctor/order-service:20261024.4"}
+restore:
+  - {action: deploy, service: order-service}
+symptom:
+  promql: 'deriv(go_goroutines{service="order-service"}[2m]) > 1'
+  within: 3m
+  alerts: [GoroutinesGrowing]
+ground_truth:
+  component: order-service:response_processing
+  mechanism: blocked_channel_sender
+  explanation: 每个响应启动一个发送结果的后台任务，但无缓冲通道没有接收方。请求完成后任务仍停在发送位置，数量随流量不断增长。
+evidence_milestones:
+  - 版本信息和启动时间显示近期发布
+  - 入口流量稳定而 goroutine 数持续增长
+  - 多次 goroutine profile 出现不断增加的相同 channel send 堆栈
+  - 旧版本恢复后任务数重新稳定，不能只靠扩内存处理

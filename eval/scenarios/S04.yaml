@@ -1,0 +1,24 @@
+id: S04
+title: 热门商品缓存同时回源
+inject:
+  - action: deploy
+    service: order-service
+    environment: {CACHE_SINGLEFLIGHT: "false"}
+  - {action: load, qps: 400, hot_sku_id: 1}
+  - {action: delete_cache, first_sku_id: 1, count: 1}
+restore:
+  - {action: deploy, service: order-service}
+  - {action: load, qps: 200, hot_sku_id: 0}
+symptom:
+  promql: 'increase(cache_loads_total{cache="product"}[1m]) > 5'
+  within: 3m
+  alerts: [CacheLoadsHigh]
+ground_truth:
+  component: order-service:product_cache
+  mechanism: concurrent_cache_miss
+  explanation: 热门商品缓存被删除后，多个请求同时查不到缓存。关闭合并回源后，它们分别向数据库查询同一商品。
+evidence_milestones:
+  - 请求集中到同一商品
+  - 启动配置显示 singleflight 被关闭
+  - 缓存未命中与实际回源次数同时增加
+  - 多条调用链在同一时段查询同一商品，而不是所有商品一起过期

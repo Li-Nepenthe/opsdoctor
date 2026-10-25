@@ -12,6 +12,7 @@
 | [shop](shop/README.md) | 靶场：库存、订单、商品、销量等电商业务 |
 | [doctor](doctor/README.md) | 医生：诊断系统。目前只有登录用的认证规则 |
 | [loadgen](loadgen/doc.go) | 压测工具的实现：生成流量、控制速率、统计结果 |
+| [chaos](chaos/README.md) | 宿主机实验工具：改动真实原因、恢复环境、检查症状和健康 |
 
 ## 谁能依赖谁
 

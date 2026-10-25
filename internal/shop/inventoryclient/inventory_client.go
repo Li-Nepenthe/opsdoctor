@@ -6,6 +6,7 @@
 // 主要内容：
 //   - Config、New：检查超时配置，分别创建查询和扣减的熔断器。
 //   - GetStock：在总预算内重试查询，把结果转换成库存快照。
+//   - queryAttempt：按需缩短一次查询的等待时间，保留整次调用的截止时间。
 //   - Deduct、Release：只发送一次写请求，避免重复扣减或归还。
 //   - convertError：把 RPC 状态转换成业务能理解的错误。
 //   - WriteError：保留“这次写操作是否可能已生效”的信息。
@@ -32,19 +33,21 @@ import (
 
 // Config 由 app 从环境变量读取。客户端只接收检查过的值。
 type Config struct {
-	Timeout time.Duration            // 一次逻辑调用的总预算，包含查询重试和等待。
-	Retry   resilience.RetryPolicy   // 仅 GetStock 使用这份策略。
-	Breaker resilience.BreakerConfig // 两个熔断器用相同配置，但各自计数。
+	Timeout        time.Duration            // 一次逻辑调用的总预算，包含查询重试和等待。
+	AttemptTimeout time.Duration            // 每次查询尝试的预算；0 沿用总截止时间，写请求不使用它。
+	Retry          resilience.RetryPolicy   // 仅 GetStock 使用这份策略。
+	Breaker        resilience.BreakerConfig // 两个熔断器用相同配置，但各自计数。
 }
 
 // Client 共用一条 gRPC 连接。每次调用的结果都存在局部变量里，不会互相覆盖。
 type Client struct {
-	rpc           inventoryv1.InventoryServiceClient // app 创建并管理底层连接。
-	timeout       time.Duration                      // 每次调用开始时，用它缩短调用方的预算。
-	retry         *resilience.Retrier                // 查询失败后决定是否再试。
-	getBreaker    *resilience.Breaker                // 查询接口自己的失败记录。
-	deductBreaker *resilience.Breaker                // 扣减接口自己的失败记录。
-	retryCounter  prometheus.Counter                 // app 可选接入；没有接入时测试只验证业务行为。
+	rpc            inventoryv1.InventoryServiceClient // app 创建并管理底层连接。
+	timeout        time.Duration                      // 每次调用开始时，用它缩短调用方的预算。
+	attemptTimeout time.Duration                      // 只限制单次查询，让暂时失败后仍可能有时间重试。
+	retry          *resilience.Retrier                // 查询失败后决定是否再试。
+	getBreaker     *resilience.Breaker                // 查询接口自己的失败记录。
+	deductBreaker  *resilience.Breaker                // 扣减接口自己的失败记录。
+	retryCounter   prometheus.Counter                 // app 可选接入；没有接入时测试只验证业务行为。
 }
 
 // WriteError 表示写请求的错误。连接断开不等于服务端没有执行，因此需要额外保存结果是否确定。
@@ -64,8 +67,8 @@ func (err *WriteError) OutcomeUnknown() bool { return err.MayHaveApplied }
 
 // New 提前检查配置，避免服务已经接流量后才发现保护参数不合法。
 func New(rpc inventoryv1.InventoryServiceClient, config Config, logger *slog.Logger) (*Client, error) {
-	if rpc == nil || config.Timeout <= 0 || config.Retry.MaxRetries > 2 {
-		return nil, fmt.Errorf("库存客户端需要有效 RPC、正超时，查询最多重试两次")
+	if rpc == nil || config.Timeout <= 0 || config.AttemptTimeout < 0 || config.AttemptTimeout > config.Timeout {
+		return nil, fmt.Errorf("库存客户端需要有效 RPC、正总时限，单次查询时限须在零与总时限之间")
 	}
 	retry, err := resilience.NewRetrier(config.Retry)
 	if err != nil {
@@ -80,7 +83,7 @@ func New(rpc inventoryv1.InventoryServiceClient, config Config, logger *slog.Log
 	if err != nil {
 		return nil, err
 	}
-	return &Client{rpc: rpc, timeout: config.Timeout, retry: retry, getBreaker: get, deductBreaker: deduct}, nil
+	return &Client{rpc: rpc, timeout: config.Timeout, attemptTimeout: config.AttemptTimeout, retry: retry, getBreaker: get, deductBreaker: deduct}, nil
 }
 
 // GetStock 的所有尝试共享一个截止时间，不能每次重试都重新获得完整预算。
@@ -97,7 +100,7 @@ func (client *Client) GetStock(parent context.Context, skuID int64) (inventory.S
 			}
 			attempts++
 			var err error
-			response, err = client.rpc.GetStock(ctx, &inventoryv1.GetStockRequest{SkuId: skuID})
+			response, err = client.queryAttempt(ctx, skuID)
 			return err
 		})
 	}, func(err error) bool {
@@ -108,6 +111,18 @@ func (client *Client) GetStock(parent context.Context, skuID int64) (inventory.S
 		return inventory.Stock{}, convertError(err)
 	}
 	return inventory.Stock{SKUID: skuID, Available: response.GetAvailable()}, nil
+}
+
+// queryAttempt 给一次查询分配时间。父 context 仍限制整次调用，短预算到期不会取消其他尝试。
+func (client *Client) queryAttempt(ctx context.Context, skuID int64) (*inventoryv1.GetStockResponse, error) {
+	if client.attemptTimeout == 0 {
+		// 默认直接传原 context，保留此前所有尝试共享截止时间的行为。
+		return client.rpc.GetStock(ctx, &inventoryv1.GetStockRequest{SkuId: skuID})
+	}
+	// WithTimeout 不会延长父 context。即使只剩一点总预算，本次也必须按时结束。
+	attempt, cancel := context.WithTimeout(ctx, client.attemptTimeout)
+	defer cancel()
+	return client.rpc.GetStock(attempt, &inventoryv1.GetStockRequest{SkuId: skuID})
 }
 
 // Deduct 一次只发一条 RPC。响应丢失时可能已经扣成功，不能擅自补发。

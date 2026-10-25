@@ -1,0 +1,29 @@
+id: S13
+title: 短单次时限与密集重试放大请求
+inject:
+  - action: deploy
+    service: order-service
+    environment:
+      INVENTORY_BREAKER_ENABLED: "false"
+      INVENTORY_GETSTOCK_MAX_RETRIES: "10"
+      INVENTORY_RETRY_BACKOFF: "0s"
+      INVENTORY_RETRY_MIN_BUDGET: "1ms"
+      INVENTORY_GETSTOCK_ATTEMPT_TIMEOUT: "50ms"
+  - {action: latency, proxy: order-inventory, stream: downstream, latency_ms: 80}
+restore:
+  - {action: clear_latency, proxy: order-inventory}
+  - {action: deploy, service: order-service}
+symptom:
+  promql: '(sum(rate(rpc_client_retries_total[1m])) > 100) and (sum(rate(rpc_server_duration_seconds_count{service="inventory-service"}[1m])) / sum(rate(http_server_request_duration_seconds_count{service="order-service"}[1m])) > 2)'
+  within: 3m
+  alerts: [InventoryRequestsAmplified]
+ground_truth:
+  component: order-service:inventory_client
+  mechanism: retry_amplification
+  explanation: 单次查询等 50ms 就结束，总时限却仍有剩余。响应被链路延迟 80ms，每次都赶不上单次时限；关闭退避和熔断后，同一 HTTP 请求连续发出许多库存查询。
+evidence_milestones:
+  - 启动日志包含单次时限、总时限、重试上限、退避与熔断设置
+  - rpc_client_retries_total 的增长速度明显上升
+  - 库存实际 RPC 请求率超过订单 HTTP 入口数倍
+  - 同一商品请求的调用链包含多次 GetStock，而 Deduct 始终只调用一次
+  - 恢复保护参数后请求放大消失

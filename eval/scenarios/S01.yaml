@@ -1,0 +1,20 @@
+id: S01
+title: 库存表缺少商品索引
+inject:
+  - {action: drop_index, table: stock, index: uk_stock_sku}
+restore:
+  - {action: restore_index, table: stock, index: uk_stock_sku}
+symptom:
+  promql: 'histogram_quantile(0.99,sum by(le)(rate(rpc_server_duration_seconds_bucket{service="inventory-service",method=~".*Deduct"}[1m]))) > 0.2'
+  within: 3m
+  alerts: [InventoryLatencyHigh, HTTPErrorRateHigh]
+ground_truth:
+  component: mysql:shop.stock
+  mechanism: missing_index
+  explanation: 扣减按 sku_id 查找，缺少唯一索引后扫描许多无关行，更新还会持锁，其他扣减随之等待。
+evidence_milestones:
+  - 发现下单变慢或超时
+  - 调用链的库存 UPDATE 占用主要时间
+  - EXPLAIN 显示 stock 全表扫描
+  - SHOW INDEX 确认缺少 uk_stock_sku
+  - 行锁等待上升而恢复索引后下降

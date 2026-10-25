@@ -259,6 +259,62 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T loadgen /app
 
 结束时输出 `scope=total` 的真实汇总。small 数据使用 `--products 100`，并降低速率或时长，避免把有限库存耗尽。`POST /control` 可单独修改 `qps` 或 `hot_sku_id`；`hot_sku_id=0` 恢复 Zipf 分布。默认 Zipf 参数为 s=1.1、v=100，不是均匀随机。
 
+## 阶段 4：准备与运行故障实验
+
+本阶段命令在宿主机运行，场景范围是 S01–S10、S13。完整自测仍在验收中，实际结论以进度看板和 notes 为准。先停止其他手工实验，准备完整业务数据和足够库存。
+
+已有数据卷不会自动重跑 MySQL 初始化脚本。先给本机 `.env` 增加独立的 `CHAOS_MYSQL_PASSWORD`，不要覆盖已有配置；再启动更新后的 Compose，显式补建账号：
+
+```text
+docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240
+docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/005_chaos_user.sh
+```
+
+空库首次启动仍先设 `LOADGEN_QPS=0`，造数后才开启流量。Toxiproxy 管理端口为 127.0.0.1:8474；订单→库存、库存→MySQL、订单→Redis 默认经过代理。宿主机 shopctl 仍用原库存端口。
+
+准备 S09 的另一个镜像。该命令只构建，不会立即切换正在运行的服务：
+
+```text
+docker build -f deploy/docker/go.Dockerfile --build-arg CMD_NAME=order-service --build-arg APP_VERSION=20261024.4 --build-arg GO_TAGS=leakbug -t opsdoctor/order-service:20261024.4 .
+```
+
+实验账号不使用业务账号。PowerShell 从本机配置读取密码并组装 DSN，整个过程不打印它：
+
+```powershell
+Get-Content .env | ForEach-Object {
+    if ($_ -match '^CHAOS_MYSQL_PASSWORD=(.*)$') {
+        $env:CHAOS_MYSQL_PASSWORD = $Matches[1]
+    }
+}
+$env:CHAOS_MYSQL_DSN = "chaos:$($env:CHAOS_MYSQL_PASSWORD)@tcp(127.0.0.1:3306)/shop?parseTime=true"
+```
+
+bash 对应写法：
+
+```bash
+while IFS= read -r line; do
+  case "$line" in CHAOS_MYSQL_PASSWORD=*) export "$line" ;; esac
+done < .env
+export CHAOS_MYSQL_DSN="chaos:${CHAOS_MYSQL_PASSWORD}@tcp(127.0.0.1:3306)/shop?parseTime=true"
+```
+
+先用 loadgen 控制接口开启真实流量，再依次执行：
+
+```text
+go run ./cmd/chaos list
+go run ./cmd/chaos healthy
+go run ./cmd/chaos inject S07
+go run ./cmd/chaos verify S07
+go run ./cmd/chaos restore S07
+go run ./cmd/chaos healthy
+```
+
+`inject` 可用 `--qps`、`--sku`、`--latency-ms` 覆盖该场景已有的对应动作。`verify` 从注入开始计三分钟，需要同时看到症状和相关告警；它不会因为配置已改就宣布成功。`healthy` 需要连续一分钟有流量、延迟与错误率正常、消费追平、依赖可用且没有 firing 告警。
+
+完整自测用 `go run ./cmd/chaos selftest`。先暂停流量并按前面的 restock 命令显式准备库存，再恢复流量、等 healthy 通过。每一轮的完整结果表都保留，包括失败轮次。工具不会在自测内部自动补库存。
+
+实验状态保存在忽略文件 `.opsdoctor-chaos.json`。同一时刻只允许一个活动实验。中断后运行 `go run ./cmd/chaos restore-all`，它按原镜像内容 ID、公开配置和流量恢复；恢复失败时保留文件，修复外部环境后可重试。这个文件含参考答案，不要挂载进业务或医生容器。恢复环境不会自动处理过去已经产生的待核对订单。
+
 ## 重新生成 protobuf
 
 生成物已提交，普通构建和 CI 不需要装 buf。修改契约时才运行：

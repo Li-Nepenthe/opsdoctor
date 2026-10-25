@@ -83,6 +83,7 @@ func Run(parent context.Context) (result error) {
 		"inventory_grpc_idle_timeout", settings.InventoryIdleTimeout.String(),
 		"publish_timeout", settings.PublishBudget.String(),
 		"inventory_timeout", settings.Inventory.Timeout.String(), "getstock_max_retries", settings.Inventory.Retry.MaxRetries,
+		"getstock_attempt_timeout", settings.Inventory.AttemptTimeout.String(),
 		"retry_backoff", settings.Inventory.Retry.Backoff.String(), "breaker_enabled", settings.Inventory.Breaker.Enabled,
 		"cache_singleflight", settings.Singleflight, "cache_ttl_jitter", settings.CacheJitter.String(), "idempotency_ttl", settings.IdempotencyTTL.String())
 	return serve(ctx, httpServer, admin, processingBudget+shutdownMargin, logger)
@@ -117,6 +118,7 @@ func routes(settings Config, products *product.Service, orders *order.Service, l
 	router := gin.New()
 	// 外层监控负责看见所有结果，内层保护负责把 panic、限流和超时变成明确响应。
 	router.Use(
+		responseRecorder(),
 		otelgin.Middleware(observability.Service,
 			otelgin.WithTracerProvider(observability.Provider), otelgin.WithPropagators(observability.Propagator)),
 		observability.Metrics.HTTPMiddleware(),

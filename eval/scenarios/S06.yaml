@@ -1,0 +1,19 @@
+id: S06
+title: 订单消费者停止
+inject:
+  - {action: stop, service: order-worker}
+restore:
+  - {action: start, service: order-worker}
+symptom:
+  promql: 'sum(kafka_consumergroup_lag{consumergroup="order-worker",topic="order.created"}) > 1000'
+  within: 3m
+  alerts: [ConsumerLagHigh, ServiceUnavailable]
+ground_truth:
+  component: order-worker
+  mechanism: stopped_consumer
+  explanation: 新订单仍在写入并产生消息，消费者没有提交新位点，未处理消息持续积压，销量更新落后。
+evidence_milestones:
+  - 订单创建和 Kafka 生产仍在继续
+  - 消费者管理端点不可达
+  - 消费位点不前进而 lag 增长
+  - 恢复消费者后处理追平，销量核对一致

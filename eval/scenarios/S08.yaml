@@ -1,0 +1,19 @@
+id: S08
+title: 同一商品的行锁竞争
+inject:
+  - {action: load, qps: 400, hot_sku_id: 1}
+restore:
+  - {action: load, qps: 200, hot_sku_id: 0}
+symptom:
+  promql: 'rate(mysql_global_status_innodb_row_lock_time[1m]) > 1'
+  within: 3m
+  alerts: [RowLockWaiting, InventoryLatencyHigh]
+ground_truth:
+  component: mysql:shop.stock
+  mechanism: hot_row_contention
+  explanation: 多笔订单扣减同一商品，各事务必须依次取得同一行的锁。索引仍然正确，但请求无法并行更新这行。
+evidence_milestones:
+  - 下单集中到同一商品
+  - 行锁等待时间和次数上升
+  - EXPLAIN 仍命中 uk_stock_sku，排除全表扫描
+  - 等待关系指向同一 stock 行，恢复分散流量后缓解
