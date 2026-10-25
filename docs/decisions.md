@@ -1,5 +1,15 @@
 # 设计决定
 
+<a id="phase-04-foundation"></a>
+
+## 2026-10-24：阶段 4 的实验基础
+
+- 用户授权合并阶段 3 和进入阶段 4；本阶段只实现 S01–S10、S13，完成后停下来。按新第 3.6 节写说明，保留 Claude 对早期材料的重写。
+- 已阅读 [coroot/rca-lab 的 Not giving away the answer](https://github.com/coroot/rca-lab#not-giving-away-the-answer)。业务日志和指标保留真实发布信息；场景答案只在宿主机场景文件中。缺陷构建里的函数使用普通业务名称，不在堆栈里提示根因。
+- 新组件选择 [Toxiproxy v2.13.0](https://github.com/Shopify/toxiproxy/releases/tag/v2.13.0)，为查询时官方最新稳定版。调用它的 HTTP API 使用标准库，不额外引入客户端库。[kafka-go v0.4.51](https://github.com/segmentio/kafka-go/releases/tag/v0.4.51) 仍是官方最新稳定版。Jaeger 继续沿用已批准的 2.20.0 例外。
+- 长实验会把热门商品卖空，后面的行锁实验就没有足够的成功更新。用户已明确允许补库存，因此新增 `shopctl stock restock --sku ID --quantity N [--count N]`，只在实验前显式执行。它复用正式 gRPC Release，不直接写表。count 默认 1，最多 10000；每个商品单独确认，失败时停止并报告位置。Release 未实现请求去重，所以不能在未查询结果前重跑失败批次。
+- Jaeger 从 5000 调整为 30000 条 trace。按 20 条/秒计算约容纳 25 分钟，给十五分钟目标留余量；这只是容量推导，最终还要记录真实流量下的保留时间。容器上限从 512 MiB 增到 1024 MiB，接收限流阈值为 800 MiB，给查询和运行时留空间。保持内存存储，重启仍会清空。
+
 ## 2026-10-23：阶段 2 开工
 
 - 用户已核实阶段 1，并明确同意合并、推送 main 和进入阶段 2。main 快进到 `3970868`，随后创建 `phase-02-order`；没有勾选学习验收。

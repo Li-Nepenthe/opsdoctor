@@ -136,11 +136,13 @@ func (service *Service) Create(ctx context.Context, request CreateRequest, key s
 	// WithoutCancel 保留请求中的值（包括调用链），只去掉原来的取消信号和 deadline。
 	// 再加自己的超时，避免 Kafka 不可用时一直占住处理请求的 goroutine。
 	publishCtx, cancelPublish := context.WithTimeout(context.WithoutCancel(ctx), service.cleanupTimeout)
+	publishStarted := time.Now()
 	publishErr := service.publisher.Publish(publishCtx, event)
 	cancelPublish()
 	if publishErr != nil {
 		// 订单已经存在，消息失败不能再当作下单失败重做。这一缺口留给人工核对，不实现 Outbox。
-		service.logger.WarnContext(ctx, "订单已创建，但创建消息未确认发送", "order_id", saved.OrderID, "sku_id", saved.SKUID)
+		service.logger.WarnContext(ctx, "订单已创建，但创建消息未确认发送", "order_id", saved.OrderID, "sku_id", saved.SKUID,
+			"error_kind", publishErrorKind(publishErr), "publish_elapsed_ms", time.Since(publishStarted).Milliseconds())
 	}
 	result := Created{OrderID: saved.OrderID, AmountCents: saved.AmountCents, Status: saved.Status}
 	if key != "" {
@@ -205,4 +207,15 @@ func (service *Service) List(ctx context.Context, userID int64, page, pageSize i
 		return Page{}, fmt.Errorf("分页参数：%w", ErrInvalidArgument)
 	}
 	return service.repository.List(ctx, userID, page, pageSize)
+}
+
+// publishErrorKind 记录可用于排查的错误分类，而不把第三方错误中的连接地址或凭据直接写进日志。
+func publishErrorKind(err error) string {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "deadline_exceeded"
+	}
+	if errors.Is(err, context.Canceled) {
+		return "canceled"
+	}
+	return "transport_or_broker"
 }

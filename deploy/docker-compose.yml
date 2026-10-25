@@ -271,7 +271,7 @@ services:
     command: ["--config=/etc/jaeger/config.yml"]
     volumes: ["./jaeger/jaeger.yml:/etc/jaeger/config.yml:ro"]
     ports: ["127.0.0.1:16686:16686", "127.0.0.1:4317:4317"]
-    mem_limit: 512m # 内存后端仅保留最近五千条 trace；重启会清空。
+    mem_limit: 1024m # 30000 条 trace 给告警与后续排查留时间；重启仍会清空内存后端。
     logging: *bounded-logging
 
   loki:

@@ -1,10 +1,12 @@
-# 单进程内存存储适合本机演练。最多保留五千条 trace，重启后清空，不宣称长期存档。
+# 告警需要时间才能出现，排查时还要看得到故障刚开始的请求。
+# 200 QPS、十分之一采样约产生 20 条 trace/秒；30000 条按此速率约容纳 25 分钟。
+# 这是容量计算，实际保留时间和内存以数据台账的持续流量实验为准。重启后仍会清空。
 extensions:
   jaeger_storage:
     backends:
       memory:
         memory:
-          max_traces: 5000
+          max_traces: 30000
   jaeger_query:
     storage:
       traces: memory
@@ -22,8 +24,8 @@ receivers:
 processors:
   memory_limiter:
     check_interval: 1s
-    limit_mib: 400 # 小于容器 512 MiB，给 Go 和网络缓冲留余量。
-    spike_limit_mib: 80
+    limit_mib: 800 # 小于容器 1024 MiB，给 Go、查询结果与网络缓冲留余量。
+    spike_limit_mib: 160
   batch:
     timeout: 1s
     send_batch_size: 512

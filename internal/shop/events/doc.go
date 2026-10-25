@@ -23,6 +23,7 @@
 //   - doc.go：本说明。
 //   - model.go：消息 OrderCreated 的字段和校验。
 //   - publisher.go：发送消息。
+//   - publisher_test.go：用内存传输确认调用者取消后，后台批次仍可能完成。
 //   - consumer.go：消费消息：先处理，后提交位点。
 //   - topic.go：启动时创建或检查 order.created 主题（3 个分区）。
 //   - consumer_test.go：测试提交顺序、重复消息，以及收到停止信号时手上的消息仍会处理完。

@@ -20,8 +20,12 @@ func TestParseStock(t *testing.T) {
 		args  []string // args 是去掉 stock 前缀后的参数。
 		valid bool     // valid 为 false 时不能创建 gRPC 客户端。
 	}{
-		{"合法查询", []string{"get", "--sku", "1"}, true},                                 // 最小查询命令。
-		{"合法扣减", []string{"deduct", "--sku", "1", "--quantity", "2"}, true},           // 显式件数。
+		{"合法查询", []string{"get", "--sku", "1"}, true},                                               // 最小查询命令。
+		{"合法扣减", []string{"deduct", "--sku", "1", "--quantity", "2"}, true},                         // 显式件数。
+		{"合法补库存", []string{"restock", "--sku", "1", "--quantity", "10000", "--count", "100"}, true}, // 明确范围才能批量增加。
+		{"扣减不许批量", []string{"deduct", "--sku", "1", "--count", "2"}, false},                         // 不扩大原扣减命令的范围。
+		{"补库存范围过大", []string{"restock", "--sku", "1", "--count", "10001"}, false},                   // 防止误操作覆盖整库。
+		{"商品编号溢出", []string{"restock", "--sku", "9223372036854775807", "--count", "2"}, false},      // 连续范围也要检查整数上界。
 		{"缺少子命令", nil, false},                                                         // 不能猜测用户是查还是扣。
 		{"缺少商品", []string{"get"}, false},                                              // 缺少必填 ID。
 		{"负件数", []string{"deduct", "--sku", "1", "--quantity", "-1"}, false},          // 不允许负扣减。

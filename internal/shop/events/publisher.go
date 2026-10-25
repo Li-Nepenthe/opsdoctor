@@ -15,6 +15,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"strconv"
 	"time"
 
@@ -40,11 +41,16 @@ const (
 )
 
 // NewPublisher 禁用自动建主题。启动时由 EnsureTopic 统一检查分区数。
-func NewPublisher(brokers []string, runtime *telemetry.Runtime) *Publisher {
+func NewPublisher(brokers []string, runtime *telemetry.Runtime, logger *slog.Logger) *Publisher {
 	transport := &kafka.Transport{DialTimeout: kafkaIOTimeout, IdleTimeout: kafkaIdleTimeout}
 	writer := &kafka.Writer{Addr: kafka.TCP(brokers...), Topic: OrderCreatedTopic, Balancer: &kafka.Hash{},
 		RequiredAcks: kafka.RequireAll, MaxAttempts: publishAttempts, BatchTimeout: publishBatchWait,
-		ReadTimeout: kafkaIOTimeout, WriteTimeout: kafkaIOTimeout, Transport: transport}
+		ReadTimeout: kafkaIOTimeout, WriteTimeout: kafkaIOTimeout, Transport: transport,
+		ErrorLogger: kafka.LoggerFunc(func(format string, arguments ...interface{}) {
+			// Writer 只在一次底层发送失败时调用这里。Kafka 地址没有凭据，日志也不包含消息正文。
+			// 保留 broker 的错误码或网络错误，才能分清“等待预算先用完”和“Kafka 明确拒绝”。
+			logger.Warn("Kafka 发送尝试失败", "error", fmt.Sprintf(format, arguments...))
+		})}
 	return &Publisher{writer: writer, transport: transport, telemetry: runtime}
 }
 

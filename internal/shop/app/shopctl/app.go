@@ -33,7 +33,7 @@ const seedTimeout = 10 * time.Minute
 // Run 分派命令并处理 Ctrl+C。reader/output 显式注入，使参数测试不污染进程环境或标准输出。
 func Run(parent context.Context, arguments []string, reader config.Reader, output io.Writer) error {
 	if len(arguments) == 0 {
-		return fmt.Errorf("用法：shopctl seed [--small] | stock get|deduct --sku ID [--quantity N] | check")
+		return fmt.Errorf("用法：shopctl seed [--small] | stock get|deduct|restock --sku ID [--quantity N] | check")
 	}
 	ctx, stop := lifecycle.Notify(parent)
 	defer stop()

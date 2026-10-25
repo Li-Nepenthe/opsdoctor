@@ -82,7 +82,7 @@ func openDependencies(ctx context.Context, settings Config, runtime *telemetry.R
 	if err := events.EnsureTopic(ctx, settings.KafkaBrokers); err != nil {
 		return nil, err
 	}
-	resources.publisher = events.NewPublisher(settings.KafkaBrokers, runtime)
+	resources.publisher = events.NewPublisher(settings.KafkaBrokers, runtime, logger)
 	return resources, nil
 }
 
