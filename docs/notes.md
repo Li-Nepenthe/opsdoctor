@@ -190,6 +190,94 @@ HTTP P99 从该实验前后服务端直方图桶的差值计算，包含且只�
 | S10 | — | — | — | — | — | 未执行：前序基线或恢复未通过，或实验被取消 |
 | S13 | — | — | — | — | — | 未执行：前序基线或恢复未通过，或实验被取消 |
 
+### 扩容后连续验收第一轮：11 项通过
+
+源码 0cb75b3，单元代码与 a54dc18 相同；仅增加 Redis 容量和记录说明。健康基线目标 200 QPS、10000 个活跃商品、64 工作者，各场景按定义临时调整流量，完整业务表仍有五十万商品。扩容后准备 healthy 用时 70.133 秒。第一轮开始 Unix 时间 1792914056.7515154，结束 1792916735.2723825，整轮命令约 2678.521 秒。最晚于 111.032 秒观察到症状和相关告警，最长恢复健康 134.967 秒，十一项全部通过。
+
+第一轮退出成功后，脚本在 1792916735.286354 启动第二轮；中间没有补库存、清键或修改实验配置。第一轮本身还不能算连续两遍完成。完整输出 selftest-capacity-1.txt；266 次过程采样没有采集错误，见 selftest-capacity-1-metrics.jsonl。汇总按活动记录出现至下一场注入之前统计，包含恢复和健康观察窗口。
+
+S04 窗口最大分钟回源速率 124.241/s，同键重叠计数速率 101.111/s，行锁等待最大值 0；唯一 firing 告警是 CacheLoadsHigh。S13 同时采样的 RPC/HTTP 比最大约 8.699，额外重试速率最大 941.225/s，库存 RPC 速率最大 1298.231/s。各项最大值未必来自同一时刻，不能拼成一条虚构样本；也不能把滑动窗口速率比当作每个 HTTP 的确切重试次数。
+
+第一次临时读取 S09 profile 已晚于原版本恢复，得到总任务 109、目标发送堆栈 0，保留 S09-round1-profile-1.txt，不作为缺陷堆栈证据。第二轮另设只读采样，等待确认缺陷版本仍在运行再取两份相隔二十秒的快照。
+
+| 场景 | 事前健康 | 注入耗时 | 症状及告警（自注入起） | 恢复健康（含恢复动作） | 告警 | 结果 |
+|---|---:|---:|---:|---:|---|---|
+| S01 | 1m55.176s | 30ms | 50.061s | 2m12.973s | InventoryLatencyHigh | 通过 |
+| S02 | 1m0.125s | 30ms | 45.143s | 2m14.967s | OrderListLatencyHigh | 通过 |
+| S03 | 1m0.115s | 30.988s | 1m51.032s | 1m26.21s | DatabasePoolWaiting | 通过 |
+| S04 | 1m0.115s | 54.309s | 54.311s | 1m56.602s | CacheLoadsHigh | 通过 |
+| S05 | 1m0.126s | 30.288s | 1m15.312s | 1m36.169s | CacheLoadsHigh | 通过 |
+| S06 | 1m0.118s | 535ms | 45.557s | 1m21.019s | ServiceUnavailable | 通过 |
+| S07 | 1m0.119s | 6ms | 1m30.051s | 1m55.183s | HTTPErrorRateHigh,InventoryCallFailures | 通过 |
+| S08 | 1m0.116s | 5ms | 45.026s | 2m5.231s | RowLockWaiting | 通过 |
+| S09 | 1m0.122s | 6.357s | 1m21.394s | 1m36.283s | GoroutinesGrowing | 通过 |
+| S10 | 1m0.121s | 6ms | 50.032s | 2m5.19s | InventoryLatencyHigh | 通过 |
+| S13 | 1m0.12s | 32.847s | 1m27.88s | 1m56.344s | InventoryRequestsAmplified | 通过 |
+
+### S09 第二轮的两份实际堆栈
+
+第二轮 S09 期间，先核对 app_build_info 的版本为 20261024.4，再抓取两次 `GET http://127.0.0.1:6061/debug/pprof/goroutine?debug=1`。时间为 2026-10-25T08:58:45.485018+00:00 和 2026-10-25T08:59:05.609764+00:00，间隔 20.124746 秒。请求在原 selftest 流量下执行，没有另加业务流量。
+
+| 快照 | goroutine 总数 | deliverResponse 发送堆栈数量 |
+|---|---:|---:|
+| 第一份 | 1045 | 938 |
+| 第二份 | 5405 | 5299 |
+
+两份聚合堆栈都指向 `internal/shop/app/orderservice/response_async.go:29` 的通道发送。原始文件 S09-round2-profile-1.txt、S09-round2-profile-2.txt 和 S09-round2-profiles.json 保留在本机临时目录 opsdoctor-phase04。总数增长不能独自说明泄漏；相同发送位置持续积累、源码没有对应接收方，才把观察和原因连接起来。第一轮恢复后才抓到的正常快照仍保留，不拿它作为缺陷现场。
+
+### 扩容后连续验收第二轮：11 项通过
+
+源码 0cb75b3，第一轮退出成功后立即进入第二轮，中间没有补库存、清键、改代码或改配置。第二轮开始 Unix 时间 1792916735.3808055，结束 1792919421.6051435，整轮 2686.224 秒；266 次过程采样无错误。原始输出 selftest-capacity-2.txt 与 selftest-capacity-2-metrics.jsonl。两轮共 22/22 通过，症状及相关告警最长 111.032 秒，恢复健康最长 141.182 秒。两个计时都包含相应动作；恢复还包含连续一分钟健康观察。
+
+| 场景 | 事前健康 | 注入耗时 | 症状及告警（自注入起） | 恢复健康（含恢复动作） | 告警 | 结果 |
+|---|---:|---:|---:|---:|---|---|
+| S01 | 1m0.113s | 67ms | 45.096s | 2m15.953s | InventoryLatencyHigh | 通过 |
+| S02 | 1m0.116s | 48ms | 55.094s | 2m21.182s | OrderListLatencyHigh | 通过 |
+| S03 | 1m0.125s | 29.958s | 1m14.98s | 1m56.263s | DatabasePoolWaiting | 通过 |
+| S04 | 1m0.113s | 56.979s | 56.981s | 2m1.319s | CacheLoadsHigh | 通过 |
+| S05 | 1m0.116s | 34.112s | 1m24.139s | 1m36.088s | CacheLoadsHigh | 通过 |
+| S06 | 1m0.116s | 472ms | 45.494s | 1m21.039s | ServiceUnavailable | 通过 |
+| S07 | 1m0.137s | 4ms | 1m30.051s | 2m5.198s | HTTPErrorRateHigh,InventoryCallFailures | 通过 |
+| S08 | 1m0.119s | 3ms | 55.031s | 1m55.224s | RowLockWaiting | 通过 |
+| S09 | 1m0.113s | 6.158s | 1m21.197s | 1m46.324s | GoroutinesGrowing | 通过 |
+| S10 | 1m0.122s | 6ms | 55.035s | 2m15.225s | InventoryLatencyHigh | 通过 |
+| S13 | 1m0.122s | 30.41s | 1m30.445s | 1m56.26s | InventoryRequestsAmplified | 通过 |
+
+两轮 S04 各有 23 次过程采样，窗口包含恢复和下一场之前的健康观察，唯一 firing 告警都是 CacheLoadsHigh。分钟回源速率峰值分别 124.241/s、121.159/s；同键重叠回源速率峰值 101.111/s、108.170/s。行锁等待速率峰值分别 0、0.198312ms/s，均未触发 RowLockWaiting。第二轮包含恢复普通流量后的少量等待，所以不能把整个窗口写成绝对零；正式查询对照的两组行锁增量仍都是零。
+
+两轮 S13 的额外重试速率峰值分别 941.225/s、1092.763/s，库存服务实际 RPC 速率峰值分别 1298.231/s、1283.295/s。同一采样点的库存 RPC / 入口 HTTP 速率比最大为 8.699、8.192。各列峰值可能在不同时刻；这里的比值从每个采样点分别计算，再取最大值。第二轮也出现了 DatabasePoolWaiting，表明放大后的下游请求同时带来连接池等待。相关告警仍以 InventoryRequestsAmplified 判定，不能仅凭配置上限声称每个请求都重试十次。
+
+### 最终有流量的 18 容器内存快照与环境收尾
+
+2026-10-25 两轮验收结束后，在暂停流量前于 2026-10-25T09:10:35.809618+00:00 记录 docker stats。按显示值换算相加约 3750.340 MiB（3.66 GiB），18 个容器配置上限共 6976 MiB（6.8125 GiB）。健康基线目标为 200 QPS，此时 Prometheus 一分钟 HTTP 速率为 220.361/s；配置目标和观测值分别记录。这是单次快照，不是峰值，也不包含整个 WSL/Windows 的开销。MySQL 约 1.165/1.5 GiB、Jaeger 380.4/1024 MiB、Redis 238.2/768 MiB。
+
+| 容器 | 实际内存 | 上限 |
+|---|---:|---:|
+| alertmanager | 30.67MiB | 64MiB |
+| alertsink | 19.59MiB | 64MiB |
+| alloy | 169.9MiB | 256MiB |
+| grafana | 146.8MiB | 256MiB |
+| inventory-service | 15.47MiB | 128MiB |
+| jaeger | 380.4MiB | 1GiB |
+| kafka | 827.9MiB | 1GiB |
+| kafka-exporter | 23MiB | 64MiB |
+| loadgen | 17.33MiB | 128MiB |
+| loki | 442MiB | 512MiB |
+| mysqld-exporter | 16.28MiB | 64MiB |
+| order-service | 19.84MiB | 256MiB |
+| order-worker | 16.47MiB | 128MiB |
+| prometheus | 154.5MiB | 512MiB |
+| redis | 238.2MiB | 768MiB |
+| redis-exporter | 17.89MiB | 64MiB |
+| shop-mysql | 1.165GiB | 1.5GiB |
+| toxiproxy | 21.14MiB | 128MiB |
+
+所有容器运行正常，当前状态 OOMKilled 均为 false；三条代理均没有 toxic，消费积压为 0，firing 告警为空，活动实验文件已删除。原始文件 stats-final-healthy.jsonl、final-healthy-state.json。随后暂停 loadgen，保留全部容器和原数据卷。临时采集脚本误按 GET 的结构读取 POST 响应，暂停后的断言出现 KeyError；实际 POST 已成功，另行 GET 确认 qps=0，结果保存在 final-paused.json。没有重跑采样覆盖原有流量快照。
+
+### 最终本机检查
+
+两轮实验结束后只修改六处注释，澄清 Kafka 等待和后台批次的区别、仓储在途与真正 SQL 执行的区别，以及突发参数边界。没有改变运行逻辑。随后 gofmt、go vet、staticcheck、commentcheck、archcheck 全部通过；commentcheck 覆盖 179 份手写 Go 文件。再次用六个专用数据库及 Redis DB14/15 执行完整 go test -race ./... -count=1 -timeout=180s，125 个顶层测试通过，其中 16 个 Integration，0 失败、0 跳过。原始输出 static-final.json、all-race-final.jsonl。学习材料六组示例已实际运行并通过 gofmt。
+
 <a id="phase-03"></a>
 
 ## 2026-10-23：阶段 3 开发记录

@@ -32,7 +32,7 @@ type Publisher struct {
 	telemetry *telemetry.Runtime // 由 app 持有，发送者只借用 span 与指标。
 }
 
-// 发送参数只约束 Kafka 客户端。调用方另传有截止时间的 context，整个发送过程仍受收尾预算限制。
+// 发送参数约束 Kafka 的后台批次。调用方的 context 另行限制等待确认的时间；停止等待后，后台批次仍可能继续。
 const (
 	kafkaIOTimeout   = 3 * time.Second       // 与默认 HTTP 预算相当，连接或读写不能无限等待。
 	kafkaIdleTimeout = 30 * time.Second      // 短时间内的订单复用连接，长时间空闲后再归还。

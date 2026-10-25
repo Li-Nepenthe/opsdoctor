@@ -35,9 +35,9 @@ type Step struct {
 	Stream      string            `yaml:"stream,omitempty"`       // upstream 或 downstream。
 	QPS         *int              `yaml:"qps,omitempty"`          // 指针区分省略和明确暂停。
 	HotSKUID    *int64            `yaml:"hot_sku_id,omitempty"`   // 0 恢复正常选品，正数集中商品请求。
-	FirstSKUID  int64             `yaml:"first_sku_id,omitempty"` // 缓存操作从哪个商品开始。
-	Count       int               `yaml:"count,omitempty"`        // 最多处理一万个商品缓存，不扫描或清空幂等数据。
-	Requests    int               `yaml:"requests,omitempty"`     // 商品突发每批请求数，最多使用默认的 64 个工作者。
+	FirstSKUID  int64             `yaml:"first_sku_id,omitempty"` // 缓存范围或商品突发从哪个编号开始。
+	Count       int               `yaml:"count,omitempty"`        // 缓存范围最多一万，突发批次最多五百；按动作校验。
+	Requests    int               `yaml:"requests,omitempty"`     // 每批最多 64 个查询，还受 loadgen 的工作者数量限制。
 	TTLSeconds  int               `yaml:"ttl_seconds,omitempty"`  // 给商品缓存设置共同的到期时间。
 	Image       string            `yaml:"image,omitempty"`        // 只允许两个事先构建的本项目订单镜像。
 }

@@ -52,8 +52,8 @@ type observedProducts struct {
 	active             map[int64]int      // 只保存还没查完的商品，最后一个查询结束就删除。
 }
 
-// Get 在真正查库前计数，查询失败也算给数据库带来过一次请求。
-// 同一商品已有查询在途，说明又发起了一次重叠查询。它用于调查，不直接触发告警。
+// Get 在调用仓储前记录一次回源尝试，包括后面的借连接和 SQL 执行。失败的尝试也保留。
+// 同一商品已有仓储调用在途，说明发生了重叠；它不一定已同时进入数据库，只作调查证据。
 func (repository *observedProducts) Get(ctx context.Context, id int64) (product.Product, error) {
 	repository.metrics.CacheLoads.WithLabelValues("product").Inc()
 	// 商品编号只留在进程内的临时表里，不能作为 Prometheus 标签，否则商品越多，指标就越多。

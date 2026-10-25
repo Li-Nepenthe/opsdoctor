@@ -2,7 +2,7 @@
 
 用 Go 构建可复现的微服务故障靶场，再逐步实现带证据报告的故障诊断 Agent。
 
-当前正在进行**阶段 4：故障注入器与场景库**。订单、库存、销量消费已接入指标、调用链和关联日志。Grafana 看板、消费积压告警与临时接收器用于观察真实靶场，医生系统尚未开发。最新验收状态以[进度看板](进度.md)为准。
+当前已完成**阶段 4：故障注入器与场景库**，等待验收与学习。订单、库存、销量消费已接入指标、调用链和关联日志。Grafana 看板、消费积压告警与临时接收器用于观察真实靶场，医生系统尚未开发。最新验收状态以[进度看板](进度.md)为准。
 
 - 唯一需求来源：[项目计划书](项目计划书.md)
 - 开发规则：[AGENTS.md](AGENTS.md)
@@ -14,7 +14,7 @@
 - 阶段 2：[汇报书](docs/reports/phase-02-order.md)、[学习材料](docs/learn/phase-02-order.md)
 - 阶段 3：[汇报书](docs/reports/phase-03-observability.md)、[学习材料](docs/learn/phase-03-observability.md)
 
-## 启动阶段 3 环境
+## 启动靶场环境
 
 需要 Go **1.27.1**、已启动的 Docker Desktop（Linux containers）。Windows 运行 `-race` 还需要 gcc 在 PATH 中、`CGO_ENABLED=1`。新装工具后重新打开终端。
 
@@ -259,9 +259,32 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T loadgen /app
 
 结束时输出 `scope=total` 的真实汇总。small 数据使用 `--products 100`，并降低速率或时长，避免把有限库存耗尽。`POST /control` 可单独修改 `qps` 或 `hot_sku_id`；`hot_sku_id=0` 恢复 Zipf 分布。默认 Zipf 参数为 s=1.1、v=100，不是均匀随机。
 
+阶段 4 增加一次性的商品查询突发。下面让 16 个已有工作者同时查询商品 1，不会下单或扣库存。每批请求数不能超过启动时配置的工作者数，上一批未结束时会拒绝叠加。202 只表示接收，实际完成数查 `GET /control` 中的 `burst`。
+
+```powershell
+Invoke-RestMethod http://127.0.0.1:6070/burst -Method Post -ContentType 'application/json' -Body '{"sku_id":1,"requests":16}'
+Invoke-RestMethod http://127.0.0.1:6070/control | ConvertTo-Json -Depth 5
+```
+
+S04 会先暂停普通流量，再对一组商品进行有限批次的突发；不接受通用 `--qps`、`--sku` 覆盖。它不会把下单集中到热点，单商品下单竞争仍由 S08 单独实验。
+
 ## 阶段 4：准备与运行故障实验
 
-本阶段命令在宿主机运行，场景范围是 S01–S10、S13。完整自测仍在验收中，实际结论以进度看板和 notes 为准。先停止其他手工实验，准备完整业务数据和足够库存。
+本阶段命令在宿主机运行，场景范围是 S01–S10、S13。连续两轮自测 22/22 通过，完整结果见[汇报书](docs/reports/phase-04-chaos.md)、[学习材料](docs/learn/phase-04-chaos.md)和[数据台账](docs/数据台账.md) P4-18、P4-19。先停止其他手工实验，准备完整业务数据和足够库存。
+
+阶段 4 的健康基线使用 **目标 200 QPS、10000 个活跃商品、64 个固定工作者**。各场景会按定义临时调整流量，实际完成速率单独观察。数据库仍有五十万商品；活跃范围只决定压测器会选择哪些商品，不会缩小表。当前缓存回源告警按这组负载校准，不能直接套到默认的五十万活跃商品上；扩大范围时，正常未命中也会增加，需要先重测基线。具体失败与对照数据见数据台账 P4-12、P4-13、P4-16。
+
+长实验会积累尚未过期的幂等记录。Redis 写入预算现为 512 MiB，容器上限 768 MiB，保持二十四小时期限和 noeviction。noeviction 表示内存不足时拒绝新写入，保留原有凭据。原 128 MiB 预算曾被约三十万个幂等键填满，导致下单被拒绝，记录见 P4-17。继续增加实验时长时需要重新估算容量，不能靠清除凭据维持流量。
+
+PowerShell 在启动 Compose 前设置本次实验参数；这些值只影响当前终端，不覆盖 `.env`：
+
+```powershell
+$env:LOADGEN_PRODUCT_COUNT = '10000'
+$env:LOADGEN_WORKERS = '64'
+$env:LOADGEN_QPS = '0'
+```
+
+bash 对应为 `export LOADGEN_PRODUCT_COUNT=10000 LOADGEN_WORKERS=64 LOADGEN_QPS=0`。准备完成后再通过控制接口开启 200 QPS，先等健康检查通过，再开始场景。
 
 已有数据卷不会自动重跑 MySQL 初始化脚本。先给本机 `.env` 增加独立的 `CHAOS_MYSQL_PASSWORD`，不要覆盖已有配置；再启动更新后的 Compose，显式补建账号：
 
