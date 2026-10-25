@@ -54,6 +54,8 @@ jobs:
         run: |
           cp .env.example .env
           docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240
+          # 空库初始化时尚无业务表；服务健康说明迁移已完成，此时才授予精确的表级权限。
+          docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/005_chaos_user.sh
           docker compose --env-file .env -f deploy/docker-compose.yml ps
       - name: MySQL 和 Redis 集成测试与竞态检查
         # .env.example 只含演示假值；通过环境注入，不把密码写入工作流。

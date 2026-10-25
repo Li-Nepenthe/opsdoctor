@@ -8,7 +8,7 @@ MySQL 官方镜像在数据目录为空时（也就是第一次启动时），�
 | [002_shop_test_databases.sql](002_shop_test_databases.sql) | 创建库存测试库和造数测试库 | 阶段 1 |
 | [003_order_sales_test_databases.sql](003_order_sales_test_databases.sql) | 创建订单测试库和销量测试库 | 阶段 2 |
 | [004_metrics_user.sh](004_metrics_user.sh) | 创建只读的监控账号，给 mysqld-exporter 采集 MySQL 指标用 | 阶段 3 |
-| [005_chaos_user.sh](005_chaos_user.sh) | 为宿主机实验创建独立账号，只允许读取和改动两个指定表的结构 | 阶段 4 |
+| [005_chaos_user.sh](005_chaos_user.sh) | 先创建实验账号；业务表出现后再执行一次，只授权两个指定表 | 阶段 4 |
 
 ## 为什么每个测试都有自己的库
 
@@ -18,3 +18,5 @@ MySQL 官方镜像在数据目录为空时（也就是第一次启动时），�
 
 - **脚本可以重复执行。** 都用 `CREATE DATABASE IF NOT EXISTS` 这类写法，已有的数据卷上手动再执行一次也不会出错。手动执行的方法见根目录 README。
 - **004 是 shell 脚本，不是 SQL。** 因为监控账号的密码要从环境变量读取，SQL 文件做不到。脚本里用子 shell 把严格模式（`set -u` 等）包起来，避免影响 MySQL 镜像后续的启动步骤。
+
+空库第一次启动时，`stock` 和 `orders` 还不存在。它们要等业务服务连接 MySQL 后执行迁移才会创建。005 此时只建账号，服务健康后再按根 README 显式运行一次，补上两张表的权限。这样既能完成首次启动，也不用给实验账号整个业务库的修改权限。CI 同样按这个顺序执行。

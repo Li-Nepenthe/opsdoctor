@@ -278,6 +278,14 @@ S04 窗口最大分钟回源速率 124.241/s，同键重叠计数速率 101.111/
 
 两轮实验结束后只修改六处注释，澄清 Kafka 等待和后台批次的区别、仓储在途与真正 SQL 执行的区别，以及突发参数边界。没有改变运行逻辑。随后 gofmt、go vet、staticcheck、commentcheck、archcheck 全部通过；commentcheck 覆盖 179 份手写 Go 文件。再次用六个专用数据库及 Redis DB14/15 执行完整 go test -race ./... -count=1 -timeout=180s，125 个顶层测试通过，其中 16 个 Integration，0 失败、0 跳过。原始输出 static-final.json、all-race-final.jsonl。学习材料六组示例已实际运行并通过 gofmt。
 
+### 首次 Linux CI 暴露空库授权顺序问题
+
+提交 7bb074e 的 [CI 40179920077](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/40179920077) 在启动基础设施步骤失败。格式、模块、vet、staticcheck、注释与架构、无依赖 race、另一构建版本编译已通过；后续集成与业务冒烟未执行。MySQL 日志明确为 `005_chaos_user.sh` 的 GRANT 返回 `ERROR 1146 (42S02): Table 'shop.stock' doesn't exist`。空库初始化发生在 Go 服务迁移之前，而本机使用已有业务表，因此此前没有触发这个分支。
+
+修正时保留两张表的原有权限边界。初始化脚本先创建账号；若两张业务表尚未出现，打印说明后结束自己的子 shell，让官方入口继续启动。服务健康后，README 和 CI 都显式再运行一次脚本，授予 stock、orders 的 SELECT、ALTER、INDEX。没有扩大到 shop.*，也没有把建业务表的职责移进初始化脚本。
+
+用独立临时容器 opsdoctor-phase04-init-check 实测：MySQL 8.4.13，无网络、无宿主端口、独立新数据目录、内存上限 1536 MiB，只用演示口令。首次启动 7.454 秒成功，业务表出现前表级授权数为 0。随后仅在这个临时库建两张最小测试表，重跑脚本两遍，始终只有这两张表的六条授权，账号最多两个连接。原始结果 mysql-empty-init-result.json、日志 mysql-empty-init-logs.txt。测试后停止并自动移除自己的临时容器和临时卷，未重建用户的业务容器。两轮 selftest 所用业务代码和原账号权限均未改变，因此保留其结果；空库启动单独复验。
+
 <a id="phase-03"></a>
 
 ## 2026-10-23：阶段 3 开发记录

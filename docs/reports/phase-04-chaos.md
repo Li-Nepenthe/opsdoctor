@@ -1,6 +1,6 @@
 # 阶段 4 汇报书：故障注入与恢复
 
-> 2026-10-25 完成。本机连续两轮 selftest 共 22/22 通过；验收源码为 0cb75b3，其后只修正说明文字。阶段 4 完成后等待 Claude 验收和用户学习。
+> 2026-10-25 完成。本机连续两轮 selftest 共 22/22 通过；验收源码为 0cb75b3，其后修正说明文字与空库授权顺序，业务运行逻辑未变。阶段 4 完成后等待 Claude 验收和用户学习。
 
 ## 一、总览
 
@@ -52,7 +52,7 @@ Jaeger 保留用户批准的 2.20.0 例外，其他基础设施沿用阶段 3 �
 |---|---:|---|
 | [.dockerignore](../../.dockerignore) | 11 | 避免答案与恢复记录进入构建上下文 |
 | [.env.example](../../.env.example) | 104 | 列出演示配置，不放本机口令 |
-| [.github/workflows/ci.yml](../../.github/workflows/ci.yml) | 226 | 增加另一构建版本和真实代理恢复冒烟 |
+| [.github/workflows/ci.yml](../../.github/workflows/ci.yml) | 228 | 增加另一构建版本和真实代理恢复冒烟 |
 | [.gitignore](../../.gitignore) | 15 | 忽略本机恢复记录 |
 | [README.md](../../README.md) | 383 | 说明目录职责、运行方法或学习顺序 |
 | [cmd/README.md](../../cmd/README.md) | 23 | 说明目录职责、运行方法或学习顺序 |
@@ -63,17 +63,17 @@ Jaeger 保留用户批准的 2.20.0 例外，其他基础设施沿用阶段 3 �
 | [deploy/docker/go.Dockerfile](../../deploy/docker/go.Dockerfile) | 18 | 支持编译指定构建标签和版本号 |
 | [deploy/jaeger/README.md](../../deploy/jaeger/README.md) | 14 | 说明目录职责、运行方法或学习顺序 |
 | [deploy/jaeger/jaeger.yml](../../deploy/jaeger/jaeger.yml) | 44 | 增加调用链容量及相应内存预算 |
-| [deploy/mysql/init/005_chaos_user.sh](../../deploy/mysql/init/005_chaos_user.sh) | 17 | 建立只供实验使用的结构变更账号 |
-| [deploy/mysql/init/README.md](../../deploy/mysql/init/README.md) | 20 | 说明目录职责、运行方法或学习顺序 |
+| [deploy/mysql/init/005_chaos_user.sh](../../deploy/mysql/init/005_chaos_user.sh) | 27 | 建立只供实验使用的结构变更账号 |
+| [deploy/mysql/init/README.md](../../deploy/mysql/init/README.md) | 22 | 说明目录职责、运行方法或学习顺序 |
 | [deploy/prometheus/rules/shop.yml](../../deploy/prometheus/rules/shop.yml) | 76 | 根据可见症状报警，不预先给出故障原因 |
 | [deploy/toxiproxy/README.md](../../deploy/toxiproxy/README.md) | 9 | 说明目录职责、运行方法或学习顺序 |
 | [deploy/toxiproxy/proxies.json](../../deploy/toxiproxy/proxies.json) | 5 | 定义三条业务代理链路 |
-| [docs/decisions.md](../../docs/decisions.md) | 256 | 记录经用户批准的边界和工程取舍 |
-| [docs/learn/phase-04-chaos.md](../../docs/learn/phase-04-chaos.md) | 710 | 讲解开发过程、Go 写法和逐场景排障 |
-| [docs/notes.md](../../docs/notes.md) | 774 | 保存真实开发和实验过程 |
-| [docs/reports/phase-04-chaos.md](../../docs/reports/phase-04-chaos.md) | 384 | 记录本阶段的实现或实测证据 |
+| [docs/decisions.md](../../docs/decisions.md) | 262 | 记录经用户批准的边界和工程取舍 |
+| [docs/learn/phase-04-chaos.md](../../docs/learn/phase-04-chaos.md) | 728 | 讲解开发过程、Go 写法和逐场景排障 |
+| [docs/notes.md](../../docs/notes.md) | 782 | 保存真实开发和实验过程 |
+| [docs/reports/phase-04-chaos.md](../../docs/reports/phase-04-chaos.md) | 386 | 记录本阶段的实现或实测证据 |
 | [docs/代码地图.md](../../docs/代码地图.md) | 248 | 记录本阶段的实现或实测证据 |
-| [docs/数据台账.md](../../docs/数据台账.md) | 212 | 记录本阶段的实现或实测证据 |
+| [docs/数据台账.md](../../docs/数据台账.md) | 213 | 记录本阶段的实现或实测证据 |
 | [eval/README.md](../../eval/README.md) | 9 | 说明目录职责、运行方法或学习顺序 |
 | [eval/scenarios/README.md](../../eval/scenarios/README.md) | 23 | 说明目录职责、运行方法或学习顺序 |
 | [eval/scenarios/S01.yaml](../../eval/scenarios/S01.yaml) | 20 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
@@ -240,7 +240,7 @@ Jaeger 保留用户批准的 2.20.0 例外，其他基础设施沿用阶段 3 �
 
 ### 4. 数据库变更
 
-没有新增业务表或修改数据模型。初始化脚本 005_chaos_user.sh 新建实验账号，只授予 shop.stock、shop.orders 的 SELECT、ALTER、INDEX。它只能由宿主机实验工具使用，不交给业务服务和以后的医生。索引实验删除后按原定义恢复；补库存通过已有 Release RPC，未直接修改库存表。
+没有新增业务表或修改数据模型。初始化脚本 005_chaos_user.sh 先新建实验账号；服务迁移创建业务表后再显式执行一次授权，只授予 shop.stock、shop.orders 的 SELECT、ALTER、INDEX。它只能由宿主机实验工具使用，不交给业务服务和以后的医生。索引实验删除后按原定义恢复；补库存通过已有 Release RPC，未直接修改库存表。
 
 ### 5. 接口变更
 
@@ -318,6 +318,8 @@ loadgen 的本机控制接口新增 `POST /burst`，接收商品编号和有限�
 
 两轮 selftest 使用 0cb75b3，其后六处纯注释修正也已重新通过 gofmt、go vet、staticcheck、commentcheck、archcheck。commentcheck 检查 179 份手写 Go 文件。配置六个专用测试库及 Redis 测试地址后，完整 `go test -race ./... -count=1 -timeout=180s` 通过：125 个顶层测试，其中 16 个 Integration，0 失败、0 跳过。两个构建版本均已从同一提交成功构建。Prometheus 配置与 12 条规则通过 promtool。第一次完整测试脚本误填两个专用库名，被测试在连接前拒绝；修正后通过，原错误输出保留在 notes 所列文件中。
 
+首次 Linux CI 的空库初始化未通过：授权时业务表尚未创建。已调整为先建账号、服务迁移完成后再授表权限；独立临时空库启动与两次重复授权验证通过，原 CI 失败记录保留在 P4-25、P4-26，修正后的远端检查继续执行。
+
 ## 五、工程验收结果
 
 | 验收项 | 当前结论 | 证据 |
@@ -326,7 +328,7 @@ loadgen 的本机控制接口新增 `POST /burst`，接收商品编号和有限�
 | 每场景三分钟内有症状与告警 | 通过 | 两轮最长 111.032 秒，包含注入动作；需要症状与相关 firing 告警同时成立 |
 | 每场景恢复后三分钟内健康 | 通过 | 两轮最长 141.182 秒，包含恢复动作和连续一分钟健康观察 |
 
-已追加数据台账 **P4-1 至 P4-24**，包含三轮未通过的完整表、S04 两种并发规模的对照、正式容器对照、基线配置错误、Redis 容量问题、连续两轮成功、S09 堆栈、S13 实际放大、内存快照和最终本机检查。两轮 S04 只触发 CacheLoadsHigh，没有 RowLockWaiting；正式开启/关闭对照中两组行锁增量均为零。
+已追加数据台账 **P4-1 至 P4-26**，包含三轮未通过的完整表、S04 两种并发规模的对照、正式容器对照、基线配置错误、Redis 容量问题、连续两轮成功、S09 堆栈、S13 实际放大、内存快照和最终本机检查。两轮 S04 只触发 CacheLoadsHigh，没有 RowLockWaiting；正式开启/关闭对照中两组行锁增量均为零。
 
 2026-10-25 两轮验收结束后，在暂停流量前于 2026-10-25T09:10:35.809618+00:00 记录 docker stats。按显示值换算相加约 3750.340 MiB（3.66 GiB），18 个容器配置上限共 6976 MiB（6.8125 GiB）。健康基线目标为 200 QPS，此时 Prometheus 一分钟 HTTP 速率为 220.361/s；配置目标和观测值分别记录。这是单次快照，不是峰值，也不包含整个 WSL/Windows 的开销。MySQL 约 1.165/1.5 GiB、Jaeger 380.4/1024 MiB、Redis 238.2/768 MiB。
 

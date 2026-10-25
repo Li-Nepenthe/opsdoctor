@@ -286,7 +286,7 @@ $env:LOADGEN_QPS = '0'
 
 bash 对应为 `export LOADGEN_PRODUCT_COUNT=10000 LOADGEN_WORKERS=64 LOADGEN_QPS=0`。准备完成后再通过控制接口开启 200 QPS，先等健康检查通过，再开始场景。
 
-已有数据卷不会自动重跑 MySQL 初始化脚本。先给本机 `.env` 增加独立的 `CHAOS_MYSQL_PASSWORD`，不要覆盖已有配置；再启动更新后的 Compose，显式补建账号：
+先给本机 `.env` 增加独立的 `CHAOS_MYSQL_PASSWORD`，不要覆盖已有配置。空库初始化时只有库、没有业务表，脚本先创建实验账号；服务健康表示业务迁移已完成，再显式运行脚本授予两张表的权限。已有数据卷也需要这个步骤，因为 MySQL 不会自动重跑初始化脚本：
 
 ```text
 docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240
