@@ -1,0 +1,66 @@
+# 这是 promtool 的合成时间线，用来检查告警边界，不作为性能实测数据。
+# 生产配置只读取 *.yml，因此这个 *.yaml 文件不会被当作告警规则加载。
+rule_files:
+  - shop.yml
+evaluation_interval: 10s
+tests:
+  # 健康流量放大十倍，回源仍占十分之一。绝对次数高不应单独触发告警。
+  - name: 健康比例不随请求总量误报
+    interval: 10s
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{service="order-service",route="/products/:id",method="GET"}'
+        values: '0+14000x120'
+      - series: 'cache_loads_total{service="order-service",cache="product"}'
+        values: '0+1400x120'
+    alert_rule_test:
+      - {eval_time: 20m, alertname: CacheLoadsHigh, exp_alerts: []}
+  # 先有五分钟正常流量，再让一半商品请求回源。等待满三十秒才发出告警。
+  - name: 持续流量中的回源比例上升
+    interval: 10s
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{service="order-service",route="/products/:id",method="GET"}'
+        values: '0+1400x45'
+      - series: 'cache_loads_total{service="order-service",cache="product"}'
+        values: '0+140x30 4900+700x14'
+    alert_rule_test:
+      - {eval_time: 5m40s, alertname: CacheLoadsHigh, exp_alerts: []}
+      - eval_time: 6m10s
+        alertname: CacheLoadsHigh
+        exp_alerts:
+          - exp_labels: {service: order-service, severity: warning}
+            exp_annotations:
+              summary: 持续有商品流量时，回源比例超过百分之三十五并持续三十秒
+  # 停流十一分钟，恢复后回源比例依次为 60%、40%、20%。这是自然重新填充。
+  - name: 长时间停流后冷缓存恢复
+    interval: 10s
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{service="order-service",route="/products/:id",method="GET"}'
+        values: '0+0x66 1000+1000x40'
+      - series: 'cache_loads_total{service="order-service",cache="product"}'
+        values: '0+0x66 600+600x5 4000+400x5 6200+200x28'
+    alert_rule_test:
+      - {eval_time: 12m, alertname: CacheLoadsHigh, exp_alerts: []}
+      - {eval_time: 12m30s, alertname: CacheLoadsHigh, exp_alerts: []}
+      - {eval_time: 13m, alertname: CacheLoadsHigh, exp_alerts: []}
+      - {eval_time: 13m30s, alertname: CacheLoadsHigh, exp_alerts: []}
+      - {eval_time: 15m, alertname: CacheLoadsHigh, exp_alerts: []}
+  # 每秒只有一个商品请求时，单次未命中就会明显改变比例，不足以判断大面积异常。
+  - name: 少量请求不放大成告警
+    interval: 10s
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{service="order-service",route="/products/:id",method="GET"}'
+        values: '0+10x60'
+      - series: 'cache_loads_total{service="order-service",cache="product"}'
+        values: '0+10x60'
+    alert_rule_test:
+      - {eval_time: 10m, alertname: CacheLoadsHigh, exp_alerts: []}
+  # 没有请求时分母为零。它表示没有可判断的流量，不应把 NaN 当成异常比例。
+  - name: 没有商品流量
+    interval: 10s
+    input_series:
+      - series: 'http_server_request_duration_seconds_count{service="order-service",route="/products/:id",method="GET"}'
+        values: '0+0x30'
+      - series: 'cache_loads_total{service="order-service",cache="product"}'
+        values: '0+0x30'
+    alert_rule_test:
+      - {eval_time: 5m, alertname: CacheLoadsHigh, exp_alerts: []}

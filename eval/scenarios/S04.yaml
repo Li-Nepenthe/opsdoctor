@@ -15,7 +15,8 @@ restore:
   - {action: deploy, service: order-service}
   - {action: load, qps: 200, hot_sku_id: 0}
 symptom:
-  promql: 'rate(cache_loads_total{cache="product"}[1m]) > 50'
+  # 比例使用 HTTP 商品请求作分母；缓存内部的二次检查不能算作新的用户请求。
+  promql: 'sum(rate(cache_loads_total{service="order-service",cache="product"}[1m])) / sum(rate(http_server_request_duration_seconds_count{service="order-service",route="/products/:id",method="GET"}[1m])) > 0.35'
   within: 3m
   alerts: [CacheLoadsHigh]
 ground_truth:
@@ -24,6 +25,7 @@ ground_truth:
   explanation: 一组热门商品开始活动，页面查询在短时间内到达。缓存失效后，同商品的一批查询没有合并，分别访问数据库；没有把下单集中到同一库存行。
 evidence_milestones:
   - 短时请求只查询商品，每个热点都有一批同时到达的查询
+  - 商品回源占 HTTP 商品请求的比例升高；CacheLoadsHigh 还检查此前流量并等待三十秒
   - 启动配置显示 singleflight 被关闭
   - 缓存未命中与实际回源次数同时增加
   - 同键并发回源计数与多条 SQL 调用链支持重复查询判断；这个计数没有参与告警

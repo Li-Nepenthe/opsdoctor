@@ -6,6 +6,7 @@ Prometheus 负责收集指标。它每 10 秒主动访问一次各服务的 `/me
 |---|---|
 | [prometheus.yml](prometheus.yml) | 采集哪些地址、多久采集一次、告警发给谁（Alertmanager） |
 | [rules/shop.yml](rules/shop.yml) | 告警规则，见 [rules/README.md](rules/README.md) |
+| [rules/cache_alert.test.yaml](rules/cache_alert.test.yaml) | 用合成时间线检查缓存告警的冷启动与持续异常边界 |
 
 ## 采集了哪些目标
 

@@ -8,7 +8,8 @@ inject:
 restore:
   - {action: deploy, service: order-service}
 symptom:
-  promql: 'increase(cache_loads_total{cache="product"}[1m]) > 100'
+  # verify 同时等待 CacheLoadsHigh 真正触发，包含流量前提和三十秒持续时间。
+  promql: 'sum(rate(cache_loads_total{service="order-service",cache="product"}[1m])) / sum(rate(http_server_request_duration_seconds_count{service="order-service",route="/products/:id",method="GET"}[1m])) > 0.35'
   within: 3m
   alerts: [CacheLoadsHigh]
 ground_truth:
@@ -17,6 +18,7 @@ ground_truth:
   explanation: 已存在的一批商品缓存共同到期，接下来的请求同时失去缓存保护，许多不同商品需要重新查库。
 evidence_milestones:
   - 启动配置的 TTL 抖动为零
+  - 过期前已有持续商品流量，随后回源比例超过百分之三十五并持续三十秒；区别于长时间停流后的正常填充
   - 缓存剩余时间集中，随后未命中和回源增加
   - 慢查询涉及多个商品，区分单热点击穿
   - 数据库压力随这一批缓存重新填充而下降

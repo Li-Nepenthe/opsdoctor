@@ -70,7 +70,20 @@ groups:
         annotations:
           summary: 数据库每秒累计行锁等待超过十毫秒
       - alert: CacheLoadsHigh
-        expr: rate(cache_loads_total{cache="product"}[1m]) > 50
+        # 每个商品请求最多需要一次正常回源。用比例比较，避免流量变大就越过固定次数。
+        # 停流后缓存会自然过期。还要确认两分钟前已有流量，给正常重新填充留出时间。
+        # 两个流量窗口都超过 20 次每秒，避免少量请求把比例放大；阈值由阶段 4 复测校准。
+        expr: |
+          (
+            sum by (service) (rate(cache_loads_total{service="order-service",cache="product"}[1m]))
+            /
+            sum by (service) (rate(http_server_request_duration_seconds_count{service="order-service",route="/products/:id",method="GET"}[1m]))
+          ) > 0.35
+          and
+          sum by (service) (rate(http_server_request_duration_seconds_count{service="order-service",route="/products/:id",method="GET"}[1m])) > 20
+          and
+          sum by (service) (rate(http_server_request_duration_seconds_count{service="order-service",route="/products/:id",method="GET"}[1m] offset 2m)) > 20
+        for: 30s
         labels: {severity: warning}
         annotations:
-          summary: 商品缓存每秒回源超过五十次
+          summary: 持续有商品流量时，回源比例超过百分之三十五并持续三十秒

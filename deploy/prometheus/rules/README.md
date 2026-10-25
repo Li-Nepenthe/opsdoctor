@@ -1,6 +1,6 @@
 # deploy/prometheus/rules：告警规则
 
-[shop.yml](shop.yml) 定义了 5 条告警规则：
+[shop.yml](shop.yml) 定义了 12 条告警规则。P99 表示百分之九十九的请求都能在这个时间内完成；它变高，说明较慢的那部分请求正在变慢。
 
 | 告警 | 什么时候触发 |
 |---|---|
@@ -9,6 +9,13 @@
 | ConsumerLagHigh | order-worker 积压的消息超过 1000 条，持续 2 分钟 |
 | GoroutinesGrowing | 某个服务的 goroutine 数量持续上涨，每秒增加超过 1 个，持续 1 分钟 |
 | ServiceUnavailable | 某个服务的管理端口连续 30 秒采集不到 |
+| InventoryLatencyHigh | 库存服务处理请求的 P99 超过 200ms，持续 30 秒 |
+| OrderListLatencyHigh | 订单列表 P99 超过 200ms，持续 30 秒 |
+| DatabasePoolWaiting | 每秒超过一次请求需要等待数据库连接，持续 30 秒 |
+| InventoryCallFailures | 库存调用失败比例超过 10%，持续 30 秒 |
+| InventoryRequestsAmplified | 每秒重试超过 100 次，且库存收到的请求超过 HTTP 入口的两倍，持续 30 秒 |
+| RowLockWaiting | MySQL 每秒累计行锁等待超过 10ms，持续 30 秒 |
+| CacheLoadsHigh | 商品回源比例超过 35%，当前和两分钟前都有足够流量，条件持续 30 秒 |
 
 ## 只写症状，不写原因
 
@@ -19,3 +26,25 @@
 ## 为什么要“持续一段时间”
 
 每条规则都有一个 `for`，表示条件要持续成立这么久才触发告警。这样能过滤掉偶尔的一次抖动。代价是发现得晚一些：比如 ConsumerLagHigh 至少要积压到 1000 条、再持续 2 分钟才会报。
+
+## 为什么缓存告警还要看之前的流量
+
+回源就是缓存里没有数据，需要去数据库查询。停流超过缓存的保留时间后，恢复访问会自然带来一波回源。原来的规则只要每秒回源超过 50 次就报警，因此把这种正常填充也当成了故障。
+
+现在先算一个比例：最近一分钟的商品回源次数，除以同一分钟的商品 HTTP 请求数。例如 100 次商品请求需要查数据库 40 次，回源比例就是 40%。分母只取 `GET /products/:id`。缓存内部会再次检查同一个键，这些检查不能当作新的用户请求。
+
+比例超过 35% 后，还要检查当前一分钟、以及两分钟前的那一分钟，商品请求速率是否都超过每秒 20 次。`offset 2m` 就是把查询窗口向前移动两分钟。这个前提让停流后的正常填充有时间完成，也避免几个请求就让比例大幅跳动。全部条件持续三十秒，告警才从观察中的 `pending` 变成正式触发的 `firing`。
+
+这条规则关注的是已有流量时回源负担上升。冷启动最初几分钟、低流量和大工作集需要单独评估；请求变慢或失败仍由耗时和错误率规则观察。同键并发回源计数只留给后续诊断，告警不读取它，也不读取 singleflight 配置。
+
+## 怎样验证规则
+
+[cache_alert.test.yaml](cache_alert.test.yaml) 用人工构造的计数时间线检查规则边界：健康流量放大、持续异常、停流恢复、少量请求和完全无流量。它只验证判断逻辑，真实数据另记在[数据台账](../../../docs/数据台账.md)。生产配置只加载 `*.yml`，测试文件使用 `.yaml`，不会被误加载。
+
+从仓库根目录执行：
+
+```powershell
+docker compose --env-file .env -f deploy/docker-compose.yml exec -T prometheus promtool test rules /etc/prometheus/rules/cache_alert.test.yaml
+```
+
+你应该看到 `SUCCESS`。CI 也运行同一条命令。

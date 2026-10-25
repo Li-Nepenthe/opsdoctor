@@ -161,6 +161,8 @@ jobs:
       - name: 指标、调用链、日志和 Grafana 接线冒烟
         run: |
           docker compose --env-file .env -f deploy/docker-compose.yml exec -T prometheus promtool check config /etc/prometheus/prometheus.yml
+          # 合成时间线检查冷缓存与持续异常的边界；真实故障验收仍在本机单独记录。
+          docker compose --env-file .env -f deploy/docker-compose.yml exec -T prometheus promtool test rules /etc/prometheus/rules/cache_alert.test.yaml
           python3 - <<'PY'
           import base64
           import json
