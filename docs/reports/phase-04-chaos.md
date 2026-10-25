@@ -1,6 +1,6 @@
 # 阶段 4 汇报书：故障注入与恢复
 
-> 2026-10-25 完成。本机连续两轮 selftest 共 22/22 通过；验收源码为 0cb75b3，其后修正说明文字与空库授权顺序，业务运行逻辑未变。阶段 4 完成后等待 Claude 验收和用户学习。
+> 2026-10-25 阶段 4 缓存告警返工完成。正常停流恢复与持续健康观测无误报；S04/S05 各三次完整流程通过，新规则额外完整 selftest 为 11/11。本机检查与固定版本 CI 通过，旧规则结果和失败轮次保留。等待 Claude 验收与用户学习。
 
 ## 一、总览
 
@@ -15,6 +15,8 @@ chaos 在宿主机读取场景，先保存原配置，再改索引、网络、�
 | list/inject/restore/restore-all/verify/healthy/selftest | 已完成；单元、集成、竞态与两轮完整实测通过 |
 | S01–S10、S13 场景与证据 | 已完成；十一份定义、标准答案、证据里程碑和两轮自动验收通过 |
 | 逐场景学习与人工排障讲解 | 已完成；逐场景解释、真实开发回放、六组可运行 Go 示例和最终实验结果 |
+
+本轮返工只调整缓存告警及其验证、说明。规则改为回源比例超过 35%，当前与两分钟前商品请求均超过 20/s，并持续 30s。正常冷缓存恢复和随后稳态观测共 1234.171s 无告警；S04、S05 各两次定向流程通过，额外完整 selftest 又各通过一次。业务 Go 逻辑、注入方式和三分钟验收预算均未改变。
 
 ## 二、新引入的技术与依赖
 
@@ -52,9 +54,9 @@ Jaeger 保留用户批准的 2.20.0 例外，其他基础设施沿用阶段 3 �
 |---|---:|---|
 | [.dockerignore](../../.dockerignore) | 11 | 避免答案与恢复记录进入构建上下文 |
 | [.env.example](../../.env.example) | 104 | 列出演示配置，不放本机口令 |
-| [.github/workflows/ci.yml](../../.github/workflows/ci.yml) | 228 | 增加另一构建版本和真实代理恢复冒烟 |
+| [.github/workflows/ci.yml](../../.github/workflows/ci.yml) | 230 | 增加另一构建版本和真实代理恢复冒烟 |
 | [.gitignore](../../.gitignore) | 15 | 忽略本机恢复记录 |
-| [README.md](../../README.md) | 383 | 说明目录职责、运行方法或学习顺序 |
+| [README.md](../../README.md) | 385 | 说明目录职责、运行方法或学习顺序 |
 | [cmd/README.md](../../cmd/README.md) | 23 | 说明目录职责、运行方法或学习顺序 |
 | [cmd/chaos/main.go](../../cmd/chaos/main.go) | 22 | 把 Ctrl+C 转为取消信号，再调用 chaos 命令装配层 |
 | [deploy/README.md](../../deploy/README.md) | 23 | 说明目录职责、运行方法或学习顺序 |
@@ -65,22 +67,25 @@ Jaeger 保留用户批准的 2.20.0 例外，其他基础设施沿用阶段 3 �
 | [deploy/jaeger/jaeger.yml](../../deploy/jaeger/jaeger.yml) | 44 | 增加调用链容量及相应内存预算 |
 | [deploy/mysql/init/005_chaos_user.sh](../../deploy/mysql/init/005_chaos_user.sh) | 27 | 建立只供实验使用的结构变更账号 |
 | [deploy/mysql/init/README.md](../../deploy/mysql/init/README.md) | 22 | 说明目录职责、运行方法或学习顺序 |
-| [deploy/prometheus/rules/shop.yml](../../deploy/prometheus/rules/shop.yml) | 76 | 根据可见症状报警，不预先给出故障原因 |
+| [deploy/prometheus/README.md](../../deploy/prometheus/README.md) | 18 | 讲解采集目录的文件分工与目标 |
+| [deploy/prometheus/rules/README.md](../../deploy/prometheus/rules/README.md) | 50 | 解释十二条症状规则、缓存背景条件及验证命令 |
+| [deploy/prometheus/rules/cache_alert.test.yaml](../../deploy/prometheus/rules/cache_alert.test.yaml) | 66 | 用合成时间线验证冷缓存、持续异常和流量边界 |
+| [deploy/prometheus/rules/shop.yml](../../deploy/prometheus/rules/shop.yml) | 89 | 根据可见症状报警，不预先给出故障原因 |
 | [deploy/toxiproxy/README.md](../../deploy/toxiproxy/README.md) | 9 | 说明目录职责、运行方法或学习顺序 |
 | [deploy/toxiproxy/proxies.json](../../deploy/toxiproxy/proxies.json) | 5 | 定义三条业务代理链路 |
-| [docs/decisions.md](../../docs/decisions.md) | 262 | 记录经用户批准的边界和工程取舍 |
-| [docs/learn/phase-04-chaos.md](../../docs/learn/phase-04-chaos.md) | 728 | 讲解开发过程、Go 写法和逐场景排障 |
-| [docs/notes.md](../../docs/notes.md) | 786 | 保存真实开发和实验过程 |
-| [docs/reports/phase-04-chaos.md](../../docs/reports/phase-04-chaos.md) | 388 | 记录本阶段的实现或实测证据 |
+| [docs/decisions.md](../../docs/decisions.md) | 282 | 记录经用户批准的边界和工程取舍 |
+| [docs/learn/phase-04-chaos.md](../../docs/learn/phase-04-chaos.md) | 780 | 讲解开发过程、Go 写法和逐场景排障 |
+| [docs/notes.md](../../docs/notes.md) | 890 | 保存真实开发和实验过程 |
+| [docs/reports/phase-04-chaos.md](../../docs/reports/phase-04-chaos.md) | 413 | 记录本阶段的实现或实测证据 |
 | [docs/代码地图.md](../../docs/代码地图.md) | 248 | 记录本阶段的实现或实测证据 |
-| [docs/数据台账.md](../../docs/数据台账.md) | 214 | 记录本阶段的实现或实测证据 |
+| [docs/数据台账.md](../../docs/数据台账.md) | 248 | 记录本阶段的实现或实测证据 |
 | [eval/README.md](../../eval/README.md) | 9 | 说明目录职责、运行方法或学习顺序 |
 | [eval/scenarios/README.md](../../eval/scenarios/README.md) | 23 | 说明目录职责、运行方法或学习顺序 |
 | [eval/scenarios/S01.yaml](../../eval/scenarios/S01.yaml) | 20 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
 | [eval/scenarios/S02.yaml](../../eval/scenarios/S02.yaml) | 19 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
 | [eval/scenarios/S03.yaml](../../eval/scenarios/S03.yaml) | 21 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
-| [eval/scenarios/S04.yaml](../../eval/scenarios/S04.yaml) | 30 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
-| [eval/scenarios/S05.yaml](../../eval/scenarios/S05.yaml) | 22 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
+| [eval/scenarios/S04.yaml](../../eval/scenarios/S04.yaml) | 32 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
+| [eval/scenarios/S05.yaml](../../eval/scenarios/S05.yaml) | 24 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
 | [eval/scenarios/S06.yaml](../../eval/scenarios/S06.yaml) | 19 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
 | [eval/scenarios/S07.yaml](../../eval/scenarios/S07.yaml) | 19 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
 | [eval/scenarios/S08.yaml](../../eval/scenarios/S08.yaml) | 19 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
@@ -322,7 +327,11 @@ loadgen 的本机控制接口新增 `POST /burst`，接收商品编号和有限�
 
 固定 ubuntu-24.04、Go 1.27.1 的 CI 范围包括全部静态与竞态检查、另一构建版本、真实数据库集成测试、订单至库存链路的 50ms 延迟注入与恢复，以及 HTTP、幂等、消息、指标、调用链、日志与 Grafana 接线。CI 使用独立 small 数据；两轮完整故障 selftest 在本机运行，不混称同一套性能实验。
 
+本轮返工在 `deploy/prometheus/rules/cache_alert.test.yaml` 新增五组 promtool 时间线：健康流量放大、持续异常、长时间停流后恢复、少量请求、没有流量，全部通过；生产配置仍加载十二条规则。完整竞态复跑通过（125 个顶层测试、16 个 Integration、0 跳过），静态检查和文件地图刷新完成。原始第一次竞态失败和 Docker 构建失败均保留。
+
 ## 五、工程验收结果
+
+新规则已通过超过二十分钟的正常流量观测、S04/S05 各两次定向复验，以及一次 11/11 的完整 selftest。下面先保留返工前两轮的历史结果，随后列出本轮验收。
 
 | 验收项 | 当前结论 | 证据 |
 |---|---|---|
@@ -330,7 +339,22 @@ loadgen 的本机控制接口新增 `POST /burst`，接收商品编号和有限�
 | 每场景三分钟内有症状与告警 | 通过 | 两轮最长 111.032 秒，包含注入动作；需要症状与相关 firing 告警同时成立 |
 | 每场景恢复后三分钟内健康 | 通过 | 两轮最长 141.182 秒，包含恢复动作和连续一分钟健康观察 |
 
-已追加数据台账 **P4-1 至 P4-27**，包含三轮未通过的完整表、S04 两种并发规模的对照、正式容器对照、基线配置错误、Redis 容量问题、连续两轮成功、S09 堆栈、S13 实际放大、内存快照和最终本机检查。两轮 S04 只触发 CacheLoadsHigh，没有 RowLockWaiting；正式开启/关闭对照中两组行锁增量均为零。
+已追加数据台账 **P4-1 至 P4-39**，包含三轮未通过的完整表、S04 两种并发规模的对照、正式容器对照、基线配置错误、Redis 容量问题、连续两轮成功、S09 堆栈、S13 实际放大、内存快照和最终本机检查。两轮 S04 只触发 CacheLoadsHigh，没有 RowLockWaiting；正式开启/关闭对照中两组行锁增量均为零。
+
+### 本轮缓存告警返工
+
+| 验收项 | 结果 | 证据 |
+|---|---|---|
+| 暂停超过十分钟后恢复 | 通过 | 暂停约 673s；冷缓存回源峰值 71.172/s，新规则没有 pending/firing，P4-29 |
+| 持续健康流量不误报 | 通过 | 共 1234.171s；包括一次正常缓存到期；完整 ALERTS 历史为空，P4-30 |
+| S04 两次完整流程 | 通过 | 96.507s / 79.751s 正式报警；81.609s / 96.494s 恢复健康；均无行锁告警，P4-32、P4-34 |
+| S05 两次完整流程 | 通过 | 109.791s / 108.156s 正式报警；76.411s / 86.359s 恢复健康，P4-33、P4-35 |
+| 额外一次完整 selftest | 通过 | 23f34fc；11/11，告警最长 110.940s，恢复最长 137.628s；完整表见 P4-37 |
+| 全部本机检查与规则测试 | 通过 | 五组 promtool 时间线、125 个竞态顶层测试含 16 个 Integration，以及全部静态检查，P4-36 |
+
+新规则实现的 [CI 40189124722](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/40189124722) 已通过，结果记为 P4-39。当前环境的恢复与暂停状态见 P4-38。
+
+第一次 S04 因 Docker Hub 域名解析失败而未完成发布，没有进入缓存故障步骤。已经恢复，随后原构建命令复查成功；失败记录保留在 P4-31，未计入成功轮次。
 
 2026-10-25 两轮验收结束后，在暂停流量前于 2026-10-25T09:10:35.809618+00:00 记录 docker stats。按显示值换算相加约 3750.340 MiB（3.66 GiB），18 个容器配置上限共 6976 MiB（6.8125 GiB）。健康基线目标为 200 QPS，此时 Prometheus 一分钟 HTTP 速率为 220.361/s；配置目标和观测值分别记录。这是单次快照，不是峰值，也不包含整个 WSL/Windows 的开销。MySQL 约 1.165/1.5 GiB、Jaeger 380.4/1024 MiB、Redis 238.2/768 MiB。
 
@@ -359,7 +383,7 @@ loadgen 的本机控制接口新增 `POST /burst`，接收商品编号和有限�
 
 ## 六、偏离计划之处
 
-用户批准为 S13 增加只读调用的单次预算，重试上限为 10，总预算不放宽，Deduct 仍只调用一次。用户批准显式补库存命令，只在实验前使用。S04 原热点流量产生了行锁干扰，经用户批准改为有并发上限的商品查询突发，同键重叠计数只作诊断证据，告警仍按实际回源速率。决定及理由见 [S13 单次预算](../decisions.md#phase-04-attempt-timeout)、[S04 商品突发](../decisions.md#phase-04-s04) 和[显式补库存](../decisions.md#phase-04-foundation)。三分钟验收时限和连续两轮要求没有放宽。
+用户批准为 S13 增加只读调用的单次预算，重试上限为 10，总预算不放宽，Deduct 仍只调用一次。用户批准显式补库存命令，只在实验前使用。S04 原热点流量产生了行锁干扰，经用户批准改为有并发上限的商品查询突发，同键重叠计数只作诊断证据，告警按实际回源症状判断；本轮返工采用比例、此前流量和持续时间，见[冷缓存返工决定](../decisions.md#phase-04-cache-alert)。决定及理由见 [S13 单次预算](../decisions.md#phase-04-attempt-timeout)、[S04 商品突发](../decisions.md#phase-04-s04) 和[显式补库存](../decisions.md#phase-04-foundation)。三分钟验收时限和连续两轮要求没有放宽。
 
 ## 七、已知问题与遗留事项
 
@@ -369,13 +393,14 @@ loadgen 的本机控制接口新增 `POST /burst`，接收商品编号和有限�
 4. MySQL exporter 的锁等待指标是全实例统计，专用测试库也会影响它。故障实验期间不并行跑数据库集成测试。
 5. 首轮 S03 暴露了只记录镜像 ID 的恢复缺陷，已保留原镜像标签并核对内容 ID；回归测试与最终两轮恢复均通过。原失败表保留。
 6. 所有性能和保留时长数字来自本机 Docker，不代表生产容量。
-7. 当前缓存告警按 200 QPS、10000 个活跃商品、64 个工作者校准。误恢复默认五十万活跃商品时已出现正常回源触发告警，失败保留在 P4-16；扩大工作集或请求速率必须重新校准，不能宣称这些静态门槛适用于所有负载。
+7. 缓存告警已改为比例、此前流量和持续时间。已验证的基线为 200 QPS、10000 个活跃商品、64 个工作者；冷启动初期和每秒不超过 20 次商品请求时，缓存规则缺少足够背景，耗时和错误率规则继续观察。扩大工作集必须重测填充时长。Docker Hub 构建解析曾短暂失败，复查已恢复；S04/S05 各三次完整流程及新规则整套 selftest 均通过。
 8. 商品回源只是一次主键查询。正式对照虽多出大量重复查询，P99 仍落在 100ms 以下的桶；回源更昂贵时的影响不能用本机数字代替。
 9. Redis 在约三十万个未过期幂等键时耗尽了原 128 MiB 写入预算。已扩容并保留原记录，但有限容量不等于能持续承载一天的压测；需要按订单速率和保存时长规划容量，不能靠淘汰凭据维持下单。
+10. 本轮 TestRetryPolicy 的 1ms 真实截止时间出现一次调度波动；未改代码，完整复跑后 125 个测试通过。首次失败保留在 notes。
 
 ## 八、注释自查结论
 
-三层说明已逐项自查：分组目录有 README，doc.go 列全包内文件；文件说明写明用途、主要内容与阅读建议；函数和分支解释判断理由。commentcheck 对 179 份手写 Go 文件检查通过，文件地图已重新生成。
+三层说明已逐项自查：分组目录有 README，doc.go 列全包内文件；文件说明写明用途、主要内容与阅读建议；函数和分支解释判断理由。commentcheck 对 179 份手写 Go 文件检查通过，文件地图已重新生成。本轮没有新增 Go 文件；S05 不再把尚未测出的慢查询当作必然症状。规则与测试文件的说明、分组目录 README、S04/S05 文件及学习材料已补充“为何区分正常填充与持续异常”。
 
 人工复查修正了几处容易误导初学者的解释：恢复镜像要先保留引用再核对内容；HTTP 状态与业务状态分开；SQL span 从取得连接后开始；Kafka 调用方停止等待后，后台批次仍可能继续；仓储调用重叠可能包含借连接等待，不一定已经同时执行 SQL。参数字段和测试用例也写清了边界。六组 Go 教学示例已实际执行并通过 gofmt，涵盖预算、通道、独占文件、命令参数、构建标签与固定工作者一起出发。
 

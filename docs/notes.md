@@ -290,6 +290,110 @@ S04 窗口最大分钟回源速率 124.241/s，同键重叠计数速率 101.111/
 
 `bde7e7e` 已推送到 phase-04-chaos，[CI 40180713958](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/40180713958) 在 ubuntu-24.04、Go 1.27.1 上通过。静态检查、竞态、另一构建版本、真实依赖、50ms 网络代理注入与恢复、订单幂等和消息、完整观测接线均成功。CI 使用独立 small 数据；本机连续两轮故障验收见上文。随后只补验收链接与表格说明，不改运行逻辑。远端 main 核对仍为 0c96b0a，学习验收全部保持未勾选；完成后停在阶段 4。
 
+<a id="phase-04-cache-rework"></a>
+
+### 2026-10-25：缓存告警冷启动返工
+
+Claude 验收反馈：缓存自然过期后恢复流量，旧 CacheLoadsHigh 因回源超过 50/s 立即触发，healthy 在故障注入之前等待约 2m30s。这个时间是验收反馈，不冒充本轮重新测得的数据。原规则没有 for。此前 P4-16 已说明扩大工作集会触发绝对回源门槛，但没有覆盖同一工作集停流后的正常填充。
+
+本轮从 ebd4c2a 开始，只在 phase-04-chaos 返工。业务容器仍使用原有镜像，目标流量 200 QPS、活跃商品 10000、工作者 64；singleflight=true、TTL 抖动 60s，商品缓存保留 10–11 分钟。未修改业务表、缓存保留时间或场景的注入动作。
+
+先从 Prometheus 重新查询前两轮实际数据，分母只取 GET /products/:id。查询窗口一分钟，查询步长十秒。S04 两轮回源比例峰值为 91.277% 和 93.362%；S05 为 51.162% 和 53.129%。将候选条件“回源比例 >35%，当前及两分钟前商品速率均 >20/s”代入这些历史样本，四段条件分别持续 50、40、50、40 秒，可覆盖 30 秒的 for。历史回放只用于选候选阈值，不能代替本轮实际 firing 验收。
+
+候选表达式和校验保存在 deploy/prometheus/rules/shop.yml、cache_alert.test.yaml。先运行 promtool check rules 与 test rules，再通过 docker kill --signal=HUP opsdoctor-prometheus-1 热加载；这是让 Prometheus 重新读取规则，业务服务未重启。五组合成时间线全部通过，合成数据不计作性能实测。
+
+原始文件保留在本机临时目录 `%TEMP%/opsdoctor-phase04/`：cache-rework-history.json、cache-rework-history-candidate.json、cache-rework-candidate-meta.json。前两份分别保存指标序列、候选条件满足的序列；meta 保存规则文件 SHA256 与加载时间。
+
+首次全量竞态测试 124 个顶层测试通过、16 个 Integration 通过，TestRetryPolicy/剩余预算不够 未通过。源码里该用例使用 1ms 的真实截止时间，本次在首次 operation 前已经过期，实际调用为 0 次，而用例期待 1 次；输出保留在 cache-rework-race.jsonl。未改业务逻辑或测试门槛，原命令完整复跑后 125 个顶层测试全部通过，其中 16 个 Integration，0 失败、0 跳过（cache-rework-race-rerun.jsonl）。这个计时敏感性作为已知测试限制保留。gofmt、go vet、staticcheck、commentcheck（179 份手写 Go 文件）、archcheck 均通过，文件地图重新生成后内容相同。
+
+#### 本轮正常流量观测
+
+实际暂停约 673 秒，暂停采样的首尾间隔也已超过 660 秒，覆盖商品缓存的最长 10m+60s 保留时间。随后恢复目标 200 QPS，先观察五分钟冷缓存，再继续十五分钟。业务期共 120 次采样，0 次采集错误。完整告警历史另按一秒步长回查，结果为空。
+
+| 时段 | 采样数 | 回源峰值 /s | 回源比例峰值 | 商品 P99 峰值估计 | 全库 SELECT 峰值 /s | 告警 |
+|---|---:|---:|---:|---:|---:|---|
+| 恢复后的前五分钟 | 30 | 71.172 | 86.640% | 24.754ms | 239.677 | 无 pending/firing |
+| 随后十五分钟，包含正常过期 | 90 | 31.116 | 20.261% | 86.518ms | 206.611 | 无 pending/firing |
+
+表内峰值取当前商品速率超过每秒 20 次的有效采样点；它们不一定发生在同一秒，不能拿两列峰值相除。恢复最初低流量时，两个独立计数的窗口比例也保存于原始记录，不拿它们校准比例门槛。检查告警历史时覆盖了全时段，没有过滤低流量时间。商品 P99 是直方图估算，全库 SELECT 包含库存和监控查询。
+
+恢复两分钟附近的实测比例为 20.565%，已经低于 35%；这解释了为何历史流量窗口恢复后不会补报。正常下一轮到期的比例峰值为 20.261%，与历史 S05 的 51%–53% 有间隔。三十秒持续时间用于过滤短暂升高；它仍须通过接下来的故障实测。
+
+业务窗口 Unix 时间为 1792923304.070175 至 1792924538.240879，共 1234.171 秒。原始文件为 cache-rework-pause-original.jsonl、cache-rework-cold-original.jsonl、cache-rework-healthy-original.jsonl、cache-rework-baseline-summary.json；文件名 original 指原有业务镜像，实际已加载候选告警规则。停流期间的两次全量测试会影响 MySQL 全实例行锁指标，因此暂停记录里有 RowLockWaiting；测试结束并消退后才恢复业务流量，业务观测窗口里没有这条告警。
+
+规则文件 SHA256（包括最后一处纯注释措辞修正）：`cf119a4f274cf2d1d050114026f2788528acb861bf7f8c4c69b08d14ca52ca6e`。表达式在本轮观测中没有改变。Prometheus 仍按十秒抓取、十秒评估；生产只加载 shop.yml 中十二条规则，cache_alert.test.yaml 独立供 promtool 使用。
+
+#### 第一次 S04：构建网络中断，未到故障验证
+
+命令顺序为 `go run ./cmd/chaos healthy`、`inject S04`、失败后的 `restore S04`。事前 healthy 在 60.131 秒通过。inject 外层命令运行约 13.339 秒后退出 1，失败位置是发布配置前的镜像构建；缓存删除和突发动作尚未执行，因此没有执行 verify，不能把这一轮算成告警失败或通过。restore 退出 0，容器健康、singleflight 恢复原值、流量恢复 200 QPS，恢复记录已删除。
+
+单独运行 `docker compose --env-file .env -f deploy/docker-compose.yml build order-service`，复现相同错误：构建器不能解析 auth.docker.io，获取 Docker Hub 的访问令牌失败（`failed to fetch oauth token`、`lookup auth.docker.io: no such host`）。这里只是访问固定基础镜像所需的仓库认证流程，不是项目凭据错误。宿主机 Resolve-DnsName 能正常解析；Docker 本机没有 golang:1.27.1-alpine3.24 和 alpine:3.24.2 的独立镜像，不能直接离线构建。没有改 Docker 全局网络设置，已请用户恢复 Docker Desktop 的访问。
+
+原始步骤、时间和五秒采样保留在 cache-rework-S04-1-result.json、cache-rework-S04-1-metrics.jsonl；构建诊断保留在 cache-rework-build-diagnostic.log，输出已过滤本地凭据。候选规则和三分钟要求保持不变。
+
+随后补查业务容器内 DNS 已可解析。再次原样执行 build order-service 成功，输出保留在 cache-rework-build-recheck.log；没有修改 Docker 全局配置或基础镜像版本。已告知用户无需再处理此前环境提示。等待期间短暂暂停压测，网络恢复后继续原验收流程。 用户随后明确确认：容器 DNS、docker pull 和构建都已通过，两个固定基础镜像已拉入本地缓存。用户要求后续构建网络失败先重试一次，仍失败再停止说明；未要求修改注入器的重试逻辑。
+
+#### 新规则 S04 第一轮完整成功
+
+网络复查后重新开始，原有恢复记录已清除，规则表达式未改。事前 healthy 实际 70.132s，通过后执行 inject S04、verify S04、restore S04、healthy，四步均退出 0。注入开始至正式症状与告警确认 96.507 秒；恢复命令开始至 healthy 结束共 81.609 秒，都小于三分钟。
+
+从注入到恢复健康共 36 次五秒采样，0 采集错误。有效商品流量样本中的回源比例峰值为 90.595%，回源速率峰值 140.449/s，商品 P99 峰值估计 24.274ms，全实例 SELECT 峰值 349.757/s，行锁速率峰值 0ms/s。实际只有 CacheLoadsHigh firing，没有 RowLockWaiting。独立峰值不一定来自同一时刻。
+
+原始步骤和秒级时间保留在 cache-rework-S04-2-result.json，过程在 cache-rework-S04-2-metrics.jsonl，汇总在 cache-rework-S04-2-summary.json。S04-1 是构建网络失败，S04-2 才是本轮新规则第一次完成的场景，不合并或删除失败轮。
+
+#### 新规则 S05 第一轮完整成功
+
+沿用 S04 最后的连续健康结果，直接运行 inject S05、verify S05、restore S05、healthy，四步均退出 0。注入到症状和正式告警共 109.791 秒，恢复动作加健康检查 76.411 秒。没有改变注入动作、35% 门槛、30s 持续时间或三分钟验收预算。
+
+37 次五秒采样无采集错误。回源比例峰值 47.048%，回源速率峰值 71.585/s，商品 P99 峰值估计 77.799ms，全库 SELECT 峰值 257.420/s，行锁峰值 0ms/s。实际只触发 CacheLoadsHigh。原始文件前缀 cache-rework-S05-1，分别包含 result.json、metrics.jsonl、summary.json。
+
+#### 新规则 S04 第二轮完整成功
+
+四步命令全部退出 0。注入到正式告警 79.751 秒，恢复开始到 healthy 完成 96.494 秒。35 次五秒采样无采集错误，回源比例峰值 90.384%、回源速率 143.084/s、商品 P99 估计 24.180ms、全库 SELECT 359.525/s；行锁速率峰值 0ms/s，只有 CacheLoadsHigh firing。原始记录前缀 cache-rework-S04-3。
+
+第一次 S04 更晚触发、较快结束恢复；第二次更早触发、等待告警窗口消退稍久。这两个时间都保留，不能只选更好看的数字。两次使用同一表达式和三十秒持续时间。
+
+#### 新规则 S05 第二轮与定向复验汇总
+
+第二轮 S05 四步均退出 0。注入到正式告警 108.156 秒，恢复到连续健康 86.359 秒。39 次五秒采样没有采集错误。回源比例峰值 49.441%、回源速率 75.381/s、商品 P99 估计 43.633ms、全库 SELECT 250.121/s，行锁峰值 0ms/s；只有 CacheLoadsHigh firing。文件前缀 cache-rework-S05-2。
+
+| 完整流程 | 告警时间（自注入起） | 恢复加 healthy | 正式告警 | 结果 |
+|---|---:|---:|---|---|
+| S04 第一次成功 | 96.507s | 81.609s | CacheLoadsHigh | 四步均通过 |
+| S05 第一次成功 | 109.791s | 76.411s | CacheLoadsHigh | 四步均通过 |
+| S04 第二次成功 | 79.751s | 96.494s | CacheLoadsHigh | 四步均通过 |
+| S05 第二次成功 | 108.156s | 86.359s | CacheLoadsHigh | 四步均通过 |
+
+定向验证期间没有更改表达式、持续时间或注入动作。测试时 HEAD 为 ebd4c2a 加本次工作区规则，内容指纹见上文；实现随后保存为 23f34fc。完整 selftest 在 23f34fc 上额外开始一轮，文档更新不影响运行代码。它的结果另行记录，不把此前旧规则的两轮通过冒充新规则全量验收。
+
+#### 新规则额外完整 selftest：23f34fc，十一项全部通过
+
+实现提交 23f34fc，开始 Unix 时间 1792925985.1241057，结束 1792928687.931499，整轮 2702.807 秒。十一项全部通过；症状及正式告警最长 110.940 秒，恢复健康最长 137.628 秒。两个时间都包含相应动作，恢复还包含连续一分钟健康观察。268 次十秒采样没有采集错误。
+
+| 场景 | 事前健康 | 注入耗时 | 症状及告警（自注入起） | 恢复健康（含恢复动作） | 告警 | 结果 |
+|---|---:|---:|---:|---:|---|---|
+| S01 | 1m0.128s | 68ms | 50.102s | 2m17.628s | InventoryLatencyHigh | 通过 |
+| S02 | 1m0.122s | 29ms | 1m0.102s | 2m7.949s | OrderListLatencyHigh | 通过 |
+| S03 | 1m0.118s | 25.897s | 1m50.94s | 2m1.305s | DatabasePoolWaiting | 通过 |
+| S04 | 1m0.118s | 55.421s | 1m25.438s | 1m36.336s | CacheLoadsHigh | 通过 |
+| S05 | 1m0.122s | 26.757s | 1m41.794s | 1m26.016s | CacheLoadsHigh | 通过 |
+| S06 | 1m0.121s | 482ms | 45.506s | 1m15.957s | ServiceUnavailable | 通过 |
+| S07 | 1m0.119s | 7ms | 1m10.044s | 2m0.191s | InventoryCallFailures | 通过 |
+| S08 | 1m0.123s | 3ms | 1m0.036s | 1m55.227s | RowLockWaiting | 通过 |
+| S09 | 1m0.121s | 6.292s | 1m21.335s | 1m46.129s | GoroutinesGrowing | 通过 |
+| S10 | 1m0.118s | 5ms | 1m5.041s | 2m0.181s | InventoryLatencyHigh | 通过 |
+| S13 | 1m0.256s | 27.456s | 1m17.485s | 2m6.421s | InventoryRequestsAmplified | 通过 |
+
+本轮 S04 只有 CacheLoadsHigh，没有行锁告警。它和 S05 在两次定向实验之后，各完成了第三次完整流程；表达式、持续时间、注入方式和三分钟预算没有改变。完整原始表、指标和运行版本保存在 selftest-cache-rework-1.txt、同名前缀的 metrics.jsonl、meta.json 与 summary.json。文档编辑只改说明；其中 S05 把“慢查询涉及多个商品”改成回源调用链与到期时间，避免把未测出的变慢写成事实。
+
+#### 返工结束状态与 CI
+
+本轮完整 selftest 结束后，在 2026-10-25T11:45:01.241867+00:00 重新取快照：18 个容器正常、没有 OOM，三条代理均无故障规则，firing 告警为空。目标仍为 200 QPS，实测一分钟 HTTP 速率 209.713/s，消费积压 0。容器实际内存按显示值合计约 3866.184 MiB，配置上限合计 6976 MiB；这是单次快照，不是峰值。随后通过控制接口暂停压测并读回确认 QPS=0，保留容器和数据卷。
+
+原始快照为 cache-rework-stats-final.jsonl、cache-rework-final-state.json、cache-rework-final-paused.json。
+
+实现提交 23f34fc 已推送，[CI 40189124722](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/40189124722) 在固定 ubuntu-24.04、Go 1.27.1 上全部通过，包括五组 promtool 时间线、静态与竞态检查、真实依赖和观测接线。第一次 git push 曾遇到 github.com 临时解析失败，DNS 复查后原命令重试成功；没有改代理或远端配置。此后只补说明、结果表和验收链接，不改运行逻辑。
+
 <a id="phase-03"></a>
 
 ## 2026-10-23：阶段 3 开发记录
