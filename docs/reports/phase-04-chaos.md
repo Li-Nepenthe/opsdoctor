@@ -70,10 +70,10 @@ Jaeger 保留用户批准的 2.20.0 例外，其他基础设施沿用阶段 3 �
 | [deploy/toxiproxy/proxies.json](../../deploy/toxiproxy/proxies.json) | 5 | 定义三条业务代理链路 |
 | [docs/decisions.md](../../docs/decisions.md) | 262 | 记录经用户批准的边界和工程取舍 |
 | [docs/learn/phase-04-chaos.md](../../docs/learn/phase-04-chaos.md) | 728 | 讲解开发过程、Go 写法和逐场景排障 |
-| [docs/notes.md](../../docs/notes.md) | 782 | 保存真实开发和实验过程 |
-| [docs/reports/phase-04-chaos.md](../../docs/reports/phase-04-chaos.md) | 386 | 记录本阶段的实现或实测证据 |
+| [docs/notes.md](../../docs/notes.md) | 786 | 保存真实开发和实验过程 |
+| [docs/reports/phase-04-chaos.md](../../docs/reports/phase-04-chaos.md) | 388 | 记录本阶段的实现或实测证据 |
 | [docs/代码地图.md](../../docs/代码地图.md) | 248 | 记录本阶段的实现或实测证据 |
-| [docs/数据台账.md](../../docs/数据台账.md) | 213 | 记录本阶段的实现或实测证据 |
+| [docs/数据台账.md](../../docs/数据台账.md) | 214 | 记录本阶段的实现或实测证据 |
 | [eval/README.md](../../eval/README.md) | 9 | 说明目录职责、运行方法或学习顺序 |
 | [eval/scenarios/README.md](../../eval/scenarios/README.md) | 23 | 说明目录职责、运行方法或学习顺序 |
 | [eval/scenarios/S01.yaml](../../eval/scenarios/S01.yaml) | 20 | 记录这一场景的原因、动作、症状、恢复与调查证据 |
@@ -318,7 +318,9 @@ loadgen 的本机控制接口新增 `POST /burst`，接收商品编号和有限�
 
 两轮 selftest 使用 0cb75b3，其后六处纯注释修正也已重新通过 gofmt、go vet、staticcheck、commentcheck、archcheck。commentcheck 检查 179 份手写 Go 文件。配置六个专用测试库及 Redis 测试地址后，完整 `go test -race ./... -count=1 -timeout=180s` 通过：125 个顶层测试，其中 16 个 Integration，0 失败、0 跳过。两个构建版本均已从同一提交成功构建。Prometheus 配置与 12 条规则通过 promtool。第一次完整测试脚本误填两个专用库名，被测试在连接前拒绝；修正后通过，原错误输出保留在 notes 所列文件中。
 
-首次 Linux CI 的空库初始化未通过：授权时业务表尚未创建。已调整为先建账号、服务迁移完成后再授表权限；独立临时空库启动与两次重复授权验证通过，原 CI 失败记录保留在 P4-25、P4-26，修正后的远端检查继续执行。
+首次 Linux CI 的空库初始化未通过：授权时业务表尚未创建。已调整为先建账号、服务迁移完成后再授表权限；独立临时空库启动与两次重复授权验证通过，原 CI 失败记录保留在 P4-25、P4-26，修正后的 [Linux CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/40180713958) 已通过，提交为 `bde7e7e`。
+
+固定 ubuntu-24.04、Go 1.27.1 的 CI 范围包括全部静态与竞态检查、另一构建版本、真实数据库集成测试、订单至库存链路的 50ms 延迟注入与恢复，以及 HTTP、幂等、消息、指标、调用链、日志与 Grafana 接线。CI 使用独立 small 数据；两轮完整故障 selftest 在本机运行，不混称同一套性能实验。
 
 ## 五、工程验收结果
 
@@ -328,7 +330,7 @@ loadgen 的本机控制接口新增 `POST /burst`，接收商品编号和有限�
 | 每场景三分钟内有症状与告警 | 通过 | 两轮最长 111.032 秒，包含注入动作；需要症状与相关 firing 告警同时成立 |
 | 每场景恢复后三分钟内健康 | 通过 | 两轮最长 141.182 秒，包含恢复动作和连续一分钟健康观察 |
 
-已追加数据台账 **P4-1 至 P4-26**，包含三轮未通过的完整表、S04 两种并发规模的对照、正式容器对照、基线配置错误、Redis 容量问题、连续两轮成功、S09 堆栈、S13 实际放大、内存快照和最终本机检查。两轮 S04 只触发 CacheLoadsHigh，没有 RowLockWaiting；正式开启/关闭对照中两组行锁增量均为零。
+已追加数据台账 **P4-1 至 P4-27**，包含三轮未通过的完整表、S04 两种并发规模的对照、正式容器对照、基线配置错误、Redis 容量问题、连续两轮成功、S09 堆栈、S13 实际放大、内存快照和最终本机检查。两轮 S04 只触发 CacheLoadsHigh，没有 RowLockWaiting；正式开启/关闭对照中两组行锁增量均为零。
 
 2026-10-25 两轮验收结束后，在暂停流量前于 2026-10-25T09:10:35.809618+00:00 记录 docker stats。按显示值换算相加约 3750.340 MiB（3.66 GiB），18 个容器配置上限共 6976 MiB（6.8125 GiB）。健康基线目标为 200 QPS，此时 Prometheus 一分钟 HTTP 速率为 220.361/s；配置目标和观测值分别记录。这是单次快照，不是峰值，也不包含整个 WSL/Windows 的开销。MySQL 约 1.165/1.5 GiB、Jaeger 380.4/1024 MiB、Redis 238.2/768 MiB。
 
