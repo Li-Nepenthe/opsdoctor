@@ -224,10 +224,12 @@ services:
       - "127.0.0.1:6379:6379"
     # Redis 现在还保存幂等凭据，不能因缓存淘汰而让旧请求重新执行。
     # noeviction 在内存用完时拒绝新写入；AOF 每次确认前刷盘，普通重启保留未到期记录。
-    command: ["redis-server", "--maxmemory", "128mb", "--maxmemory-policy", "noeviction", "--save", "", "--appendonly", "yes", "--appendfsync", "always"]
+    # 连续实验累积约三十万个幂等键后曾耗尽 128 MiB。扩大容量，不清键或缩短承诺的保存期限。
+    # 数据上限之外再留 256 MiB，容纳分配器、连接与 AOF 重写时的额外内存；仍须实测监控。
+    command: ["redis-server", "--maxmemory", "512mb", "--maxmemory-policy", "noeviction", "--save", "", "--appendonly", "yes", "--appendfsync", "always"]
     volumes:
       - redis-data:/data
-    mem_limit: 256m
+    mem_limit: 768m
     logging: *bounded-logging
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
