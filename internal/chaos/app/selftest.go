@@ -42,6 +42,11 @@ type Row struct {
 // Trial 先确认健康，再开始计时；原本已经有故障的系统不能用来判断本次注入的效果。
 func (engine *Engine) Trial(ctx context.Context, value scenario.Scenario) (row Row) {
 	row.ID = value.ID
+	budget, err := time.ParseDuration(value.Symptom.Within)
+	if err != nil || budget <= 0 || budget > phaseBudget {
+		row.Problem = fmt.Errorf("场景观察时限不合法")
+		return row
+	}
 	healthCtx, cancel := context.WithTimeout(ctx, phaseBudget)
 	health, err := engine.Observer.Healthy(healthCtx)
 	cancel()
@@ -51,7 +56,8 @@ func (engine *Engine) Trial(ctx context.Context, value scenario.Scenario) (row R
 		return row
 	}
 	start := time.Now()
-	injectCtx, cancel := context.WithTimeout(ctx, phaseBudget)
+	// 场景可以要求更短的观察时限，但不能超过阶段规定的三分钟。
+	injectCtx, cancel := context.WithTimeout(ctx, budget)
 	record, injectErr := engine.Inject(injectCtx, value)
 	row.Inject = time.Since(start)
 	if injectErr == nil {
@@ -94,7 +100,7 @@ func (engine *Engine) Selftest(ctx context.Context, values []scenario.Scenario, 
 	fmt.Fprintln(output, "| 场景 | 事前健康 | 注入耗时 | 症状及告警（自注入起） | 恢复健康（含恢复动作） | 告警 | 结果 |")
 	fmt.Fprintln(output, "|---|---:|---:|---:|---:|---|---|")
 	var problems []error
-	for _, value := range values {
+	for index, value := range values {
 		row := engine.Trial(ctx, value)
 		outcome := "通过"
 		if row.Problem != nil {
@@ -104,6 +110,10 @@ func (engine *Engine) Selftest(ctx context.Context, values []scenario.Scenario, 
 		fmt.Fprintf(output, "| %s | %s | %s | %s | %s | %s | %s |\n", row.ID, row.Before.Round(time.Millisecond), row.Inject.Round(time.Millisecond), row.Verified.Round(time.Millisecond), row.Restore.Round(time.Millisecond), strings.Join(row.Alerts, ","), outcome)
 		if !row.Restored || ctx.Err() != nil {
 			// 恢复不完整时继续注入会混合原因，后面的结果也不再可信。
+			// 保留剩余编号，但明确标成未执行，避免读者把缺行误解为全部通过。
+			for _, pending := range values[index+1:] {
+				fmt.Fprintf(output, "| %s | — | — | — | — | — | 未执行：前序基线或恢复未通过，或实验被取消 |\n", pending.ID)
+			}
 			break
 		}
 	}

@@ -38,6 +38,40 @@ Docker 重启后，仍使用源码 4da5da10 和 APP_VERSION=20261024.2。2026-10
 
 初始 trace `3a11fad8e537497fb011e028965e7723` 在第 1200.001 秒仍能查到 12 个 span。Jaeger 最后占用 256 MiB / 1 GiB，十五分钟保留目标通过本轮实测。原始文件 kafka-after-rerun.json 和四份同名前缀日志保留；中断轮没有被覆盖。两秒基线也没有重现旧 53 条，因此只能说新预算通过本轮测试，不能声称证明历史每一条的触发原因。
 
+### 代理部署、集成测试与首轮场景实测
+
+源码 ffccf03。18 个容器全部通过 Compose 健康检查，Toxiproxy 2.13.0 的三个代理已接入。Prometheus 配置和 12 条告警规则通过 promtool；HTTP reload 接口未启用，调用返回拒绝，随后用 SIGHUP 成功加载，未开放额外管理接口。S09 的独立镜像 20261024.4 编译成功，正常版本为 20261024.3。
+
+第一次集成测试只从本机 .env 读到了四个旧 TEST DSN，7 个通过、9 个因参数缺失跳过。随后仅在测试进程里补齐订单、销量测试库参数和 Redis 地址，再跑完整的 Integration：16 个顶层测试通过，0 跳过。没有把专用测试 DSN 指向 shop 业务库。
+
+这一轮集成测试与最初的 healthy 检查重叠。并发扣库存测试会影响 MySQL 全局行锁等待计数，触发 RowLockWaiting，因此 healthy 在 3m0s 超时。这次失败保留，不计为业务场景故障。测试结束后锁等待速率回到约 0.086ms/s，告警消退，再启动首轮 selftest。后续整套实验期间不并行执行数据库测试。
+
+首轮 S01 于本机 22:33:45 开始。期间只读执行 `EXPLAIN UPDATE stock SET available=available-1 WHERE sku_id=1 AND available>=1`，得到 type=index、key=PRIMARY、rows=498780、Using where：UPDATE 扫描主键索引中的大量记录，不能把它写成精确索引定位。与阶段 1 对 SELECT 的 type=ALL 结果不是同一种语句。未执行该 UPDATE。过程指标和完整结果表保存在 selftest-initial-metrics.jsonl 与 selftest-initial.txt，后续按真实结果补齐。
+
+S02 期间只读查看列表查询的执行计划，返回 type=ALL、rows=1991940、Using where; Using filesort。查询内容为 `EXPLAIN SELECT id,user_id,sku_id,quantity,status,created_at FROM orders WHERE user_id=1 ORDER BY created_at DESC,id DESC LIMIT 20`。没有执行数据修改。首个较完整指标窗口中列表 P99 约 440ms，而商品详情约 9ms、下单约 49ms；受影响入口不同，是定位列表查询的第一条线索。
+
+### 首轮 selftest：原样保留失败
+
+源码 ffccf03，完整输出文件 selftest-initial.txt。首版遇到恢复失败后只打印已执行行；下面补上未执行编号，明确它们没有被测试，非测量值用破折号。后续版本会直接打印这些未执行行。
+
+| 场景 | 事前健康 | 注入耗时 | 症状及告警（自注入起） | 恢复健康（含恢复动作） | 告警 | 结果 |
+|---|---:|---:|---:|---:|---|---|
+| S01 | 1m0.124s | 40ms | 50.071s | 2m5.594s | InventoryLatencyHigh | 通过 |
+| S02 | 1m0.124s | 18ms | 45.14s | 2m12.247s | OrderListLatencyHigh | 通过 |
+| S03 | 1m0.131s | 25.954s | 1m35.99s | 2.006s | DatabasePoolWaiting | 恢复动作 deploy：docker 命令未完成：exit status 1（原始输出未回显，避免暴露环境变量） |
+| S04 | — | — | — | — | — | 未执行：S03 恢复失败后停止 |
+| S05 | — | — | — | — | — | 未执行：S03 恢复失败后停止 |
+| S06 | — | — | — | — | — | 未执行：S03 恢复失败后停止 |
+| S07 | — | — | — | — | — | 未执行：S03 恢复失败后停止 |
+| S08 | — | — | — | — | — | 未执行：S03 恢复失败后停止 |
+| S09 | — | — | — | — | — | 未执行：S03 恢复失败后停止 |
+| S10 | — | — | — | — | — | 未执行：S03 恢复失败后停止 |
+| S13 | — | — | — | — | — | 未执行：S03 恢复失败后停止 |
+
+S03 启动日志确认 db_max_open_conns=2、db_max_idle_conns=2，版本为 20261025.054138。它在 95.990 秒观察到连接池等待告警，但恢复镜像失败：Docker 尝试查找原 sha256 ID 时返回 No such image，甚至把它解释成待拉取的名称。镜像列表确认原 ID 已没有本地引用。这里是注入器的恢复缺陷，不能写成场景验收通过。
+
+先暂停流量，保留原恢复记录到本机临时文件 S03-failed-original-record.json。随后从 ffccf03 导出临时源码，使用原 APP_VERSION=20261024.3 重建正常库存版本。新镜像 ID 不同，不能冒称找回了原镜像；这是按原源码、版本和公开配置做的人工恢复。修正恢复记录后执行 restore-all，再恢复原 200 QPS。后续代码在发布前给原镜像增加独立本地标签，恢复前检查内容 ID，禁止拉取或构建；增加两个针对这次失败的测试。
+
 <a id="phase-03"></a>
 
 ## 2026-10-23：阶段 3 开发记录

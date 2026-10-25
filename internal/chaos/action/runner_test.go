@@ -6,6 +6,8 @@
 //   - TestDeploymentRestore：恢复原镜像内容 ID 和配置，不重新构建。
 //   - TestToxicLifecycle：检查延迟规则的请求与重复恢复。
 //   - TestInvalidActionNeverRuns：非法动作不能到达外部执行器。
+//   - TestCapturePinsOriginalImage：发布前给原内容留下独立引用。
+//   - TestRestoreRejectsChangedImage：标签被外部改动后拒绝恢复错误版本。
 //
 // 阅读建议：恢复测试中的旧镜像与当前标签故意不同，用来发现误用标签的问题。
 
@@ -27,18 +29,65 @@ func TestDeploymentRestore(t *testing.T) {
 	var args []string
 	var environment map[string]string
 	runner := &Runner{RunCommand: func(_ context.Context, actual []string, values map[string]string) ([]byte, error) {
+		if actual[0] == "image" {
+			return []byte("sha256:original\n"), nil
+		}
 		args = actual
 		environment = values
 		return nil, nil
 	}}
-	baseline := Baseline{Services: map[string]Deployment{"inventory-service": {Image: "sha256:original", Environment: map[string]string{"DB_MAX_OPEN_CONNS": "20", "DB_MAX_IDLE_CONNS": "10"}}}}
+	baseline := Baseline{Services: map[string]Deployment{"inventory-service": {Image: "opsdoctor/inventory-service:saved-original", ImageID: "sha256:original", Environment: map[string]string{"DB_MAX_OPEN_CONNS": "20", "DB_MAX_IDLE_CONNS": "10"}}}}
 	step := scenario.Step{Action: "deploy", Service: "inventory-service", Environment: map[string]string{"DB_MAX_OPEN_CONNS": "2"}}
 	if err := runner.Restore(t.Context(), step, baseline); err != nil {
 		t.Fatal(err)
 	}
 	// 原镜像和原参数要一起恢复，只换其中一个会留下半份错误配置。
-	if !slices.Contains(args, "--no-build") || slices.Contains(args, "--build") || environment["INVENTORY_IMAGE"] != "sha256:original" || environment["DB_MAX_OPEN_CONNS"] != "20" {
+	if !slices.Contains(args, "--no-build") || !slices.Contains(args, "never") || slices.Contains(args, "--build") || environment["INVENTORY_IMAGE"] != "opsdoctor/inventory-service:saved-original" || environment["DB_MAX_OPEN_CONNS"] != "20" {
 		t.Fatalf("args=%v env=%v", args, environment)
+	}
+}
+
+// TestCapturePinsOriginalImage 模拟标签稍后会被覆盖，检查快照阶段已保留原内容。
+func TestCapturePinsOriginalImage(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(`{"data":{"settings":{"qps":200,"hot_sku_id":0}}}`))
+	}))
+	defer server.Close()
+	var pinned bool
+	runner := &Runner{HTTP: server.Client(), LoadURL: server.URL}
+	runner.RunCommand = func(_ context.Context, args []string, _ map[string]string) ([]byte, error) {
+		switch args[0] {
+		case "compose":
+			return []byte("container-id"), nil
+		case "inspect":
+			return []byte(`{"image":"sha256:original","environment":["DB_MAX_OPEN_CONNS=20","MYSQL_DSN=private"]}`), nil
+		case "image":
+			pinned = slices.Equal(args, []string{"image", "tag", "sha256:original", "opsdoctor/inventory-service:saved-original"})
+			return nil, nil
+		default:
+			t.Fatalf("意外命令：%v", args)
+			return nil, nil
+		}
+	}
+	baseline, err := runner.Capture(t.Context(), scenario.Scenario{Inject: []scenario.Step{{Action: "deploy", Service: "inventory-service"}}})
+	saved := baseline.Services["inventory-service"]
+	// 原内容、标签、公开配置都要有，但凭据不能跟着 Docker 的完整环境列表落盘。
+	if err != nil || !pinned || saved.ImageID != "sha256:original" || saved.Image != "opsdoctor/inventory-service:saved-original" || saved.Environment["DB_MAX_OPEN_CONNS"] != "20" || saved.Environment["MYSQL_DSN"] != "" {
+		t.Fatalf("没有可靠保存基线：%v pinned=%t", err, pinned)
+	}
+}
+
+// TestRestoreRejectsChangedImage 不允许标签同名就认定程序相同。
+func TestRestoreRejectsChangedImage(t *testing.T) {
+	runner := &Runner{RunCommand: func(_ context.Context, args []string, _ map[string]string) ([]byte, error) {
+		if args[0] != "image" {
+			t.Fatal("内容不匹配时仍执行了部署")
+		}
+		return []byte("sha256:changed"), nil
+	}}
+	baseline := Baseline{Services: map[string]Deployment{"inventory-service": {Image: "saved-image", ImageID: "sha256:original"}}}
+	if err := runner.Restore(t.Context(), scenario.Step{Action: "deploy", Service: "inventory-service"}, baseline); err == nil {
+		t.Fatal("错误镜像被接受")
 	}
 }
 

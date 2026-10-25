@@ -1,6 +1,6 @@
 // 本文件：保存发布前的配置，并通过 Compose 发布与恢复服务。
 //
-// 配置改变会真正重建容器。恢复使用原镜像的内容 ID，避免同名标签后来被新构建覆盖。
+// 配置改变会真正重建容器。先给原镜像留一个本地标签，再记录内容 ID，避免原引用被新构建覆盖。
 // 只保存公开配置，不把容器里的密码复制进实验记录。
 //
 // 主要内容：
@@ -31,7 +31,8 @@ type Baseline struct {
 
 // Deployment 用镜像内容 ID 和公开环境重建原服务。
 type Deployment struct {
-	Image       string            `json:"image"`       // docker inspect 返回 sha256 内容 ID。
+	Image       string            `json:"image"`       // 保留原镜像的本地标签，后续构建不覆盖它。
+	ImageID     string            `json:"image_id"`    // 恢复前核对内容，不能只相信标签名称。
 	Environment map[string]string `json:"environment"` // 白名单参数，不含数据库地址或密码。
 }
 
@@ -79,7 +80,13 @@ func (runner *Runner) Capture(ctx context.Context, value scenario.Scenario) (Bas
 		if inspected.Image == "" {
 			return baseline, fmt.Errorf("容器信息没有返回原镜像内容 ID")
 		}
-		saved := Deployment{Image: inspected.Image, Environment: make(map[string]string)}
+		// 只记 ID 不会替 Docker 保留镜像。新构建覆盖原标签、旧容器又被移除后，原 ID 可能已无法使用。
+		// 在任何发布动作之前加一个独立标签，让旧内容有明确引用。重复保存同一内容会复用同一标签。
+		savedTag := "opsdoctor/" + step.Service + ":saved-" + strings.TrimPrefix(inspected.Image, "sha256:")
+		if _, err = runner.RunCommand(ctx, []string{"image", "tag", inspected.Image, savedTag}, nil); err != nil {
+			return baseline, fmt.Errorf("保留原镜像：%w", err)
+		}
+		saved := Deployment{Image: savedTag, ImageID: inspected.Image, Environment: make(map[string]string)}
 		for _, entry := range inspected.Environment {
 			// Docker 返回全部环境项，只把公开白名单留下，其余值不会落盘。
 			key, value, _ := strings.Cut(entry, "=")
@@ -106,12 +113,19 @@ func (runner *Runner) deploy(ctx context.Context, step scenario.Step, previous *
 	}
 	switch {
 	case previous != nil:
-		// 用内容 ID 恢复，避免原标签已经被实验中的构建覆盖。
+		// 恢复前核对保存标签仍指向原内容。禁止拉取或重建，避免悄悄换成另一份程序。
+		actual, err := runner.RunCommand(ctx, []string{"image", "inspect", "--format", "{{.Id}}", previous.Image}, nil)
+		if err != nil {
+			return err
+		}
+		if previous.ImageID == "" || strings.TrimSpace(string(actual)) != previous.ImageID {
+			return fmt.Errorf("保存的镜像内容与原记录不一致，停止恢复")
+		}
 		for key, value := range previous.Environment {
 			values[key] = value
 		}
 		values[imageVariable] = previous.Image
-		arguments = append(arguments, "--no-build")
+		arguments = append(arguments, "--no-build", "--pull", "never")
 	case step.Image != "":
 		// 指定版本必须事先构建好，执行实验时不能意外拉取未知镜像。
 		values[imageVariable] = step.Image

@@ -124,7 +124,9 @@ func (engine *Engine) operate(ctx context.Context, command string, value scenari
 		if err := overrides(&value, args, output); err != nil {
 			return err
 		}
-		bounded, cancel := context.WithTimeout(ctx, phaseBudget)
+		// Load 已检查这个值；注入和后续 verify 必须使用同一个场景预算。
+		budget, _ := time.ParseDuration(value.Symptom.Within)
+		bounded, cancel := context.WithTimeout(ctx, budget)
 		defer cancel()
 		_, err := engine.Inject(bounded, value)
 		if err != nil {
@@ -145,7 +147,11 @@ func (engine *Engine) operate(ctx context.Context, command string, value scenari
 	}
 	deadline := time.Now().Add(phaseBudget)
 	if command == "verify" {
-		deadline = record.Started.Add(phaseBudget)
+		budget, err := time.ParseDuration(record.Scenario.Symptom.Within)
+		if err != nil || budget <= 0 || budget > phaseBudget {
+			return fmt.Errorf("恢复记录中的观察时限不合法")
+		}
+		deadline = record.Started.Add(budget)
 	}
 	bounded, cancel := context.WithDeadline(ctx, deadline)
 	defer cancel()
