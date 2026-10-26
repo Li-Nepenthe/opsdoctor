@@ -9,6 +9,7 @@
 | 目录 | 作用 | 出现于 |
 |---|---|---|
 | [docker](docker/README.md) | 所有 Go 服务共用的镜像构建文件 | 阶段 1 |
+| [doctor](doctor/README.md) | 医生的接入配置、架构说明和独立数据库初始化 | 阶段 5 |
 | [redis](redis/README.md) | 从环境变量生成业务与医生的账号权限文件 | 阶段 5 |
 | [mysql](mysql/README.md) | MySQL 第一次启动时执行的建库、建账号脚本 | 阶段 0 |
 | [prometheus](prometheus/README.md) | 指标采集，以及告警规则 | 阶段 3 |

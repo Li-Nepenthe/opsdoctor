@@ -9,6 +9,7 @@ MySQL 官方镜像在数据目录为空时（也就是第一次启动时），�
 | [003_order_sales_test_databases.sql](003_order_sales_test_databases.sql) | 创建订单测试库和销量测试库 | 阶段 2 |
 | [004_metrics_user.sh](004_metrics_user.sh) | 创建只读的监控账号，给 mysqld-exporter 采集 MySQL 指标用 | 阶段 3 |
 | [005_chaos_user.sh](005_chaos_user.sh) | 先创建实验账号；业务表出现后再执行一次，只授权两个指定表 | 阶段 4 |
+| [006_doctor_readonly.sh](006_doctor_readonly.sh) | 创建医生只读账号，授予监控列权限；迁移后补业务表 SELECT | 阶段 5 |
 
 ## 为什么每个测试都有自己的库
 
@@ -20,3 +21,5 @@ MySQL 官方镜像在数据目录为空时（也就是第一次启动时），�
 - **004 是 shell 脚本，不是 SQL。** 因为监控账号的密码要从环境变量读取，SQL 文件做不到。脚本里用子 shell 把严格模式（`set -u` 等）包起来，避免影响 MySQL 镜像后续的启动步骤。
 
 空库第一次启动时，`stock` 和 `orders` 还不存在。它们要等业务服务连接 MySQL 后执行迁移才会创建。005 此时只建账号，服务健康后再按根 README 显式运行一次，补上两张表的权限。这样既能完成首次启动，也不用给实验账号整个业务库的修改权限。CI 同样按这个顺序执行。
+
+006 同样分两步运行。它把 diag_ro 限制为最多三条连接，不授予修改表或业务行的权限。已有账号不自动换密码；根 README 给出迁移后的补授权命令。医生自己的库和测试库由另一个容器初始化，见 [doctor/mysql-init](../../doctor/mysql-init/README.md)。

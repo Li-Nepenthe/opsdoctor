@@ -10,5 +10,7 @@
 | 阶段 1：库存服务 | [phase-01-inventory](phase-01-inventory.md) |
 | 阶段 2：订单服务 | [phase-02-order](phase-02-order.md) |
 | 阶段 3：可观测性 | [phase-03-observability](phase-03-observability.md) |
+| 阶段 4：故障实验 | [phase-04-chaos](phase-04-chaos.md) |
+| 阶段 5：医生工具 | [phase-05-doctor-tools](phase-05-doctor-tools.md) |
 
 注意：汇报书里写的行号是写报告时的版本，后来代码改过，行号可能对不上。找当前代码请用[代码地图](../代码地图.md)。

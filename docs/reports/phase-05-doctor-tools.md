@@ -74,8 +74,10 @@ Jaeger 仍是用户此前批准的唯一版本例外。本阶段没有引入计�
 | `cmd/README.md` | 32 | +9 / -0 | cmd：程序入口 |
 | `cmd/doctor/main.go` | 21 | +21 / -0 | 医生服务入口，只负责把启动结果变成进程退出码。 |
 | `cmd/doctorctl/main.go` | 22 | +22 / -0 | 医生手动取证命令的入口。 |
-| `deploy/README.md` | 24 | +1 / -0 | deploy：本机部署 |
+| `deploy/README.md` | 25 | +2 / -0 | deploy：本机部署 |
+| `deploy/alertmanager/README.md` | 12 | +2 / -2 | deploy/alertmanager：告警通知 |
 | `deploy/alertmanager/alertmanager.yml` | 18 | +4 / -4 | 部署/测试/场景的固定配置；用途见相邻 README 与本报告 |
+| `deploy/alloy/README.md` | 9 | +1 / -1 | deploy/alloy：日志收集 |
 | `deploy/alloy/config.alloy` | 46 | +1 / -1 | // 只发现当前 Compose 项目的容器，避免顺带收集用户其他项目的日志。 |
 | `deploy/docker-compose.yml` | 477 | +71 / -23 | 部署/测试/场景的固定配置；用途见相邻 README 与本报告 |
 | `deploy/doctor/README.md` | 10 | +10 / -0 | 医生的部署配置 |
@@ -85,6 +87,8 @@ Jaeger 仍是用户此前批准的唯一版本例外。本阶段没有引入计�
 | `deploy/doctor/targets/shop.profile.md` | 43 | +43 / -0 | shop 的系统说明书 |
 | `deploy/doctor/targets/shop.yaml` | 13 | +13 / -0 | 部署/测试/场景的固定配置；用途见相邻 README 与本报告 |
 | `deploy/mysql/init/006_doctor_readonly.sh` | 40 | +40 / -0 | #!/bin/bash |
+| `deploy/mysql/init/README.md` | 25 | +3 / -0 | deploy/mysql/init：首次启动脚本 |
+| `deploy/prometheus/README.md` | 20 | +4 / -2 | deploy/prometheus：指标采集和告警规则 |
 | `deploy/prometheus/prometheus.yml` | 36 | +5 / -2 | 部署/测试/场景的固定配置；用途见相邻 README 与本报告 |
 | `deploy/prometheus/rules/README.md` | 63 | +14 / -1 | deploy/prometheus/rules：告警规则 |
 | `deploy/prometheus/rules/goroutine_alert.test.yaml` | 71 | +71 / -0 | 部署/测试/场景的固定配置；用途见相邻 README 与本报告 |
@@ -92,12 +96,15 @@ Jaeger 仍是用户此前批准的唯一版本例外。本阶段没有引入计�
 | `deploy/redis/README.md` | 9 | +9 / -0 | Redis 的账号和启动方式 |
 | `deploy/redis/start-with-acl.sh` | 29 | +29 / -0 | #!/bin/sh |
 | `docs/decisions.md` | 324 | +42 / -0 | 设计决定 |
+| `docs/learn/README.md` | 29 | +2 / -0 | docs/learn：逐阶段学习材料 |
 | `docs/learn/phase-05-doctor-tools.md` | 478 | +478 / -0 | 阶段 5 学习材料：医生接入层与工具层 |
-| `docs/notes.md` | 1016 | +126 / -0 | 实测记录 |
-| `docs/reports/phase-05-doctor-tools.md` | 671 | +671 / -0 | 阶段汇报、验收证据与代码清单 |
-| `docs/代码地图.md` | 312 | +64 / -0 | OpsDoctor 代码地图 |
+| `docs/notes.md` | 1024 | +134 / -0 | 实测记录 |
+| `docs/reports/README.md` | 16 | +2 / -0 | docs/reports：阶段汇报书 |
+| `docs/reports/phase-05-doctor-tools.md` | 678 | +671 / -0 | 阶段汇报、验收证据与代码清单 |
+| `docs/代码地图.md` | 312 | +66 / -2 | OpsDoctor 代码地图 |
 | `docs/数据台账.md` | 274 | +26 / -0 | 数据台账 |
 | `eval/scenarios/S09.yaml` | 19 | +1 / -1 | 部署/测试/场景的固定配置；用途见相邻 README 与本报告 |
+| `internal/README.md` | 27 | +1 / -1 | internal：项目的全部实现代码 |
 | `internal/chaos/action/runner.go` | 97 | +8 / -7 | 把已检查的场景动作交给真正的外部系统执行。 |
 | `internal/chaos/action/storage.go` | 125 | +4 / -1 | 改动明确允许的索引，以及商品缓存的有效时间。 |
 | `internal/chaos/app/app.go` | 217 | +2 / -1 | 把 chaos 命令行接到场景、执行器和自动验收流程。 |
@@ -116,7 +123,7 @@ Jaeger 仍是用户此前批准的唯一版本例外。本阶段没有引入计�
 | `internal/doctor/httpapi/handlers.go` | 171 | +171 / -0 | 实现登录、告警接收、就绪检查和任务查询的 HTTP 细节。 |
 | `internal/doctor/httpapi/router.go` | 120 | +120 / -0 | 把登录、系统工具和告警入口接到同一个 Gin 服务。 |
 | `internal/doctor/httpapi/router_test.go` | 199 | +199 / -0 | 在内存 HTTP 请求里检查登录、系统令牌和工具入口。 |
-| `internal/doctor/source/README.md` | 5 | +5 / -0 | source：把不同后端的证据交给医生 |
+| `internal/doctor/source/README.md` | 17 | +17 / -0 | source：把不同后端的证据交给医生 |
 | `internal/doctor/source/doc.go` | 17 | +17 / -0 | 包背景、边界、完整文件清单和阅读路线 |
 | `internal/doctor/source/httpbackend/client.go` | 99 | +99 / -0 | 为只读 HTTP 数据源固定地址、等待时间和响应大小。 |
 | `internal/doctor/source/httpbackend/client_test.go` | 72 | +72 / -0 | 验证监控 HTTP 请求不会逃到其他地址，也不会无限读取。 |
@@ -188,7 +195,7 @@ Jaeger 仍是用户此前批准的唯一版本例外。本阶段没有引入计�
 | `tools/archcheck/doc.go` | 25 | +7 / -5 | 包背景、边界、完整文件清单和阅读路线 |
 | `tools/archcheck/doctor.go` | 58 | +58 / -0 | 检查医生容器能从宿主机拿到什么。 |
 | `tools/archcheck/doctor_test.go` | 48 | +48 / -0 | 证明容器不能通过部署配置拿到故障答案或 Docker 控制权。 |
-| `进度.md` | 163 | +9 / -9 | OpsDoctor 进度看板 |
+| `进度.md` | 163 | +14 / -14 | OpsDoctor 进度看板 |
 | `项目计划书.md` | 2073 | +13 / -2 | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 |
 
 <!-- PHASE_FILES_END -->
@@ -555,7 +562,7 @@ go test -race ./... -count=1 -timeout=180s -json
 
 以上全部通过。commentcheck覆盖243个非生成Go文件。无外部环境轮136个顶层测试通过、22个集成测试明确跳过，42个有测试包通过；这不作为真实集成验收。按README注入全部11项TEST变量后，十个包执行 `-race -run Integration -count=1 -timeout=90s`：22个顶层、含子用例28个通过，0 skip。两套promtool规则测试通过。
 
-第一轮staticcheck发现错误字符串格式与数字状态码，修正后完整重跑，失败记录保留。测试时暂停流量、医生与通知，完成后恢复医生与200 QPS，healthy通过后才恢复通知。CI：待本分支推送后确认，不能用本机结果代替。
+第一轮staticcheck发现错误字符串格式与数字状态码，修正后完整重跑，失败记录保留。测试时暂停流量、医生与通知，完成后恢复医生与200 QPS，healthy通过后才恢复通知。Linux CI：[40296137783](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/40296137783) 全部通过，验证提交 `5b26ed0`。环境固定 ubuntu-24.04 / Go 1.27.1，包含全新数据卷启动、真实权限集成、业务及观测接线、医生CLI与三次通知去重。
 
 ## 五、工程验收结果
 
@@ -567,7 +574,7 @@ go test -race ./... -count=1 -timeout=180s -json
 | CLI按系统显示菜单 | 通过；真实shop十六项；双系统测试各自后端返回11/22，独立菜单与凭据 |
 | 实际数据库/Redis权限逐项对照 | 通过，见下方实际输出与测试错误号 |
 
-新增数据台账条目：**P5-1–P5-17**。完整命令、失败轮次、两轮逐工具耗时与大小见 [notes](../notes.md#phase-05)，关键数字见[数据台账](../数据台账.md)。本次复验参数明确是 **商品范围10000、目标200 QPS、工作者64**，不能外推到默认五十万商品工作集。
+新增数据台账条目：**P5-1–P5-18**。完整命令、失败轮次、两轮逐工具耗时与大小见 [notes](../notes.md#phase-05)，关键数字见[数据台账](../数据台账.md)。本次复验参数明确是 **商品范围10000、目标200 QPS、工作者64**，不能外推到默认五十万商品工作集。
 
 ### 实际 MySQL 授权
 
