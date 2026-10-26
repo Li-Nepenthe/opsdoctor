@@ -37,6 +37,7 @@ type Config struct {
 	Database             mysqlx.Config          // MYSQL_DSN 与连接池设置。
 	HTTPAddress          string                 // HTTP_ADDR，默认 :8081。
 	AdminAddress         string                 // ADMIN_ADDR，默认 :6061。
+	RedisPassword        string                 // REDIS_PASSWORD，业务账号密码；禁止写入日志。
 	RedisAddress         string                 // REDIS_ADDR，运行时缓存与幂等记录共用 DB 0。
 	KafkaBrokers         []string               // KAFKA_BROKERS，逗号分隔后逐项检查。
 	InventoryTarget      string                 // INVENTORY_GRPC_TARGET，复用一条 gRPC 连接。
@@ -77,7 +78,7 @@ func loadConfig(reader config.Reader) (Config, error) {
 	}
 	database, err := app.DatabaseConfig(reader)
 	problems = append(problems, err)
-	value := Config{Database: database,
+	value := Config{Database: database, RedisPassword: readString("REDIS_PASSWORD", ""),
 		HTTPAddress: readString("HTTP_ADDR", ":8081"), AdminAddress: readString("ADMIN_ADDR", ":6061"),
 		RedisAddress: readString("REDIS_ADDR", "127.0.0.1:6379"), InventoryTarget: readString("INVENTORY_GRPC_TARGET", "127.0.0.1:9001"),
 		InventoryIdleTimeout: readDuration("INVENTORY_GRPC_IDLE_TIMEOUT", defaultInventoryIdleTimeout, 0, maximumInventoryIdleTimeout),

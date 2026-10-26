@@ -24,6 +24,7 @@ func TestConfigBudgets(t *testing.T) {
 		values map[string]string // 覆盖默认配置的变量。
 		valid  bool              // 是否允许启动。
 	}{
+		{"缺少 Redis 密码", map[string]string{"REDIS_PASSWORD": ""}, false}, // 不能悄悄退回匿名连接。
 		{"默认", nil, true}, // 默认预算应能完整覆盖下游和收尾。
 		{"下游长于上游", map[string]string{"INVENTORY_CALL_TIMEOUT": "4s"}, false},                                                                                                     // 避免上游走了下游仍在执行。
 		{"消息预算可独立配置", map[string]string{"ORDER_PUBLISH_TIMEOUT": "5s", "ORDER_CLEANUP_TIMEOUT": "2s"}, true},                                                                     // 消息确认不再被 Redis 收尾预算提前打断。
@@ -44,6 +45,12 @@ func TestConfigBudgets(t *testing.T) {
 	} {
 		t.Run(testcase.name, func(t *testing.T) {
 			reader := config.NewReader(func(key string) (string, bool) {
+				if value, exists := testcase.values[key]; exists {
+					return value, true
+				}
+				if key == "REDIS_PASSWORD" {
+					return "demo-redis-test-only", true
+				}
 				if key == "MYSQL_DSN" {
 					return "app:demo-only@tcp(127.0.0.1:3306)/shop?parseTime=true", true
 				}
@@ -75,6 +82,9 @@ func TestInventoryIdleConfig(t *testing.T) {
 	} {
 		t.Run(testcase.name, func(t *testing.T) {
 			reader := config.NewReader(func(key string) (string, bool) {
+				if key == "REDIS_PASSWORD" {
+					return "demo-redis-test-only", true
+				}
 				if key == "MYSQL_DSN" {
 					return "app:demo-only@tcp(127.0.0.1:3306)/shop?parseTime=true", true
 				}

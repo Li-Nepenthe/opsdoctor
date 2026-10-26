@@ -88,7 +88,8 @@ func newEngine(reader config.Reader) (*Engine, error) {
 	}
 	// 缺少 DSN 时只在真正执行索引动作时报错，list、healthy 等只读命令不需要高权限凭据。
 	dsn, _ := reader.String("CHAOS_MYSQL_DSN", "")
-	runner := &action.Runner{Root: root, MySQLDSN: dsn, RedisAddress: redis, ProxyURL: proxy, LoadURL: load, HTTP: &http.Client{Timeout: 10 * time.Second}}
+	password, _ := reader.String("REDIS_PASSWORD", "")
+	runner := &action.Runner{Root: root, RedisPassword: password, MySQLDSN: dsn, RedisAddress: redis, ProxyURL: proxy, LoadURL: load, HTTP: &http.Client{Timeout: 10 * time.Second}}
 	runner.RunCommand = runner.Command
 	return &Engine{Executor: runner, Observer: verify.New(prometheus), StatePath: filepath.Join(root, ".opsdoctor-chaos.json")}, nil
 }

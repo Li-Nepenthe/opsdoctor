@@ -2,6 +2,92 @@
 
 <a id="phase-05"></a>
 
+### 文档与提交前核对
+
+学习材料四段完整 Go 示例在临时模块实际运行通过；十二段 PowerShell 示例通过语法解析，没有再执行其中的故障实验。新文档的相对文件链接均存在。已知本机真实密码、密钥和令牌逐字扫描没有进入仓库文件；不保存扫描值。非 Markdown 文件按路径排序、换行归一化后计算 SHA-256 指纹：`aa3d2ffd712512f9020ca9ab40de078a76f6b47d39219e16c0bd3f210ce17591`。
+
+
+
+### 医生接入、S01 与最终本地检查（2026-10-26）
+
+运行代码为 phase-05-doctor-tools 的阶段 5 工作树，父提交 d4641f0；业务镜像 20261026.1，医生镜像 20261026.1，Jaeger 固定 2.20.0。以下两轮均为 10000 商品工作集、200 QPS、64 个工作者，未改 CacheLoadsHigh。S09 的认证版缺陷镜像 20261026.2 已实际构建成功，没有把这个构建说成新的一轮 S09 实验。
+
+真实 MySQL 告警仓储：同一组顺序推送 3 次，再并发推送 20 次，仅一个 pending 任务；另一个系统的相同 groupKey 另建任务。恢复通知更新快照，不删除任务；无现有任务的单独恢复通知忽略。写快照失败整笔事务回滚；重复初始化不覆盖已有用户密码。记录 doctor-store-integration.txt。HTTP 测试另验证 A 的令牌推 B 返回 401 且不调用仓储，登录 JWT 与告警令牌不能互换。
+
+S01 首次脚本没有填 CHAOS_MYSQL_DSN：healthy 通过后，drop_index 在打开数据库前失败；恢复也因同一缺项失败。没有改动索引。补好专用 DSN 后执行 restore-all 成功，保留 doctor-s01-preflight-failed.json，再开始正式轮次。
+
+| 轮次 | UTC 注入开始 | 注入动作 | 从注入到告警 | 恢复动作 | 恢复后 healthy | 结果 |
+|---|---|---|---|---|---|---|
+| 1 | 2026-10-26T08:21:20.602036+00:00 | 0.111s | 50.138s | 6.225s | 130.266s | 全流程通过 |
+| 2 | 2026-10-26T08:27:00.880327+00:00 | 0.049s | 40.080s | 5.031s | 130.218s | 全流程通过 |
+
+第一轮搜到 GetStock 的慢链：整体 302.338ms，库存 RPC 301.584ms，SQL 查询 34.570ms；不能把这条冒充 Deduct。第二轮指定 operation=inventory.v1.InventoryService/Deduct，trace 9b4d9c769665469f010bdf86978c38d4：POST /orders 824.790ms，RPC 801.094ms，库存服务 800.757ms，UPDATE 的 sql.stmt.exec 796.733ms，九个 span 全部在树中。SQL 是按 sku_id 更新 available 的模板，不包含绑定值。
+
+故障中 EXPLAIN 为 type=ALL、key=NULL、rows=498780（估计值）；SHOW INDEX 只有 PRIMARY。第一轮锁快照有 6 行等待，第二轮为 0；它是瞬时状态，不能把空快照说成没有发生等待。恢复后另查 EXPLAIN 为 type=const、key=uk_stock_sku、rows=1，索引列表恢复 PRIMARY 与 uk_stock_sku，见 doctor-final-audit.json。
+
+两轮完整工具测量如下。原始大小指最终截断前的 Data JSON，结果大小包含完整 Result 字段。耗时来自 Result.duration_ms，0 表示不足一毫秒；不是整个 CLI 进程启动时间。工具先按用途摘要，后面还有统一 4096 字节上限。
+
+| 工具/参数区别 | 首轮 ms | 首轮原始→结果字节 | 首轮截断 | 第二轮 ms | 第二轮原始→结果字节 | 第二轮截断 |
+|---|---|---|---|---|---|---|
+| list_firing_alerts | 3 | 868→1026 | False | 1 | 869→1027 | False |
+| service_topology | 0 | 3452→3607 | False | 0 | 3452→3607 | False |
+| query_metrics | 1 | 134→345 | False | 1 | 134→345 | False |
+| search_traces | 58 | 1529→1756 | False | 2 | 1550→1776 | False |
+| get_trace | 3 | 840→1030 | False | 2 | 1090→1281 | False |
+| mysql_explain | 3 | 241→436 | False | 1 | 241→436 | False |
+| mysql_show_indexes | 4 | 162→359 | False | 3 | 162→359 | False |
+| mysql_table_stats | 2 | 134→357 | False | 1 | 134→357 | False |
+| mysql_top_queries | 256 | 415→635 | False | 2 | 468→686 | False |
+| mysql_lock_waits | 821 | 473→691 | False | 1 | 150→366 | False |
+| mysql_status | 0 | 271→453 | False | 0 | 271→453 | False |
+| search_logs / 10条 | 310 | 423→603 | False | 121 | 450→630 | False |
+| search_logs / 100条 | 12 | 40199→3819 | True | 29 | 40274→3818 | True |
+| redis_info / stats | 1 | 2490→2648 | False | 0 | 2490→2648 | False |
+| redis_info / slowlog | 0 | 129→286 | False | 7 | 129→286 | False |
+| goroutine_summary | 5 | 912→1107 | False | 3 | 4137→4079 | True |
+| kafka_consumer_lag | 0 | 715→931 | False | 0 | 715→931 | False |
+| recent_changes | 2 | 1647→1904 | False | 5 | 2631→2888 | False |
+
+首轮 Alertmanager 实际新增 3 个任务：InventoryLatencyHigh、DatabasePoolWaiting、RowLockWaiting，全部 target=shop、status=pending，每个保存一条告警快照。第二轮复用已有活动分组，未新建重复任务。first trace 与原始任务明细只保存在本机临时记录，正文不包含令牌。
+
+只读连接通过 root 的独立观察连接查询 performance_schema.threads 中 PROCESSLIST_USER=diag_ro 的条数，查询后等待 250ms 再采样，实际间隔还包含 docker exec 耗时。第一轮 153 个样本、第二轮 122 个样本，观测最大均为 1。另从同一 HTTP 工具入口发送 12 路/120 次 mysql_status、8 路/24 次 mysql_top_queries，全部 ok。短请求之间可能没有被采样捕捉到，不能把观测最大 1 说成连续监测的精确峰值。账号第四条连接被拒绝、客户端池最多三条和满池十秒超时另由真实集成测试证明。
+
+19 个运行容器：首轮 S01 快照 3411.730 MiB，doctor 13.73/256 MiB、doctor-mysql 200.6/512 MiB；第二轮 3587.000 MiB，doctor 18.64/256 MiB、doctor-mysql 200.8/512 MiB。均低于 4608 MiB 暂停线。这是两次 docker stats --no-stream 快照，不是长时间峰值。全部逐容器数在 doctor-s01.json、doctor-s01-deduct.json 的 stats.rows。
+
+最终只读部署核对：doctor 仅有 /etc/doctor/targets 的只读 bind mount；容器无 /src、/eval/scenarios、/.opsdoctor-chaos.json、/var/run/docker.sock。archcheck 还检查 doctor 不得 import shop/chaos 或启动 os/exec，不能读取静态可识别的场景路径和状态文件，不能给容器增加挂载、env_file 或 Docker/chaos 环境变量。源码静态分析不能识别任意动态路径，因此不能代替容器挂载限制。
+
+全量检查第一轮在 staticcheck 停下：后端名称开头的错误字符串格式及测试中的数字 302。修正为中文错误上下文与 http.StatusFound 后，从 gofmt 开始重跑。首轮日志另存 first-attempt-final-*，环境仍正常恢复。
+
+最终本地 gofmt、go vet、staticcheck、commentcheck（243 个非生成 Go 文件）、archcheck 全通过。go test -race ./... -count=1 -timeout=180s 无外部依赖轮：136 个顶层测试通过，534 个通过事件含子用例，22 个明确依赖外部环境的集成测试跳过，42 个有测试包通过，墙钟 16.616s。随后注入全部 11 个 TEST 变量，十个包的真实 Integration -race 轮：22 个顶层测试、28 个含子用例通过，0 skip，0 fail，墙钟 15.253s。两份 promtool 时间线测试通过。测试前暂停负载、等消费追平、停止医生和通知；完成后启动医生、恢复 200 QPS，healthy 120.261s 通过，再恢复 Alertmanager。
+
+记录：final-checks.json、final-unit.txt、final-integration.txt、final-promtool-*.txt、doctor-final-audit.json。流水线与文档示例验证在后续收尾记录补充，不用本地通过替代 CI。
+
+
+
+### Redis 认证改动与失败保留（开发日期 2026-10-26）
+
+用户批准了 default 账号补密码，并要求保留数据重建、验证匿名拒绝和只读权限、完整回归 S04/S05。密码只补进本机忽略的 .env。业务正常镜像改为 20261026.1，S09 的另一构建改为 20261026.2，避免旧镜像不认识密码配置。
+
+实际执行 compose down（8.793s）和 up --wait（23.226s），没有 -v。Redis 键数从 788310 变为 788795；启动后流量已恢复，不能据此逐键证明完整性，但明确没有清卷或清库。全部容器就绪，redis_up=1。
+
+权限测试首次被自动审批拒绝，原因是它含 FLUSHALL，不能在 ACL 错误时承担删数据副作用。随后独立读取并过滤 ACL（不输出密码哈希），先执行七条 ACL DRYRUN，全部明确拒绝。实际集成测试的第一次运行因把 DRYRUN 普通拒绝字符串误当成错误而停止，没有执行负向命令；修正解析后通过（包 1.575s，测试 0.07s）：匿名 NOAUTH；INFO、SLOWLOG 成功；GET、HGETALL、KEYS、SET、FLUSHALL、CONFIG、SLOWLOG RESET 均 NOPERM。前后失败与成功日志都保留。
+
+认证回归第一次在任何故障注入前失败：healthy 从 UTC 07:00:11.321 到 07:03:11.626，180.305s 结束，最后条件为 CacheLoadsHigh。compose 重建后 loadgen 使用默认 500000 商品；随后一次控制接口快照为 575.657s、115127 请求、0 错误、0 dropped、199.992 QPS、P99 90ms，告警值 43.8727%。用户选择仅按旧 10000 商品基线复验，规则及默认值未改。这次失败不能删掉或记成通过。
+
+原始文件均在临时目录 opsdoctor-phase05：redis-auth-restart.json、redis-acl-preflight.json、redis-auth-permissions.txt（失败）、redis-auth-permissions-retry.txt（通过）、redis-auth-s04-s05.json（50 万商品，尚未注入即失败）、redis-auth-500k-baseline.json、redis-auth-10k-s04-s05.json（另行复验）。
+
+### 认证后的 S04/S05 完整流程
+
+用户确认的复验参数为 **10000 商品、200 QPS、64 个工作者**。三个值已写入本机 .env；重新创建 loadgen 后才开始复验。正常构建 20261026.1，规则保持 main 的 CacheLoadsHigh 表达式。
+
+| 流程 | 注入动作 | 从注入到告警 | 恢复动作 | 恢复后 healthy | 结果 |
+|---|---|---|---|---|---|
+| 初始健康 | — | — | — | 60.122s | 通过，redis_up=1 |
+| S04 | 52.724s | 82.466s | 5.961s | 85.170s | inject / verify / restore / healthy 全通过 |
+| S05 | 24.605s | 94.397s | 5.901s | 90.175s | inject / verify / restore / healthy 全通过 |
+
+两次 healthy 最后等待的都是 CacheLoadsHigh 消退，然后连续健康窗口通过。S04/S05 的症状、持续时间和三分钟上限没有放宽。另从 Prometheus 取回默认 50 万商品失败窗口（UTC 07:00:11.321–07:03:11.626）的 37 个样本：回源比例 44.500%–48.447%，均值 46.291%；此前 43.8727% 是另一次后续快照，不能混写为整个窗口均值。
+
 ## 2026-10-25：阶段 5 开工与验收遗留修复
 
 用户明确授权阶段 5，完成后等 Claude 验收和用户学习。先读 AGENTS.md、进度及当前完整的 2062 行计划书。工作区初始干净，fetch 后 main 与 origin/main 都为 `dcbfe7a6a0165a5f6e40bcd3240604b7228ca48b`，从这里创建 `phase-05-doctor-tools`。没有合并 main，也没有勾学习验收。

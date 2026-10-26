@@ -1,0 +1,13 @@
+# 医生只能从这里认识 shop；配置不包含任何实验场景或故障状态。
+name: shop
+profile: shop.profile.md
+alert_token_env: SHOP_ALERT_TOKEN
+prometheus: http://prometheus:9090
+jaeger: http://jaeger:16686
+loki: http://loki:3100
+mysql_readonly_dsn_env: SHOP_MYSQL_RO_DSN
+redis_readonly_url_env: SHOP_REDIS_RO_URL
+pprof:
+  order-service: http://order-service:6061
+  inventory-service: http://inventory-service:6062
+  order-worker: http://order-worker:6063

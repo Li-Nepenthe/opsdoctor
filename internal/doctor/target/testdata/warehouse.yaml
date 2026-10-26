@@ -1,0 +1,5 @@
+name: warehouse
+profile: warehouse.profile.md
+alert_token_env: WAREHOUSE_ALERT_TOKEN
+# 测试把此地址替换成本机 httptest 端点，不连接真实系统。
+prometheus: http://127.0.0.1:1

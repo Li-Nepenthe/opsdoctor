@@ -17,7 +17,7 @@ discovery.relabel "shop" {
   // 只保存项目 Go 进程的 JSON 日志；监控组件自身的运行日志仍可通过 compose logs 查看。
   rule {
     source_labels = ["service"]
-    regex = "order-service|inventory-service|order-worker|loadgen|alertsink"
+    regex = "order-service|inventory-service|order-worker|loadgen|doctor"
     action = "keep"
   }
 }

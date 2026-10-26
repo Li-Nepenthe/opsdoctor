@@ -66,6 +66,13 @@ func check(root string) ([]string, error) {
 			problems = append(problems, path+":1: "+issue)
 		}
 		if filepath.Ext(path) != ".go" {
+			if relative == "deploy/docker-compose.yml" {
+				issues, err := doctorMountProblems(path)
+				if err != nil {
+					return err
+				}
+				problems = append(problems, issues...)
+			}
 			// 非 Go 文件的位置检查完就结束，不能交给 Go 语法解析器。
 			return nil
 		}
@@ -155,6 +162,10 @@ func under(path, prefix string) bool { return path == prefix || strings.HasPrefi
 
 // importProblem 检查领域隔离和包内文件角色。不限制合法的 platform 依赖或消费者声明的接口。
 func importProblem(file, imported, module string) string {
+	// 医生不负责启动命令。即使以后误加了工具，也不能靠 shell 绕开只读数据源。
+	if under(file, "internal/doctor") && imported == "os/exec" {
+		return "doctor 不得启动外部命令"
+	}
 	// 先检查本模块内部的领域边界，再把第三方技术依赖交给文件分层规则。
 	internal := strings.TrimPrefix(imported, module+"/")
 	if internal != imported {
@@ -241,7 +252,7 @@ func scenarioProblems(path string, file *ast.File, positions *token.FileSet) []s
 		for _, argument := range call.Args {
 			// 只根据能从源码推导出的字符串判断，不运行文件里的任何函数。
 			if isScenarioPath(stringExpression(argument, values)) {
-				problems = append(problems, positions.Position(call.Pos()).String()+": 只有 internal/chaos 和 internal/eval 可以读取 eval/scenarios")
+				problems = append(problems, positions.Position(call.Pos()).String()+": 只有 internal/chaos 和 internal/eval 可以读取场景或注入状态")
 			}
 		}
 		return true
@@ -392,11 +403,15 @@ func stringExpression(expression ast.Expr, values map[string]string) string {
 	return ""
 }
 
-// isScenarioPath 统一 Windows 分隔符并清理相对路径，识别标准答案目录及其子文件。
+// isScenarioPath 同时识别标准答案和注入状态，二者都可能直接泄露故障原因。
 func isScenarioPath(path string) bool {
 	// 先统一分隔符再消除 ./ 和可折叠的 ../，让两种操作系统上的常见路径写法都可识别。
 	normalized := strings.ReplaceAll(path, "\\", "/")
 	normalized = filepath.ToSlash(filepath.Clean(normalized))
+	if filepath.Base(normalized) == ".opsdoctor-chaos.json" {
+		// 状态文件不仅记了是否注入，还包含完整场景；换一个上级目录也不能读取。
+		return true
+	}
 	// 四种匹配分别覆盖目录本身、相对路径子文件、带前缀的子文件、带前缀的目录。斜杠限定目录边界。
 	return normalized == "eval/scenarios" || strings.HasPrefix(normalized, "eval/scenarios/") || strings.Contains(normalized, "/eval/scenarios/") || strings.HasSuffix(normalized, "/eval/scenarios")
 }

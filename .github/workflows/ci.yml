@@ -56,17 +56,21 @@ jobs:
           docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240
           # 空库初始化时尚无业务表；服务健康说明迁移已完成，此时才授予精确的表级权限。
           docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/005_chaos_user.sh
+          docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/006_doctor_readonly.sh
           docker compose --env-file .env -f deploy/docker-compose.yml ps
       - name: MySQL 和 Redis 集成测试与竞态检查
         # .env.example 只含演示假值；通过环境注入，不把密码写入工作流。
         run: |
           while IFS= read -r line; do
             case "$line" in
-              TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*) export "$line" ;;
+              TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*|TEST_REDIS_PASSWORD=*|TEST_SHOP_MYSQL_RO_DSN=*|TEST_SHOP_REDIS_RO_URL=*|TEST_DOCTOR_MYSQL_DSN=*) export "$line" ;;
             esac
           done < .env
+          # 医生自己的空闲连接也计入账号上限；先暂停它，再独占验证第四条连接被拒绝。
+          docker compose --env-file .env -f deploy/docker-compose.yml stop doctor alertmanager
+          trap 'docker compose --env-file .env -f deploy/docker-compose.yml start doctor alertmanager' EXIT
           # Go 把 Skip 也算作正常退出，必须另查事件，避免漏配变量时 CI 假绿。
-          go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -json | tee "$RUNNER_TEMP/integration.jsonl"
+          go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product ./internal/doctor/store ./internal/doctor/source/mysqlinspect ./internal/doctor/source/redisinspect -run Integration -count=1 -timeout=90s -json | tee "$RUNNER_TEMP/integration.jsonl"
           python3 - <<'PY'
           import json, os
           from pathlib import Path
@@ -228,6 +232,38 @@ jobs:
                   if time.monotonic() >= deadline:
                       raise
                   time.sleep(2)
+          PY
+      - name: 医生登录、工具与告警去重冒烟
+        run: |
+          docker compose --env-file .env -f deploy/docker-compose.yml up -d --no-deps --wait doctor
+          go build -o "$RUNNER_TEMP/doctorctl" ./cmd/doctorctl
+          python3 - <<'PY'
+          import json, os, subprocess, urllib.request, uuid
+          from pathlib import Path
+          values = dict(line.split('=', 1) for line in Path('.env').read_text().splitlines() if '=' in line and not line.startswith('#'))
+          def call(path, data=None, token=None):
+              headers = {'Content-Type': 'application/json'}
+              if token: headers['Authorization'] = 'Bearer ' + token
+              body = json.dumps(data).encode() if data is not None else None
+              with urllib.request.urlopen(urllib.request.Request('http://127.0.0.1:8090' + path, data=body, headers=headers), timeout=15) as response:
+                  return json.load(response)['data']
+          token = call('/api/v1/auth/login', {'email': values['DOCTOR_ADMIN_EMAIL'], 'password': values['DOCTOR_ADMIN_PASSWORD']})['access_token']
+          env = os.environ.copy()
+          env['DOCTOR_URL'], env['DOCTOR_TOKEN'] = 'http://127.0.0.1:8090', token
+          binary = str(Path(os.environ['RUNNER_TEMP']) / 'doctorctl')
+          def cli(args):
+              return json.loads(subprocess.run([binary] + args, env=env, capture_output=True, text=True, check=True).stdout)
+          assert cli(['target', 'list']) == ['shop']
+          assert len(cli(['tool', 'list', '--target', 'shop'])) == 16
+          for name, args in [('service_topology', {}), ('mysql_show_indexes', {'table': 'stock'}), ('redis_info', {})]:
+              result = cli(['tool', 'run', '--target', 'shop', name, '--args', json.dumps(args)])
+              assert result['status'] == 'ok' and result['bytes'] <= 4096
+          notification = {'status': 'firing', 'groupKey': 'ci-' + uuid.uuid4().hex, 'groupLabels': {'alertname': 'CIWebhook'}, 'alerts': [{'status': 'firing', 'labels': {'alertname': 'CIWebhook'}, 'startsAt': '2026-10-26T00:00:00Z', 'fingerprint': uuid.uuid4().hex[:16]}]}
+          receipts = [call('/api/v1/targets/shop/alerts', notification, values['SHOP_ALERT_TOKEN']) for _ in range(3)]
+          assert len({r['diagnosis_id'] for r in receipts}) == 1 and sum(r['created'] for r in receipts) == 1
+          task = call('/api/v1/diagnoses/' + receipts[0]['diagnosis_id'], token=token)
+          assert task['target'] == 'shop' and task['status'] == 'pending'
+          print('医生登录、十六项菜单、三种工具、三次通知仅一个 shop pending 任务通过')
           PY
       - name: 失败时记录容器状态
         if: failure()

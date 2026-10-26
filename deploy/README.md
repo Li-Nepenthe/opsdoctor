@@ -9,6 +9,7 @@
 | 目录 | 作用 | 出现于 |
 |---|---|---|
 | [docker](docker/README.md) | 所有 Go 服务共用的镜像构建文件 | 阶段 1 |
+| [redis](redis/README.md) | 从环境变量生成业务与医生的账号权限文件 | 阶段 5 |
 | [mysql](mysql/README.md) | MySQL 第一次启动时执行的建库、建账号脚本 | 阶段 0 |
 | [prometheus](prometheus/README.md) | 指标采集，以及告警规则 | 阶段 3 |
 | [alertmanager](alertmanager/README.md) | 把告警分组，推送给告警接收器 | 阶段 3 |

@@ -1,0 +1,1306 @@
+{
+  "data": [
+    {
+      "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+      "spans": [
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "69b1343717d8cac0",
+          "operationName": "sql.conn.begin_tx",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "c8bca5fc5931608d"
+            }
+          ],
+          "startTime": 1792994041945521,
+          "duration": 196,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "c5aec5ea3deb10d1",
+          "operationName": "sql.conn.exec",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "c8bca5fc5931608d"
+            }
+          ],
+          "startTime": 1792994041945736,
+          "duration": 11,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "INSERT INTO processed_events (order_id, processed_at) VALUES (?, ?)"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "94fd07bfbd5d8a2d",
+          "operationName": "sql.conn.prepare",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "c8bca5fc5931608d"
+            }
+          ],
+          "startTime": 1792994041945756,
+          "duration": 192,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "INSERT INTO processed_events (order_id, processed_at) VALUES (?, ?)"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "5c0ce6d8fe78d18e",
+          "operationName": "sql.stmt.exec",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "c8bca5fc5931608d"
+            }
+          ],
+          "startTime": 1792994041945956,
+          "duration": 213,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "INSERT INTO processed_events (order_id, processed_at) VALUES (?, ?)"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "5468eef6f5c7636e",
+          "operationName": "sql.conn.exec",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "c8bca5fc5931608d"
+            }
+          ],
+          "startTime": 1792994041946220,
+          "duration": 4,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "INSERT INTO product_sales (sku_id, sold) VALUES (?, ?) ON DUPLICATE KEY UPDATE sold = sold + ?"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "fcecb0c46c628d19",
+          "operationName": "sql.conn.prepare",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "c8bca5fc5931608d"
+            }
+          ],
+          "startTime": 1792994041946231,
+          "duration": 198,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "INSERT INTO product_sales (sku_id, sold) VALUES (?, ?) ON DUPLICATE KEY UPDATE sold = sold + ?"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "cddf1551e5741fb9",
+          "operationName": "sql.stmt.exec",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "c8bca5fc5931608d"
+            }
+          ],
+          "startTime": 1792994041946455,
+          "duration": 213,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "INSERT INTO product_sales (sku_id, sold) VALUES (?, ?) ON DUPLICATE KEY UPDATE sold = sold + ?"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "938804c6b14c979e",
+          "operationName": "sql.tx.commit",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "c8bca5fc5931608d"
+            }
+          ],
+          "startTime": 1792994041946708,
+          "duration": 11764,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "c8bca5fc5931608d",
+          "operationName": "order.created process",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "25d21b8bd35020d5"
+            }
+          ],
+          "startTime": 1792994041945473,
+          "duration": 13627,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opsdoctor/events"
+            },
+            {
+              "key": "messaging.destination.name",
+              "type": "string",
+              "value": "order.created"
+            },
+            {
+              "key": "messaging.system",
+              "type": "string",
+              "value": "kafka"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "consumer"
+            }
+          ],
+          "logs": [],
+          "processID": "p1",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "25d21b8bd35020d5",
+          "operationName": "order.created publish",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "f4d9d7f4d81ebec6"
+            }
+          ],
+          "startTime": 1792994041934253,
+          "duration": 10958,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "opsdoctor/events"
+            },
+            {
+              "key": "messaging.destination.name",
+              "type": "string",
+              "value": "order.created"
+            },
+            {
+              "key": "messaging.system",
+              "type": "string",
+              "value": "kafka"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "producer"
+            }
+          ],
+          "logs": [],
+          "processID": "p2",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "7afae001871264e6",
+          "operationName": "set",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "f4d9d7f4d81ebec6"
+            }
+          ],
+          "startTime": 1792994041897694,
+          "duration": 4721,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/redis/go-redis/extra/redisotel"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "semver:9.23.0"
+            },
+            {
+              "key": "code.filepath",
+              "type": "string",
+              "value": "github.com/Li-Nepenthe/opsdoctor/internal/shop/order/cache.go"
+            },
+            {
+              "key": "code.function",
+              "type": "string",
+              "value": "order.(*RedisIdempotency).Reserve"
+            },
+            {
+              "key": "code.lineno",
+              "type": "int64",
+              "value": 67
+            },
+            {
+              "key": "db.connection_string",
+              "type": "string",
+              "value": "[connection detail omitted]"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "redis"
+            },
+            {
+              "key": "server.address",
+              "type": "string",
+              "value": "toxiproxy"
+            },
+            {
+              "key": "server.port",
+              "type": "int64",
+              "value": 16379
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p2",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "5dd2f712903fe49f",
+          "operationName": "get",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "f4d9d7f4d81ebec6"
+            }
+          ],
+          "startTime": 1792994041902458,
+          "duration": 404,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/redis/go-redis/extra/redisotel"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "semver:9.23.0"
+            },
+            {
+              "key": "code.filepath",
+              "type": "string",
+              "value": "github.com/Li-Nepenthe/opsdoctor/internal/shop/product/cache.go"
+            },
+            {
+              "key": "code.function",
+              "type": "string",
+              "value": "product.(*RedisCache).Get"
+            },
+            {
+              "key": "code.lineno",
+              "type": "int64",
+              "value": 49
+            },
+            {
+              "key": "db.connection_string",
+              "type": "string",
+              "value": "[connection detail omitted]"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "redis"
+            },
+            {
+              "key": "server.address",
+              "type": "string",
+              "value": "toxiproxy"
+            },
+            {
+              "key": "server.port",
+              "type": "int64",
+              "value": 16379
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p2",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "13ea9f3b1d525309",
+          "operationName": "eval",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "f4d9d7f4d81ebec6"
+            }
+          ],
+          "startTime": 1792994041945244,
+          "duration": 13560,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/redis/go-redis/extra/redisotel"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "semver:9.23.0"
+            },
+            {
+              "key": "code.filepath",
+              "type": "string",
+              "value": "github.com/Li-Nepenthe/opsdoctor/internal/shop/order/cache.go"
+            },
+            {
+              "key": "code.function",
+              "type": "string",
+              "value": "order.(*RedisIdempotency).replace"
+            },
+            {
+              "key": "code.lineno",
+              "type": "int64",
+              "value": 139
+            },
+            {
+              "key": "db.connection_string",
+              "type": "string",
+              "value": "[connection detail omitted]"
+            },
+            {
+              "key": "db.system",
+              "type": "string",
+              "value": "redis"
+            },
+            {
+              "key": "server.address",
+              "type": "string",
+              "value": "toxiproxy"
+            },
+            {
+              "key": "server.port",
+              "type": "int64",
+              "value": 16379
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p2",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "aac17e72b11aeace",
+          "operationName": "sql.conn.begin_tx",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "f4d9d7f4d81ebec6"
+            }
+          ],
+          "startTime": 1792994041915894,
+          "duration": 259,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p2",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "de507a34be0c6612",
+          "operationName": "sql.conn.exec",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "f4d9d7f4d81ebec6"
+            }
+          ],
+          "startTime": 1792994041916170,
+          "duration": 14,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "INSERT INTO orders (user_id, sku_id, quantity, amount_cents, status, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p2",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "3c2fa92e7bd312cf",
+          "operationName": "sql.conn.prepare",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "f4d9d7f4d81ebec6"
+            }
+          ],
+          "startTime": 1792994041916194,
+          "duration": 200,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "INSERT INTO orders (user_id, sku_id, quantity, amount_cents, status, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p2",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "1616819e03fb0e9d",
+          "operationName": "sql.stmt.exec",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "f4d9d7f4d81ebec6"
+            }
+          ],
+          "startTime": 1792994041916404,
+          "duration": 267,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "INSERT INTO orders (user_id, sku_id, quantity, amount_cents, status, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p2",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "838b42d65e15a49c",
+          "operationName": "sql.tx.commit",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "f4d9d7f4d81ebec6"
+            }
+          ],
+          "startTime": 1792994041916739,
+          "duration": 17478,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p2",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "f4d9d7f4d81ebec6",
+          "operationName": "POST /orders",
+          "references": [],
+          "startTime": 1792994041897613,
+          "duration": 61277,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "go.opentelemetry.io/contrib/instrumentation/github.com/gin-gonic/gin/otelgin"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.72.0"
+            },
+            {
+              "key": "client.address",
+              "type": "string",
+              "value": "172.18.0.19"
+            },
+            {
+              "key": "http.request.method",
+              "type": "string",
+              "value": "POST"
+            },
+            {
+              "key": "http.response.body.size",
+              "type": "int64",
+              "value": 122
+            },
+            {
+              "key": "http.response.status_code",
+              "type": "int64",
+              "value": 201
+            },
+            {
+              "key": "http.route",
+              "type": "string",
+              "value": "/orders"
+            },
+            {
+              "key": "network.peer.address",
+              "type": "string",
+              "value": "172.18.0.19"
+            },
+            {
+              "key": "network.peer.port",
+              "type": "int64",
+              "value": 53874
+            },
+            {
+              "key": "network.protocol.version",
+              "type": "string",
+              "value": "1.1"
+            },
+            {
+              "key": "server.address",
+              "type": "string",
+              "value": "order-service"
+            },
+            {
+              "key": "server.port",
+              "type": "int64",
+              "value": 8081
+            },
+            {
+              "key": "url.path",
+              "type": "string",
+              "value": "/orders"
+            },
+            {
+              "key": "url.scheme",
+              "type": "string",
+              "value": "http"
+            },
+            {
+              "key": "user_agent.original",
+              "type": "string",
+              "value": "Go-http-client/1.1"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "server"
+            }
+          ],
+          "logs": [],
+          "processID": "p2",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "c4f7c1abbd1c7ad2",
+          "operationName": "inventory.v1.InventoryService/Deduct",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "f4d9d7f4d81ebec6"
+            }
+          ],
+          "startTime": 1792994041902886,
+          "duration": 12974,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.72.0"
+            },
+            {
+              "key": "rpc.method",
+              "type": "string",
+              "value": "inventory.v1.InventoryService/Deduct"
+            },
+            {
+              "key": "rpc.response.status_code",
+              "type": "string",
+              "value": "OK"
+            },
+            {
+              "key": "rpc.system.name",
+              "type": "string",
+              "value": "grpc"
+            },
+            {
+              "key": "server.address",
+              "type": "string",
+              "value": "172.18.0.4"
+            },
+            {
+              "key": "server.port",
+              "type": "int64",
+              "value": 19001
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p2",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "fc5c66c814981eda",
+          "operationName": "sql.conn.exec",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "334cb4111e29c8a0"
+            }
+          ],
+          "startTime": 1792994041903288,
+          "duration": 37,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "\nUPDATE stock SET available = available - ?, updated_at = ?\nWHERE sku_id = ? AND available >= ?"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p3",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "87aa0d32bd55f0d2",
+          "operationName": "sql.conn.prepare",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "334cb4111e29c8a0"
+            }
+          ],
+          "startTime": 1792994041903333,
+          "duration": 439,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "\nUPDATE stock SET available = available - ?, updated_at = ?\nWHERE sku_id = ? AND available >= ?"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p3",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "3da54371240b8289",
+          "operationName": "sql.stmt.exec",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "334cb4111e29c8a0"
+            }
+          ],
+          "startTime": 1792994041903783,
+          "duration": 11760,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "github.com/XSAM/otelsql"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.44.0"
+            },
+            {
+              "key": "db.namespace",
+              "type": "string",
+              "value": "shop"
+            },
+            {
+              "key": "db.query.text",
+              "type": "string",
+              "value": "\nUPDATE stock SET available = available - ?, updated_at = ?\nWHERE sku_id = ? AND available >= ?"
+            },
+            {
+              "key": "db.system.name",
+              "type": "string",
+              "value": "mysql"
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "client"
+            }
+          ],
+          "logs": [],
+          "processID": "p3",
+          "warnings": null
+        },
+        {
+          "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+          "spanID": "334cb4111e29c8a0",
+          "operationName": "inventory.v1.InventoryService/Deduct",
+          "references": [
+            {
+              "refType": "CHILD_OF",
+              "traceID": "89bdfa5b1ba8e60205e6bab69c84e618",
+              "spanID": "c4f7c1abbd1c7ad2"
+            }
+          ],
+          "startTime": 1792994041903217,
+          "duration": 12416,
+          "tags": [
+            {
+              "key": "otel.scope.name",
+              "type": "string",
+              "value": "go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+            },
+            {
+              "key": "otel.scope.version",
+              "type": "string",
+              "value": "0.72.0"
+            },
+            {
+              "key": "rpc.method",
+              "type": "string",
+              "value": "inventory.v1.InventoryService/Deduct"
+            },
+            {
+              "key": "rpc.response.status_code",
+              "type": "string",
+              "value": "OK"
+            },
+            {
+              "key": "rpc.system.name",
+              "type": "string",
+              "value": "grpc"
+            },
+            {
+              "key": "server.address",
+              "type": "string",
+              "value": "172.18.0.14"
+            },
+            {
+              "key": "server.port",
+              "type": "int64",
+              "value": 9001
+            },
+            {
+              "key": "span.kind",
+              "type": "string",
+              "value": "server"
+            }
+          ],
+          "logs": [],
+          "processID": "p3",
+          "warnings": null
+        }
+      ],
+      "processes": {
+        "p1": {
+          "serviceName": "order-worker",
+          "tags": [
+            {
+              "key": "service.version",
+              "type": "string",
+              "value": "20261025.1"
+            }
+          ]
+        },
+        "p2": {
+          "serviceName": "order-service",
+          "tags": [
+            {
+              "key": "service.version",
+              "type": "string",
+              "value": "20261025.1"
+            }
+          ]
+        },
+        "p3": {
+          "serviceName": "inventory-service",
+          "tags": [
+            {
+              "key": "service.version",
+              "type": "string",
+              "value": "20261025.1"
+            }
+          ]
+        }
+      },
+      "warnings": null
+    }
+  ],
+  "total": 0,
+  "limit": 0,
+  "offset": 0,
+  "errors": null
+}

@@ -1,5 +1,35 @@
 # 设计决定
 
+## 2026-10-26：医生接管告警与命令行入口
+
+先检查了临时 alertsink 的运行时依赖：Compose 的 Alertmanager depends_on、Alertmanager 的推送 URL、Prometheus 的采集目标，以及 Alloy 的日志服务过滤。README 也有查看 alertsink 日志的命令。阶段 5 把这四处运行时接线都换成 doctor；默认环境不再运行 alertsink。保留 cmd/alertsink 和 platform/alertsink 的历史示例代码，让阶段 3 学习材料中的源码链接仍可阅读；它不参与当前接收链路，令牌变量也改用 SHOP_ALERT_TOKEN。
+
+告警路由为 /api/v1/targets/shop/alerts。系统在解析正文之前先验证自己的令牌。任务去重使用“系统名加分组键”的摘要唯一约束；任务和告警快照在同一事务内保存，提交成功才响应。重复通知更新快照；没有现有任务的单独恢复通知不创建任务。阶段 5 不调度 pending 任务，也不在告警恢复时删除它。后续阶段把任务转为终态时，需要清空 active_group，才允许同组开始新一轮诊断。
+
+doctorctl 通过已登录的医生 HTTP 接口调用工具，增加 POST /api/v1/targets/{target}/tools/{tool}/run 这个手动取证入口。它使用服务器的同一个工具注册表，不在 CLI 进程里重建适配器；因此同时打开几个终端，仍共用服务器的三连接 MySQL 池。工具 JSON 由注册表统一校验，单次十秒，完整 Result JSON 不超过四千字节。DOCTOR_URL 与 DOCTOR_TOKEN 来自操作者环境，不是工具参数。
+
+医生自己的库使用独立 doctor-mysql，512 MiB 上限、64 MiB buffer pool、最多 30 个连接，关闭这个实例未使用的 performance_schema。医生进程上限 256 MiB。它可以写自己的任务库，但只拿 shop 的只读 DSN 和 Redis URL。运行时只挂 targets 目录，不挂整个仓库或 Docker socket。首次启动从环境初始化一个登录用户；重复启动不会覆盖已有邮箱的密码。doctor 自己的池上限 10，靶场只读池上限 3，两者不能混为一个数字。
+
+## 2026-10-26：Jaeger 2.20.0 查询契约与只读 MySQL 列权限
+
+先在当前固定的 Jaeger 2.20.0 实测 /api/services、/api/traces?service=order-service…、/api/traces/{traceID} 均返回 200。医生选择 /api/traces 系列 JSON 查询接口，与已验证的 Grafana 接线相同。它是 Jaeger 的内部查询 API，不能宣称为稳定的跨版本标准接口；依据：[Jaeger 2.20 API 说明](https://www.jaegertracing.io/docs/2.20/architecture/apis/)。
+
+从真实订单 trace 取了一份 24 个 span、跨三个服务的搜索和详情响应作为 httptest 夹具。只把 db.connection_string 替换为省略标记，避免保留连接细节；适配器输出本来也不允许该标签。契约测试覆盖查询路径、微秒时间、服务名、父子关系和 SQL 模板。Jaeger 升级时，除 Grafana 回归外，必须一起回归这个医生适配器；原来 2.22.0 与 Grafana 的版本例外继续有效。
+
+MySQL 的锁等待直接查询 performance_schema.data_lock_waits 与 data_locks，不绕到需要额外权限的 sys 视图。账号只授这几张监控表实际用到的列，语句摘要不授 QUERY_SAMPLE_TEXT，锁表不授 LOCK_DATA；业务五张表只授 SELECT，让 EXPLAIN 可用。没有工具执行输入 SELECT 或返回业务行。MySQL 和 Redis 是原生协议，适配器单元测试使用 database/sql 假驱动和 RESP 小服务器；HTTP 数据源使用 httptest，真实账号权限另用集成测试证明。
+
+
+## 2026-10-26：Redis 补认证，复验固定在 1 万商品基线
+
+阶段 5 检查发现 Redis 的 default 用户从阶段 3 起一直是 `on nopass +@all`。仅增加一个医生只读账号还不够：匿名连接可以绕过这道边界。用户明确批准给 default 加密码，保留原业务命令权限，医生使用独立的 diag_ro 密码。
+
+新增 `deploy/redis/start-with-acl.sh`。脚本从 REDIS_PASSWORD 和 SHOP_REDIS_RO_PASSWORD 读值，用 umask 077 在内存目录生成 ACL 文件。文件存 SHA-256 密码哈希，目录 0700、文件 0600，归 redis 用户所有。redis-server 参数只含文件路径；redis-cli 健康检查使用 REDISCLI_AUTH，exporter 使用官方支持的 REDIS_PASSWORD 环境变量。订单服务、chaos 和业务 Redis 集成测试全部同步。新测试密码变量缺失会明确 Skip，给了错误密码则测试失败。依据：[redis_exporter 参数说明](https://github.com/oliver006/redis_exporter#command-line-flags)。
+
+医生 ACL 先撤掉全部命令，再放行 HELLO、PING、INFO、SLOWLOG GET/LEN。不放行 key 访问，不开放 SLOWLOG RESET。慢日志原文可能带业务键和值，适配器输出只保留命令名、时间、耗时和参数个数。Redis 原生协议用假服务器测试；真实权限另跑集成测试。清库等负向测试先做全部 ACL DRYRUN，只要一条没有明确拒绝就停止，防止错误配置真的删数据。
+
+重建后的压测范围回到了代码默认的 50 万商品，200 QPS 下正常回源比例约 44%，仍会触发 CacheLoadsHigh；阶段 4 的 P4-16 已出现过参数变化问题。用户决定本阶段不改告警和代码默认值，按 1 万商品、200 QPS、64 个工作者复验，告警适用范围另行修复。三项明确写入本机忽略的 .env，README 在启动前提示核对参数。数据见 P5-7、P5-8；不能把缩小工作集说成修好了告警。
+
+
 <a id="phase-05-startup"></a>
 
 ## 2026-10-25：区分启动建立任务与持续泄漏

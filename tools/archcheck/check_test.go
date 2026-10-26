@@ -46,6 +46,10 @@ func TestForbiddenImports(t *testing.T) {
 		{"internal/doctor/agent/agent.go", "example.test/project/internal/shop/order", true},
 		// 禁止医生直接调用故障注入器。
 		{"internal/doctor/agent/agent.go", "example.test/project/internal/chaos", true},
+		// 子包同样受限制，不能绕开领域根目录检查。
+		{"internal/doctor/source/reader.go", "example.test/project/internal/chaos/action", true},
+		// 数据源适配器不能另起 shell 去查看容器或实验状态。
+		{"internal/doctor/source/reader.go", "os/exec", true},
 		// 禁止医生借评测器读取标准答案。
 		{"internal/doctor/agent/agent.go", "example.test/project/internal/eval/runner", true},
 		// 压测控制也不属于医生可以依赖的实现。
@@ -126,6 +130,10 @@ func TestScenarioReads(t *testing.T) {
 		"package sample\nimport \"os\"\nconst base = \"eval/scenarios\"\nfunc f(){ os.ReadFile(base+\"/S01.yaml\") }",
 		// embed 在编译时读文件。没有运行时的读取函数也必须拒绝。
 		"package sample\nimport \"embed\"\n//go:embed eval/scenarios/*.yaml\nvar files embed.FS",
+		// 注入器的恢复记录里也包含场景，不能只防标准答案目录。
+		"package sample\nimport \"os\"\nfunc f(){ os.ReadFile(\".opsdoctor-chaos.json\") }",
+		// 上级目录和 Join 都不能让状态文件变成医生可读的普通配置。
+		"package sample\nimport (\"os\"; \"path/filepath\")\nfunc f(){ os.ReadFile(filepath.Join(\"..\",\".opsdoctor-chaos.json\")) }",
 	} {
 		root := fixture(t, "internal/doctor/agent/agent.go", source)
 		problems, err := check(root)

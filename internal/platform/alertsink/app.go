@@ -33,12 +33,12 @@ const shutdownTimeout = 5 * time.Second
 func Run(parent context.Context) error {
 	reader := config.New()
 	address, addressErr := reader.String("ALERTSINK_ADDR", ":8091")
-	token, tokenErr := reader.String("ALERT_WEBHOOK_TOKEN", "")
+	token, tokenErr := reader.String("SHOP_ALERT_TOKEN", "")
 	if err := errors.Join(addressErr, tokenErr); err != nil {
 		return err
 	}
 	if len(token) < 32 {
-		return fmt.Errorf("ALERT_WEBHOOK_TOKEN 至少需要 32 字节")
+		return fmt.Errorf("SHOP_ALERT_TOKEN 至少需要 32 字节")
 	}
 	logger := logging.New(os.Stdout, "alertsink", slog.LevelInfo)
 	metrics := telemetry.NewMetrics("alertsink")

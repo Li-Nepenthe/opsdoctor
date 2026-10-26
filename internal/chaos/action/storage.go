@@ -85,7 +85,10 @@ func expectedIndex(ctx context.Context, database *sql.DB, step scenario.Step) (b
 // cache 使用 pipeline 一次发送多个独立命令，减少宿主机逐次往返造成的到期时间差。
 func (runner *Runner) cache(ctx context.Context, step scenario.Step) error {
 	// 使用业务 DB 0，但键名由固定前缀和受限商品编号组成，绝不调用 FLUSHDB。
-	client := redis.NewClient(&redis.Options{Addr: runner.RedisAddress, DB: 0, DialTimeout: 5 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 5 * time.Second})
+	if runner.RedisPassword == "" {
+		return fmt.Errorf("缓存实验需要 REDIS_PASSWORD")
+	}
+	client := redis.NewClient(&redis.Options{Addr: runner.RedisAddress, Password: runner.RedisPassword, DB: 0, DialTimeout: 5 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 5 * time.Second})
 	defer client.Close()
 	deadline := time.Now().Add(time.Duration(step.TTLSeconds) * time.Second)
 	// 共用一个绝对到期时间。逐条使用相对 TTL 会把发送时间差带进实验。

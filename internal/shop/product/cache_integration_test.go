@@ -26,7 +26,12 @@ func TestIntegrationRedisCache(t *testing.T) {
 	if address == "" {
 		t.Skip("设置 TEST_REDIS_ADDR 后运行商品缓存测试，固定使用数据库 14")
 	}
-	client := redis.NewClient(&redis.Options{Addr: address, DB: 14, MaxRetries: -1, DialTimeout: time.Second, ReadTimeout: time.Second, WriteTimeout: time.Second, ContextTimeoutEnabled: true})
+	// 密码也必须显式提供。缺配置可以跳过，提供了错误配置则必须报测试失败。
+	password := os.Getenv("TEST_REDIS_PASSWORD")
+	if password == "" {
+		t.Skip("设置 TEST_REDIS_PASSWORD 后运行 Redis 集成测试")
+	}
+	client := redis.NewClient(&redis.Options{Addr: address, Password: password, DB: 14, MaxRetries: -1, DialTimeout: time.Second, ReadTimeout: time.Second, WriteTimeout: time.Second, ContextTimeoutEnabled: true})
 	id := time.Now().UnixNano()
 	key := "product:" + strconv.FormatInt(id, 10)
 	t.Cleanup(func() {

@@ -1,16 +1,16 @@
 # 同一服务的同类症状合成一次通知，减少一场故障同时产生的大量推送。
 route:
-  receiver: alertsink
+  receiver: doctor-shop
   group_by: [alertname, service]
   group_wait: 5s
   group_interval: 15s
   repeat_interval: 1h
 receivers:
-  - name: alertsink
+  - name: doctor-shop
     webhook_configs:
-      - url: http://alertsink:8091/api/v1/alerts
+      - url: http://doctor:8090/api/v1/targets/shop/alerts
         send_resolved: true
-        max_alerts: 100
+        max_alerts: 64
         http_config:
           authorization:
             type: Bearer

@@ -1,8 +1,13 @@
 # OpsDoctor
 
+> **每次重建前，先检查压测参数。** 阶段 4–5 的故障复验使用 `LOADGEN_PRODUCT_COUNT=10000`、`LOADGEN_QPS=200`、`LOADGEN_WORKERS=64`。把三项明确写在本机 `.env`，不能只在旧进程里临时设置。首次空库造数前仍先设 QPS 为 0，准备好后再恢复 200。代码默认商品范围是 50 万，不会自动采用这套实验基线。
+>
+> **已知限制（阶段 5 实测）**：整套重建后使用默认 50 万商品、200 QPS、64 个工作者，正常流量的回源比例约为 44%，超过 `CacheLoadsHigh` 的 35% 门槛，持续误报；当时请求错误为 0。查询涉及的商品范围变大后，正常未命中率本身就很高，单一比例门槛无法区分它与 S05。本阶段按用户决定保留规则和默认值，复验限定在 1 万商品基线；告警的适用范围问题留待单独修复。数据见 P5-8。
+
+
 用 Go 构建可复现的微服务故障靶场，再逐步实现带证据报告的故障诊断 Agent。
 
-当前已完成**阶段 4：故障注入器与场景库**，等待验收与学习。订单、库存、销量消费已接入指标、调用链和关联日志。Grafana 看板、消费积压告警与临时接收器用于观察真实靶场，医生系统尚未开发。最新验收状态以[进度看板](进度.md)为准。
+当前进行**阶段 5：医生接入层与工具层**。医生已接收告警并提供只读工具，正在完成验收与学习资料；本阶段不接大模型。最新验收状态以[进度看板](进度.md)为准。
 
 - 唯一需求来源：[项目计划书](项目计划书.md)
 - 开发规则：[AGENTS.md](AGENTS.md)
@@ -76,10 +81,10 @@ Grafana Explore 选择 Loki，用 `{service="order-service"} | json` 查看日�
 
 采集和导出都需要一点时间。开始流量后，给看板的两分钟速率窗口留出时间。`http_server_request_duration_seconds_count` 是 HTTP 请求数，P99 由桶计算，只是近似值。熔断状态用 0/1/2 表示关闭/半开/打开；待核对计数已经并入统一注册表。
 
-告警只报告“延迟高、错误多、积压、goroutine 增长、采集目标不可达”等症状。`alertsink` 的日志应出现 `ConsumerLagHigh`，不能把 `ServiceUnavailable` 当成消费积压验收通过。
+告警只报告“延迟高、错误多、积压、goroutine 增长、采集目标不可达”等症状。Prometheus 的告警页应出现 `ConsumerLagHigh`，医生任务列表会留下对应的 pending 任务，不能把 `ServiceUnavailable` 当成消费积压验收通过。
 
 ```text
-docker compose --env-file .env -f deploy/docker-compose.yml logs --since 5m alertsink
+Invoke-RestMethod http://127.0.0.1:9090/api/v1/alerts
 docker stats --no-stream
 ```
 
@@ -118,11 +123,11 @@ Compose 首次初始化创建六个独立测试库：`opsdoctor_mysql_test`、`o
 
 独立的库名能防止测试清理业务数据，但这些库仍共用同一个 MySQL 进程。竞态测试会争用 CPU、连接和磁盘，还会有意制造锁等待。因此它可能触发 **InventoryLatencyHigh、OrderLatencyHigh、RowLockWaiting**。这不是正常业务的健康基线，不能混入故障实验的数据。
 
-跑测试前，先结束并恢复正在做的故障实验，记下 loadgen 当前的 QPS，再把它设为 0，等消费追平。随后暂停 Alertmanager：`docker compose --env-file .env -f deploy/docker-compose.yml stop alertmanager`。Prometheus 继续采集，便于检查测试结束后是否恢复正常；暂停的是通知。
+跑测试前，先结束并恢复正在做的故障实验，记下 loadgen 当前的 QPS，再把它设为 0，等消费追平。随后暂停 Alertmanager 和医生（医生要释放 diag_ro 的空闲连接，留给三连接上限测试）：`docker compose --env-file .env -f deploy/docker-compose.yml stop alertmanager doctor`。Prometheus 继续采集，便于检查测试结束后是否恢复正常；暂停的是通知。
 
-跑完后，不论测试是否通过，都要恢复原来的流量，等 `chaos healthy` 通过，再执行 `docker compose --env-file .env -f deploy/docker-compose.yml start alertmanager`。如果仍有异常，先排查，不要为了恢复通知而忽略告警。阶段 5 起，若测试期间没有暂停通知，上述告警会推送给医生，留下状态为 `pending` 的诊断任务。告警恢复不会自动删除这些任务；本阶段也不会执行它们。核对任务的创建时间和测试时间，避免把它们当成新故障。已经送达的通知不会因为之后暂停 Alertmanager 而撤回。
+跑完后，不论测试是否通过，都要先执行 `docker compose --env-file .env -f deploy/docker-compose.yml start doctor`，再恢复原来的流量。医生的采集端点恢复后，等 `chaos healthy` 通过，最后执行 `docker compose --env-file .env -f deploy/docker-compose.yml start alertmanager`。如果仍有异常，先排查，不要为了恢复通知而忽略告警。阶段 5 起，若测试期间没有暂停通知，上述告警会推送给医生，留下状态为 `pending` 的诊断任务。告警恢复不会自动删除这些任务；本阶段也不会执行它们。核对任务的创建时间和测试时间，避免把它们当成新故障。已经送达的通知不会因为之后暂停 Alertmanager 而撤回。
 
-`.env` 必须包含以下 **7 个**变量。不要只把名字复制过去；六个 DSN 要使用本机的测试账号和对应测试库，不能指向业务库。下面的命令会先检查缺项，并且把跳过的测试视为失败。
+`.env` 必须包含以下 **11 个**变量（业务 8 个、医生 3 个）。不要只把名字复制过去；六个 DSN 要使用本机的测试账号和对应测试库，不能指向业务库。下面的命令会先检查缺项，并且把跳过的测试视为失败。
 
 | 变量 | 用途 |
 |---|---|
@@ -133,6 +138,10 @@ Compose 首次初始化创建六个独立测试库：`opsdoctor_mysql_test`、`o
 | `TEST_ORDER_MYSQL_DSN` | 订单测试，库名为 `opsdoctor_order_test` |
 | `TEST_SALES_MYSQL_DSN` | 消费去重与销量测试，库名为 `opsdoctor_sales_test` |
 | `TEST_REDIS_ADDR` | 本机 Redis 地址，商品/幂等测试分别使用 DB 14/15 |
+| `TEST_REDIS_PASSWORD` | Redis 业务账号密码，与本机 `REDIS_PASSWORD` 相同；缺少时测试会明确跳过 |
+| `TEST_SHOP_MYSQL_RO_DSN` | 宿主机连接 shop 的 diag_ro；验证权限和三连接上限，绝不清理业务表 |
+| `TEST_SHOP_REDIS_RO_URL` | 宿主机连接 Redis DB 0 的 diag_ro；验证查看成功、读取 key 和写命令被拒绝 |
+| `TEST_DOCTOR_MYSQL_DSN` | 独立 doctor-mysql 上的 `opsdoctor_doctor_test` 库，使用 doctor 账号 |
 
 从阶段 1 升级时，保留数据卷，手动补建阶段 2 测试库（密码只由容器环境传递）：
 
@@ -140,27 +149,27 @@ Compose 首次初始化创建六个独立测试库：`opsdoctor_mysql_test`、`o
 Get-Content deploy/mysql/init/003_order_sales_test_databases.sql -Raw | docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql sh -c 'export MYSQL_PWD=$MYSQL_ROOT_PASSWORD; exec mysql -uroot'
 ```
 
-bash 用 `cat deploy/mysql/init/003_order_sales_test_databases.sql | docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql sh -c 'export MYSQL_PWD=$MYSQL_ROOT_PASSWORD; exec mysql -uroot'`。更早的阶段还需先补 `002_shop_test_databases.sql`。参照 `.env.example` 给已有 `.env` 增加订单、销量 TEST DSN 和 `TEST_REDIS_ADDR`，保留你的本机密码。
+bash 用 `cat deploy/mysql/init/003_order_sales_test_databases.sql | docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql sh -c 'export MYSQL_PWD=$MYSQL_ROOT_PASSWORD; exec mysql -uroot'`。更早的阶段还需先补 `002_shop_test_databases.sql`。参照 `.env.example` 给已有 `.env` 增加订单、销量 TEST DSN 、`TEST_REDIS_ADDR` 和 `TEST_REDIS_PASSWORD`，保留你的本机密码。
 
 PowerShell：
 
 ```powershell
-$testNames = @('TEST_MYSQL_DSN', 'TEST_MIGRATE_MYSQL_DSN', 'TEST_INVENTORY_MYSQL_DSN', 'TEST_SEED_MYSQL_DSN', 'TEST_ORDER_MYSQL_DSN', 'TEST_SALES_MYSQL_DSN', 'TEST_REDIS_ADDR')
+$testNames = @('TEST_MYSQL_DSN', 'TEST_MIGRATE_MYSQL_DSN', 'TEST_INVENTORY_MYSQL_DSN', 'TEST_SEED_MYSQL_DSN', 'TEST_ORDER_MYSQL_DSN', 'TEST_SALES_MYSQL_DSN', 'TEST_REDIS_ADDR', 'TEST_REDIS_PASSWORD', 'TEST_SHOP_MYSQL_RO_DSN', 'TEST_SHOP_REDIS_RO_URL', 'TEST_DOCTOR_MYSQL_DSN')
 # 只从本次 .env 读取，避免旧终端残留的值掩盖缺项。
 $testNames | ForEach-Object { [Environment]::SetEnvironmentVariable($_, $null, 'Process') }
-Get-Content .env | Where-Object { $_ -match '^TEST_(((MIGRATE|INVENTORY|SEED|ORDER|SALES)_)?MYSQL_DSN|REDIS_ADDR)=' } | ForEach-Object {
+Get-Content .env | Where-Object { $_ -match '^TEST_(((MIGRATE|INVENTORY|SEED|ORDER|SALES|DOCTOR|SHOP)_)?MYSQL_DSN|REDIS_ADDR|REDIS_PASSWORD|SHOP_MYSQL_RO_DSN|SHOP_REDIS_RO_URL)=' } | ForEach-Object {
     $entry = $_ -split '=', 2
     [Environment]::SetEnvironmentVariable($entry[0], $entry[1], 'Process')
 }
 $missing = @($testNames | Where-Object { [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($_, 'Process')) })
 if ($missing.Count -gt 0) { throw "请补齐 .env 中的变量：$($missing -join ', ')" }
 $integrationLog = Join-Path $env:TEMP ('opsdoctor-integration-' + [guid]::NewGuid().ToString('N') + '.jsonl')
-go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -json | Tee-Object -FilePath $integrationLog
+go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product ./internal/doctor/store ./internal/doctor/source/mysqlinspect ./internal/doctor/source/redisinspect -run Integration -count=1 -timeout=90s -json | Tee-Object -FilePath $integrationLog
 $testExit = $LASTEXITCODE
 $events = @(Get-Content $integrationLog | ForEach-Object { $_ | ConvertFrom-Json })
 $skipped = @($events | Where-Object { $_.Action -eq 'skip' -and $_.Test })
 $passed = @($events | Where-Object { $_.Action -eq 'pass' -and $_.Test })
-Remove-Item Env:TEST_MYSQL_DSN, Env:TEST_MIGRATE_MYSQL_DSN, Env:TEST_INVENTORY_MYSQL_DSN, Env:TEST_SEED_MYSQL_DSN, Env:TEST_ORDER_MYSQL_DSN, Env:TEST_SALES_MYSQL_DSN, Env:TEST_REDIS_ADDR -ErrorAction SilentlyContinue
+Remove-Item Env:TEST_MYSQL_DSN, Env:TEST_MIGRATE_MYSQL_DSN, Env:TEST_INVENTORY_MYSQL_DSN, Env:TEST_SEED_MYSQL_DSN, Env:TEST_ORDER_MYSQL_DSN, Env:TEST_SALES_MYSQL_DSN, Env:TEST_REDIS_ADDR, Env:TEST_REDIS_PASSWORD, Env:TEST_SHOP_MYSQL_RO_DSN, Env:TEST_SHOP_REDIS_RO_URL, Env:TEST_DOCTOR_MYSQL_DSN -ErrorAction SilentlyContinue
 Write-Output "pass=$($passed.Count), skip=$($skipped.Count), exit=$testExit；记录：$integrationLog"
 if ($testExit -ne 0 -or $skipped.Count -ne 0 -or $passed.Count -eq 0) { throw '集成验收未通过：需要有测试通过、exit=0，并且 skip=0' }
 ```
@@ -168,23 +177,23 @@ if ($testExit -ne 0 -or $skipped.Count -ne 0 -or $passed.Count -eq 0) { throw '�
 bash：
 
 ```bash
-test_names=(TEST_MYSQL_DSN TEST_MIGRATE_MYSQL_DSN TEST_INVENTORY_MYSQL_DSN TEST_SEED_MYSQL_DSN TEST_ORDER_MYSQL_DSN TEST_SALES_MYSQL_DSN TEST_REDIS_ADDR)
+test_names=(TEST_MYSQL_DSN TEST_MIGRATE_MYSQL_DSN TEST_INVENTORY_MYSQL_DSN TEST_SEED_MYSQL_DSN TEST_ORDER_MYSQL_DSN TEST_SALES_MYSQL_DSN TEST_REDIS_ADDR TEST_REDIS_PASSWORD TEST_SHOP_MYSQL_RO_DSN TEST_SHOP_REDIS_RO_URL TEST_DOCTOR_MYSQL_DSN)
 unset "${test_names[@]}"
 while IFS= read -r line; do
   line=${line%$'\r'} # 兼容 Windows 保存的换行，不执行文件中的内容。
   case "$line" in
-    TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*) export "$line" ;;
+    TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*|TEST_REDIS_PASSWORD=*|TEST_SHOP_MYSQL_RO_DSN=*|TEST_SHOP_REDIS_RO_URL=*|TEST_DOCTOR_MYSQL_DSN=*) export "$line" ;;
   esac
 done < .env
 for name in "${test_names[@]}"; do
   if [ -z "${!name}" ]; then echo "请补齐 .env 中的变量：$name"; exit 1; fi
 done
 integration_log=$(mktemp)
-go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -v | tee "$integration_log"
+go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product ./internal/doctor/store ./internal/doctor/source/mysqlinspect ./internal/doctor/source/redisinspect -run Integration -count=1 -timeout=90s -v | tee "$integration_log"
 test_exit=${PIPESTATUS[0]}
 skipped=$(grep -c -- '--- SKIP:' "$integration_log" || true)
 passed=$(grep -c -- '--- PASS:' "$integration_log" || true)
-unset TEST_MYSQL_DSN TEST_MIGRATE_MYSQL_DSN TEST_INVENTORY_MYSQL_DSN TEST_SEED_MYSQL_DSN TEST_ORDER_MYSQL_DSN TEST_SALES_MYSQL_DSN TEST_REDIS_ADDR
+unset TEST_MYSQL_DSN TEST_MIGRATE_MYSQL_DSN TEST_INVENTORY_MYSQL_DSN TEST_SEED_MYSQL_DSN TEST_ORDER_MYSQL_DSN TEST_SALES_MYSQL_DSN TEST_REDIS_ADDR TEST_REDIS_PASSWORD TEST_SHOP_MYSQL_RO_DSN TEST_SHOP_REDIS_RO_URL TEST_DOCTOR_MYSQL_DSN
 echo "pass=$passed, skip=$skipped, exit=$test_exit；记录：$integration_log"
 test "$test_exit" -eq 0 && test "$skipped" -eq 0 && test "$passed" -gt 0
 ```
@@ -192,6 +201,27 @@ test "$test_exit" -eq 0 && test "$skipped" -eq 0 && test "$passed" -gt 0
 这里解析赋值而不执行 `.env` 的内容；Go 程序本身不自动读取该文件。不要把未经核对的配置文件当脚本运行。
 
 只看最后一行 `ok` 不够：Go 会把主动跳过的测试也视为成功退出。以上汇总必须同时满足 `pass>0`、`skip=0`、`exit=0`。若有跳过，去记录里搜索 `SKIP`（PowerShell 的 JSON 记录搜索 `"Action":"skip"`），找到缺少的配置后重新跑整轮。
+
+医生库由独立容器初始化，端口为 `127.0.0.1:3307`，不要把 `TEST_DOCTOR_MYSQL_DSN` 指向 3306 的业务实例。只读账号测试先用 `ACL DRYRUN` 确认危险命令会被拒绝，再实际发送；如果预检查发现权限过大，立即失败，不执行这些命令。MySQL 写权限测试使用永假条件，不修改业务行。
+
+## 阶段 5：启动医生与手动取证
+
+医生监听 `127.0.0.1:8090`。它自己的数据库保存登录账号和 pending 诊断任务。Alertmanager 已改为通知医生，旧 alertsink 不再出现在默认 Compose 环境。保留的源码只供回看阶段 3。
+
+升级已有环境时，参照 `.env.example` 补齐 `DOCTOR_*`、`SHOP_ALERT_TOKEN`、`SHOP_MYSQL_RO_PASSWORD`、`SHOP_MYSQL_RO_DSN`、`SHOP_REDIS_RO_PASSWORD` 和 `SHOP_REDIS_RO_URL`。密码只填在本机 `.env`。接入 YAML 里只放变量名。`SHOP_*` DSN/URL 使用容器主机名；`TEST_SHOP_*` 使用 `127.0.0.1`。Redis URL 中的特殊密码字符需要做 URL 编码。
+
+**每次重建前，重新确认 `.env` 或本终端里的 `LOADGEN_PRODUCT_COUNT=10000`、`LOADGEN_QPS=200`、`LOADGEN_WORKERS=64`。只改运行时控制接口不会保留到重建之后。首次空库则先用 QPS=0，造数完成后再开流量。** 这是一万商品工作集的告警验收基线，商品表仍有五十万行。默认五十万商品的 CacheLoadsHigh 误报尚未修复，见上方基线说明和数据台账 P5-8。
+
+```powershell
+docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240
+# 首次空库的业务表要等迁移完成后才存在，因此再补授精确的表级权限。
+docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/006_doctor_readonly.sh
+Invoke-RestMethod http://127.0.0.1:8090/health/ready
+```
+
+你应该看到医生健康接口成功。已有账号的密码不会被这个脚本自动重置；修改 `.env` 不等于修改数据库中的账号密码。Redis 的 ACL 在每次启动时从环境生成，密码不会出现在启动参数里。
+
+登录、环境变量注入、十六项工具菜单和 S01 的逐步操作见[阶段 5 学习材料](docs/learn/phase-05-doctor-tools.md)。登录令牌只放当前终端的 `DOCTOR_TOKEN`，不要贴到命令参数或笔记里。医生只接收告警和提供只读工具，本阶段的任务停在 pending，不会自行诊断或修改靶场。
 
 ## 造数与调用库存
 
@@ -344,15 +374,15 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql b
 准备 S09 的另一个镜像。该命令只构建，不会立即切换正在运行的服务：
 
 ```text
-docker build -f deploy/docker/go.Dockerfile --build-arg CMD_NAME=order-service --build-arg APP_VERSION=20261024.4 --build-arg GO_TAGS=leakbug -t opsdoctor/order-service:20261024.4 .
+docker build -f deploy/docker/go.Dockerfile --build-arg CMD_NAME=order-service --build-arg APP_VERSION=20261026.2 --build-arg GO_TAGS=leakbug -t opsdoctor/order-service:20261026.2 .
 ```
 
 实验账号不使用业务账号。PowerShell 从本机配置读取密码并组装 DSN，整个过程不打印它：
 
 ```powershell
 Get-Content .env | ForEach-Object {
-    if ($_ -match '^CHAOS_MYSQL_PASSWORD=(.*)$') {
-        $env:CHAOS_MYSQL_PASSWORD = $Matches[1]
+    if ($_ -match '^(CHAOS_MYSQL_PASSWORD|REDIS_PASSWORD)=(.*)$') {
+        [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2], 'Process')
     }
 }
 $env:CHAOS_MYSQL_DSN = "chaos:$($env:CHAOS_MYSQL_PASSWORD)@tcp(127.0.0.1:3306)/shop?parseTime=true"
@@ -362,7 +392,7 @@ bash 对应写法：
 
 ```bash
 while IFS= read -r line; do
-  case "$line" in CHAOS_MYSQL_PASSWORD=*) export "$line" ;; esac
+  case "$line" in CHAOS_MYSQL_PASSWORD=*|REDIS_PASSWORD=*) export "$line" ;; esac
 done < .env
 export CHAOS_MYSQL_DSN="chaos:${CHAOS_MYSQL_PASSWORD}@tcp(127.0.0.1:3306)/shop?parseTime=true"
 ```
@@ -403,7 +433,7 @@ buf generate
 - 下单仍有跨服务一致性缺口：补偿可能失败；订单已写入但发消息失败会少统计销量。本阶段不实现 Outbox。
 - 扣库存超时不一定代表没有扣成功。根治需要 Deduct 自身携带请求 ID 去重，本阶段不改这个 RPC 契约。
 - 结果待核对须人工检查。Redis 暂时不能写状态时，原占位超过完整处理预算后会转成待核对；幂等窗口过去或数据卷丢失后不再保证去重。
-- 认证尚未接线；监控入口仅用于本机实验，不能直接暴露到公网。
+- 医生已接登录鉴权；监控和靶场入口仍用于本机实验，不能直接暴露到公网。
 - span 批量导出有五秒预算，监控后端不可用时可能丢记录；业务成功不保证每次都能查到完整 trace。
 - 迁移是一文件一条 SQL，要求可重入；DDL 隐式提交，不保证整批迁移原子回滚。
 - `archcheck` 检查可静态识别的导入、路径和 embed；它不是运行时文件访问沙箱。

@@ -29,13 +29,14 @@ const commandBudget = 3 * time.Minute
 
 // Runner 只保存配置，不长时间占用数据库连接。测试可以替换 RunCommand 来观察命令。
 type Runner struct {
-	Root         string                                                             // 仓库根目录，Compose 的相对路径由此解释。
-	MySQLDSN     string                                                             // 独立的 chaos 账号 DSN，绝不写进输出或本机恢复记录。
-	RedisAddress string                                                             // 只操作 product: 前缀，禁止清库。
-	ProxyURL     string                                                             // Toxiproxy 本机管理地址。
-	LoadURL      string                                                             // loadgen 本机控制地址。
-	HTTP         *http.Client                                                       // 所有控制请求都有超时。
-	RunCommand   func(context.Context, []string, map[string]string) ([]byte, error) // 测试用假执行器替换 docker。
+	Root          string                                                             // 仓库根目录，Compose 的相对路径由此解释。
+	MySQLDSN      string                                                             // 独立的 chaos 账号 DSN，绝不写进输出或本机恢复记录。
+	RedisPassword string                                                             // REDIS_PASSWORD，只供宿主机实验动作使用，不写进恢复记录。
+	RedisAddress  string                                                             // 只操作 product: 前缀，禁止清库。
+	ProxyURL      string                                                             // Toxiproxy 本机管理地址。
+	LoadURL       string                                                             // loadgen 本机控制地址。
+	HTTP          *http.Client                                                       // 所有控制请求都有超时。
+	RunCommand    func(context.Context, []string, map[string]string) ([]byte, error) // 测试用假执行器替换 docker。
 }
 
 // Execute 再次检查参数，防止调用方绕过 YAML 加载器后执行任意操作。

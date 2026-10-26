@@ -30,7 +30,7 @@ func ValidateStep(step Step) error {
 		if step.Service != "order-service" && step.Service != "inventory-service" {
 			break
 		}
-		if step.Image != "" && (step.Service != "order-service" || (step.Image != "opsdoctor/order-service:20261024.3" && step.Image != "opsdoctor/order-service:20261024.4")) {
+		if step.Image != "" && (step.Service != "order-service" || (step.Image != "opsdoctor/order-service:20261026.1" && step.Image != "opsdoctor/order-service:20261026.2")) {
 			break
 		}
 		return ValidateEnvironment(step.Environment)

@@ -21,8 +21,11 @@ scrape_configs:
         labels: {service: order-worker}
       - targets: [loadgen:6070]
         labels: {service: loadgen}
-      - targets: [alertsink:8091]
-        labels: {service: alertsink}
+  - job_name: doctor
+    honor_labels: true
+    static_configs:
+      - targets: [doctor:8090]
+        labels: {service: doctor}
   - job_name: middleware
     static_configs:
       - targets: [mysqld-exporter:9104]

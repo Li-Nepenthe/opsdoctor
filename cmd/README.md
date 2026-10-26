@@ -21,3 +21,12 @@
 ## 从哪里开始读
 
 打开某个程序的 `main.go`，找到它调用的 `Run`，跟着进去读。例如 `inventory-service/main.go` 调用的是 `inventoryservice.Run`，它在 [internal/shop/app/inventoryservice](../internal/shop/app/inventoryservice/doc.go) 里。
+
+阶段 5 新增两个入口：
+
+| 入口 | 作用 |
+|---|---|
+| [doctor](doctor/main.go) | 启动医生 HTTP 服务，接收通知并提供只读工具 |
+| [doctorctl](doctorctl/main.go) | 用登录身份调用正在运行的医生，共用同一个工具菜单和连接池 |
+
+alertsink 代码保留供阶段 3 学习，但默认 Compose 的告警已经交给 doctor。

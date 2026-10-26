@@ -63,7 +63,7 @@ func openDependencies(ctx context.Context, settings Config, runtime *telemetry.R
 	if err := migrations.Apply(ctx, resources.database); err != nil {
 		return nil, err
 	}
-	resources.redis, err = openRedis(ctx, settings.RedisAddress, runtime)
+	resources.redis, err = openRedis(ctx, settings.RedisAddress, settings.RedisPassword, runtime)
 	if err != nil {
 		return nil, err
 	}
@@ -87,10 +87,10 @@ func openDependencies(ctx context.Context, settings Config, runtime *telemetry.R
 }
 
 // openRedis 不记录命令参数，因为幂等键和缓存正文可能包含请求数据。
-func openRedis(ctx context.Context, address string, runtime *telemetry.Runtime) (*redis.Client, error) {
+func openRedis(ctx context.Context, address, password string, runtime *telemetry.Runtime) (*redis.Client, error) {
 	// 禁止自动重试。SET NX 的响应丢失后，重发可能把自己的占位误认为别人的请求。
 	client := redis.NewClient(&redis.Options{
-		Addr: address, MaxRetries: -1, PoolSize: redisPoolSize,
+		Addr: address, Password: password, MaxRetries: -1, PoolSize: redisPoolSize,
 		DialTimeout: redisIOTimeout, ReadTimeout: redisIOTimeout, WriteTimeout: redisIOTimeout,
 		ContextTimeoutEnabled: true,
 	})

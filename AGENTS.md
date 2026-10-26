@@ -106,7 +106,7 @@
 - 阅读清单：`go run ./tools/commentcheck -list ./...`
 - 文件地图：`go run ./tools/commentcheck -map ./...`，替换 `docs/代码地图.md` 中自动生成标记之间的表格。
 - 单元与竞态测试：`go test -race ./... -count=1 -timeout=180s`
-- MySQL / Redis 集成测试：按 README 注入六个 TEST DSN 和 TEST_REDIS_ADDR 后，执行 `go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -v`。
+- MySQL / Redis 集成测试：按 README 注入全部 11 个 TEST 变量后，执行 `go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product ./internal/doctor/store ./internal/doctor/source/mysqlinspect ./internal/doctor/source/redisinspect -run Integration -count=1 -timeout=90s -v`。
 - 初始化：按 README 注入 MYSQL_DSN 后，执行 `go run ./cmd/shopctl seed`（小规模加 `--small`，已有数据不会重置）。
 - 手动查询/扣减：`go run ./cmd/shopctl stock get --sku 1` / `go run ./cmd/shopctl stock deduct --sku 1 --quantity 1`。
 - 销量核对：暂停流量并等消费追平后，`go run ./cmd/shopctl check`。

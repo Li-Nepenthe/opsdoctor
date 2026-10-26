@@ -31,7 +31,12 @@ func integrationStore(t *testing.T) (*RedisIdempotency, string) {
 	if address == "" {
 		t.Skip("设置 TEST_REDIS_ADDR 后运行 Redis 幂等测试，固定使用数据库 15")
 	}
-	client := redis.NewClient(&redis.Options{Addr: address, DB: 15, MaxRetries: -1, DialTimeout: time.Second, ReadTimeout: time.Second, WriteTimeout: time.Second, ContextTimeoutEnabled: true})
+	// 密码也必须显式提供。缺配置可以跳过，提供了错误配置则必须报测试失败。
+	password := os.Getenv("TEST_REDIS_PASSWORD")
+	if password == "" {
+		t.Skip("设置 TEST_REDIS_PASSWORD 后运行 Redis 集成测试")
+	}
+	client := redis.NewClient(&redis.Options{Addr: address, Password: password, DB: 15, MaxRetries: -1, DialTimeout: time.Second, ReadTimeout: time.Second, WriteTimeout: time.Second, ContextTimeoutEnabled: true})
 	key := "test-" + rand.Text()
 	t.Cleanup(func() {
 		// t.Context 在 Cleanup 开始前会取消，清理另用一秒预算，不让连接故障卡住测试退出。

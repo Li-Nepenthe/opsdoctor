@@ -1,7 +1,7 @@
 id: S09
 title: 发布后后台任务无法结束
 inject:
-  - {action: deploy, service: order-service, image: "opsdoctor/order-service:20261024.4"}
+  - {action: deploy, service: order-service, image: "opsdoctor/order-service:20261026.2"}
 restore:
   - {action: deploy, service: order-service}
 symptom:
