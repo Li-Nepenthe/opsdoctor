@@ -100,7 +100,7 @@ Jaeger 仍是用户此前批准的唯一版本例外。本阶段没有引入计�
 | `docs/learn/phase-05-doctor-tools.md` | 478 | +478 / -0 | 阶段 5 学习材料：医生接入层与工具层 |
 | `docs/notes.md` | 1024 | +134 / -0 | 实测记录 |
 | `docs/reports/README.md` | 16 | +2 / -0 | docs/reports：阶段汇报书 |
-| `docs/reports/phase-05-doctor-tools.md` | 678 | +671 / -0 | 阶段汇报、验收证据与代码清单 |
+| `docs/reports/phase-05-doctor-tools.md` | 678 | +678 / -0 | 阶段汇报、验收证据与代码清单 |
 | `docs/代码地图.md` | 312 | +66 / -2 | OpsDoctor 代码地图 |
 | `docs/数据台账.md` | 274 | +26 / -0 | 数据台账 |
 | `eval/scenarios/S09.yaml` | 19 | +1 / -1 | 部署/测试/场景的固定配置；用途见相邻 README 与本报告 |
