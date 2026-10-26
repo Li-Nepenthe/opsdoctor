@@ -65,7 +65,17 @@ jobs:
               TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*) export "$line" ;;
             esac
           done < .env
-          go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -v
+          # Go 把 Skip 也算作正常退出，必须另查事件，避免漏配变量时 CI 假绿。
+          go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -json | tee "$RUNNER_TEMP/integration.jsonl"
+          python3 - <<'PY'
+          import json, os
+          from pathlib import Path
+          events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'integration.jsonl').read_text().splitlines()]
+          skipped = [e['Test'] for e in events if e.get('Test') and e['Action'] == 'skip']
+          passed = [e['Test'] for e in events if e.get('Test') and e['Action'] == 'pass']
+          assert passed and not skipped, {'passed': len(passed), 'skipped': skipped}
+          print(f'集成测试 pass={len(passed)}, skip={len(skipped)}')
+          PY
       - name: 库存服务与 small 造数冒烟
         run: |
           while IFS= read -r line; do
@@ -163,6 +173,7 @@ jobs:
           docker compose --env-file .env -f deploy/docker-compose.yml exec -T prometheus promtool check config /etc/prometheus/prometheus.yml
           # 合成时间线检查冷缓存与持续异常的边界；真实故障验收仍在本机单独记录。
           docker compose --env-file .env -f deploy/docker-compose.yml exec -T prometheus promtool test rules /etc/prometheus/rules/cache_alert.test.yaml
+          docker compose --env-file .env -f deploy/docker-compose.yml exec -T prometheus promtool test rules /etc/prometheus/rules/goroutine_alert.test.yaml
           python3 - <<'PY'
           import base64
           import json

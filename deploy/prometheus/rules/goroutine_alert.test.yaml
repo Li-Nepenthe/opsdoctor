@@ -1,0 +1,71 @@
+# 人工时间线只验证规则逻辑。冷启动和 S09 的真实耗时另记入数据台账。
+rule_files:
+  - shop.yml
+evaluation_interval: 10s
+tests:
+  # 新进程先建立后台任务，随后稳定。最初的增长不能累计到告警的一分钟里。
+  - name: 冷启动建立后台任务后稳定
+    interval: 10s
+    input_series:
+      - series: 'go_goroutines{job="shop",instance="order-service:6061",service="order-service"}'
+        values: '0+20x6 120+0x30'
+      - series: 'process_start_time_seconds{job="shop",instance="order-service:6061",service="order-service"}'
+        values: '0+0x37'
+    alert_rule_test:
+      - {eval_time: 1m10s, alertname: GoroutinesGrowing, exp_alerts: []}
+      - {eval_time: 2m, alertname: GoroutinesGrowing, exp_alerts: []}
+      - {eval_time: 3m, alertname: GoroutinesGrowing, exp_alerts: []}
+      - {eval_time: 6m, alertname: GoroutinesGrowing, exp_alerts: []}
+  # 新版本真的持续泄漏时，保护期结束后仍然增长。它必须在三分钟内触发。
+  - name: 新发布进程持续泄漏
+    interval: 10s
+    input_series:
+      - series: 'go_goroutines{job="shop",instance="order-service:6061",service="order-service"}'
+        values: '80+2000x24'
+      - series: 'process_start_time_seconds{job="shop",instance="order-service:6061",service="order-service"}'
+        values: '0+0x24'
+    alert_rule_test:
+      - {eval_time: 1m30s, alertname: GoroutinesGrowing, exp_alerts: []}
+      - {eval_time: 2m30s, alertname: GoroutinesGrowing, exp_alerts: []}
+      - eval_time: 2m40s
+        alertname: GoroutinesGrowing
+        exp_alerts:
+          - exp_labels: {job: shop, instance: 'order-service:6061', service: order-service, severity: warning}
+            exp_annotations: {summary: 服务 goroutine 数持续上涨}
+  # 已运行很久的服务不需要再等启动保护期，只保留原来的一分钟持续判断。
+  - name: 旧进程出现持续增长
+    interval: 10s
+    input_series:
+      - series: 'go_goroutines{job="shop",instance="inventory-service:6062",service="inventory-service"}'
+        values: '30+20x24'
+      - series: 'process_start_time_seconds{job="shop",instance="inventory-service:6062",service="inventory-service"}'
+        values: '-600+0x24'
+    alert_rule_test:
+      - {eval_time: 1m, alertname: GoroutinesGrowing, exp_alerts: []}
+      - eval_time: 1m10s
+        alertname: GoroutinesGrowing
+        exp_alerts:
+          - exp_labels: {job: shop, instance: 'inventory-service:6062', service: inventory-service, severity: warning}
+            exp_annotations: {summary: 服务 goroutine 数持续上涨}
+  # 不能借用另一个实例的启动时间。缺少自己的启动时间时，无法判定已过保护期。
+  - name: 启动时间必须属于同一个实例
+    interval: 10s
+    input_series:
+      - series: 'go_goroutines{job="shop",instance="order-service:6061",service="order-service"}'
+        values: '80+2000x24'
+      - series: 'process_start_time_seconds{job="shop",instance="another:6061",service="order-service"}'
+        values: '-600+0x24'
+    alert_rule_test:
+      - {eval_time: 4m, alertname: GoroutinesGrowing, exp_alerts: []}
+  # 进程重启后计时重新开始，不能沿用上一个进程已经等完的启动保护期。
+  - name: 重启清除旧进程的判断
+    interval: 10s
+    input_series:
+      - series: 'go_goroutines{job="shop",instance="order-worker:6063",service="order-worker"}'
+        values: '30+0x12 0+20x6 120+0x24'
+      - series: 'process_start_time_seconds{job="shop",instance="order-worker:6063",service="order-worker"}'
+        values: '-600+0x12 130+0x31'
+    alert_rule_test:
+      - {eval_time: 3m, alertname: GoroutinesGrowing, exp_alerts: []}
+      - {eval_time: 4m, alertname: GoroutinesGrowing, exp_alerts: []}
+      - {eval_time: 6m, alertname: GoroutinesGrowing, exp_alerts: []}

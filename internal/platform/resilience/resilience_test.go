@@ -20,6 +20,7 @@ import (
 	"net/http/httptest"
 	"slices"
 	"testing"
+	"testing/synctest"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -48,7 +49,7 @@ func TestRateLimit(t *testing.T) {
 	}
 }
 
-// TestRetryPolicy 固定随机增量，让指数退避的每一步都可以直接核对。
+// TestRetryPolicy 固定时钟和随机增量，让重试预算只取决于输入，不取决于机器快慢。
 func TestRetryPolicy(t *testing.T) {
 	const backoff = 10 * time.Millisecond // 测试只记录这个时长，不真的睡眠。
 	for _, testcase := range []struct {
@@ -66,26 +67,31 @@ func TestRetryPolicy(t *testing.T) {
 		{"剩余预算不够", 9, true, time.Millisecond, 1, nil},                             // 不能把预算全部花在等下一次尝试上。
 	} {
 		t.Run(testcase.name, func(t *testing.T) {
-			retry, err := NewRetrier(RetryPolicy{MaxRetries: 2, Backoff: backoff, MinBudget: backoff})
-			if err != nil {
-				t.Fatal(err)
-			}
-			var waits []time.Duration
-			retry.jitter = func(time.Duration) time.Duration { return 0 }
-			retry.wait = func(_ context.Context, delay time.Duration) error { waits = append(waits, delay); return nil }
-			ctx, cancel := context.WithTimeout(t.Context(), testcase.budget)
-			defer cancel()
-			calls := 0
-			_ = retry.Do(ctx, func() error {
-				calls++
-				if calls <= testcase.failures {
-					return errors.New("临时失败")
+			// synctest 在这个函数内使用虚拟时钟。这里的回调和假等待都不阻塞，
+			// 所以时钟不会前进；1ms 仍是 1ms，不会在操作系统调度期间被耗尽。
+			// 次数和等待序列的断言保持不变，生产重试代码也不用为测试增加时钟参数。
+			synctest.Test(t, func(t *testing.T) {
+				retry, err := NewRetrier(RetryPolicy{MaxRetries: 2, Backoff: backoff, MinBudget: backoff})
+				if err != nil {
+					t.Fatal(err)
 				}
-				return nil
-			}, func(error) bool { return testcase.retryable })
-			if calls != testcase.calls || !slices.Equal(waits, testcase.waits) {
-				t.Fatalf("次数=%d 等待=%v", calls, waits)
-			}
+				var waits []time.Duration
+				retry.jitter = func(time.Duration) time.Duration { return 0 }
+				retry.wait = func(_ context.Context, delay time.Duration) error { waits = append(waits, delay); return nil }
+				ctx, cancel := context.WithTimeout(t.Context(), testcase.budget)
+				defer cancel()
+				calls := 0
+				_ = retry.Do(ctx, func() error {
+					calls++
+					if calls <= testcase.failures {
+						return errors.New("临时失败")
+					}
+					return nil
+				}, func(error) bool { return testcase.retryable })
+				if calls != testcase.calls || !slices.Equal(waits, testcase.waits) {
+					t.Fatalf("次数=%d 等待=%v", calls, waits)
+				}
+			})
 		})
 	}
 }

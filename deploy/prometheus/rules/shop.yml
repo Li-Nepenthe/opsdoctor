@@ -21,7 +21,13 @@ groups:
         annotations:
           summary: 订单消息积压持续超过一千条
       - alert: GoroutinesGrowing
-        expr: deriv(go_goroutines{service=~"order-service|inventory-service|order-worker"}[2m]) > 1
+        # 刚启动时连接池和后台任务会陆续建立，数量上涨本身不是泄漏。
+        # 本机冷启动增长超过门槛的最后一个样本在进程启动 65 秒处；留到 90 秒再判断。
+        # 按同一个服务实例匹配启动时间，避免别的进程已经运行很久就替它放行。
+        expr: |
+          deriv(go_goroutines{service=~"order-service|inventory-service|order-worker"}[2m]) > 1
+          and on (job, instance, service)
+          (time() - process_start_time_seconds{service=~"order-service|inventory-service|order-worker"}) > 90
         for: 1m # 一分钟持续每秒增长超过一个，避免把短暂并发增加当成泄漏原因。
         labels: {severity: warning}
         annotations:

@@ -1,5 +1,45 @@
 # 实测记录
 
+<a id="phase-05"></a>
+
+## 2026-10-25：阶段 5 开工与验收遗留修复
+
+用户明确授权阶段 5，完成后等 Claude 验收和用户学习。先读 AGENTS.md、进度及当前完整的 2062 行计划书。工作区初始干净，fetch 后 main 与 origin/main 都为 `dcbfe7a6a0165a5f6e40bcd3240604b7228ca48b`，从这里创建 `phase-05-doctor-tools`。没有合并 main，也没有勾学习验收。
+
+先做四项遗留修复，并单独提交。本机原有 18 个容器已经停止约 17 小时，执行 `compose start --wait --wait-timeout 240` 后全部健康。冷启动原始样本放在本机临时目录 `opsdoctor-phase05/cold-original.jsonl`；后续每轮使用不同文件名，失败数据也不覆盖。以下实验时间用 UTC，开发日期沿用用户本地的 2026-10-25。
+
+`TestRetryPolicy` 的五个表格用例放进标准库 `testing/synctest.Test`。它提供虚拟时钟，只有测试里的 goroutine 全部阻塞时才推进时间。本测试的假等待立即返回，因此 1ms 预算不会被真实调度耗尽。没有修改生产重试代码，也没有修改预期次数和等待序列。`go test -race ./internal/platform/resilience -run '^TestRetryPolicy$' -count=1000 -timeout=180s` 通过，包输出 2.266s；1000 次顶层测试、5000 个表格子用例。依据：[Go 官方 synctest 文档](https://pkg.go.dev/testing/synctest)。
+
+本机 `.env` 确实缺 `TEST_ORDER_MYSQL_DSN`、`TEST_SALES_MYSQL_DSN`、`TEST_REDIS_ADDR`。补前两个时沿用既有测试账号，只把库名换成两个专用库；Redis 指向本机映射端口。没有输出密码，`git check-ignore .env` 确认仍被忽略。README 列全七个变量，要求预检、保存运行记录、确认 `pass>0 / skip=0 / exit=0`；CI 也检查跳过事件。说明了共享 MySQL 实例会带来库存延迟、下单延迟、行锁三类告警，以及暂停通知、恢复健康、保留已有 pending 任务的操作顺序。
+
+初步检查：gofmt、vet、commentcheck（179 个非生成 Go 文件）、archcheck 通过。第一次直接调用 staticcheck 时 PATH 中找不到它；通过 `go env GOBIN` 找到已安装的 `staticcheck.exe` 后通过，没有重新安装。12 条告警配置、两份 promtool 测试通过。新测试包含冷启动稳定、持续泄漏、旧进程增长、错误实例匹配、重启五种时间线；人工数据不能作为实际耗时引用。
+
+### 冷启动与 S09 的真实对照
+
+目标流量 200 QPS，活跃商品范围 10000，64 个工作者。未调整 OrderLatencyHigh。
+
+| 轮次 | UTC 时间与窗口 | 结果 |
+|---|---|---|
+| 原规则，已停止约 17h 的整套环境启动 | 2026-10-26 05:31:08.206–05:36:05.647；样本窗口 297.441s，60 次 | 订单 goroutine 最大 116，增长率最大 1.981/s；超过 1 的最后一个样本在启动 64.976s。GoroutinesGrowing 进入 pending、没有 firing；OrderLatencyHigh firing，OrderListLatencyHigh pending |
+| 90s 启动保护，整套 stop/start | 停启 05:37:01.767–05:37:33.532，31.765s；采样 05:36:49.533–05:44:45.807，476.274s、95 次 | 停止期间 1 次 Prometheus 不可用；其余 94 次没有 pending/firing。订单增长率峰值 0.331/s、数量峰值 110；本轮本身未超过原门槛，另外用合成测试确认保护逻辑。独立 healthy 60.126s 通过 |
+| S09 完整流程 | 05:45:05.123 开始命令，05:50:38.156 完成恢复健康 | inject 6.228s；verify 报从注入记录起 161.078s 出现 GoroutinesGrowing；restore 6.271s；healthy 165.382s。四步都成功 |
+
+S09 命令输出原样保留：
+
+```text
+S09 动作已执行；请继续 verify，不能据此认定症状已出现
+S09 symptom=true alerts=[GoroutinesGrowing] elapsed=2m41.078s
+healthy elapsed=2m45.382s last=健康条件 6 尚未满足
+```
+
+恢复健康接近三分钟，最后曾未满足的条件是消费积压小于 10；不能把恢复镜像的 6.271s 当成全部业务恢复耗时。当前源码尚未重建业务镜像，S09 对照为已有正常 20261024.3 与缺陷 20261024.4；本批生产变化只有 Prometheus 规则，业务重试只改测试。
+
+原始文件：`cold-original.jsonl`、`cold-guarded.jsonl`、`cold-summary.json`、`restart-guarded.json`、`s09-guarded.json`、`s09-guarded.jsonl`，都在本机临时目录 `opsdoctor-phase05`。原规则未复现 firing 的事实和用户此前的误报记录分开记。新进程保护期不是普适结论，今后更慢机器需要重测。
+
+新增医生前，18 个容器有目标 200 QPS 时的 docker stats 合计为 2212.437 MiB，逐容器原始值在 `stats-existing.jsonl`。这是刚重启后的快照，不是峰值，也不能与旧长时间运行快照直接计算优化比例。
+
+全量无外部依赖 race：109 个顶层测试通过，16 个依赖 MySQL/Redis 的集成测试跳过，记录 `leftovers-unit.jsonl`。随后补齐七项变量、暂停负载与 Alertmanager，真实集成轮 16 个测试全部通过、0 跳过、退出码 0，测试墙钟 8.051s，记录 `leftovers-integration.jsonl`。两轮合计覆盖 125 个顶层测试，但不把跳过轮写成“零跳过”。 测试结束恢复 200 QPS 后，healthy 等待 135.291s 通过；期间观察到 RowLockWaiting，随后清除。通过后才重新启动 Alertmanager，通知恢复。
+
 <a id="phase-04"></a>
 
 ## 2026-10-24：阶段 4 开工

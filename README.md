@@ -116,6 +116,24 @@ go run ./tools/commentcheck -map ./...
 
 Compose 首次初始化创建六个独立测试库：`opsdoctor_mysql_test`、`opsdoctor_migrate_test`、`opsdoctor_inventory_test`、`opsdoctor_seed_test`、`opsdoctor_order_test`、`opsdoctor_sales_test`。测试只清理各自白名单库。Redis 商品测试固定用 DB 14，幂等测试固定用 DB 15，只删除本次创建的键。改 `.env` 中密码时同步更新 DSN；已有数据卷不会自动改密码或重新执行初始化脚本。
 
+独立的库名能防止测试清理业务数据，但这些库仍共用同一个 MySQL 进程。竞态测试会争用 CPU、连接和磁盘，还会有意制造锁等待。因此它可能触发 **InventoryLatencyHigh、OrderLatencyHigh、RowLockWaiting**。这不是正常业务的健康基线，不能混入故障实验的数据。
+
+跑测试前，先结束并恢复正在做的故障实验，记下 loadgen 当前的 QPS，再把它设为 0，等消费追平。随后暂停 Alertmanager：`docker compose --env-file .env -f deploy/docker-compose.yml stop alertmanager`。Prometheus 继续采集，便于检查测试结束后是否恢复正常；暂停的是通知。
+
+跑完后，不论测试是否通过，都要恢复原来的流量，等 `chaos healthy` 通过，再执行 `docker compose --env-file .env -f deploy/docker-compose.yml start alertmanager`。如果仍有异常，先排查，不要为了恢复通知而忽略告警。阶段 5 起，若测试期间没有暂停通知，上述告警会推送给医生，留下状态为 `pending` 的诊断任务。告警恢复不会自动删除这些任务；本阶段也不会执行它们。核对任务的创建时间和测试时间，避免把它们当成新故障。已经送达的通知不会因为之后暂停 Alertmanager 而撤回。
+
+`.env` 必须包含以下 **7 个**变量。不要只把名字复制过去；六个 DSN 要使用本机的测试账号和对应测试库，不能指向业务库。下面的命令会先检查缺项，并且把跳过的测试视为失败。
+
+| 变量 | 用途 |
+|---|---|
+| `TEST_MYSQL_DSN` | 连接池测试，库名为 `opsdoctor_mysql_test` |
+| `TEST_MIGRATE_MYSQL_DSN` | 迁移测试，库名为 `opsdoctor_migrate_test` |
+| `TEST_INVENTORY_MYSQL_DSN` | 库存测试，库名为 `opsdoctor_inventory_test` |
+| `TEST_SEED_MYSQL_DSN` | 造数测试，库名为 `opsdoctor_seed_test` |
+| `TEST_ORDER_MYSQL_DSN` | 订单测试，库名为 `opsdoctor_order_test` |
+| `TEST_SALES_MYSQL_DSN` | 消费去重与销量测试，库名为 `opsdoctor_sales_test` |
+| `TEST_REDIS_ADDR` | 本机 Redis 地址，商品/幂等测试分别使用 DB 14/15 |
+
 从阶段 1 升级时，保留数据卷，手动补建阶段 2 测试库（密码只由容器环境传递）：
 
 ```powershell
@@ -127,27 +145,53 @@ bash 用 `cat deploy/mysql/init/003_order_sales_test_databases.sql | docker comp
 PowerShell：
 
 ```powershell
+$testNames = @('TEST_MYSQL_DSN', 'TEST_MIGRATE_MYSQL_DSN', 'TEST_INVENTORY_MYSQL_DSN', 'TEST_SEED_MYSQL_DSN', 'TEST_ORDER_MYSQL_DSN', 'TEST_SALES_MYSQL_DSN', 'TEST_REDIS_ADDR')
+# 只从本次 .env 读取，避免旧终端残留的值掩盖缺项。
+$testNames | ForEach-Object { [Environment]::SetEnvironmentVariable($_, $null, 'Process') }
 Get-Content .env | Where-Object { $_ -match '^TEST_(((MIGRATE|INVENTORY|SEED|ORDER|SALES)_)?MYSQL_DSN|REDIS_ADDR)=' } | ForEach-Object {
     $entry = $_ -split '=', 2
     [Environment]::SetEnvironmentVariable($entry[0], $entry[1], 'Process')
 }
-go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -v
+$missing = @($testNames | Where-Object { [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($_, 'Process')) })
+if ($missing.Count -gt 0) { throw "请补齐 .env 中的变量：$($missing -join ', ')" }
+$integrationLog = Join-Path $env:TEMP ('opsdoctor-integration-' + [guid]::NewGuid().ToString('N') + '.jsonl')
+go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -json | Tee-Object -FilePath $integrationLog
+$testExit = $LASTEXITCODE
+$events = @(Get-Content $integrationLog | ForEach-Object { $_ | ConvertFrom-Json })
+$skipped = @($events | Where-Object { $_.Action -eq 'skip' -and $_.Test })
+$passed = @($events | Where-Object { $_.Action -eq 'pass' -and $_.Test })
 Remove-Item Env:TEST_MYSQL_DSN, Env:TEST_MIGRATE_MYSQL_DSN, Env:TEST_INVENTORY_MYSQL_DSN, Env:TEST_SEED_MYSQL_DSN, Env:TEST_ORDER_MYSQL_DSN, Env:TEST_SALES_MYSQL_DSN, Env:TEST_REDIS_ADDR -ErrorAction SilentlyContinue
+Write-Output "pass=$($passed.Count), skip=$($skipped.Count), exit=$testExit；记录：$integrationLog"
+if ($testExit -ne 0 -or $skipped.Count -ne 0 -or $passed.Count -eq 0) { throw '集成验收未通过：需要有测试通过、exit=0，并且 skip=0' }
 ```
 
 bash：
 
 ```bash
+test_names=(TEST_MYSQL_DSN TEST_MIGRATE_MYSQL_DSN TEST_INVENTORY_MYSQL_DSN TEST_SEED_MYSQL_DSN TEST_ORDER_MYSQL_DSN TEST_SALES_MYSQL_DSN TEST_REDIS_ADDR)
+unset "${test_names[@]}"
 while IFS= read -r line; do
+  line=${line%$'\r'} # 兼容 Windows 保存的换行，不执行文件中的内容。
   case "$line" in
     TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*) export "$line" ;;
   esac
 done < .env
-go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/inventoryclient ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -v
+for name in "${test_names[@]}"; do
+  if [ -z "${!name}" ]; then echo "请补齐 .env 中的变量：$name"; exit 1; fi
+done
+integration_log=$(mktemp)
+go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product -run Integration -count=1 -timeout=90s -v | tee "$integration_log"
+test_exit=${PIPESTATUS[0]}
+skipped=$(grep -c -- '--- SKIP:' "$integration_log" || true)
+passed=$(grep -c -- '--- PASS:' "$integration_log" || true)
 unset TEST_MYSQL_DSN TEST_MIGRATE_MYSQL_DSN TEST_INVENTORY_MYSQL_DSN TEST_SEED_MYSQL_DSN TEST_ORDER_MYSQL_DSN TEST_SALES_MYSQL_DSN TEST_REDIS_ADDR
+echo "pass=$passed, skip=$skipped, exit=$test_exit；记录：$integration_log"
+test "$test_exit" -eq 0 && test "$skipped" -eq 0 && test "$passed" -gt 0
 ```
 
 这里解析赋值而不执行 `.env` 的内容；Go 程序本身不自动读取该文件。不要把未经核对的配置文件当脚本运行。
+
+只看最后一行 `ok` 不够：Go 会把主动跳过的测试也视为成功退出。以上汇总必须同时满足 `pass>0`、`skip=0`、`exit=0`。若有跳过，去记录里搜索 `SKIP`（PowerShell 的 JSON 记录搜索 `"Action":"skip"`），找到缺少的配置后重新跑整轮。
 
 ## 造数与调用库存
 

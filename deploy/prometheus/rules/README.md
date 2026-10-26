@@ -7,7 +7,7 @@
 | OrderLatencyHigh | 下单接口的 P99 耗时超过 1 秒，持续 1 分钟 |
 | HTTPErrorRateHigh | 某个服务返回 5xx 错误的比例超过 5%，持续 1 分钟 |
 | ConsumerLagHigh | order-worker 积压的消息超过 1000 条，持续 2 分钟 |
-| GoroutinesGrowing | 某个服务的 goroutine 数量持续上涨，每秒增加超过 1 个，持续 1 分钟 |
+| GoroutinesGrowing | 进程已启动超过 90 秒，goroutine 数量仍每秒增加超过 1 个，持续 1 分钟 |
 | ServiceUnavailable | 某个服务的管理端口连续 30 秒采集不到 |
 | InventoryLatencyHigh | 库存服务处理请求的 P99 超过 200ms，持续 30 秒 |
 | OrderListLatencyHigh | 订单列表 P99 超过 200ms，持续 30 秒 |
@@ -37,14 +37,27 @@
 
 这条规则关注的是已有流量时回源负担上升。冷启动最初几分钟、低流量和大工作集需要单独评估；请求变慢或失败仍由耗时和错误率规则观察。同键并发回源计数只留给后续诊断，告警不读取它，也不读取 singleflight 配置。
 
+## 为什么 goroutine 告警先等进程启动
+
+goroutine 是 Go 程序里同时做事的小任务。进程启动后，要逐步建立连接、启动后台循环，再接收流量。这时数量上涨是正常现象，不能直接说任务泄漏了。
+
+`process_start_time_seconds` 记录进程启动的时间。用现在的时间减去它，就知道这个进程已经运行了多久。规则只在运行超过 90 秒后，才开始累计那一分钟的持续增长。启动时间和数量必须来自同一个服务实例；别的实例已经运行很久，不能替这个新实例通过判断。
+
+这次本机冷启动中，订单服务增长超过门槛的样本出现在启动约 48–65 秒处，随后恢复稳定。因此先留出 90 秒，再用真实重启和 S09 检验这段等待是否合适。这是本项目在当前机器上的取值，不是所有 Go 服务都通用的常数。保护期内确实可能漏掉早期泄漏，所以还要验证持续泄漏能在三分钟内被发现。
+
+整套环境冷启动时，`OrderLatencyHigh` 仍可能触发。MySQL 的缓冲池是把常用数据页放在内存里的地方；刚重启时，还没有装入足够的数据，请求需要更多地读磁盘，下单可能真的变慢。这条规则反映用户实际等待的时间，保持原来的门槛和持续时间。不要为了让冷启动没有任何告警而把它屏蔽。
+
 ## 怎样验证规则
 
 [cache_alert.test.yaml](cache_alert.test.yaml) 用人工构造的计数时间线检查规则边界：健康流量放大、持续异常、停流恢复、少量请求和完全无流量。它只验证判断逻辑，真实数据另记在[数据台账](../../../docs/数据台账.md)。生产配置只加载 `*.yml`，测试文件使用 `.yaml`，不会被误加载。
+
+[goroutine_alert.test.yaml](goroutine_alert.test.yaml) 则检查启动后趋于稳定、持续泄漏、旧进程开始增长、启动时间来自错误实例、进程重启五种情况。
 
 从仓库根目录执行：
 
 ```powershell
 docker compose --env-file .env -f deploy/docker-compose.yml exec -T prometheus promtool test rules /etc/prometheus/rules/cache_alert.test.yaml
+docker compose --env-file .env -f deploy/docker-compose.yml exec -T prometheus promtool test rules /etc/prometheus/rules/goroutine_alert.test.yaml
 ```
 
 你应该看到 `SUCCESS`。CI 也运行同一条命令。
