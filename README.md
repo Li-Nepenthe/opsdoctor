@@ -7,7 +7,7 @@
 
 用 Go 构建可复现的微服务故障靶场，再逐步实现带证据报告的故障诊断 Agent。
 
-当前已完成**阶段 5：医生接入层与工具层**的工程验收，等待 Claude 验收与用户学习。医生接收告警并提供只读工具，本阶段不接大模型。最新验收状态以[进度看板](进度.md)为准。
+当前已完成**阶段 6：Agent 循环与实时页面**的工程收尾，等待 Claude 验收和用户学习。医生收到告警后会自动查证据并保存报告；页面展示每一步。默认使用免费 Mock 脚本，真实模型必须显式启用。最新验收状态以[进度看板](进度.md)为准。
 
 - 唯一需求来源：[项目计划书](项目计划书.md)
 - 开发规则：[AGENTS.md](AGENTS.md)
@@ -18,6 +18,9 @@
 - 阶段 1：[汇报书](docs/reports/phase-01-inventory.md)、[学习材料](docs/learn/phase-01-inventory.md)
 - 阶段 2：[汇报书](docs/reports/phase-02-order.md)、[学习材料](docs/learn/phase-02-order.md)
 - 阶段 3：[汇报书](docs/reports/phase-03-observability.md)、[学习材料](docs/learn/phase-03-observability.md)
+- 阶段 4：[汇报书](docs/reports/phase-04-chaos.md)、[学习材料](docs/learn/phase-04-chaos.md)
+- 阶段 5：[汇报书](docs/reports/phase-05-doctor-tools.md)、[学习材料](docs/learn/phase-05-doctor-tools.md)
+- 阶段 6：[汇报书](docs/reports/phase-06-agent.md)、[学习材料](docs/learn/phase-06-agent.md)
 
 ## 启动靶场环境
 
@@ -206,7 +209,7 @@ test "$test_exit" -eq 0 && test "$skipped" -eq 0 && test "$passed" -gt 0
 
 ## 阶段 5：启动医生与手动取证
 
-医生监听 `127.0.0.1:8090`。它自己的数据库保存登录账号和 pending 诊断任务。Alertmanager 已改为通知医生，旧 alertsink 不再出现在默认 Compose 环境。保留的源码只供回看阶段 3。
+医生监听 `127.0.0.1:8090`。它自己的数据库保存登录账号、诊断任务、步骤和费用。Alertmanager 通知医生；旧 alertsink 不再出现在默认 Compose 环境，保留的源码只供回看阶段 3。
 
 升级已有环境时，参照 `.env.example` 补齐 `DOCTOR_*`、`SHOP_ALERT_TOKEN`、`SHOP_MYSQL_RO_PASSWORD`、`SHOP_MYSQL_RO_DSN`、`SHOP_REDIS_RO_PASSWORD` 和 `SHOP_REDIS_RO_URL`。密码只填在本机 `.env`。接入 YAML 里只放变量名。`SHOP_*` DSN/URL 使用容器主机名；`TEST_SHOP_*` 使用 `127.0.0.1`。Redis URL 中的特殊密码字符需要做 URL 编码。
 
@@ -221,7 +224,21 @@ Invoke-RestMethod http://127.0.0.1:8090/health/ready
 
 你应该看到医生健康接口成功。已有账号的密码不会被这个脚本自动重置；修改 `.env` 不等于修改数据库中的账号密码。Redis 的 ACL 在每次启动时从环境生成，密码不会出现在启动参数里。
 
-登录、环境变量注入、十六项工具菜单和 S01 的逐步操作见[阶段 5 学习材料](docs/learn/phase-05-doctor-tools.md)。登录令牌只放当前终端的 `DOCTOR_TOKEN`，不要贴到命令参数或笔记里。医生只接收告警和提供只读工具，本阶段的任务停在 pending，不会自行诊断或修改靶场。
+登录、环境变量注入、十六项工具菜单和 S01 的逐步操作见[阶段 5 学习材料](docs/learn/phase-05-doctor-tools.md)。登录令牌只放当前终端的 `DOCTOR_TOKEN`，不要贴到命令参数或笔记里。从阶段 6 起，新任务会自动执行；旧 pending 告警按过时规则取消。医生仍只有查看权限，报告中的建议不会自动执行。
+
+## 阶段 6：打开实时诊断页面
+
+日常学习在本机 `.env` 保持 `LLM_PROVIDER=mock`。浏览器打开 `http://127.0.0.1:8090`，登录后先确认顶部的“Mock 模式，不是真实诊断”。选系统、填症状、发起诊断，即可看到固定脚本产生的步骤和报告。Mock 不会联网调用模型，也不能用来衡量根因判断是否准确。
+
+真实验收使用官方 DeepSeek 4.1 Flash：`LLM_PROVIDER=openai`、`LLM_BASE_URL=https://api.deepseek.com`、`LLM_MODEL=deepseek-flash`。Key 只放本机 `.env` 的 `LLM_API_KEY`。预算、单价和超时变量见 `.env.example`；本次授权全局上限为 ¥20。更改环境文件后需要重新创建 doctor 容器，已运行进程不会自行读取新值。验收结束后切回 mock 并重新创建 doctor，再确认页面横幅。不要在真实模式跑集成测试或 chaos selftest。
+
+同一组故障持续期间，多次 firing 通知会并入原诊断，即使它已经结束。整组 resolved 后还会观察一段时间，shop 在接入配置中设为 3 分钟。期间重新出现的告警仍并入原诊断，页面单独列为“恢复观察期内的后续告警”，报告不重跑。观察期内若真的发生新故障，可以手动发起诊断。恢复通知丢失时仍有十五分钟通知静默兜底。
+
+下一场实验除了通过 `chaos healthy`，还要读取 `GET /api/v1/targets`，等 shop 的 `fault.open` 变成 false。`fault.recovery_until` 是预计观察结束时间；又有 firing 时它会变回 null，不能按旧时间或固定 sleep 猜测故障已经结束。也要确认 Prometheus 没有仍在 pending 的症状，避免刚恢复流量时的真实慢请求稍后才满足告警的持续时间。
+
+页面展示每次模型调用的实际模型名；点击步骤可以查看脱敏后的请求与结果。费用是按未命中缓存单价算的保守值，取消时无法确认的费用预留也包含在内。
+
+页面用 HttpOnly Cookie 登录，浏览器自动携带它建立 SSE 连接。令牌不出现在 URL 中。命令行仍使用 Bearer。模型输出只当文字显示，建议由人核对后执行。详细讲解见[阶段 6 学习材料](docs/learn/phase-06-agent.md)。
 
 ## 造数与调用库存
 
