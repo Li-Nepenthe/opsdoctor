@@ -55,9 +55,34 @@ async function enter() {
 async function refresh() {
   if (!state.loggedIn || state.refreshing) return;
   state.refreshing = true;
-  try { await Promise.all([refreshStatus(), refreshList()]); }
+  try { await Promise.all([refreshStatus(), refreshList(), refreshAlerts()]); }
   catch (error) { notify(error.message); }
   finally { state.refreshing = false; }
+}
+
+// 报告结束后 SSE 会关闭，告警却可能晚到；只刷新告警区，不重读模型审计或重建报告。
+async function refreshAlerts() {
+  const id = state.selected;
+  if (!id || !state.detail || state.detail.id !== id) return;
+  const history = await api("/diagnoses/" + encodeURIComponent(id) + "/alerts");
+  if (state.selected !== id || state.detail.id !== id) return;
+  state.detail.alerts = history.alerts; state.detail.recovery_alerts = history.recovery_alerts;
+  renderAlerts();
+}
+
+// 后续告警有独立标题和到达时间；即使正文包含 HTML，仍然只显示为文字。
+function renderAlerts() {
+  const area = byId("alert-history"); if (!area) return;
+  const detail = state.detail; area.replaceChildren();
+  const initial = node("details", undefined, "step");
+  initial.append(node("summary", "初始症状与最新告警"), node("pre", JSON.stringify({input:detail.input, alerts:detail.alerts}, null, 2))); area.append(initial);
+  const followups = node("section", undefined, "step"); followups.append(node("h3", "恢复观察期内的后续告警"));
+  followups.append(node("p", "这些症状归入原诊断，不会重新执行报告。观察期内若发生了新的独立故障，可以手动发起诊断。", "muted"));
+  for (const item of detail.recovery_alerts || []) {
+    followups.append(node("p", new Date(item.received_at).toLocaleString() + " · " + item.alert.labels.alertname + " · " + item.alert.status), node("pre", JSON.stringify(item.alert, null, 2)));
+  }
+  if (!(detail.recovery_alerts || []).length) followups.append(node("p", "尚无后续告警。", "muted"));
+  area.append(followups);
 }
 
 // 页面清楚区分固定脚本与真实模型，预算不足的原因直接采用服务器读数。
@@ -148,7 +173,7 @@ function renderDetail() {
   if (detail.error) area.append(node("p", detail.error, "banner danger"));
   if (detail.report) renderReport(area, detail.report);
   const connection = node("p", finished(detail.status) ? "诊断已结束，以下为保存的完整过程。" : "正在连接实时步骤……", "muted"); connection.id = "connection-state"; area.append(connection);
-  const input = node("details", undefined, "step"); input.append(node("summary", "初始症状与最新告警"), node("pre", JSON.stringify({input:detail.input, alerts:detail.alerts}, null, 2))); area.append(input);
+  const alerts = node("div"); alerts.id = "alert-history"; area.append(alerts); renderAlerts();
   const steps = node("div", undefined, "steps"); steps.id = "steps"; steps.append(node("h3", "诊断步骤")); area.append(steps);
   for (const step of [...state.steps.values()].sort((a,b) => a.seq-b.seq)) appendStep(step);
 }

@@ -70,7 +70,7 @@ func integrationStore(t *testing.T) (*Store, string) {
 			t.Error(err)
 		}
 	})
-	return New(database), target
+	return NewConfigured(database, Config{RecoveryWindows: map[string]time.Duration{target: 3 * time.Minute, target + "-b": time.Minute}}), target
 }
 
 // testNotification 使用明显的验收名称，不能误看成业务故障证据。

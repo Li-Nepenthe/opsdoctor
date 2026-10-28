@@ -2,6 +2,9 @@
 name: shop
 profile: shop.profile.md
 alert_token_env: SHOP_ALERT_TOKEN
+# 最长 for 为 2m，再加一次规则评估 10s 和 group_wait 5s，共 135s；留到 3m。
+# 这段时间里又收到 firing 仍归到原诊断。真正的新故障也可能被合并，可手动发起诊断。
+alert_recovery_window: 3m
 prometheus: http://prometheus:9090
 jaeger: http://jaeger:16686
 loki: http://loki:3100

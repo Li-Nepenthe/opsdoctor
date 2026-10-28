@@ -36,22 +36,23 @@ type Diagnosis struct {
 
 // Detail 的嵌入字段使摘要与列表保持一致，避免维护两套字段映射。
 type Detail struct {
-	LastSeq       int               `json:"last_seq"` // 已提交的最大步骤号，用来拒绝越过当前进度的续传。
-	Diagnosis                       // Go 的结构体嵌入：JSON 会把这些公开字段放在同一层。
-	Input         json.RawMessage   `json:"input"`            // 初次触发任务的通知。
-	Alerts        []json.RawMessage `json:"alerts"`           // 每条告警的最新快照，可能已经 resolved。
-	Steps         []agent.Step      `json:"steps"`            // 有序审计步骤，实时新增通过 SSE 接收。
-	Report        json.RawMessage   `json:"report"`           // 只有通过校验的报告才保存到这里。
-	Error         string            `json:"error"`            // 固定错误或已脱敏的运行错误。
-	PromptVersion string            `json:"prompt_version"`   // 本次诊断的提示版本。
-	TokensIn      int64             `json:"tokens_in"`        // 累计输入 token。
-	TokensOut     int64             `json:"tokens_out"`       // 累计输出 token。
-	CacheHit      int64             `json:"cache_hit_tokens"` // 供应商返回的缓存命中 token，保守费用仍按未命中算。
-	CostMicros    int64             `json:"cost_micros"`      // 已计入的保守费用。
-	Rounds        int               `json:"rounds"`           // 包含最终报告机会的轮数。
-	ToolCalls     int               `json:"tool_calls"`       // 处理过的查看工具请求数。
-	StartedAt     *time.Time        `json:"started_at"`       // 尚未执行时为 null。
-	FinishedAt    *time.Time        `json:"finished_at"`      // 结束前为 null。
+	LastSeq        int               `json:"last_seq"` // 已提交的最大步骤号，用来拒绝越过当前进度的续传。
+	Diagnosis                        // Go 的结构体嵌入：JSON 会把这些公开字段放在同一层。
+	Input          json.RawMessage   `json:"input"`            // 初次触发任务的通知。
+	Alerts         []json.RawMessage `json:"alerts"`           // 每条告警的最新快照，可能已经 resolved。
+	RecoveryAlerts []RecoveryAlert   `json:"recovery_alerts"`  // 观察期补入的症状单独展示，报告不会为它们重跑。
+	Steps          []agent.Step      `json:"steps"`            // 有序审计步骤，实时新增通过 SSE 接收。
+	Report         json.RawMessage   `json:"report"`           // 只有通过校验的报告才保存到这里。
+	Error          string            `json:"error"`            // 固定错误或已脱敏的运行错误。
+	PromptVersion  string            `json:"prompt_version"`   // 本次诊断的提示版本。
+	TokensIn       int64             `json:"tokens_in"`        // 累计输入 token。
+	TokensOut      int64             `json:"tokens_out"`       // 累计输出 token。
+	CacheHit       int64             `json:"cache_hit_tokens"` // 供应商返回的缓存命中 token，保守费用仍按未命中算。
+	CostMicros     int64             `json:"cost_micros"`      // 已计入的保守费用。
+	Rounds         int               `json:"rounds"`           // 包含最终报告机会的轮数。
+	ToolCalls      int               `json:"tool_calls"`       // 处理过的查看工具请求数。
+	StartedAt      *time.Time        `json:"started_at"`       // 尚未执行时为 null。
+	FinishedAt     *time.Time        `json:"finished_at"`      // 结束前为 null。
 }
 
 // List 只把筛选值绑定到参数；排序和 SQL 结构由代码固定。
@@ -109,17 +110,7 @@ func (store *Store) Detail(ctx context.Context, id string) (Detail, error) {
 	if err != nil {
 		return value, err
 	}
-	rows, err := store.database.QueryContext(ctx, "SELECT payload FROM diagnosis_alerts WHERE diagnosis_id=? ORDER BY fingerprint", id)
-	if err != nil {
-		return value, err
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var payload json.RawMessage
-		if err := rows.Scan(&payload); err != nil {
-			return value, err
-		}
-		value.Alerts = append(value.Alerts, payload)
-	}
-	return value, rows.Err()
+	history, err := store.DiagnosisAlerts(ctx, id)
+	value.Alerts, value.RecoveryAlerts = history.Alerts, history.RecoveryAlerts
+	return value, err
 }

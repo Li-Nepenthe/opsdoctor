@@ -39,9 +39,10 @@ type Notification struct {
 
 // Receipt 说明通知已保存或被忽略，不表示诊断已经执行。
 type Receipt struct {
-	DiagnosisID string `json:"diagnosis_id,omitempty"` // 新建或复用的 pending 任务。
-	Created     bool   `json:"created"`                // false 可表示一次重复推送。
-	Ignored     bool   `json:"ignored"`                // 只有恢复通知且没有现有任务时，不凭空创建任务。
+	RecoveryFollowup bool   `json:"recovery_followup"`      // 观察期内重新出现的症状，只补证据，不重新执行报告。
+	DiagnosisID      string `json:"diagnosis_id,omitempty"` // 新建或复用的 pending 任务。
+	Created          bool   `json:"created"`                // false 可表示一次重复推送。
+	Ignored          bool   `json:"ignored"`                // 只有恢复通知且没有现有任务时，不凭空创建任务。
 }
 
 // Receiver 定义在通知处理这一使用方，MySQL 仓储只需实现它，不需要显式 implements。

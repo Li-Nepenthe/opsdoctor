@@ -18,21 +18,23 @@ import (
 	"path/filepath"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/goccy/go-yaml"
 )
 
 // Config 只保存地址和变量名；阶段 7 的写入口尚未开放，也不能提前填进来。
 type Config struct {
-	Name          string            `yaml:"name"`                   // 在目录中唯一，之后成为任务绑定的系统名。
-	Profile       string            `yaml:"profile"`                // 同目录的架构说明文件名。
-	AlertTokenEnv string            `yaml:"alert_token_env"`        // 本系统的推送令牌变量。
-	Prometheus    string            `yaml:"prometheus"`             // 指标后端根地址。
-	Jaeger        string            `yaml:"jaeger"`                 // 调用链查询根地址。
-	Loki          string            `yaml:"loki"`                   // 日志查询根地址。
-	MySQLDSNEnv   string            `yaml:"mysql_readonly_dsn_env"` // 只读 MySQL 连接配置的变量名。
-	RedisURLEnv   string            `yaml:"redis_readonly_url_env"` // 只读 Redis 连接配置的变量名。
-	Pprof         map[string]string `yaml:"pprof"`                  // 服务名到堆栈端点的固定映射。
+	AlertRecoveryWindow string            `yaml:"alert_recovery_window"`  // 整组恢复后继续接收迟到症状的时间，由各系统的告警规则决定。
+	Name                string            `yaml:"name"`                   // 在目录中唯一，之后成为任务绑定的系统名。
+	Profile             string            `yaml:"profile"`                // 同目录的架构说明文件名。
+	AlertTokenEnv       string            `yaml:"alert_token_env"`        // 本系统的推送令牌变量。
+	Prometheus          string            `yaml:"prometheus"`             // 指标后端根地址。
+	Jaeger              string            `yaml:"jaeger"`                 // 调用链查询根地址。
+	Loki                string            `yaml:"loki"`                   // 日志查询根地址。
+	MySQLDSNEnv         string            `yaml:"mysql_readonly_dsn_env"` // 只读 MySQL 连接配置的变量名。
+	RedisURLEnv         string            `yaml:"redis_readonly_url_env"` // 只读 Redis 连接配置的变量名。
+	Pprof               map[string]string `yaml:"pprof"`                  // 服务名到堆栈端点的固定映射。
 }
 
 // readConfigs 按文件名顺序读取全部 YAML，目录为空也报错，避免“启动成功但什么都接不上”。
@@ -113,6 +115,11 @@ func validateConfigs(configs []Config) error {
 		}
 		if config.AlertTokenEnv == "" || !strings.HasSuffix(config.Profile, ".profile.md") {
 			return fmt.Errorf("系统 %s 缺少告警令牌变量或 .profile.md 说明文件", config.Name)
+		}
+		// 不能用全局默认掩盖缺项：每个系统的告警持续时间可能不同。
+		window, err := time.ParseDuration(config.AlertRecoveryWindow)
+		if err != nil || window <= 0 || window > 24*time.Hour {
+			return fmt.Errorf("系统 %s 的 alert_recovery_window 必须是大于 0、且不超过 24h 的时长", config.Name)
 		}
 		for service := range config.Pprof {
 			if !namePattern.MatchString(service) {

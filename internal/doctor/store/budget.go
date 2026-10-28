@@ -139,9 +139,11 @@ func (ledger *Ledger) Status(ctx context.Context) (run.BudgetStatus, error) {
 	err := ledger.store.database.QueryRowContext(ctx, "SELECT spent_micros,stopped_reason FROM llm_budget WHERE account=?", ledger.account).Scan(&value.SpentMicros, &value.Reason)
 	if value.Reason != "" {
 		value.Blocked = true
+		value.ReasonCode = "accounting_guard"
 	} else if value.SpentMicros >= value.LimitMicros {
 		value.Blocked = true
 		value.Reason = llm.ErrBudget.Error()
+		value.ReasonCode = "total_limit"
 	}
 	return value, err
 }

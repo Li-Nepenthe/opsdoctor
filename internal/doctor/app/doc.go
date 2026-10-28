@@ -9,6 +9,7 @@
 //   - agent_config_test.go：验证新环境不会因为填了 Key 就自动花钱，以及所有预算配置的边界。
 //   - agent_wiring.go：把仓储、模型、Agent、调度和实时通知接成一条执行路径。
 //   - metrics.go：记录医生做了多少工作，以及为什么不能继续启动真实诊断。
+//   - metrics_test.go：检查预算原因的有限标签、切换与恢复清理。
 //   - doc.go：本包的使用背景、边界和阅读顺序。
 //   - app.go：按顺序准备医生自己的数据库、接入系统和 HTTP 服务。
 //   - cli.go：实现 doctorctl 的三个命令，通过 HTTP 使用正在运行的医生。

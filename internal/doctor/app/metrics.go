@@ -20,19 +20,20 @@ import (
 
 // doctorMetrics 的计数器由 Prometheus 库处理并发，mu 只保护有限模型标签集合。
 type doctorMetrics struct {
-	mu           sync.Mutex               // 保护模型分类，避免供应商任意模型字符串制造无限序列。
-	models       map[string]bool          // 最多八个实际模型，其余统一为 other。
-	tools        map[string]bool          // 启动时从各系统工具注册表合并，只读。
-	diagnoses    *prometheus.CounterVec   // 状态进入次数，按系统与状态区分。
-	tokens       *prometheus.CounterVec   // 按模型和输入/输出方向。
-	cacheHits    *prometheus.CounterVec   // 供应商声明命中的输入 token。
-	costs        *prometheus.CounterVec   // 保守费用，单位人民币元。
-	calls        *prometheus.CounterVec   // 查看工具的结果次数。
-	toolDuration *prometheus.HistogramVec // 每次工具耗时。
-	duration     *prometheus.HistogramVec // 执行至终态的时间。
-	spent        prometheus.Gauge         // 全局账本，包括尚未结算的预留。
-	limit        prometheus.Gauge         // 配置的全局上限。
-	blocked      prometheus.Gauge         // 0 可启动，1 额度不足。
+	mu            sync.Mutex               // 保护模型分类，避免供应商任意模型字符串制造无限序列。
+	models        map[string]bool          // 最多八个实际模型，其余统一为 other。
+	tools         map[string]bool          // 启动时从各系统工具注册表合并，只读。
+	diagnoses     *prometheus.CounterVec   // 状态进入次数，按系统与状态区分。
+	tokens        *prometheus.CounterVec   // 按模型和输入/输出方向。
+	cacheHits     *prometheus.CounterVec   // 供应商声明命中的输入 token。
+	costs         *prometheus.CounterVec   // 保守费用，单位人民币元。
+	calls         *prometheus.CounterVec   // 查看工具的结果次数。
+	toolDuration  *prometheus.HistogramVec // 每次工具耗时。
+	duration      *prometheus.HistogramVec // 执行至终态的时间。
+	spent         prometheus.Gauge         // 全局账本，包括尚未结算的预留。
+	limit         prometheus.Gauge         // 配置的全局上限。
+	blocked       prometheus.Gauge         // 0 可启动，1 额度不足。
+	blockedReason *prometheus.GaugeVec     // 有限原因分类，便于直接从指标解释为何停止。
 }
 
 // newDoctorMetrics 延用平台注册表，诊断耗时另用覆盖五分钟的桶。
@@ -49,7 +50,8 @@ func newDoctorMetrics(metrics *telemetry.Metrics, names map[string]bool) (*docto
 	value.spent = prometheus.NewGauge(prometheus.GaugeOpts{Name: "doctor_llm_budget_spent_cny", Help: "全局保守费用与预留额，单位元。"})
 	value.limit = prometheus.NewGauge(prometheus.GaugeOpts{Name: "doctor_llm_budget_limit_cny", Help: "全局累计费用上限，单位元。"})
 	value.blocked = prometheus.NewGauge(prometheus.GaugeOpts{Name: "doctor_llm_budget_blocked", Help: "真实诊断是否因费用不足停止启动。"})
-	for _, collector := range []prometheus.Collector{value.duration, value.spent, value.limit, value.blocked} {
+	value.blockedReason = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "doctor_llm_budget_blocked_reason", Help: "阻止真实诊断的原因，当前原因为1。"}, []string{"reason"})
+	for _, collector := range []prometheus.Collector{value.duration, value.spent, value.limit, value.blocked, value.blockedReason} {
 		if err := metrics.Register(collector); err != nil {
 			return nil, err
 		}
@@ -114,4 +116,18 @@ func (metrics *doctorMetrics) budget(value run.BudgetStatus) {
 		blocked = 1
 	}
 	metrics.blocked.Set(blocked)
+	// 每次把旧原因归零；只允许这四种标签，数据库错误文本不会制造新的时间序列。
+	code := value.ReasonCode
+	switch code {
+	case "total_limit", "request_reservation", "accounting_guard":
+	default:
+		code = "other"
+	}
+	for _, reason := range []string{"total_limit", "request_reservation", "accounting_guard", "other"} {
+		active := float64(0)
+		if value.Blocked && code == reason {
+			active = 1
+		}
+		metrics.blockedReason.WithLabelValues(reason).Set(active)
+	}
 }

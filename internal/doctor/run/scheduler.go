@@ -31,10 +31,11 @@ type Task struct {
 
 // BudgetStatus 同时供调度器、页面和指标读取，金额是百万分之一元。
 type BudgetStatus struct {
-	SpentMicros int64  `json:"spent_micros"` // 含无法确认扣费时保留的预留额。
-	LimitMicros int64  `json:"limit_micros"` // 本进程配置的总上限。
-	Blocked     bool   `json:"blocked"`      // true 时真实模型不再启动新任务。
-	Reason      string `json:"reason"`       // 可向用户解释的固定原因。
+	SpentMicros int64  `json:"spent_micros"`          // 含无法确认扣费时保留的预留额。
+	LimitMicros int64  `json:"limit_micros"`          // 本进程配置的总上限。
+	Blocked     bool   `json:"blocked"`               // true 时真实模型不再启动新任务。
+	Reason      string `json:"reason"`                // 可向用户解释的固定原因。
+	ReasonCode  string `json:"reason_code,omitempty"` // 有限分类供指标使用，不能拿任意错误文字做标签。
 }
 
 // Repository 把状态与步骤保存放在同一个边界，假仓储可完整验证调度行为。
@@ -287,7 +288,11 @@ func (scheduler *Scheduler) Status(ctx context.Context) (BudgetStatus, error) {
 	scheduler.mu.Unlock()
 	if blocked {
 		status.Blocked = true
-		status.Reason = llm.ErrBudget.Error()
+		// 账本已保存的停用原因更具体，不能被进程里的“预留失败”标志覆盖。
+		if status.Reason == "" {
+			status.Reason = llm.ErrBudget.Error()
+			status.ReasonCode = "request_reservation"
+		}
 	}
 	if err == nil && scheduler.config.ObservedBudget != nil {
 		scheduler.config.ObservedBudget(status)

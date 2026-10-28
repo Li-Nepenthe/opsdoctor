@@ -39,11 +39,12 @@ type Store struct {
 
 // Config 把时间和通知作为依赖注入，测试无需真的等待分组过期。
 type Config struct {
-	FaultSilence time.Duration                       // 长时间未收到整组通知时，允许下一次 firing 开新任务。
-	Redactor     *llm.Redactor                       // 入库的外部文字和发给模型的文字遵循同一套规则。
-	Now          func() time.Time                    // 生产使用 time.Now，测试使用可控时间。
-	Published    func(string, agent.Step)            // 步骤提交后的轻量通知，不在事务里推送网络数据。
-	Changed      func(string, string, time.Duration) // 已提交的状态转换，仅用系统名和有限状态作为指标标签。
+	RecoveryWindows map[string]time.Duration            // 按系统绑定观察期；缺少配置时拒绝接收，不能悄悄立即关闭故障。
+	FaultSilence    time.Duration                       // 长时间未收到整组通知时，允许下一次 firing 开新任务。
+	Redactor        *llm.Redactor                       // 入库的外部文字和发给模型的文字遵循同一套规则。
+	Now             func() time.Time                    // 生产使用 time.Now，测试使用可控时间。
+	Published       func(string, agent.Step)            // 步骤提交后的轻量通知，不在事务里推送网络数据。
+	Changed         func(string, string, time.Duration) // 已提交的状态转换，仅用系统名和有限状态作为指标标签。
 }
 
 // New 只装配已有池，连接检查和生命周期由 app 统一负责。

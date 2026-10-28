@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/jaeger"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/loki"
@@ -33,13 +34,14 @@ import (
 
 // System 不导出令牌与后端连接，接口层只能使用固定注册表。
 type System struct {
-	profile     string          // 部署者的架构说明，不含实验答案。
-	components  []string        // 架构说明中的完整允许标识。
-	unavailable []string        // 未配置的数据源类别。
-	name        string          // 创建任务时绑定的名字，构造后不再更改。
-	token       [32]byte        // 只保留令牌摘要，用定长比较检查推送身份。
-	registry    *tools.Registry // 已绑定这个系统的工具集合。
-	closers     []func() error  // 进程结束或装配失败时归还连接资源。
+	recoveryWindow time.Duration   // 部署者按本系统告警规则填写，运行时不由请求修改。
+	profile        string          // 部署者的架构说明，不含实验答案。
+	components     []string        // 架构说明中的完整允许标识。
+	unavailable    []string        // 未配置的数据源类别。
+	name           string          // 创建任务时绑定的名字，构造后不再更改。
+	token          [32]byte        // 只保留令牌摘要，用定长比较检查推送身份。
+	registry       *tools.Registry // 已绑定这个系统的工具集合。
+	closers        []func() error  // 进程结束或装配失败时归还连接资源。
 }
 
 // Catalog 不公开内部 map，调用方无法在运行中替换系统。
@@ -47,6 +49,9 @@ type Catalog struct{ systems map[string]*System }
 
 // Name 返回稳定系统名，不把架构说明或凭据混到任务标识里。
 func (system *System) Name() string { return system.name }
+
+// RecoveryWindow 让接收告警的一侧使用本系统的观察期，不需要了解具体告警规则。
+func (system *System) RecoveryWindow() time.Duration { return system.recoveryWindow }
 
 // Tools 返回已经固定数据源的注册表；注册表本身没有运行时增删接口。
 func (system *System) Tools() *tools.Registry { return system.registry }
@@ -175,6 +180,8 @@ func build(config Config, profile string, values map[string]string) (_ *System, 
 		return nil, err
 	}
 	system := &System{name: config.Name, token: sha256.Sum256([]byte(values[config.AlertTokenEnv])), profile: profile, components: components, unavailable: missingSources(config)}
+	// 配置已在创建客户端前校验，这里只把文字时长变成计算用的 Duration。
+	system.recoveryWindow, _ = time.ParseDuration(config.AlertRecoveryWindow)
 	// 具名 result 让 defer 知道是否装配失败。失败时不能留下半套连接池。
 	defer func() {
 		if result != nil {

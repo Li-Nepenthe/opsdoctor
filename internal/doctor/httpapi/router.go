@@ -18,6 +18,7 @@ import (
 	"log/slog"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/alerts"
@@ -39,6 +40,8 @@ type Repository interface {
 	UserByEmail(context.Context, string) (store.User, error)
 	List(context.Context, string, string, int, int) ([]store.Diagnosis, error)
 	Detail(context.Context, string) (store.Detail, error)
+	DiagnosisAlerts(context.Context, string) (store.AlertHistory, error)
+	FaultState(context.Context, string) (store.FaultState, error)
 	Manual(context.Context, string, string) (string, error)
 	StepsAfter(context.Context, string, int) ([]agent.Step, error)
 }
@@ -95,6 +98,7 @@ func New(options Options) *gin.Engine {
 	secured.POST("/targets/:target/tools/:tool/run", server.runTool)
 	secured.GET("/diagnoses", server.listDiagnoses)
 	secured.GET("/diagnoses/:id", server.diagnosis)
+	secured.GET("/diagnoses/:id/alerts", server.diagnosisAlerts)
 	secured.POST("/diagnoses", server.manual)
 	secured.POST("/diagnoses/:id/cancel", server.cancelDiagnosis)
 	secured.GET("/diagnoses/:id/events", server.stream)
@@ -134,11 +138,20 @@ func (server *api) listTargets(ctx *gin.Context) {
 	type summary struct {
 		Name  string             `json:"name"`
 		Tools []tools.Definition `json:"tools"`
+		Fault store.FaultState   `json:"fault"`
 	} // 每个系统都有自己的工具菜单。
 	values := []summary{}
+	// 整份菜单共用三秒预算，数据库变慢时不按系统数累加等待时间。
+	bounded, cancel := context.WithTimeout(ctx.Request.Context(), 3*time.Second)
+	defer cancel()
 	for _, name := range server.options.Targets.Names() {
 		system, _ := server.options.Targets.Get(name)
-		values = append(values, summary{name, system.Tools().List()})
+		fault, err := server.options.Store.FaultState(bounded, name)
+		if err != nil {
+			httpx.Failure(ctx, 503, "UNAVAILABLE", "无法读取系统故障状态")
+			return
+		}
+		values = append(values, summary{Name: name, Tools: system.Tools().List(), Fault: fault})
 	}
 	httpx.Success(ctx, 200, values)
 }

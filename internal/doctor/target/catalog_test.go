@@ -22,6 +22,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"testing"
+	"time"
 )
 
 // TestIsolation 使用真正的 HTTP 适配器与工具注册表，不用假 Registry 代替接线。
@@ -51,6 +52,9 @@ func TestIsolation(t *testing.T) {
 	}
 	a, _ := catalog.Get("shop")
 	b, _ := catalog.Get("warehouse")
+	if a.RecoveryWindow() != 3*time.Minute || b.RecoveryWindow() != time.Minute {
+		t.Fatal("两个系统没有采用各自配置的恢复观察期")
+	}
 	if !a.Authenticate(strings.Repeat("s", 32)) || b.Authenticate(strings.Repeat("s", 32)) {
 		t.Fatal("令牌串用")
 	}
@@ -80,12 +84,12 @@ func TestIsolation(t *testing.T) {
 // TestConfigFailures 在创建连接之前报错，而且错误不会带出密码或完整连接串。
 func TestConfigFailures(t *testing.T) {
 	for _, testcase := range []struct{ name, extra, second, want string }{
-		{"重名", "", "name: shop\nprofile: warehouse.profile.md\nalert_token_env: WAREHOUSE_ALERT_TOKEN\n", "重复"},                                                                                                  // 名称决定任务归属，不能含糊。
-		{"共用变量", "mysql_readonly_dsn_env: SHOP_MYSQL_RO_DSN\n", "name: warehouse\nprofile: warehouse.profile.md\nalert_token_env: WAREHOUSE_ALERT_TOKEN\nmysql_readonly_dsn_env: SHOP_MYSQL_RO_DSN\n", "共用凭据变量"}, // 换文件不代表换账号。
-		{"错误前缀", "mysql_readonly_dsn_env: OTHER_DSN\n", "", "SHOP_"},                                                                                                                                             // 一眼能看出账号属于谁。
-		{"未知地址", "arbitrary_url: http://example.invalid\n", "", "未知字段"},                                                                                                                                          // 不能偷偷增加通用网络入口。
-		{"路径逃逸", "", "name: warehouse\nprofile: ../warehouse.profile.md\nalert_token_env: WAREHOUSE_ALERT_TOKEN\n", "TARGETS_DIR"},                                                                               // 说明书不能越过挂载目录。
-		{"重复字段", "prometheus: http://a\nprometheus: http://b\n", "", "格式错误"},                                                                                                                                     // 不允许悄悄采用最后一项。
+		{"重名", "", "name: shop\nprofile: warehouse.profile.md\nalert_token_env: WAREHOUSE_ALERT_TOKEN\nalert_recovery_window: 1m\n", "重复"},                                                                                                  // 名称决定任务归属，不能含糊。
+		{"共用变量", "mysql_readonly_dsn_env: SHOP_MYSQL_RO_DSN\n", "name: warehouse\nprofile: warehouse.profile.md\nalert_token_env: WAREHOUSE_ALERT_TOKEN\nalert_recovery_window: 1m\nmysql_readonly_dsn_env: SHOP_MYSQL_RO_DSN\n", "共用凭据变量"}, // 换文件不代表换账号。
+		{"错误前缀", "mysql_readonly_dsn_env: OTHER_DSN\n", "", "SHOP_"},                                                                                          // 一眼能看出账号属于谁。
+		{"未知地址", "arbitrary_url: http://example.invalid\n", "", "未知字段"},                                                                                       // 不能偷偷增加通用网络入口。
+		{"路径逃逸", "", "name: warehouse\nprofile: ../warehouse.profile.md\nalert_token_env: WAREHOUSE_ALERT_TOKEN\nalert_recovery_window: 1m\n", "TARGETS_DIR"}, // 说明书不能越过挂载目录。
+		{"重复字段", "prometheus: http://a\nprometheus: http://b\n", "", "格式错误"},                                                                                  // 不允许悄悄采用最后一项。
 	} {
 		t.Run(testcase.name, func(t *testing.T) {
 			directory := t.TempDir()
@@ -131,6 +135,35 @@ func TestCredentialReuse(t *testing.T) {
 	}
 }
 
+// TestRecoveryWindowConfig 让部署者必须明确选择时长，不能把拼错或缺项当成立即关闭。
+func TestRecoveryWindowConfig(t *testing.T) {
+	for _, testcase := range []struct{ name, value string }{
+		{"缺项", ""},     // 新系统必须按自己的规则配置。
+		{"零", "0s"},    // 零会退回已发现的重复付费行为。
+		{"负数", "-1s"},  // 观察期不能早于恢复时间。
+		{"无单位", "180"}, // 明确单位，避免秒和纳秒混用。
+		{"过长", "25h"},  // 错把分钟写成天时不能长时间吞掉独立故障。
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			directory := t.TempDir()
+			writeConfig(t, directory, "shop", "")
+			path := filepath.Join(directory, "shop.yaml")
+			raw, err := os.ReadFile(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			changed := strings.Replace(string(raw), "alert_recovery_window: 3m\n", "", 1)
+			if testcase.value != "" {
+				changed += "alert_recovery_window: " + testcase.value + "\n"
+			}
+			writeTestFile(t, directory, "shop.yaml", changed)
+			if _, err := Load(directory, testLookup); err == nil || !strings.Contains(err.Error(), "alert_recovery_window") {
+				t.Fatalf("配置未被明确拒绝: %v", err)
+			}
+		})
+	}
+}
+
 // metricsServer 只接受固定 Prometheus 查询路径，未知路径不能被测试悄悄放过。
 func metricsServer(t *testing.T, value int, calls *atomic.Int64) *httptest.Server {
 	t.Helper()
@@ -149,7 +182,7 @@ func metricsServer(t *testing.T, value int, calls *atomic.Int64) *httptest.Serve
 // writeConfig 给每个系统独立的说明书和令牌变量，测试只覆盖它关心的差异。
 func writeConfig(t *testing.T, directory, name, extra string) {
 	t.Helper()
-	writeTestFile(t, directory, name+".yaml", fmt.Sprintf("name: %s\nprofile: %s.profile.md\nalert_token_env: %s_ALERT_TOKEN\n%s", name, name, strings.ToUpper(name), extra))
+	writeTestFile(t, directory, name+".yaml", fmt.Sprintf("name: %s\nprofile: %s.profile.md\nalert_token_env: %s_ALERT_TOKEN\nalert_recovery_window: 3m\n%s", name, name, strings.ToUpper(name), extra))
 	writeTestFile(t, directory, name+".profile.md", "# 架构\n一个 HTTP 服务及其指标后端。\n<!-- COMPONENTS_START -->\n| `unknown` | 尚未定位 |\n| `"+name+"` | HTTP 服务 |\n<!-- COMPONENTS_END -->\n")
 }
 

@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/events"
@@ -29,8 +30,10 @@ import (
 // assembleAgent 只装配，不启动 goroutine；全部成功后 Run 才启动调度和监听端口。
 func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB, catalog *target.Catalog, logger *slog.Logger, common *telemetry.Metrics) (*store.Store, *run.Scheduler, *events.Hub, error) {
 	toolNames := map[string]bool{}
+	recoveryWindows := map[string]time.Duration{}
 	for _, name := range catalog.Names() {
 		system, _ := catalog.Get(name)
+		recoveryWindows[name] = system.RecoveryWindow()
 		for _, definition := range system.Tools().List() {
 			toolNames[definition.Name] = true
 		}
@@ -44,7 +47,7 @@ func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB
 	}
 	redactor := llm.NewRedactor(append(knownSecrets(), settings.key)...)
 	hub := events.New()
-	repository := store.NewConfigured(database, store.Config{FaultSilence: settings.faultSilence, Redactor: redactor, Changed: metrics.changed, Published: func(id string, step agent.Step) {
+	repository := store.NewConfigured(database, store.Config{RecoveryWindows: recoveryWindows, FaultSilence: settings.faultSilence, Redactor: redactor, Changed: metrics.changed, Published: func(id string, step agent.Step) {
 		// 数据库提交以后只做内存工作，不在这里等待浏览器读取或另发网络请求。
 		metrics.step(step)
 		raw, _ := json.Marshal(step)

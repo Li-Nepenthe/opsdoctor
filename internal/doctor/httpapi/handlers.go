@@ -6,7 +6,7 @@
 // 主要内容：
 //   - login：验证邮箱和 bcrypt 摘要，再签发 JWT。
 //   - receiveAlert：先验该系统令牌，再读通知并等待保存成功。
-//   - ready、listDiagnoses、diagnosis：有时间边界的只读查询。
+//   - ready、listDiagnoses、diagnosis、diagnosisAlerts：有时间边界的只读查询。
 //
 // 阅读建议：先看 receiveAlert 的验证顺序，再看错误响应为什么不使用 err.Error()。
 
@@ -174,6 +174,27 @@ func (server *api) diagnosis(ctx *gin.Context) {
 		httpx.Failure(ctx, 404, "NOT_FOUND", "任务不存在")
 	case err != nil:
 		httpx.Failure(ctx, 503, "UNAVAILABLE", "无法读取任务")
+	default:
+		httpx.Success(ctx, 200, value)
+	}
+}
+
+// diagnosisAlerts 只刷新小份告警快照，让已结束的报告仍能展示后来到达的症状。
+func (server *api) diagnosisAlerts(ctx *gin.Context) {
+	id := ctx.Param("id")
+	if !regexp.MustCompile(`^[a-f0-9]{32}$`).MatchString(id) {
+		httpx.Failure(ctx, 400, "INVALID_ARGUMENT", "任务编号不合法")
+		return
+	}
+	bounded, cancel := context.WithTimeout(ctx.Request.Context(), 3*time.Second)
+	defer cancel()
+	value, err := server.options.Store.DiagnosisAlerts(bounded, id)
+	// 未找到与暂时读失败分开，页面才知道重试有没有意义。
+	switch {
+	case errors.Is(err, sql.ErrNoRows):
+		httpx.Failure(ctx, 404, "NOT_FOUND", "任务不存在")
+	case err != nil:
+		httpx.Failure(ctx, 503, "UNAVAILABLE", "无法读取告警")
 	default:
 		httpx.Success(ctx, 200, value)
 	}

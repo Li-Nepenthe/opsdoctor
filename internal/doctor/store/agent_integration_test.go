@@ -58,7 +58,7 @@ func TestIntegrationFaultPeriod(t *testing.T) {
 	if _, err = service.Receive(t.Context(), target, notification); err != nil {
 		t.Fatal(err)
 	}
-	now = now.Add(time.Minute)
+	now = now.Add(3 * time.Minute)
 	notification = testNotification()
 	second, err := service.Receive(t.Context(), target, notification)
 	if err != nil || !second.Created || second.DiagnosisID == first.DiagnosisID {
@@ -187,7 +187,7 @@ func TestIntegrationBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	status, _ = reopened.Status(t.Context())
-	if !status.Blocked || status.SpentMicros != 67 {
+	if !status.Blocked || status.SpentMicros != 67 || status.ReasonCode != "total_limit" {
 		t.Fatal("重启或修改上限重置了账本")
 	}
 	// 供应商计量超过保守预留时也要记录实额，并持久化停用。即使重启后提高
@@ -200,7 +200,7 @@ func TestIntegrationBudget(t *testing.T) {
 		t.Fatal(err)
 	}
 	status, _ = reopened.Status(t.Context())
-	if !status.Blocked || status.SpentMicros != 72 || status.Reason == "" {
+	if !status.Blocked || status.SpentMicros != 72 || status.Reason == "" || status.ReasonCode != "accounting_guard" {
 		t.Fatalf("停用未持久化：%+v", status)
 	}
 	_, err = reopened.Reserve(t.Context(), llm.Reservation{DiagnosisID: id, Model: "mock-test", Request: json.RawMessage(`{}`), MaximumMicros: 1})

@@ -69,6 +69,16 @@ func (*memoryStore) Detail(context.Context, string) (store.Detail, error) {
 	return store.Detail{}, sql.ErrNoRows
 }
 
+// DiagnosisAlerts 与默认详情一样返回未找到，专项测试再提供告警记录。
+func (*memoryStore) DiagnosisAlerts(context.Context, string) (store.AlertHistory, error) {
+	return store.AlertHistory{}, sql.ErrNoRows
+}
+
+// FaultState 的默认系统没有故障，避免身份测试依赖后台任务状态。
+func (*memoryStore) FaultState(context.Context, string) (store.FaultState, error) {
+	return store.FaultState{}, nil
+}
+
 // Manual 在身份测试里只返回固定编号，具体状态转换另由仓储测试验证。
 func (*memoryStore) Manual(context.Context, string, string) (string, error) {
 	return strings.Repeat("a", 32), nil
@@ -91,7 +101,7 @@ func setupWithOptions(t *testing.T, modify func(*Options)) (http.Handler, *memor
 	t.Helper()
 	directory := t.TempDir()
 	for _, name := range []string{"alpha", "beta"} {
-		config := "name: " + name + "\nprofile: " + name + ".profile.md\nalert_token_env: " + strings.ToUpper(name) + "_ALERT_TOKEN\n"
+		config := "name: " + name + "\nprofile: " + name + ".profile.md\nalert_token_env: " + strings.ToUpper(name) + "_ALERT_TOKEN\nalert_recovery_window: 1m\n"
 		for file, body := range map[string]string{name + ".yaml": config, name + ".profile.md": "# " + name + "\n一个虚构服务。\n<!-- COMPONENTS_START -->\n| `unknown` | 尚未定位 |\n| `" + name + "` | HTTP 服务 |\n<!-- COMPONENTS_END -->\n"} {
 			if err := os.WriteFile(filepath.Join(directory, file), []byte(body), 0600); err != nil {
 				t.Fatal(err)

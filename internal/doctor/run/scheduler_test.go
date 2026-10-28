@@ -5,6 +5,7 @@
 //
 // 主要内容：TestTransitions 穷举状态边界；TestSchedulerIsolation 检查两个系统；
 // TestSchedulerBudgetAndExpiry 检查额度、旧任务和启动清理；TestCancelBeforeStart 检查取消空窗。
+// TestBudgetStatusReason 检查持久账本原因优先于进程内预留失败标志。
 // 阅读建议：假仓储只模拟状态竞争，SQL 原子性另由 store 集成测试证明。
 
 package run
@@ -261,4 +262,26 @@ func TestCancelBeforeStart(t *testing.T) {
 			t.Fatalf("启动前取消状态=%s", item.status)
 		}
 	})
+}
+
+// TestBudgetStatusReason 防止一次预留失败盖掉更需要人工核对的持久停用原因。
+func TestBudgetStatusReason(t *testing.T) {
+	// 分别覆盖“账本已有更具体原因”和“只有当前进程知道预留不足”两种来源。
+	for _, test := range []struct{ name, reason, code, want string }{
+		{"保留记账保护", "实际费用超出预留，请人工核对", "accounting_guard", "accounting_guard"},
+		{"没有持久原因时解释预留不足", "", "", "request_reservation"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			scheduler := &Scheduler{blocked: true, config: Config{Budget: func(context.Context) (BudgetStatus, error) {
+				return BudgetStatus{Reason: test.reason, ReasonCode: test.code}, nil
+			}}}
+			got, err := scheduler.Status(t.Context())
+			if err != nil || !got.Blocked || got.ReasonCode != test.want || got.Reason == "" {
+				t.Fatalf("状态=%+v err=%v", got, err)
+			}
+			if test.reason != "" && got.Reason != test.reason {
+				t.Fatal("持久原因被覆盖")
+			}
+		})
+	}
 }
