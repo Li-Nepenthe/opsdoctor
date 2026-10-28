@@ -26,6 +26,7 @@ import (
 	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source"
+	"github.com/go-sql-driver/mysql"
 )
 
 // fixtureDriver 记录 SQL 与参数，用锁保护数据库连接池可能发起的并发调用。
@@ -33,6 +34,27 @@ type fixtureDriver struct {
 	mu      sync.Mutex            // 保护下面的记录。
 	queries []string              // 原始 SQL 模板，不含运行环境凭据。
 	args    [][]driver.NamedValue // 单独保存绑定参数，检查表名没有被拼接。
+}
+
+// TestExplainErrors 只公开调用者可自行修正的三类错误，并检查中文截断没有破坏编码。
+func TestExplainErrors(t *testing.T) {
+	for _, number := range []uint16{1054, 1146, 1064, 1045, 1142} {
+		// 前三类分别是列名、表名、语法；后两类可能包含账号，不应返回原文。
+		problem := explainError(t.Context(), &mysql.MySQLError{Number: number, Message: "caller_identifier"})
+		visible := number == 1054 || number == 1146 || number == 1064
+		if strings.Contains(problem.Error(), "caller_identifier") != visible || !strings.Contains(problem.Error(), fmt.Sprint(number)) {
+			t.Fatalf("number=%d err=%v", number, problem)
+		}
+	}
+	problem := explainError(t.Context(), &mysql.MySQLError{Number: 1064, Message: strings.Repeat("列", 500)})
+	if len(problem.Error()) > 600 || !strings.Contains(problem.Error(), "已截断") || strings.ContainsRune(problem.Error(), '\ufffd') {
+		t.Fatal("长错误没有按 UTF-8 边界截断")
+	}
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if explainError(ctx, &mysql.MySQLError{Number: 1054}) != context.Canceled {
+		t.Fatal("取消被错误原文覆盖")
+	}
 }
 
 // Connect 不建网络连接，让测试只验证 database/sql 这一层。

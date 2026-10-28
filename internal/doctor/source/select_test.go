@@ -9,7 +9,27 @@
 
 package source
 
-import "testing"
+import (
+	"strings"
+	"testing"
+)
+
+// TestSelectReasons 验证调用者拿到真正的拒绝原因，而不是重复提交同一句错误 SQL。
+func TestSelectReasons(t *testing.T) {
+	for _, testcase := range []struct{ sql, reason string }{
+		{"SELECT SLEEP(5)", "函数 SLEEP"},           // 指出不支持的函数，不能只说 SELECT 不合法。
+		{"SELECT 1 /* note */", "注释"},             // 模型应去掉注释。
+		{"SELECT 1; SELECT 2", "多条语句"},            // 模型应拆成一条查询。
+		{"SELECT 'missing", "引号没有闭合"},             // 保留词法检查给出的修正方向。
+		{"SELECT @value", "会话变量"},                 // 变量与普通列名不同。
+		{"SELECT * FROM stock FOR UPDATE", "FOR"}, // 指出主动加锁的语法。
+	} {
+		_, err := SelectStatement(testcase.sql)
+		if err == nil || !strings.Contains(err.Error(), testcase.reason) {
+			t.Fatalf("sql=%q err=%v want=%s", testcase.sql, err, testcase.reason)
+		}
+	}
+}
 
 // TestSelectStatement 不放宽输入去兼容所有 SQL；诊断工具宁可要求改写成更简单的查询。
 func TestSelectStatement(t *testing.T) {

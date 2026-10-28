@@ -15,6 +15,7 @@ package tools
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 	"testing/synctest"
@@ -23,6 +24,24 @@ import (
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source"
 )
+
+// TestSafeQueryError 证明 SQL 纠错原因穿过统一入口，而普通后端错误仍被隐藏。
+func TestSafeQueryError(t *testing.T) {
+	for _, testcase := range []struct {
+		problem error
+		visible bool
+	}{
+		{&source.QueryError{Message: "MySQL 1054: caller_column"}, true}, // 适配器筛选过的标识符可以交回。
+		{fmt.Errorf("private-host password=private"), false},             // 连接信息不能未经筛选公开。
+	} {
+		registry := &Registry{tools: map[string]tool{}}
+		registry.add("test_query", "检查错误路径", nil, nil, func(context.Context, arguments) (output, error) { return output{}, testcase.problem })
+		result := registry.Run(t.Context(), "test_query", json.RawMessage(`{}`))
+		if strings.Contains(result.Summary, "caller_column") != testcase.visible || strings.Contains(result.Summary, "private") {
+			t.Fatalf("result=%+v", result)
+		}
+	}
+}
 
 // fakeMetrics 为每个实例保留独立计数，测试才能发现工具误用了另一个系统的数据源。
 type fakeMetrics struct {

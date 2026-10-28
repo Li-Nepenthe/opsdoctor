@@ -26,8 +26,10 @@ import (
 
 // controlSettings 是一份可复制的配置快照，JSON 中的名字也是控制接口契约。
 type controlSettings struct {
-	QPS      int   `json:"qps"`        // 0 暂停，最大 10000。
-	HotSKUID int64 `json:"hot_sku_id"` // 0 恢复正常分布，正数同时集中商品查询和下单；只读突发另用 /burst。
+	QPS          int   `json:"qps"`           // 0 暂停，最大 10000。
+	HotSKUID     int64 `json:"hot_sku_id"`    // 0 恢复正常分布，正数同时集中商品查询和下单；只读突发另用 /burst。
+	ProductCount int   `json:"product_count"` // 本进程实际使用的商品范围，重建后可由实验工具核对。
+	Workers      int   `json:"workers"`       // 本进程固定工作者数；控制接口不能临时改变它。
 }
 
 // controlState 用互斥锁保护两个字段一起更新，调度者不会看到半次更新。

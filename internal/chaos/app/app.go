@@ -83,7 +83,9 @@ func newEngine(reader config.Reader) (*Engine, error) {
 	load, loadErr := reader.String("LOADGEN_CONTROL_URL", "http://127.0.0.1:6070")
 	prometheus, promErr := reader.String("PROMETHEUS_URL", "http://127.0.0.1:9090")
 	redis, redisErr := reader.String("CHAOS_REDIS_ADDR", "127.0.0.1:6379")
-	if err = errors.Join(proxyErr, loadErr, promErr, redisErr); err != nil {
+	products, productsErr := reader.Int("CHAOS_BASELINE_PRODUCT_COUNT", 10000, 1, 500000)
+	workers, workersErr := reader.Int("CHAOS_BASELINE_WORKERS", 64, 1, 256)
+	if err = errors.Join(proxyErr, loadErr, promErr, redisErr, productsErr, workersErr); err != nil {
 		return nil, err
 	}
 	// 缺少 DSN 时只在真正执行索引动作时报错，list、healthy 等只读命令不需要高权限凭据。
@@ -91,7 +93,8 @@ func newEngine(reader config.Reader) (*Engine, error) {
 	password, _ := reader.String("REDIS_PASSWORD", "")
 	runner := &action.Runner{Root: root, RedisPassword: password, MySQLDSN: dsn, RedisAddress: redis, ProxyURL: proxy, LoadURL: load, HTTP: &http.Client{Timeout: 10 * time.Second}}
 	runner.RunCommand = runner.Command
-	return &Engine{Executor: runner, Observer: verify.New(prometheus), StatePath: filepath.Join(root, ".opsdoctor-chaos.json")}, nil
+	observer := verify.WithBaseline(verify.New(prometheus), load, products, workers)
+	return &Engine{Executor: runner, Observer: observer, StatePath: filepath.Join(root, ".opsdoctor-chaos.json")}, nil
 }
 
 // general 处理无需场景编号的命令。restore-all 只恢复本工具记录的活动实验，不重置无关资源。

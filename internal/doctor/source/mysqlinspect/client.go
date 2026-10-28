@@ -19,7 +19,9 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
+	"unicode/utf8"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source"
 	"github.com/go-sql-driver/mysql"
@@ -136,6 +138,10 @@ func (client *Client) query(ctx context.Context, statement string, limit int, ar
 	defer cancel()
 	rows, err := client.database.QueryContext(bounded, statement, args...)
 	if err != nil {
+		// 只有用户自己提供 SELECT 的入口需要纠错信息；固定元数据查询保持原来的屏蔽规则。
+		if strings.HasPrefix(statement, "EXPLAIN ") {
+			return source.Table{}, explainError(bounded, err)
+		}
 		return source.Table{}, safeError(bounded, err)
 	}
 	defer rows.Close()
@@ -171,6 +177,33 @@ func (client *Client) query(ctx context.Context, statement string, limit int, ar
 		return source.Table{}, safeError(bounded, err)
 	}
 	return result, nil
+}
+
+// explainError 只放行未知列、表不存在和语法错误，它们包含标识符或调用者自己写的 SQL，
+// 不会返回业务数据行。鉴权、连接等错误仍只显示错误号，避免泄露账号和连接信息。
+func explainError(ctx context.Context, err error) error {
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
+	var problem *mysql.MySQLError
+	if !errors.As(err, &problem) {
+		return safeError(ctx, err)
+	}
+	message := fmt.Sprintf("MySQL 查询失败，错误号 %d", problem.Number)
+	switch problem.Number {
+	case 1054, 1146, 1064:
+		// 512 字节足以指出列名或出错位置，防止长 SQL 撑满工具的 4KB 结果预算。
+		const maximumErrorBytes = 512
+		end := min(len(problem.Message), maximumErrorBytes)
+		for end > 0 && !utf8.ValidString(problem.Message[:end]) {
+			end--
+		}
+		message += "：" + problem.Message[:end]
+		if end < len(problem.Message) {
+			message += "（已截断）"
+		}
+	}
+	return &source.QueryError{Message: message}
 }
 
 // safeError 保留错误号方便排查授权，不回显可能带 SQL 或账号信息的数据库原文。

@@ -39,9 +39,24 @@ func (function roundTripFunc) RoundTrip(request *http.Request) (*http.Response, 
 // testGenerator 使用不会联网的客户端。需要响应的测试会自行替换 Transport。
 func testGenerator() *generator {
 	settings := Config{Target: "http://example.invalid", QPS: 200, ProductCount: 500000, Workers: 2, RequestTimeout: time.Second}
-	control := &controlState{settings: controlSettings{QPS: settings.QPS}, productCount: settings.ProductCount}
+	control := &controlState{settings: controlSettings{QPS: settings.QPS, ProductCount: settings.ProductCount, Workers: settings.Workers}, productCount: settings.ProductCount}
 	client := &http.Client{Transport: roundTripFunc(func(*http.Request) (*http.Response, error) { return nil, context.Canceled })}
 	return newGenerator(settings, control, client, slog.New(slog.NewTextHandler(io.Discard, nil)), telemetry.NewMetrics("loadgen-test"))
+}
+
+// TestControlActiveBaseline 检查返回的是当前进程的固定参数，修改 QPS 不会把它们弄丢。
+func TestControlActiveBaseline(t *testing.T) {
+	generator := testGenerator()
+	qps := 0
+	if err := generator.control.update(&qps, nil); err != nil {
+		t.Fatal(err)
+	}
+	router := controlRouter(generator.control, generator.stats, generator.bursts, generator.logger)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, httptest.NewRequest(http.MethodGet, "/control", nil))
+	if response.Code != http.StatusOK || !strings.Contains(response.Body.String(), `"product_count":500000`) || !strings.Contains(response.Body.String(), `"workers":2`) || !strings.Contains(response.Body.String(), `"qps":0`) {
+		t.Fatalf("当前参数缺失：%s", response.Body.String())
+	}
 }
 
 // TestTrafficDistribution 不要求每十次恰好七二一，而是核对大量固定随机样本的比例。

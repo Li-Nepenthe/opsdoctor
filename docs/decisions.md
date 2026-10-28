@@ -322,3 +322,12 @@ Go 库用 `go list -m -json <模块>@latest` 查询稳定版本后固定；不�
 源码链接：[DNS 解析顺序](https://github.com/grpc/grpc-go/blob/v1.84.0/internal/resolver/dns/dns_resolver.go#L339)、[解析器选项](https://github.com/grpc/grpc-go/blob/v1.84.0/internal/resolver/dns/dns_resolver.go#L142)、[RPC 等待解析](https://github.com/grpc/grpc-go/blob/v1.84.0/stream.go#L338)、[空闲回收](https://pkg.go.dev/google.golang.org/grpc@v1.84.0#WithIdleTimeout)。本机 DNS 查询、失败 trace 与前后对照数据另记于 notes 和数据台账。
 
 用户也授权将 MySQL 上限提高到 1.5 GiB。保留原有 256 MiB buffer pool 和 100 个最大连接，只增加容器余量；758/768 MiB 的观测说明原限额偏紧，不能把所有数据库内存都当成 buffer pool。此时没有证据需要扩大缓存或调整更多数据库参数，避免同时改变查询缓存容量。调整后仍以有流量的 docker stats 实测为准，不把上限当成实际占用。
+
+
+<a id="phase06-tool-errors-baseline"></a>
+
+## 2026-10-27：阶段 6 开工先修工具纠错与实验基线
+
+用户要求先单独提交这两项阶段 5 遗留修复。SELECT 校验保留具体原因；EXPLAIN 的 1054、1146、1064 错误返回最多 512 字节的原文，方便根据列名、表名和语法位置修正。其他 MySQL 错误只公开错误号。工具只认适配器标记过的 QueryError，普通后端错误仍隐藏。放弃直接公开所有数据库错误，因为连接和鉴权错误可能含账号信息。
+
+loadgen 的 GET /control 返回本进程的 product_count、workers。chaos healthy 和 selftest 在等待指标前核对，默认要求 10000 商品、64 个工作者；自定义实验可用 CHAOS_BASELINE_PRODUCT_COUNT、CHAOS_BASELINE_WORKERS 改预期。参数不一致立即失败并给出重建办法。这样能发现“本机变量已改，但容器仍跑旧参数”的情况。保持 loadgen 的五十万商品默认值和 CacheLoadsHigh 规则不变。

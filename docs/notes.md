@@ -1022,3 +1022,18 @@ sku_id=1 available=99
 ```
 
 CI 只跑 small，不把它的 20ms 当作全量造数时间。完整规模的 75.651 秒来自前面的本机记录。收尾另对学习材料 10 段 Go 示例在临时模块中补上必要包/导入进行编译：全部通过；t.Context/Cleanup 示例测试也通过。随后只修改文档记录与文件行数清单，不改业务源码或检查工具。
+
+
+<a id="phase-06"></a>
+
+## 阶段 6 原始记录
+
+### 2026-10-27：开工与两项遗留修复
+
+从 main f8ab9aea62802863b0f1569754aa12952780ec71 创建 phase-06-agent；origin/main 与本地一致。用户的阶段 0 学习材料表格和库存 app.go 两处 defer 修改原样保留，不加入提交。本机 .env 设置 LLM_PROVIDER=mock；尚未调用真实模型，模型花费为 0。
+
+代码为 f8ab9ae 加本条所在的遗留修复提交。运行 `go test -race ./internal/doctor/source/... ./internal/doctor/tools ./internal/loadgen ./internal/chaos/... -count=1 -timeout=90s`，14 个包通过。MySQL/Redis 集成测试未注入环境变量，本轮是离线单元检查，不能算真实权限复验。相同范围 go vet、staticcheck 通过。全仓 commentcheck 通过（246 个非生成 Go 文件），archcheck 通过；格式检查没有输出。
+
+TestSelectReasons 检查 6 种拒绝原因；TestExplainErrors 检查 3 种原文放行、2 种只给错误号，另检查中文截断和取消优先。TestSafeQueryError 检查错误能穿过注册表且普通后端错误仍隐藏。TestControlActiveBaseline 核对当前商品数、工作者数在暂停后仍返回。TestBaseline 的 4 组配置中，正常值可通过参数检查，商品数不符、工作者数不符、旧接口缺字段均在查询指标之前失败。
+
+Docker 引擎未运行：dockerDesktopLinuxEngine 管道不存在。已请求用户启动；没有执行容器实验，没有把单元测试写成运行环境验收。

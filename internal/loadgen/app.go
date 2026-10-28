@@ -61,7 +61,7 @@ func Run(parent context.Context, arguments []string, reader config.Reader, outpu
 	transport := &http.Transport{DialContext: (&net.Dialer{Timeout: clientDialTimeout, KeepAlive: clientIdleTimeout}).DialContext,
 		MaxIdleConns: settings.Workers, MaxIdleConnsPerHost: settings.Workers, MaxConnsPerHost: settings.Workers, IdleConnTimeout: clientIdleTimeout, ResponseHeaderTimeout: settings.RequestTimeout}
 	defer transport.CloseIdleConnections()
-	control := &controlState{settings: controlSettings{QPS: settings.QPS}, productCount: settings.ProductCount}
+	control := &controlState{settings: controlSettings{QPS: settings.QPS, ProductCount: settings.ProductCount, Workers: settings.Workers}, productCount: settings.ProductCount}
 	metrics := telemetry.NewMetrics("loadgen")
 	generator := newGenerator(settings, control, &http.Client{Transport: transport}, logger, metrics)
 	router := controlRouter(control, generator.stats, generator.bursts, logger)

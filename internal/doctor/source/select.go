@@ -22,20 +22,45 @@ func SelectStatement(statement string) (string, error) {
 	text := strings.TrimSpace(statement)
 	// 允许普通 SQL 末尾的一次分号，其余位置出现分号都拒绝，宁可少支持一种写法。
 	text = strings.TrimSpace(strings.TrimSuffix(text, ";"))
-	if len(text) == 0 || len(text) > 2048 || !utf8.ValidString(text) || strings.ContainsAny(text, ";@\x00") || strings.Contains(text, "--") || strings.Contains(text, "/*") || strings.Contains(text, "*/") || strings.Contains(text, "#") {
-		return "", fmt.Errorf("只接受不含注释、变量和多条语句的 SELECT，最多 2048 字节")
+	if err := selectTextProblem(text); err != nil {
+		return "", err
 	}
 	words, err := sqlWords(text)
-	if err != nil || len(words) == 0 || words[0] != "SELECT" {
+	if err != nil {
+		// 词法检查已经指出具体的函数或引号问题，不能盖成“只接受 SELECT”。
+		return "", err
+	}
+	if len(words) == 0 || words[0] != "SELECT" {
 		return "", fmt.Errorf("只接受 SELECT；不要提供 EXPLAIN、ANALYZE 或写语句")
 	}
 	for _, word := range words[1:] {
 		switch word {
 		case "INTO", "OUTFILE", "DUMPFILE", "FOR", "LOCK", "PROCEDURE", "ANALYZE", "EXPLAIN", "CALL", "INSERT", "UPDATE", "DELETE", "DROP", "ALTER", "CREATE", "SET", "SLEEP", "BENCHMARK", "LOAD_FILE", "GET_LOCK", "RELEASE_LOCK":
-			return "", fmt.Errorf("SELECT 含有执行计划工具不允许的语法")
+			return "", fmt.Errorf("SELECT 不允许使用 %s 语法", word)
 		}
 	}
 	return text, nil
+}
+
+// selectTextProblem 分别解释拒绝原因，让模型知道应删注释、拆语句，还是缩短输入。
+func selectTextProblem(text string) error {
+	// 先检查文本边界，再解释语法限制。这样无效编码不会进入后面的词法扫描。
+	switch {
+	case text == "":
+		return fmt.Errorf("SQL 不能为空")
+	case len(text) > 2048:
+		return fmt.Errorf("SQL 最多 2048 字节")
+	case !utf8.ValidString(text) || strings.ContainsRune(text, '\x00'):
+		return fmt.Errorf("SQL 必须是有效 UTF-8，不能含 NUL 字符")
+	case strings.Contains(text, ";"):
+		return fmt.Errorf("不允许多条语句；只提交一条 SELECT")
+	case strings.Contains(text, "--") || strings.Contains(text, "/*") || strings.Contains(text, "*/") || strings.Contains(text, "#"):
+		return fmt.Errorf("不允许 SQL 注释；请去掉注释后重试")
+	case strings.Contains(text, "@"):
+		return fmt.Errorf("不允许 SQL 会话变量（@）")
+	default:
+		return nil
+	}
 }
 
 // sqlWords 识别引号边界，同时拒绝任意函数调用，避免让存储函数在优化阶段产生副作用。
@@ -78,7 +103,7 @@ func sqlWords(text string) ([]string, error) {
 			switch word {
 			case "COUNT", "MIN", "MAX", "SUM", "AVG", "COALESCE", "IFNULL", "ABS", "ROUND", "IN", "EXISTS", "SELECT", "WHERE", "AND", "OR", "NOT", "ON", "HAVING":
 			default:
-				return nil, fmt.Errorf("不支持这个函数，请改成简单 SELECT")
+				return nil, fmt.Errorf("不允许函数 %s；请改成简单 SELECT 或使用已支持的聚合函数", word)
 			}
 		}
 	}

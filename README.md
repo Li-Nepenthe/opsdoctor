@@ -410,6 +410,8 @@ go run ./cmd/chaos healthy
 
 `inject` 可用 `--qps`、`--sku`、`--latency-ms` 覆盖该场景已有的对应动作。`verify` 从注入开始计三分钟，需要同时看到症状和相关告警；它不会因为配置已改就宣布成功。`healthy` 需要连续一分钟有流量、延迟与错误率正常、消费追平、依赖可用且没有 firing 告警。
 
+阶段 6 起，`chaos healthy` 和 `selftest` 会先读取 loadgen 控制接口的活跃商品数和工作者数。默认要求 10000 和 64。若重建后回到五十万商品，命令会立即失败，并打印应设置的变量和重建命令。自定义实验需同步设置 `CHAOS_BASELINE_PRODUCT_COUNT`、`CHAOS_BASELINE_WORKERS`；这只是明确实验条件，不会修复五十万工作集的告警误报。
+
 完整自测用 `go run ./cmd/chaos selftest`。先暂停流量并按前面的 restock 命令显式准备库存，再恢复流量、等 healthy 通过。每一轮的完整结果表都保留，包括失败轮次。工具不会在自测内部自动补库存。
 
 实验状态保存在忽略文件 `.opsdoctor-chaos.json`。同一时刻只允许一个活动实验。中断后运行 `go run ./cmd/chaos restore-all`，它按预先保留并核对过内容 ID 的原镜像、公开配置和流量恢复；恢复失败时保留文件，修复外部环境后可重试。这个文件含参考答案，不要挂载进业务或医生容器。恢复环境不会自动处理过去已经产生的待核对订单。

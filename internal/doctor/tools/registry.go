@@ -20,6 +20,8 @@ import (
 	"sort"
 	"time"
 	"unicode/utf8"
+
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source"
 )
 
 // 全部入口共用这些常量，命令行参数不能扩大执行预算。
@@ -133,8 +135,10 @@ func (registry *Registry) Run(ctx context.Context, name string, raw json.RawMess
 	return
 }
 
-// setFailure 只公开固定分类；后端错误可能带地址和凭据，不能原样送给调用者。
+// setFailure 只放行适配器明确筛选的查询错误；其他后端错误可能带地址和凭据。
 func setFailure(result *Result, err error) {
+	var queryError *source.QueryError
+	// 取消和超时优先：用户已经停止诊断时，不再把旧的数据库错误当作新的修正建议。
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):
 		result.Status = "timeout"
@@ -145,6 +149,9 @@ func setFailure(result *Result, err error) {
 	case errors.Is(err, ErrInvalidArgument):
 		result.Status = "invalid_argument"
 		result.Summary = err.Error()
+	case errors.As(err, &queryError):
+		result.Status = "unavailable"
+		result.Summary = queryError.Message
 	default:
 		result.Status = "unavailable"
 		result.Summary = "数据源查询未完成；请检查连接、权限或缩小查询范围"
