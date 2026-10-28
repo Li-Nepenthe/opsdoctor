@@ -29,6 +29,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/alerts"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/auth"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/store"
@@ -68,14 +69,30 @@ func (*memoryStore) Detail(context.Context, string) (store.Detail, error) {
 	return store.Detail{}, sql.ErrNoRows
 }
 
+// Manual 在身份测试里只返回固定编号，具体状态转换另由仓储测试验证。
+func (*memoryStore) Manual(context.Context, string, string) (string, error) {
+	return strings.Repeat("a", 32), nil
+}
+
+// StepsAfter 默认无事件，SSE 专项测试再提供有顺序的步骤。
+func (*memoryStore) StepsAfter(context.Context, string, int) ([]agent.Step, error) {
+	return []agent.Step{}, nil
+}
+
 // setupAPI 的两个系统只有架构工具，任何请求都不需要访问外部后端。
 func setupAPI(t *testing.T) (http.Handler, *memoryStore, string) {
+	t.Helper()
+	return setupWithOptions(t, nil)
+}
+
+// setupWithOptions 让 SSE 测试只替换仓储和事件中心，身份校验仍走真实路由。
+func setupWithOptions(t *testing.T, modify func(*Options)) (http.Handler, *memoryStore, string) {
 	// 两个系统各有独立的令牌；测试还要确认拒绝的通知没有调用存储。
 	t.Helper()
 	directory := t.TempDir()
 	for _, name := range []string{"alpha", "beta"} {
 		config := "name: " + name + "\nprofile: " + name + ".profile.md\nalert_token_env: " + strings.ToUpper(name) + "_ALERT_TOKEN\n"
-		for file, body := range map[string]string{name + ".yaml": config, name + ".profile.md": "# " + name + "\n一个虚构服务。"} {
+		for file, body := range map[string]string{name + ".yaml": config, name + ".profile.md": "# " + name + "\n一个虚构服务。\n<!-- COMPONENTS_START -->\n| `unknown` | 尚未定位 |\n| `" + name + "` | HTTP 服务 |\n<!-- COMPONENTS_END -->\n"} {
 			if err := os.WriteFile(filepath.Join(directory, file), []byte(body), 0600); err != nil {
 				t.Fatal(err)
 			}
@@ -104,7 +121,11 @@ func setupAPI(t *testing.T) (http.Handler, *memoryStore, string) {
 		t.Fatal(err)
 	}
 	memory := &memoryStore{hash: hash}
-	router := New(Options{Targets: catalog, Store: memory, Tokens: tokens, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Ready: func(context.Context) error { return nil }, Metrics: http.NotFoundHandler(), DummyPasswordHash: hash})
+	options := Options{Targets: catalog, Store: memory, Tokens: tokens, Logger: slog.New(slog.NewTextHandler(io.Discard, nil)), Ready: func(context.Context) error { return nil }, Metrics: http.NotFoundHandler(), DummyPasswordHash: hash}
+	if modify != nil {
+		modify(&options)
+	}
+	router := New(options)
 	return router, memory, loginToken
 }
 

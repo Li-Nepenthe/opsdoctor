@@ -19,11 +19,15 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/alerts"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/auth"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/events"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/run"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/store"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/target"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/tools"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/web"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/httpx"
 	"github.com/gin-gonic/gin"
 	"golang.org/x/time/rate"
@@ -35,6 +39,15 @@ type Repository interface {
 	UserByEmail(context.Context, string) (store.User, error)
 	List(context.Context, string, string, int, int) ([]store.Diagnosis, error)
 	Detail(context.Context, string) (store.Detail, error)
+	Manual(context.Context, string, string) (string, error)
+	StepsAfter(context.Context, string, int) ([]agent.Step, error)
+}
+
+// Runner 是页面需要的调度操作；没有提供恢复、审批或任意执行入口。
+type Runner interface {
+	Cancel(context.Context, string) error
+	Status(context.Context) (run.BudgetStatus, error)
+	Wake()
 }
 
 // Options 只接收已经装配的对象，不读取环境变量或创建第二套数据库池。
@@ -46,6 +59,11 @@ type Options struct {
 	Ready             func(context.Context) error // 检查医生自己的数据库。
 	Metrics           http.Handler                // 通用进程指标，不在这里创建全局注册表。
 	DummyPasswordHash string                      // 未知邮箱也做同等成本的密码比较。
+	Runner            Runner                      // 队列唤醒、取消与累计预算。
+	Events            *events.Hub                 // 步骤提交之后的实时通知。
+	Provider          string                      // 页面醒目标出 mock。
+	Model             string                      // 当前配置，不等于历史任务的模型。
+	SecureCookie      bool                        // HTTPS 部署设 true；本机回环 HTTP 演示为 false。
 }
 
 // api 持有服务范围的登录限流器，不能让猜密码请求无限占用 bcrypt 的 CPU。
@@ -55,11 +73,14 @@ type api struct {
 	loginLimit    *rate.Limiter   // 单实例每秒最多两次登录尝试，允许短时四次。
 }
 
-// New 不挂载页面或 Agent 路由，阶段 5 只开放用户手动取证需要的接口。
+// New 把页面、任务与手动工具接到同一身份边界，告警另用系统令牌。
 func New(options Options) *gin.Engine {
 	server := &api{options: options, notifications: alerts.New(options.Store), loginLimit: rate.NewLimiter(2, 4)}
 	router := gin.New()
 	router.Use(httpx.RequestIDs(options.Logger), httpx.Recovery(options.Logger), httpx.BodyLimit(httpx.DefaultBodyLimit))
+	router.Use(browserHeaders)
+	router.GET("/", gin.WrapH(web.Handler()))
+	router.GET("/assets/:file", gin.WrapH(web.Handler()))
 	router.GET("/health/live", func(ctx *gin.Context) { httpx.Success(ctx, http.StatusOK, map[string]string{"status": "ok"}) })
 	router.GET("/health/ready", server.ready)
 	router.GET("/metrics", gin.WrapH(options.Metrics))
@@ -68,23 +89,43 @@ func New(options Options) *gin.Engine {
 	// JWT 只保护人的入口；告警推送必须走它自己的系统令牌校验。
 	secured := router.Group("/api/v1", server.requireLogin)
 	secured.GET("/targets", server.listTargets)
+	secured.GET("/auth/session", server.session)
+	secured.POST("/auth/logout", server.logout)
+	secured.GET("/status", server.runtimeStatus)
 	secured.POST("/targets/:target/tools/:tool/run", server.runTool)
 	secured.GET("/diagnoses", server.listDiagnoses)
 	secured.GET("/diagnoses/:id", server.diagnosis)
+	secured.POST("/diagnoses", server.manual)
+	secured.POST("/diagnoses/:id/cancel", server.cancelDiagnosis)
+	secured.GET("/diagnoses/:id/events", server.stream)
 	return router
 }
 
 // requireLogin 不把解析失败的细节回显给客户端，令牌原文也不会写入日志。
 func (server *api) requireLogin(ctx *gin.Context) {
 	raw := ctx.GetHeader("Authorization")
+	cookieLogin := raw == ""
+	if cookieLogin {
+		value, err := ctx.Cookie(sessionCookie)
+		if err == nil {
+			raw = "Bearer " + value
+		}
+	}
 	if !strings.HasPrefix(raw, "Bearer ") {
 		httpx.Failure(ctx, 401, "UNAUTHORIZED", "请先登录")
 		return
 	}
-	if _, err := server.options.Tokens.Parse(strings.TrimPrefix(raw, "Bearer ")); err != nil {
+	token := strings.TrimPrefix(raw, "Bearer ")
+	if _, err := server.options.Tokens.Parse(token); err != nil {
 		httpx.Failure(ctx, 401, "UNAUTHORIZED", "登录凭据无效或已过期")
 		return
 	}
+	// Cookie 会被浏览器自动附上，所以修改请求还必须证明来自本页面。
+	if cookieLogin && ctx.Request.Method != "GET" && ctx.Request.Method != "HEAD" && (!sameOrigin(ctx) || !validCSRF(token, ctx.GetHeader("X-CSRF-Token"))) {
+		httpx.Failure(ctx, 403, "CSRF_REJECTED", "页面凭据已变化，请刷新后重试")
+		return
+	}
+	ctx.Set("login_token", token)
 	ctx.Next()
 }
 

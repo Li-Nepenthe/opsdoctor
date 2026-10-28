@@ -33,10 +33,13 @@ import (
 
 // System 不导出令牌与后端连接，接口层只能使用固定注册表。
 type System struct {
-	name     string          // 创建任务时绑定的名字，构造后不再更改。
-	token    [32]byte        // 只保留令牌摘要，用定长比较检查推送身份。
-	registry *tools.Registry // 已绑定这个系统的工具集合。
-	closers  []func() error  // 进程结束或装配失败时归还连接资源。
+	profile     string          // 部署者的架构说明，不含实验答案。
+	components  []string        // 架构说明中的完整允许标识。
+	unavailable []string        // 未配置的数据源类别。
+	name        string          // 创建任务时绑定的名字，构造后不再更改。
+	token       [32]byte        // 只保留令牌摘要，用定长比较检查推送身份。
+	registry    *tools.Registry // 已绑定这个系统的工具集合。
+	closers     []func() error  // 进程结束或装配失败时归还连接资源。
 }
 
 // Catalog 不公开内部 map，调用方无法在运行中替换系统。
@@ -167,7 +170,11 @@ func credentialIdentity(config Config, name, value string) (string, error) {
 
 // build 把具体后端适配器装进接口；未配置的数据源不会生成对应工具。
 func build(config Config, profile string, values map[string]string) (_ *System, result error) {
-	system := &System{name: config.Name, token: sha256.Sum256([]byte(values[config.AlertTokenEnv]))}
+	components, err := componentNames(profile)
+	if err != nil {
+		return nil, err
+	}
+	system := &System{name: config.Name, token: sha256.Sum256([]byte(values[config.AlertTokenEnv])), profile: profile, components: components, unavailable: missingSources(config)}
 	// 具名 result 让 defer 知道是否装配失败。失败时不能留下半套连接池。
 	defer func() {
 		if result != nil {

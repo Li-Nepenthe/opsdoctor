@@ -15,6 +15,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30 # 阶段 3 多了十个容器，给首次镜像下载和真实管道冒烟留出时间。
     env:
+      LLM_PROVIDER: "mock" # 单元测试、集成和冒烟都不能触发付费诊断。
       LOADGEN_QPS: "0" # 空库准备期间不发送业务流量，后面单独运行有时长的冒烟压测。
       LOADGEN_PRODUCT_COUNT: "100" # CI 使用 small 造数，不请求不存在的商品。
     steps:
@@ -233,12 +234,12 @@ jobs:
                       raise
                   time.sleep(2)
           PY
-      - name: 医生登录、工具与告警去重冒烟
+      - name: 医生登录、Mock诊断、SSE与告警去重冒烟
         run: |
           docker compose --env-file .env -f deploy/docker-compose.yml up -d --no-deps --wait doctor
           go build -o "$RUNNER_TEMP/doctorctl" ./cmd/doctorctl
           python3 - <<'PY'
-          import json, os, subprocess, urllib.request, uuid
+          import json, os, subprocess, time, urllib.request, uuid
           from pathlib import Path
           values = dict(line.split('=', 1) for line in Path('.env').read_text().splitlines() if '=' in line and not line.startswith('#'))
           def call(path, data=None, token=None):
@@ -261,9 +262,29 @@ jobs:
           notification = {'status': 'firing', 'groupKey': 'ci-' + uuid.uuid4().hex, 'groupLabels': {'alertname': 'CIWebhook'}, 'alerts': [{'status': 'firing', 'labels': {'alertname': 'CIWebhook'}, 'startsAt': '2026-10-26T00:00:00Z', 'fingerprint': uuid.uuid4().hex[:16]}]}
           receipts = [call('/api/v1/targets/shop/alerts', notification, values['SHOP_ALERT_TOKEN']) for _ in range(3)]
           assert len({r['diagnosis_id'] for r in receipts}) == 1 and sum(r['created'] for r in receipts) == 1
-          task = call('/api/v1/diagnoses/' + receipts[0]['diagnosis_id'], token=token)
-          assert task['target'] == 'shop' and task['status'] == 'pending'
-          print('医生登录、十六项菜单、三种工具、三次通知仅一个 shop pending 任务通过')
+          identifier = receipts[0]['diagnosis_id']
+          deadline = time.monotonic() + 30
+          while True:
+              task = call('/api/v1/diagnoses/' + identifier, token=token)
+              if task['status'] not in ['pending', 'running']: break
+              assert time.monotonic() < deadline, 'Mock诊断没有结束'
+              time.sleep(0.2)
+          assert task['target'] == 'shop' and task['status'] == 'succeeded', task['status']
+          assert task['model'].startswith('mock') and task['cost_micros'] == 0
+          assert 'Mock 模式，不是真实诊断' in task['report']['summary']
+          assert all(step['model'].startswith('mock') for step in task['steps'] if step['kind'] == 'llm')
+          # 已提交报告也属于同一场未恢复故障，第四次通知不能再建付费候选。
+          repeated = call('/api/v1/targets/shop/alerts', notification, values['SHOP_ALERT_TOKEN'])
+          assert repeated['diagnosis_id'] == identifier and not repeated['created']
+          # 结束后的 SSE 补发应有序覆盖全部持久化编号，收到终态后正常结束连接。
+          req = urllib.request.Request('http://127.0.0.1:8090/api/v1/diagnoses/' + identifier + '/events', headers={'Authorization': 'Bearer ' + token, 'Last-Event-ID': '1'})
+          with urllib.request.urlopen(req, timeout=10) as response:
+              stream = response.read(262144).decode()
+          seqs = [int(line[3:].strip()) for line in stream.splitlines() if line.startswith('id:')]
+          assert seqs == list(range(2, task['last_seq'] + 1)), seqs
+          status = call('/api/v1/status', token=token)
+          assert status['provider'] == 'mock' and status['budget']['spent_micros'] == 0
+          print('医生登录、十六项菜单、三种工具、四次通知仅一个任务、Mock报告与SSE补发通过；真实费用0')
           PY
       - name: 失败时记录容器状态
         if: failure()

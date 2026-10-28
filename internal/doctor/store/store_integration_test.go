@@ -52,6 +52,14 @@ func integrationStore(t *testing.T) (*Store, string) {
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
 		// 先删子表，再删本次测试的任务，遵守外键关系。
+		for _, table := range []string{"diagnosis_steps", "llm_attempts"} {
+			if _, err := database.ExecContext(ctx, "DELETE FROM "+table+" WHERE diagnosis_id IN (SELECT id FROM diagnoses WHERE target IN (?,?))", target, target+"-b"); err != nil {
+				t.Error(err)
+			}
+		}
+		if _, err := database.ExecContext(ctx, "DELETE FROM alert_groups WHERE target IN (?,?)", target, target+"-b"); err != nil {
+			t.Error(err)
+		}
 		if _, err := database.ExecContext(ctx, "DELETE FROM diagnosis_alerts WHERE diagnosis_id IN (SELECT id FROM diagnoses WHERE target IN (?,?))", target, target+"-b"); err != nil {
 			t.Error(err)
 		}

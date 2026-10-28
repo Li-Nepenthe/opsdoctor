@@ -1,0 +1,7 @@
+-- next_seq 由锁住诊断行的事务分配，四个并行工具也不会拿到相同步骤号。
+ALTER TABLE diagnoses
+    ADD COLUMN next_seq INT UNSIGNED NOT NULL DEFAULT 0,
+    ADD COLUMN provider VARCHAR(16) NOT NULL DEFAULT 'mock',
+    ADD COLUMN cache_hit_tokens BIGINT UNSIGNED NOT NULL DEFAULT 0,
+    ADD COLUMN rounds INT UNSIGNED NOT NULL DEFAULT 0,
+    ADD COLUMN tool_calls INT UNSIGNED NOT NULL DEFAULT 0

@@ -435,11 +435,24 @@ services:
       dockerfile: deploy/docker/go.Dockerfile
       args:
         CMD_NAME: doctor
-        APP_VERSION: ${APP_VERSION:-20261026.1}
-    image: opsdoctor/doctor:20261026.1
+        APP_VERSION: ${APP_VERSION:-20261027.1}
+    image: opsdoctor/doctor:20261027.1
     environment:
       GIN_MODE: release
       DOCTOR_ADDR: :8090
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
+      LLM_MODEL: ${LLM_MODEL:-deepseek-flash}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-60s}
+      LLM_INPUT_PRICE_PER_MTOKEN: ${LLM_INPUT_PRICE_PER_MTOKEN:-2}
+      LLM_OUTPUT_PRICE_PER_MTOKEN: ${LLM_OUTPUT_PRICE_PER_MTOKEN:-8}
+      LLM_TOTAL_BUDGET_CNY: ${LLM_TOTAL_BUDGET_CNY:-20}
+      DOCTOR_MAX_CONCURRENT: ${DOCTOR_MAX_CONCURRENT:-2}
+      DOCTOR_MAX_CONCURRENT_PER_TARGET: ${DOCTOR_MAX_CONCURRENT_PER_TARGET:-1}
+      DOCTOR_ALERT_PENDING_MAX_AGE: ${DOCTOR_ALERT_PENDING_MAX_AGE:-5m}
+      DOCTOR_ALERT_SILENCE_TIMEOUT: ${DOCTOR_ALERT_SILENCE_TIMEOUT:-15m}
+      DOCTOR_COOKIE_SECURE: ${DOCTOR_COOKIE_SECURE:-false}
       DOCTOR_MYSQL_DSN: "doctor:${DOCTOR_MYSQL_PASSWORD:?请设置医生数据库密码}@tcp(doctor-mysql:3306)/doctor?parseTime=true"
       DOCTOR_ADMIN_EMAIL: ${DOCTOR_ADMIN_EMAIL:?请设置初始登录邮箱}
       DOCTOR_ADMIN_PASSWORD: ${DOCTOR_ADMIN_PASSWORD:?请设置初始登录密码}

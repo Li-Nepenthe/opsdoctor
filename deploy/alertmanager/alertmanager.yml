@@ -1,10 +1,11 @@
-# 同一服务的同类症状合成一次通知，减少一场故障同时产生的大量推送。
+# 这个 receiver 只对应 shop；所有症状合成一组，医生按整组恢复判断一场故障结束。
 route:
   receiver: doctor-shop
-  group_by: [alertname, service]
+  group_by: []
   group_wait: 5s
   group_interval: 15s
-  repeat_interval: 1h
+  # 持续故障每分钟重申一次，短于医生十五分钟的静默兜底，不会凭空开启第二场。
+  repeat_interval: 1m
 receivers:
   - name: doctor-shop
     webhook_configs:

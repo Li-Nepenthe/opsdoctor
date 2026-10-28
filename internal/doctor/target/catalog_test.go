@@ -150,7 +150,7 @@ func metricsServer(t *testing.T, value int, calls *atomic.Int64) *httptest.Serve
 func writeConfig(t *testing.T, directory, name, extra string) {
 	t.Helper()
 	writeTestFile(t, directory, name+".yaml", fmt.Sprintf("name: %s\nprofile: %s.profile.md\nalert_token_env: %s_ALERT_TOKEN\n%s", name, name, strings.ToUpper(name), extra))
-	writeTestFile(t, directory, name+".profile.md", "# 架构\n一个 HTTP 服务及其指标后端。\n")
+	writeTestFile(t, directory, name+".profile.md", "# 架构\n一个 HTTP 服务及其指标后端。\n<!-- COMPONENTS_START -->\n| `unknown` | 尚未定位 |\n| `"+name+"` | HTTP 服务 |\n<!-- COMPONENTS_END -->\n")
 }
 
 // writeTestFile 使用临时目录，不改变仓库里的示例配置。

@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>OpsDoctor · 诊断工作台</title>
+  <link rel="stylesheet" href="/assets/style.css"><script src="/assets/app.js" defer></script>
+</head>
+<body>
+<header><a href="/" class="brand"><span class="brand-icon">O</span> OpsDoctor</a><span class="subtitle">从症状，到证据，到结论</span><button id="logout" class="quiet" hidden>退出登录</button></header>
+<main>
+  <p id="notice" role="status" hidden></p>
+  <section id="login-panel" class="login-card">
+    <p class="eyebrow">诊断工作台</p><h1>看见每一步推理</h1><p class="muted">登录后查看诊断、追踪证据，或描述一个需要排查的问题。</p>
+    <form id="login-form"><label>邮箱<input name="email" type="email" autocomplete="username" required></label><label>密码<input name="password" type="password" autocomplete="current-password" required></label><button type="submit">登录</button></form>
+  </section>
+  <div id="workspace" hidden>
+    <section class="overview"><div><p class="eyebrow">OPERATIONS / DIAGNOSTICS</p><h1>诊断工作台</h1></div><div id="cost" class="cost"></div></section>
+    <p id="mode-banner" class="banner" hidden></p><p id="budget-banner" class="banner danger" hidden></p>
+    <div class="layout">
+      <aside>
+        <section class="card"><div class="section-title"><h2>诊断记录</h2><button id="refresh" class="quiet">刷新</button></div><label>系统筛选<select id="filter"><option value="">全部系统</option></select></label><div id="diagnosis-list" class="diagnosis-list"></div></section>
+        <section class="card"><h2>发起诊断</h2><form id="manual-form"><label>接入系统<select name="target" id="manual-target" required></select></label><label>观察到的症状<textarea name="symptoms" rows="4" maxlength="2000" placeholder="例如：下单变慢，开始时间大约是……" required></textarea></label><button id="manual-submit" type="submit">开始诊断</button></form></section>
+      </aside>
+      <section id="detail" class="card detail"><div class="empty"><h2>选择一条诊断</h2><p>实时步骤、工具结果和最终报告会显示在这里。</p></div></section>
+    </div>
+  </div>
+</main>
+<footer>OpsDoctor · 只读诊断阶段 · 建议操作需由人核对执行</footer>
+</body></html>

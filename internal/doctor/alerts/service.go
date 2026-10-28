@@ -82,6 +82,10 @@ func validate(value Notification) error {
 	}
 	seen := map[string]bool{}
 	for _, alert := range value.Alerts {
+		// 整组恢复必须真的没有 firing，不能让一条错误摘要提前结束故障开放期。
+		if value.Status == "resolved" && alert.Status != "resolved" {
+			return Invalid("整组 resolved 仍包含 firing 告警")
+		}
 		// 指纹必须来自标签身份，不能在一次通知里重复覆盖同一项。
 		if !regexp.MustCompile(`^[a-f0-9]{16}$`).MatchString(alert.Fingerprint) || seen[alert.Fingerprint] {
 			return Invalid("告警指纹不合法或重复")

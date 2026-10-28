@@ -26,12 +26,17 @@ import (
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/alerts"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/auth"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/run"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/httpx"
 	"github.com/gin-gonic/gin"
 )
 
 // login 对未知用户也执行一次摘要比较，避免用响应快慢直接枚举邮箱。
 func (server *api) login(ctx *gin.Context) {
+	if !sameOrigin(ctx) {
+		httpx.Failure(ctx, 403, "CSRF_REJECTED", "只允许从当前站点登录")
+		return
+	}
 	if !server.loginLimit.Allow() {
 		httpx.Failure(ctx, 429, "RATE_LIMITED", "登录尝试过多，请稍后重试")
 		return
@@ -69,7 +74,8 @@ func (server *api) login(ctx *gin.Context) {
 		httpx.Failure(ctx, 500, "INTERNAL", "无法签发登录凭据")
 		return
 	}
-	httpx.Success(ctx, 200, map[string]any{"access_token": token, "token_type": "Bearer", "expires_in": 3600})
+	server.setSession(ctx, token, 3600)
+	httpx.Success(ctx, 200, map[string]any{"access_token": token, "token_type": "Bearer", "expires_in": 3600, "csrf_token": csrfToken(token)})
 }
 
 // receiveAlert 的 target 来自路径并通过令牌验证，不接受正文中另一个系统名作为覆盖。
@@ -99,6 +105,9 @@ func (server *api) receiveAlert(ctx *gin.Context) {
 	case err != nil:
 		httpx.Failure(ctx, 503, "UNAVAILABLE", "告警尚未保存，请重试")
 	default:
+		if server.options.Runner != nil {
+			server.options.Runner.Wake()
+		}
 		httpx.Success(ctx, http.StatusAccepted, receipt)
 	}
 }
@@ -125,8 +134,8 @@ func (server *api) listDiagnoses(ctx *gin.Context) {
 		}
 	}
 	status := ctx.Query("status")
-	if status != "" && status != "pending" {
-		httpx.Failure(ctx, 400, "INVALID_ARGUMENT", "本阶段只支持 pending 状态")
+	if status != "" && status != run.Pending && status != run.Running && status != run.Succeeded && status != run.Failed && status != run.Cancelled && status != run.BudgetExceeded {
+		httpx.Failure(ctx, 400, "INVALID_ARGUMENT", "未知诊断状态")
 		return
 	}
 	page, err := strconv.Atoi(ctx.DefaultQuery("page", "1"))

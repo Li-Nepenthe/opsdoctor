@@ -125,7 +125,7 @@ Compose 首次初始化创建六个独立测试库：`opsdoctor_mysql_test`、`o
 
 跑测试前，先结束并恢复正在做的故障实验，记下 loadgen 当前的 QPS，再把它设为 0，等消费追平。随后暂停 Alertmanager 和医生（医生要释放 diag_ro 的空闲连接，留给三连接上限测试）：`docker compose --env-file .env -f deploy/docker-compose.yml stop alertmanager doctor`。Prometheus 继续采集，便于检查测试结束后是否恢复正常；暂停的是通知。
 
-跑完后，不论测试是否通过，都要先执行 `docker compose --env-file .env -f deploy/docker-compose.yml start doctor`，再恢复原来的流量。医生的采集端点恢复后，等 `chaos healthy` 通过，最后执行 `docker compose --env-file .env -f deploy/docker-compose.yml start alertmanager`。如果仍有异常，先排查，不要为了恢复通知而忽略告警。阶段 5 起，若测试期间没有暂停通知，上述告警会推送给医生，留下状态为 `pending` 的诊断任务。告警恢复不会自动删除这些任务；本阶段也不会执行它们。核对任务的创建时间和测试时间，避免把它们当成新故障。已经送达的通知不会因为之后暂停 Alertmanager 而撤回。
+跑完后，不论测试是否通过，都要先执行 `docker compose --env-file .env -f deploy/docker-compose.yml start doctor`，再恢复原来的流量。医生的采集端点恢复后，等 `chaos healthy` 通过，最后执行 `docker compose --env-file .env -f deploy/docker-compose.yml start alertmanager`。如果仍有异常，先排查，不要为了恢复通知而忽略告警。若没有暂停通知，测试告警会留下 pending 任务；阶段 6 调度器还会自动执行它们。因此测试开始前必须确认 `.env` 和正在运行的 `/api/v1/status` 都是 **Mock**，改完环境变量后要重新创建 doctor 容器，光修改文件不会影响旧进程。过时告警会被取消，未过时的会跑固定脚本。恢复告警不会删除记录，之后暂停通知也不会撤回已经送达的通知。
 
 `.env` 必须包含以下 **11 个**变量（业务 8 个、医生 3 个）。不要只把名字复制过去；六个 DSN 要使用本机的测试账号和对应测试库，不能指向业务库。下面的命令会先检查缺项，并且把跳过的测试视为失败。
 

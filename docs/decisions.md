@@ -331,3 +331,45 @@ Go 库用 `go list -m -json <模块>@latest` 查询稳定版本后固定；不�
 用户要求先单独提交这两项阶段 5 遗留修复。SELECT 校验保留具体原因；EXPLAIN 的 1054、1146、1064 错误返回最多 512 字节的原文，方便根据列名、表名和语法位置修正。其他 MySQL 错误只公开错误号。工具只认适配器标记过的 QueryError，普通后端错误仍隐藏。放弃直接公开所有数据库错误，因为连接和鉴权错误可能含账号信息。
 
 loadgen 的 GET /control 返回本进程的 product_count、workers。chaos healthy 和 selftest 在等待指标前核对，默认要求 10000 商品、64 个工作者；自定义实验可用 CHAOS_BASELINE_PRODUCT_COUNT、CHAOS_BASELINE_WORKERS 改预期。参数不一致立即失败并给出重建办法。这样能发现“本机变量已改，但容器仍跑旧参数”的情况。保持 loadgen 的五十万商品默认值和 CacheLoadsHigh 规则不变。
+
+
+<a id="phase06-model-budget"></a>
+
+## 2026-10-27：4.1 Flash、默认 Mock 与持久化费用保护
+
+用户指定 DeepSeek 4.1 Flash，授权阶段总花费最多 ¥20，包含探测、调试、失败和正式验收。官方 [模型与价格](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) 将 deepseek-flash 对应到 DeepSeek-V4.1-Flash-1017；账号 [模型列表](https://api-docs.deepseek.com/api/list-models/) 实查也返回 deepseek-flash、显示名 DeepSeek-V4.1-Flash。选择该标识，不改用 Pro。按 [非思考模式文档](https://api-docs.deepseek.com/guides/thinking_mode/) 每次显式传 thinking.type=disabled。使用普通 Chat Completions 工具协议，不启用 Beta strict；程序自行检查报告结构和引用。
+
+新环境与 CI 默认 LLM_PROVIDER=mock。填 Key 不会自动调用真实接口；真实验收才显式切 openai，结束后切回 mock。Mock 由固定脚本查两类工具后提交报告，程序加醒目标识。真实模式的每次请求都要先在 doctor 库预留费用，再联网；重启不能清空账本。输入按 UTF-8 字节数加1024个协议余量、输出按4096上限估算。它是保守估算，不假装实现了供应商 tokenizer；如果实际值超出估算，记全实额并持久化停用原因，人工核对后再处理。
+
+输入使用官方高峰缓存未命中价 ¥2/百万 token，输出 ¥8/百万 token。缓存命中另记，不拿低价来扩大授权额度。取消或网络失败没有完整用量时保留预留，不能假设供应商没收费。401、402、400 不重试；429、500、502、503、504 最多额外两次，遵守 Retry-After，全部包含在单轮时限里。每次尝试单独审计。实际扣费以 [余额接口](https://api-docs.deepseek.com/api/get-user-balance/) 前后差额对照，并说明接口精度和未知费用。
+
+[缓存文档](https://api-docs.deepseek.com/guides/kv_cache/) 说明相同前缀可以复用缓存。因此系统提示、说明书和工具定义顺序固定，后续只追加消息。所有离开本机的文字先脱敏，审计与实际发送一致；已知密码也从 DSN 和 Redis URL 解析到内存替换表。不是只靠提示词要求模型保密。
+
+<a id="phase06-fault-period"></a>
+
+## 2026-10-27：把一场故障的多种症状合成一次诊断
+
+同一故障会同时触发多个服务告警，继续按 alertname、service 分组会重复建任务并付费。用户要求改为系统内合组，shop 使用 group_by: []。医生以 target 加组键保存开放期：首次 firing 新建，后续合入，即使报告已经结束。整组 resolved 才关闭；部分恢复不能关闭。恢复通知丢失时，连续十五分钟无通知才允许开启下一场。重复通知每分钟一次，给短暂网络波动留余量。
+
+没有选择“每隔几分钟重新诊断”，因为它把未恢复的同一故障变成重复开销。代价是同系统两个重叠故障也会合组，第一份报告不会自动追加一次模型诊断；新增告警保留供人工查看。阶段 6 不实现租约和恢复，重启把遗留 running 标失败，原话说明恢复在阶段7。超过五分钟的告警 pending 取消，阶段5遗留 pending 用一次迁移明确取消。学习验收仍由用户填写。
+
+<a id="phase06-report-boundary"></a>
+
+## 2026-10-27：报告需要证据，建议操作不等于执行权限
+
+组件名来自完整架构表，覆盖服务、模块、表、链路和依赖；架构不知道原因时用 unknown。仅在 chaos 的测试包核对场景答案能用架构表表达，医生从未读取场景目录。报告 evidence 只接受当前诊断已保存的步骤。结构错误或编造步骤作为工具错误退回，模型可以修正。同轮查看和报告并存时先做查看，退回报告要求单独提交，避免模型还没看到结果就宣告完成。
+
+建议操作只允许计划书三个写工具名以及 manual，落库展示但绝不执行。四个查看可以并行，每个失败各自返回；普通查询错误不取消其他证据。审计失败则停止，否则页面可能显示一个数据库里不存在的步骤。普通查证保留四分钟，最后一分钟只整理报告，总时间五分钟。
+
+<a id="phase06-page-session"></a>
+
+## 2026-10-27：页面用 Cookie 连接 SSE，命令行保留 Bearer
+
+浏览器 EventSource 不能设置 Authorization 头，URL 又会留在日志和历史中。因此页面使用 HttpOnly、SameSite=Strict Cookie，修改请求另带从登录凭据派生的 CSRF 校验值，并验证同源。该值只留页面内存，刷新时从受保护的 session 接口取得。doctorctl 继续用 Bearer，和页面进入同一登录授权边界。本机 HTTP 的 Secure=false，HTTPS 部署必须打开。
+
+界面用嵌入程序的 HTML、JS、CSS，无前端构建。模型输出、告警、工具文本都用 textContent；CSP 禁止内联脚本，不把不可信文字当 HTML 执行。SSE 先订阅再补数据库步骤，实时通知只提醒“有新步骤”，客户端按已提交的 seq 从库中读取，避免并行工具通知顺序打乱导致漏步。每15秒心跳，订阅缓冲64条，满了断开，重连通过 Last-Event-ID 补齐。每帧写入也有5秒时限，慢浏览器不能一直占住处理器。
+
+
+### v6.2 通用提示修订
+
+v6.1 的首次真实冒烟已经查到证据，但直到最后机会才提交一份格式不合法的长报告。v6.2只补通用行为：明确预算、证据足够就停止查证、报告简短、JSON完整、每条建议包括manual都必须填写risk。不添加场景名称、原因和专门查询；不放宽Schema、不增加最后机会。失败轮保留，后续结果各自标明提示版本。
