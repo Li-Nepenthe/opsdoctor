@@ -70,7 +70,7 @@
 | [docs/decisions.md](../../docs/decisions.md) | 389 | 设计决定 |
 | [docs/learn/README.md](../../docs/learn/README.md) | 30 | docs/learn：逐阶段学习材料 |
 | [docs/learn/phase-06-agent.md](../../docs/learn/phase-06-agent.md) | 393 | 阶段 6：让医生自己查证据，并把过程显示出来 |
-| [docs/notes.md](../../docs/notes.md) | 1295 | 实测记录 |
+| [docs/notes.md](../../docs/notes.md) | 1302 | 实测记录 |
 | [docs/reports/README.md](../../docs/reports/README.md) | 17 | docs/reports：阶段汇报书 |
 | [docs/reports/phase-06-agent.md](../../docs/reports/phase-06-agent.md) | 668 | 阶段 6 汇报书：Agent 循环与实时页面 |
 | [docs/reports/phase-06-final-mock.png](../../docs/reports/phase-06-final-mock.png) | 图片 | 页面验收截图 |
@@ -80,7 +80,7 @@
 | [docs/reports/phase-06-recovery.png](../../docs/reports/phase-06-recovery.png) | 图片 | 页面验收截图 |
 | [docs/reports/phase-06-smoke-failed.png](../../docs/reports/phase-06-smoke-failed.png) | 图片 | 页面验收截图 |
 | [docs/代码地图.md](../../docs/代码地图.md) | 363 | OpsDoctor 代码地图 |
-| [docs/数据台账.md](../../docs/数据台账.md) | 322 | 数据台账 |
+| [docs/数据台账.md](../../docs/数据台账.md) | 323 | 数据台账 |
 | [internal/chaos/app/app.go](../../internal/chaos/app/app.go) | 220 | 把 chaos 命令行接到场景、执行器和自动验收流程。 |
 | [internal/chaos/scenario/component_test.go](../../internal/chaos/scenario/component_test.go) | 41 | 从验收一侧核对场景答案是否使用架构说明中的组件标识。 |
 | [internal/chaos/scenario/doc.go](../../internal/chaos/scenario/doc.go) | 21 | 读取“这次实验准备怎样做”的说明文件。 |
@@ -569,7 +569,7 @@ Compose 向 doctor 传递以上配置，保留 256MiB 上限；doctor-mysql 仍�
 | TestRetryKeepsKey | [internal/loadgen/loadgen_test.go:99:1](../../internal/loadgen/loadgen_test.go#L99) | TestRetryKeepsKey 检查超时重试与不该重试的响应，同时验证统计保留每次尝试 |
 <!-- TESTS_END -->
 
-收尾实际运行：`gofmt -l cmd gen internal tools` 无输出；`go vet ./...`、`staticcheck ./...`、`go run ./tools/commentcheck ./...`（294个非生成Go文件）、`go run ./tools/archcheck ./...` 均通过。`go test -race ./... -count=1 -timeout=180s` 顶层172通过，26个依赖测试明确跳过；随后注入全部11项TEST配置，按根README的真实集成命令运行，26顶层 / 32含子用例通过，0跳过、0失败。两套promtool规则测试通过。收尾记录见P6-38；前几轮的结果保留在P6-4、P6-21、P6-22。固定Linux代码CI [40651268284](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/40651268284) 全部成功，包括真实MySQL/Redis与Mock/SSE接线；文档收尾提交也须等待CI成功后交付。
+收尾实际运行：`gofmt -l cmd gen internal tools` 无输出；`go vet ./...`、`staticcheck ./...`、`go run ./tools/commentcheck ./...`（294个非生成Go文件）、`go run ./tools/archcheck ./...` 均通过。`go test -race ./... -count=1 -timeout=180s` 顶层172通过，26个依赖测试明确跳过；随后注入全部11项TEST配置，按根README的真实集成命令运行，26顶层 / 32含子用例通过，0跳过、0失败。两套promtool规则测试通过。收尾记录见P6-38；前几轮的结果保留在P6-4、P6-21、P6-22。固定Linux代码CI [40651268284](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/40651268284) 全部成功，包括真实MySQL/Redis与Mock/SSE接线；文档收尾提交`7feb4a8`的[CI 40660812228](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/40660812228)也全部成功。最终余额口径随后另作文档提交，交付前继续核对该提交CI。
 
 ## 五、工程验收结果
 
@@ -625,7 +625,7 @@ S06 第一份报告与额外任务分别为 P6-18、P6-19；用户批准恢复�
 | S13实时补充 | 28 / 9 / 16 | 107366 / 2625 / 81536 | 22.072853 | 0.235732 | 组件一致，机制部分正确 |
 | S09同版本重跑 | 28 / 9 / 16 | 95930 / 3363 / 77312 | 25.533395 | 0.218764 | 组件一致，机制部分正确 |
 
-22 个真实诊断（含取消、冒烟、失败、重复与补充）合计保守记账 **¥4.829000**。首轮 11 个主诊断为 ¥2.438918，其余 ¥2.390082。官方余额从验收前 ¥1.66 变为 08:48:02 UTC 的 ¥0.63，显示扣费 **¥1.03**；余额只显示到分。医生按未命中缓存的价格记全部输入，并保留取消请求的未知费用预留，所以两者口径不同，不能由差额推算统一折扣率。模型列表与余额探测仅 GET，无模型生成费用；没有绕过医生的付费探测。
+22 个真实诊断（含取消、冒烟、失败、重复与补充）合计保守记账 **¥4.829000**。首轮 11 个主诊断为 ¥2.438918，其余 ¥2.390082。官方余额从验收前 ¥1.66 变为 09:06:35 UTC 的 ¥0.57，较晚读数显示扣费 **¥1.09**。08:48曾读到¥0.63，该记录保留在P6-36；之后医生一直Mock、账本未增加，余额仍更新，可能存在延后结算，未取得逐请求账单确认。余额只显示到分。医生按未命中缓存的价格记全部输入，并保留取消请求的未知费用预留，所以两者口径不同，不能由差额推算统一折扣率。模型列表与余额探测仅 GET，无模型生成费用；没有绕过医生的付费探测。
 
 <!-- SUPPLEMENT_END -->
 <!-- ACCEPTANCE_END -->
@@ -636,7 +636,7 @@ S06 第一份报告与额外任务分别为 P6-18、P6-19；用户批准恢复�
 
 ![收尾已切回Mock](phase-06-final-mock.png)
 
-本阶段追加数据台账 **P6-1–P6-40**。失败、误判、重复费用、恢复超时都保留；本机未提交的用户修改未纳入分支。
+本阶段追加数据台账 **P6-1–P6-41**。失败、误判、重复费用、恢复超时都保留；本机未提交的用户修改未纳入分支。
 
 ## 六、偏离计划之处
 
