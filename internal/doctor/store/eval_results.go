@@ -18,16 +18,18 @@ import (
 
 // EvalResult 包含运行位置和原始输入；Data 在诊断结束前为空。
 type EvalResult struct {
-	Key            string          `json:"key"`              // 全局唯一槽位编号。
-	RunID          string          `json:"run_id"`           // 批次拥有自己的 token 额度。
-	Scenario       string          `json:"scenario"`         // 仅评测器和结果页使用，不发给诊断模型。
-	Iteration      int             `json:"iteration"`        // 从一开始的重复轮次。
-	Group          string          `json:"group"`            // E0–E3。
-	Position       int             `json:"position"`         // 同次故障中实际执行的先后位置。
-	FaultStartedAt time.Time       `json:"fault_started_at"` // 配对组共用的开始时间。
-	Input          json.RawMessage `json:"input"`            // 最初告警快照，续跑不重抓一份来替换。
-	DiagnosisID    string          `json:"diagnosis_id"`     // 与诊断表的唯一关联。
-	Data           json.RawMessage `json:"result"`           // 不可变终态摘要；完整步骤仍在诊断表。
+	Attempt        int             `json:"attempt"`            // 0 是原运行，1 是唯一一次基础设施补跑。
+	RetryOf        string          `json:"retry_of,omitempty"` // 指回原失败，导出时不能把两次尝试混成一次成功。
+	Key            string          `json:"key"`                // 全局唯一槽位编号。
+	RunID          string          `json:"run_id"`             // 批次拥有自己的 token 额度。
+	Scenario       string          `json:"scenario"`           // 仅评测器和结果页使用，不发给诊断模型。
+	Iteration      int             `json:"iteration"`          // 从一开始的重复轮次。
+	Group          string          `json:"group"`              // E0–E3。
+	Position       int             `json:"position"`           // 同次故障中实际执行的先后位置。
+	FaultStartedAt time.Time       `json:"fault_started_at"`   // 配对组共用的开始时间。
+	Input          json.RawMessage `json:"input"`              // 最初告警快照，续跑不重抓一份来替换。
+	DiagnosisID    string          `json:"diagnosis_id"`       // 与诊断表的唯一关联。
+	Data           json.RawMessage `json:"result"`             // 不可变终态摘要；完整步骤仍在诊断表。
 }
 
 // EvalDiagnosisState 的轮询只取一个状态字段，不反复加载可能很长的模型对话。
@@ -39,7 +41,7 @@ func (store *Store) EvalDiagnosisState(ctx context.Context, id string) (string, 
 
 // PrepareEvalResult 不覆盖旧告警。调用方必须使用返回的快照，而不是刚刚抓到的新快照。
 func (store *Store) PrepareEvalResult(ctx context.Context, value EvalResult) (EvalResult, error) {
-	if value.Key == "" || len(value.Key) > 128 || value.Iteration < 1 || value.Position < 1 || value.FaultStartedAt.IsZero() || len(value.Input) > 65536 || !json.Valid(value.Input) {
+	if value.Attempt != 0 || value.RetryOf != "" || value.Key == "" || len(value.Key) > 128 || value.Iteration < 1 || value.Position < 1 || value.FaultStartedAt.IsZero() || len(value.Input) > 65536 || !json.Valid(value.Input) {
 		return value, fmt.Errorf("实验槽位或输入不合法")
 	}
 	clean, err := store.config.Redactor.JSON(value.Input)
@@ -55,7 +57,7 @@ func (store *Store) PrepareEvalResult(ctx context.Context, value EvalResult) (Ev
 		return value, err
 	}
 	// 同编号的配置不同是调用错误；相同编号的告警已变化则只是重试，沿用旧快照。
-	if saved.RunID != value.RunID || saved.Scenario != value.Scenario || saved.Iteration != value.Iteration || saved.Group != value.Group || saved.Position != value.Position {
+	if saved.Attempt != 0 || saved.RetryOf != "" || saved.RunID != value.RunID || saved.Scenario != value.Scenario || saved.Iteration != value.Iteration || saved.Group != value.Group || saved.Position != value.Position {
 		return value, fmt.Errorf("实验槽位已有不同配置")
 	}
 	return saved, nil
@@ -65,7 +67,7 @@ func (store *Store) PrepareEvalResult(ctx context.Context, value EvalResult) (Ev
 func (store *Store) readEvalResult(ctx context.Context, key string) (EvalResult, error) {
 	var value EvalResult
 	var data []byte
-	err := store.database.QueryRowContext(ctx, "SELECT result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,COALESCE(diagnosis_id,''),result FROM eval_results WHERE result_key=?", key).Scan(&value.Key, &value.RunID, &value.Scenario, &value.Iteration, &value.Group, &value.Position, &value.FaultStartedAt, &value.Input, &value.DiagnosisID, &data)
+	err := store.database.QueryRowContext(ctx, "SELECT result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,COALESCE(diagnosis_id,''),result,attempt,COALESCE(retry_of,'') FROM eval_results WHERE result_key=?", key).Scan(&value.Key, &value.RunID, &value.Scenario, &value.Iteration, &value.Group, &value.Position, &value.FaultStartedAt, &value.Input, &value.DiagnosisID, &data, &value.Attempt, &value.RetryOf)
 	value.Data = data
 	return value, err
 }
@@ -115,7 +117,7 @@ func (store *Store) FinishEvalResult(ctx context.Context, key string, result jso
 // EvalResults 先取小编号列表再逐个读结果，避免占着连接池里的游标申请第二条连接。
 func (store *Store) EvalResults(ctx context.Context, runID string) ([]EvalResult, error) {
 	// 先关掉第一轮查询，再读取各个快照；连接池只有一个空闲连接时也能完成。
-	rows, err := store.database.QueryContext(ctx, "SELECT result_key FROM eval_results WHERE run_id=? ORDER BY scenario,iteration,position", runID)
+	rows, err := store.database.QueryContext(ctx, "SELECT result_key FROM eval_results WHERE run_id=? ORDER BY scenario,iteration,position,attempt", runID)
 	if err != nil {
 		return nil, err
 	}

@@ -1460,3 +1460,9 @@ Claude 已审阅手册，用户已确认试跑估算。先把 changes-and-safety
 离线增加 runner/clock.go 和 clock_test.go，把开跑前检查接入 prepare、pilot，把持续守卫接入 waitDiagnosis。分段命令有限运行六十秒，按行发现异常，不等满一分钟。取消原因用 context.WithCancelCause 保留，数据库轮询被取消时也返回时钟原因；原有 defer 再请求取消医生诊断。固定样本和取消 Mock 测试通过，runner race 通过，全仓静态及规则检查通过，commentcheck 366 文件。未启动正式矩阵或付费流程。
 
 此前提交 4ff94e5 的 CI 40853597449 全部通过，包含固定 Linux 环境的整套 Compose 和 Mock 验证。时钟守卫在它之后新增，将单独提交检查；没有用旧 CI 冒充新代码的结果。
+
+### 阶段 8：末次校时后复验
+
+两轮仓库时钟守卫共 120 个一秒步长全部通过。完整十分钟免费模型列表请求 120/120 成功，不加显式代理。时差对照与原失败见 [预检末节](reports/phase-08-preflight.md)。没有付费调用。
+
+利用检查等待时间实现一次基础设施补跑的仓储边界及导出标记。首次专用库测试发现 INSERT SELECT 的 result_key 列名歧义，明确限定来源后五项 Eval 集成通过、0 skip。Mock race 与静态检查通过；正式矩阵、配对和评委仍需继续，不能视为阶段完成。

@@ -39,9 +39,17 @@ type command struct {
 
 // RunCLI 先解析命令再连接依赖，拼错参数不会触发任何模型任务。
 func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.Writer) error {
+	// 校时检查不用数据库、登录令牌或模型 Key，环境故障时也能单独运行。
+	// 只输出秒级时间戳；失败时沿用正式评测的拦截原因。
+	if len(args) > 0 && args[0] == "check-clock" {
+		if len(args) != 1 {
+			return fmt.Errorf("用法：eval check-clock（不接受其他参数）")
+		}
+		return inspectClock(ctx, output)
+	}
 	// 第一停点之前只开放试跑命令，完整矩阵必须等用户确认估算后再运行。
 	if len(args) == 0 || !slices.Contains([]string{"prepare", "pilot", "finish", "export"}, args[0]) {
-		return fmt.Errorf("用法：eval prepare|pilot|finish|export --run 批次 [--model 模型 --scenario 场景 --allow-paid]")
+		return fmt.Errorf("用法：eval check-clock；或 eval prepare|pilot|finish|export --run 批次 [--model 模型 --scenario 场景 --allow-paid]")
 	}
 	options := command{action: args[0]}
 	flags := flag.NewFlagSet("eval "+args[0], flag.ContinueOnError)
@@ -228,6 +236,10 @@ func pilot(ctx context.Context, options command, reader config.Reader, repositor
 		return err
 	}
 	summary := report.Summarize(detail, record.Scenario.GroundTruth.Component)
+	summary.ReliabilityFailure, err = repository.EvalReliability(ctx, id)
+	if err != nil {
+		return err // 审计读取失败时不猜测类别，也不发起补跑。
+	}
 	raw, _ := json.Marshal(summary)
 	if err = repository.FinishEvalResult(ctx, key, raw); err != nil {
 		return err

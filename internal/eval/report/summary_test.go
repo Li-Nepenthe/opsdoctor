@@ -3,6 +3,7 @@
 // 主要内容：TestSummarize 比较实际存下来的报告；TestMarkdown 保留未完成行。
 // TestMarkdownUnknown 明确展示未知用量和无效时间，不让失败看起来像正常提交。
 // TestMissingDuration 检查没有单调时钟测量的老记录不会被补算成有效耗时。
+// TestReliabilityRows 检查补跑不会隐藏原失败及其未知费用。
 // 阅读建议：组件别名和大小写变化都不自动纠正，避免把宽松匹配冒充精确比较。
 
 package report
@@ -82,6 +83,24 @@ func TestMarkdownUnknown(t *testing.T) {
 	for _, text := range []string{"无效（原值 -1.999）", "未知（原记 0 / 0）", "无报告", "USD 0.053598"} {
 		if !strings.Contains(output.String(), text) {
 			t.Fatalf("遗漏异常说明 %s", text)
+		}
+	}
+}
+
+// TestReliabilityRows 将原失败和补跑都导出，不能用成功那行代替原来花掉的请求。
+func TestReliabilityRows(t *testing.T) {
+	failed, _ := json.Marshal(Summary{Status: "failed", ReliabilityFailure: true, Currency: "USD", CostMicros: 53598})
+	success, _ := json.Marshal(Summary{Status: "succeeded", Currency: "USD", CostMicros: 24000})
+	var output bytes.Buffer
+	if err := Markdown(&output, store.EvalRun{ID: "test"}, []store.EvalResult{
+		{Scenario: "S01", DiagnosisID: "original", Data: failed},
+		{Scenario: "S01", DiagnosisID: "makeup", Attempt: 1, RetryOf: "original", Data: success},
+	}); err != nil {
+		t.Fatal(err)
+	}
+	for _, text := range []string{"original", "makeup", "可靠性", "不计入诊断正确率", "一次补跑", "USD 0.053598", "USD 0.024000"} {
+		if !strings.Contains(output.String(), text) {
+			t.Fatalf("导出遗漏 %s", text)
 		}
 	}
 }

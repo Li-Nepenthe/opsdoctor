@@ -17,25 +17,26 @@ import (
 
 // Summary 同时保留定量数据和原报告，之后评委只能对实际存在的结果评分。
 type Summary struct {
-	DiagnosisID    string          `json:"diagnosis_id"`    // 可回到完整步骤审计。
-	Status         string          `json:"status"`          // 成功、失败和预算终态都保留。
-	Model          string          `json:"model"`           // 诊断开始时选用的模型。
-	ActualModels   []string        `json:"actual_models"`   // 每一步实际返回的模型名，去重后排序。
-	MixedModel     bool            `json:"mixed_model"`     // true 时不进入单模型统计。
-	Component      string          `json:"component"`       // 实际报告写出的组件。
-	ComponentMatch bool            `json:"component_match"` // 与标准答案精确比较，机制另评。
-	Rounds         int             `json:"rounds"`          // 包含最终报告机会。
-	Tools          int             `json:"tools"`           // 实际工具调用数。
-	InputTokens    int64           `json:"input_tokens"`    // 医生步骤中的累计输入，包括缓存。
-	OutputTokens   int64           `json:"output_tokens"`   // 累计输出。
-	CostMicros     int64           `json:"cost_micros"`     // 费用账本金额，含未知请求预留。
-	Currency       string          `json:"currency"`        // CNY 和 USD 不相加。
-	Seconds        float64         `json:"seconds"`         // 医生执行进程用单调时钟测得的秒数。
-	DurationKnown  bool            `json:"duration_known"`  // 没有完整测量时不进入耗时统计。
-	ReportMode     string          `json:"report_mode"`     // 主动提交还是预算要求收尾。
-	BudgetReason   string          `json:"budget_reason"`   // 预算终态的具体限制。
-	Error          string          `json:"error"`           // 已脱敏的失败说明。
-	Report         json.RawMessage `json:"report"`          // 原始报告，不修正文案或根因。
+	ReliabilityFailure bool            `json:"reliability_failure"` // 未取得任何有效模型响应；单列次数和费用，不进入诊断正确率分母。
+	DiagnosisID        string          `json:"diagnosis_id"`        // 可回到完整步骤审计。
+	Status             string          `json:"status"`              // 成功、失败和预算终态都保留。
+	Model              string          `json:"model"`               // 诊断开始时选用的模型。
+	ActualModels       []string        `json:"actual_models"`       // 每一步实际返回的模型名，去重后排序。
+	MixedModel         bool            `json:"mixed_model"`         // true 时不进入单模型统计。
+	Component          string          `json:"component"`           // 实际报告写出的组件。
+	ComponentMatch     bool            `json:"component_match"`     // 与标准答案精确比较，机制另评。
+	Rounds             int             `json:"rounds"`              // 包含最终报告机会。
+	Tools              int             `json:"tools"`               // 实际工具调用数。
+	InputTokens        int64           `json:"input_tokens"`        // 医生步骤中的累计输入，包括缓存。
+	OutputTokens       int64           `json:"output_tokens"`       // 累计输出。
+	CostMicros         int64           `json:"cost_micros"`         // 费用账本金额，含未知请求预留。
+	Currency           string          `json:"currency"`            // CNY 和 USD 不相加。
+	Seconds            float64         `json:"seconds"`             // 医生执行进程用单调时钟测得的秒数。
+	DurationKnown      bool            `json:"duration_known"`      // 没有完整测量时不进入耗时统计。
+	ReportMode         string          `json:"report_mode"`         // 主动提交还是预算要求收尾。
+	BudgetReason       string          `json:"budget_reason"`       // 预算终态的具体限制。
+	Error              string          `json:"error"`               // 已脱敏的失败说明。
+	Report             json.RawMessage `json:"report"`              // 原始报告，不修正文案或根因。
 }
 
 // Summarize 将步骤与开始时的模型逐一比较；实际模型变化的诊断不能归到单一模型名下。

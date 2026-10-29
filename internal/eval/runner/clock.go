@@ -3,7 +3,7 @@
 // 日期突然快进或倒退，不只会让耗时变负，还可能影响告警窗口和数据库租约。
 // 所以有单调计时仍不够：实验环境本身的墙钟也必须稳定。
 //
-// 主要内容：checkClock 检查连续六十个一秒步长；clockSamples 验证流式样本；
+// 主要内容：checkClock 检查连续六十个一秒步长；inspectClock 可同时保存原始样本；clockSamples 验证流式样本；
 // guardClock 持续重复检查，发现跳变便取消正在等待的诊断。
 // 阅读建议：所有 Docker 命令在宿主机评测器执行，不给医生 Docker 权限。
 
@@ -24,6 +24,11 @@ const clockSampleCount = 60 // 用户要求连续检查一分钟；只看一次�
 
 // checkClock 在创建付费任务前完成整段检查，任何缺样或不等于一秒的步长都拦截。
 func checkClock(parent context.Context) error {
+	return inspectClock(parent, io.Discard)
+}
+
+// inspectClock 让独立预检和正式评测使用同一套判断，输出样本方便事后核对。
+func inspectClock(parent context.Context, evidence io.Writer) error {
 	// 多给十五秒用于 Docker 启动与调度。它不是允许日期跳变的容差。
 	ctx, cancel := context.WithTimeout(parent, 75*time.Second)
 	defer cancel()
@@ -38,7 +43,7 @@ func checkClock(parent context.Context) error {
 	}
 	// 一行一行检查，发生跳变立即返回，不等满一分钟才通知上层。
 	// 取消只结束本机 docker 命令；容器里的只读采样最多自行运行六十秒。
-	readErr := clockSamples(output)
+	readErr := clockSamples(io.TeeReader(output, evidence))
 	if readErr != nil {
 		cancel()
 	}

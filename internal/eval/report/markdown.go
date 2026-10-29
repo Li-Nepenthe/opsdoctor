@@ -46,10 +46,17 @@ func Markdown(output io.Writer, run store.EvalRun, rows []store.EvalResult) erro
 			tokens = "未知（原记 0 / 0）" // 没收到用量的请求仍占预留额，不代表供应商免费处理。
 		}
 		mode := value.ReportMode
+		state := value.Status
+		if value.ReliabilityFailure {
+			state += "（可靠性；不计入诊断正确率）"
+		}
+		if row.Attempt == 1 {
+			state += "（一次补跑）" // 原记录仍有自己的行，不能只导出这次较好的结果。
+		}
 		if len(value.Report) == 0 || string(value.Report) == "null" {
 			mode = "无报告" // 历史任务的默认 voluntary 标志不能说明失败时真的提交了报告。
 		}
-		if _, err := fmt.Fprintf(output, "| %s | %d | %s | %s | %s | %t | %d | %d | %s | %s %.6f | %s | %s | %t |\n", cell(row.Scenario), row.Iteration, cell(row.Group), cell(row.DiagnosisID), cell(value.Status), value.ComponentMatch, value.Rounds, value.Tools, tokens, cell(value.Currency), float64(value.CostMicros)/1e6, elapsed, cell(mode), value.MixedModel); err != nil {
+		if _, err := fmt.Fprintf(output, "| %s | %d | %s | %s | %s | %t | %d | %d | %s | %s %.6f | %s | %s | %t |\n", cell(row.Scenario), row.Iteration, cell(row.Group), cell(row.DiagnosisID), cell(state), value.ComponentMatch, value.Rounds, value.Tools, tokens, cell(value.Currency), float64(value.CostMicros)/1e6, elapsed, cell(mode), value.MixedModel); err != nil {
 			return err
 		}
 	}

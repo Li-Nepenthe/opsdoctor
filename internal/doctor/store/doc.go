@@ -8,6 +8,8 @@
 //   - timing_integration_test.go：验证统一数据库时间戳与单调时钟耗时。
 //   - eval_results.go：保存实验槽位、冻结的告警输入和不可覆盖的终态结果。
 //   - eval_results_integration_test.go：验证输入冻结、重复续跑和失败结果不可覆盖。
+//   - eval_reliability.go：依据请求审计区分可靠性失败，只为原槽位安排一次补跑。
+//   - eval_reliability_test.go：验证网络、格式、预算和取消不能混为同一种失败。
 //   - eval_budget.go：把整批 token 预留、结算和中断保留接到真实费用事务。
 //   - eval_budget_integration_test.go：验证批次 token 与费用原子记账，以及未知用量不因重启消失。
 //   - evaluation.go：保存评测模式和可重试的实验诊断，防止重复自动付费。
