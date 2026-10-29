@@ -51,6 +51,11 @@ type judgeMock struct {
 // Complete 确认恶意材料仍是一个 JSON 值，且评委没有收到任何业务工具。
 func (mock *judgeMock) Complete(_ context.Context, request llm.Request) (llm.Response, error) {
 	mock.calls++
+	// Mock 也实际编码完整请求，避免只看工具名而漏掉无效的嵌套 JSON Schema。
+	// 这个检查不联网，但与真实 Chat Completions 客户端走同一个编码入口。
+	if _, err := json.Marshal(request); err != nil {
+		mock.t.Fatalf("评分请求不能编码：%v", err)
+	}
 	if len(request.Messages) != 2 || request.Messages[0].Content != rubric || !json.Valid([]byte(request.Messages[1].Content)) || len(request.Tools) != 1 || request.Tools[0].Function.Name != "submit_grade" || request.DiagnosisLimitMicros != 300000 {
 		mock.t.Fatal("评分请求边界错误")
 	}
