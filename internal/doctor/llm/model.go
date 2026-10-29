@@ -54,13 +54,15 @@ type ToolDefinition struct {
 
 // Request 的诊断 ID 只交给本机审计，不进入外部请求或指标标签。
 type Request struct {
-	DiagnosisID string    `json:"-"`          // 费用归属，不能由模型指定。
-	Model       string    `json:"model"`      // 开始时选择的模型。
-	Messages    []Message `json:"messages"`   // 固定前缀加逐步追加的历史。
-	Tools       []Tool    `json:"tools"`      // 只来自本系统的注册表。
-	MaxTokens   int       `json:"max_tokens"` // 限制单次输出，费用预留也使用同一值。
-	Stream      bool      `json:"stream"`     // 本阶段固定 false。
-	Thinking    Thinking  `json:"thinking"`   // 显式关闭默认可能开启的思考模式。
+	DiagnosisID          string    `json:"-"`          // 费用归属，不能由模型指定。
+	InputUpperBound      int64     `json:"-"`          // 已计量历史加新增文本的保守上界，只在本机使用。
+	DiagnosisLimitMicros int64     `json:"-"`          // 由 Agent 固定，供应商和模型都不能修改。
+	Model                string    `json:"model"`      // 开始时选择的模型。
+	Messages             []Message `json:"messages"`   // 固定前缀加逐步追加的历史。
+	Tools                []Tool    `json:"tools"`      // 只来自本系统的注册表。
+	MaxTokens            int       `json:"max_tokens"` // 限制单次输出，费用预留也使用同一值。
+	Stream               bool      `json:"stream"`     // 本阶段固定 false。
+	Thinking             Thinking  `json:"thinking"`   // 显式关闭默认可能开启的思考模式。
 }
 
 // Thinking 是 DeepSeek 的模式字段；本项目真实调用固定 disabled。
@@ -68,7 +70,7 @@ type Thinking struct {
 	Type string `json:"type"`
 }
 
-// Usage 保留缓存命中量，但保守成本仍按全部输入未命中计算。
+// Usage 保留供应商的计量；命中的输入用较低价格结算，不能重复计入未命中部分。
 type Usage struct {
 	Input     int64 `json:"prompt_tokens"`            // 本次完整输入 token 数。
 	Output    int64 `json:"completion_tokens"`        // 本次输出 token 数。
@@ -81,6 +83,6 @@ type Response struct {
 	Model      string   `json:"model"`       // 优先使用接口实际返回值。
 	Message    Message  `json:"message"`     // 下一轮可直接追加的 assistant 消息。
 	Usage      Usage    `json:"usage"`       // 成功回答的用量。
-	CostMicros int64    `json:"cost_micros"` // 含失败尝试的保守费用，单位百万分之一元。
+	CostMicros int64    `json:"cost_micros"` // 含失败尝试的结算费用及未知预留额，单位百万分之一元。
 	AttemptIDs []string `json:"attempt_ids"` // 指向本机逐次 HTTP 审计。
 }

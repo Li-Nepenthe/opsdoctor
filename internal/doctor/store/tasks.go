@@ -105,7 +105,7 @@ func (store *Store) EndTask(ctx context.Context, id, status string, result agent
 		}
 		report = clean
 	}
-	_, err := store.changeState(ctx, id, run.Running, status, reason, "finished_at=?,report=?,error=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cost_micros=?,rounds=?,tool_calls=?", []any{store.config.Now().UTC(), report, store.config.Redactor.Text(reason), result.Usage.Input, result.Usage.Output, result.Usage.CacheHit, result.CostMicros, result.Rounds, result.ToolCalls})
+	_, err := store.changeState(ctx, id, run.Running, status, reason, "finished_at=?,report=?,error=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cost_micros=?,rounds=?,tool_calls=?,report_mode=?,budget_reason=?", []any{store.config.Now().UTC(), report, store.config.Redactor.Text(reason), result.Usage.Input, result.Usage.Output, result.Usage.CacheHit, result.CostMicros, result.Rounds, result.ToolCalls, result.ReportMode, result.BudgetReason})
 	return err
 }
 

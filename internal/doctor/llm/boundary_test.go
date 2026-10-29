@@ -58,3 +58,23 @@ func TestMoney(t *testing.T) {
 		t.Fatalf("cost=%d", got)
 	}
 }
+
+// TestCacheCharge 结算只给明确命中的部分优惠，缺命中字段时全部按未命中计费。
+func TestCacheCharge(t *testing.T) {
+	prices := Prices{InputMicros: 2_000_000, CacheHitMicros: 40_000, OutputMicros: 8_000_000}
+	for _, testcase := range []struct {
+		name  string
+		usage Usage
+		want  int64
+	}{
+		{"没有命中", Usage{Input: 100, Output: 20}, 360},                // 缺缓存字段不能假定免费。
+		{"部分命中", Usage{Input: 100, CacheHit: 80, Output: 20}, 204},  // 80 个命中输入只收 4 微元。
+		{"全部命中", Usage{Input: 100, CacheHit: 100, Output: 20}, 164}, // 输出从不享受输入缓存价。
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			if got := prices.Charge(testcase.usage); got != testcase.want {
+				t.Fatalf("费用=%d", got)
+			}
+		})
+	}
+}

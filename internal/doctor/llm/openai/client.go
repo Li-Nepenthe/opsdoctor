@@ -28,7 +28,7 @@ type Config struct {
 	BaseURL string        // 固定供应商根地址，工具参数不能覆盖。
 	Key     string        // 仅用于 Authorization 请求头。
 	Timeout time.Duration // 一轮逻辑调用的总预算，重试也在其中。
-	Prices  llm.Prices    // 按缓存未命中计算的整数单价。
+	Prices  llm.Prices    // 本批请求生效的缓存命中、未命中与输出单价。
 }
 
 // Client 的依赖在启动时固定，账本与脱敏器由 app 注入。
@@ -59,7 +59,7 @@ func New(config Config, transport http.RoundTripper, ledger llm.Ledger, redactor
 	if address.Scheme != "https" && !(address.Scheme == "http" && local) {
 		return nil, fmt.Errorf("真实模型地址必须使用 HTTPS")
 	}
-	if config.Key == "" || config.Timeout <= 0 || config.Timeout > 2*time.Minute || config.Prices.InputMicros <= 0 || config.Prices.OutputMicros <= 0 || ledger == nil || redactor == nil || logger == nil {
+	if config.Key == "" || config.Timeout <= 0 || config.Timeout > 2*time.Minute || config.Prices.InputMicros <= 0 || config.Prices.CacheHitMicros <= 0 || config.Prices.CacheHitMicros > config.Prices.InputMicros || config.Prices.OutputMicros <= 0 || ledger == nil || redactor == nil || logger == nil {
 		return nil, fmt.Errorf("模型密钥、超时、价格或记账依赖缺失")
 	}
 	config.BaseURL = strings.TrimRight(config.BaseURL, "/")
@@ -110,8 +110,13 @@ func (client *Client) Complete(parent context.Context, request llm.Request) (res
 // attempt 在发送前记录预留额。输入按 UTF-8 字节加协议余量估计，比按中文字数计 token 更保守。
 func (client *Client) attempt(ctx context.Context, request llm.Request, raw []byte) (llm.Response, bool, time.Duration, error) {
 	const protocolTokenMargin = 1024 // 覆盖消息分隔等供应商协议 token，正文按每字节一个 token 预留。
-	reserved := client.config.Prices.Cost(int64(len(raw)+protocolTokenMargin), int64(request.MaxTokens))
-	id, err := client.ledger.Reserve(ctx, llm.Reservation{DiagnosisID: request.DiagnosisID, Model: request.Model, Request: raw, MaximumMicros: reserved})
+	inputBound := int64(len(raw) + protocolTokenMargin)
+	// Agent 已有前一轮的真实 token 数时，只对新增部分按字节预留，避免把历史再次高估。
+	if request.InputUpperBound > 0 {
+		inputBound = min(inputBound, request.InputUpperBound)
+	}
+	reserved := client.config.Prices.Cost(inputBound, int64(request.MaxTokens))
+	id, err := client.ledger.Reserve(ctx, llm.Reservation{DiagnosisID: request.DiagnosisID, Model: request.Model, Request: raw, MaximumMicros: reserved, DiagnosisLimitMicros: request.DiagnosisLimitMicros, Prices: client.config.Prices})
 	if err != nil {
 		return llm.Response{}, false, 0, err
 	}
@@ -147,7 +152,7 @@ func (client *Client) attempt(ctx context.Context, request llm.Request, raw []by
 		// 明确被拒绝的请求没有生成 token。5xx 或损坏的成功回复不能这样假定。
 		settlement.Unknown = response.StatusCode >= 500 || response.StatusCode < 400
 	} else {
-		settlement.CostMicros = client.config.Prices.Cost(answer.Usage.Input, answer.Usage.Output)
+		settlement.CostMicros = client.config.Prices.Charge(answer.Usage)
 	}
 	if !settlement.Unknown {
 		result.CostMicros = settlement.CostMicros

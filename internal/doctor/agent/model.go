@@ -56,16 +56,18 @@ type Input struct {
 
 // Limits 的默认值来自计划书，测试可调小以快速检查预算边界。
 type Limits struct {
-	Rounds    int           // 普通模型调用最多 15 轮，触发后另有一次只交报告的机会。
-	Tools     int           // 普通阶段最多 40 次工具请求，未知工具也占用额度。
-	Tokens    int64         // 累计实际用量触发线为 80000，触发后只允许交报告。
-	Duration  time.Duration // 总时限五分钟，包含最后一次报告机会。
-	FinalTime time.Duration // 在总时限中预留一分钟给最后一次模型调用。
+	Rounds        int           // 普通模型调用最多 15 轮，触发后另有一次只交报告的机会。
+	Tools         int           // 普通阶段最多 40 次工具请求，未知工具也占用额度。
+	Tokens        int64         // 累计输入输出含缓存命中，四十万只作为安全兜底。
+	ContextTokens int64         // 单次输入加最大输出的估计上限，默认六万四千。
+	CostMicros    int64         // 单次诊断三十万微元，即 0.3 元。
+	Duration      time.Duration // 总时限五分钟，包含最后一次报告机会。
+	FinalTime     time.Duration // 在总时限中预留一分钟给最后一次模型调用。
 }
 
 // DefaultLimits 给正常查证预留四分钟，最后一分钟只整理已有证据，不再查新数据。
 func DefaultLimits() Limits {
-	return Limits{Rounds: 15, Tools: 40, Tokens: 80000, Duration: 5 * time.Minute, FinalTime: time.Minute}
+	return Limits{Rounds: 15, Tools: 40, Tokens: 400000, ContextTokens: 64000, CostMicros: 300000, Duration: 5 * time.Minute, FinalTime: time.Minute}
 }
 
 // Result 失败也带用量，费用不能因最终没有报告而消失。
@@ -74,6 +76,8 @@ type Result struct {
 	Rounds         int             // 包含最后一次机会的模型调用数。
 	ToolCalls      int             // 实际处理的工具请求数。
 	Usage          llm.Usage       // 所有模型回答的累计用量。
-	CostMicros     int64           // 累计保守费用。
+	CostMicros     int64           // 累计结算费用。
 	BudgetExceeded bool            // 最后一次机会仍未给出合法报告。
+	ReportMode     string          // voluntary 是主动提交，budget 是预算触发后整理。
+	BudgetReason   string          // 触发整理的具体上限；主动提交时为空。
 }

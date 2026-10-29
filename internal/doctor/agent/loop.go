@@ -35,11 +35,20 @@ type session struct {
 	definitions []llm.Tool    // 本系统工具加 submit_report。
 	existing    map[int]bool  // 本次已经成功保存的步骤编号。
 	result      Result        // 用量与报告累计。
+	lastInput   int64         // 上一轮供应商计量，作为下一轮估计历史的依据。
+	lastBytes   int           // 上一轮发送的 JSON 大小，新增内容单独计算。
 }
 
 // New 不联网，参数错误在启动时暴露，单元测试可使用较小预算。
 func New(client llm.Client, model string, redactor *llm.Redactor, limits Limits) (*Agent, error) {
-	if client == nil || model == "" || redactor == nil || limits.Rounds < 1 || limits.Tools < 1 || limits.Tokens < 1 || limits.Duration <= 0 || limits.FinalTime <= 0 || limits.FinalTime >= limits.Duration {
+	// 旧测试只缩小轮数或总量时，新边界仍默认开启，不能因零值悄悄失去保护。
+	if limits.ContextTokens == 0 {
+		limits.ContextTokens = DefaultLimits().ContextTokens
+	}
+	if limits.CostMicros == 0 {
+		limits.CostMicros = DefaultLimits().CostMicros
+	}
+	if client == nil || model == "" || redactor == nil || limits.Rounds < 1 || limits.Tools < 1 || limits.Tokens < 1 || limits.ContextTokens < 1 || limits.CostMicros < 1 || limits.Duration <= 0 || limits.FinalTime <= 0 || limits.FinalTime >= limits.Duration {
 		return nil, fmt.Errorf("Agent 依赖或预算不完整")
 	}
 	return &Agent{client: client, model: model, redactor: redactor, limits: limits}, nil
@@ -54,7 +63,7 @@ func (agent *Agent) Run(parent context.Context, input Input) (Result, error) {
 	defer cancel()
 	work, stop := context.WithTimeout(whole, agent.limits.Duration-agent.limits.FinalTime)
 	defer stop()
-	run := &session{agent: agent, input: input, history: messages(input, agent.redactor), definitions: definitions(input), existing: map[int]bool{}}
+	run := &session{agent: agent, input: input, history: messages(input, agent.redactor), definitions: definitions(input), existing: map[int]bool{}, result: Result{ReportMode: "voluntary"}}
 	result, err := run.execute(whole, work)
 	// 总时限耗尽属于预算终态，主动取消仍保留 context.Canceled 给调度器区分。
 	if parent.Err() == nil && errors.Is(whole.Err(), context.DeadlineExceeded) {
@@ -66,10 +75,15 @@ func (agent *Agent) Run(parent context.Context, input Input) (Result, error) {
 
 // execute 在每次回答之后检查累计用量，最后报告机会仍受 whole 的总时限约束。
 func (run *session) execute(whole, work context.Context) (Result, error) {
-	agent := run.agent
-	for run.result.Rounds < agent.limits.Rounds && run.result.ToolCalls < agent.limits.Tools && run.result.Usage.Input+run.result.Usage.Output < agent.limits.Tokens {
+	for run.budgetReason() == "" {
 		answer, err := run.ask(work, false)
 		if err != nil {
+			if errors.Is(err, llm.ErrDiagnosisBudget) {
+				if run.result.BudgetReason == "" {
+					run.result.BudgetReason = err.Error()
+				}
+				return run.finish(whole)
+			}
 			// 普通阶段时间耗尽后还留有报告时间；主动取消和额度不足不能再发一次付费请求。
 			if work.Err() != nil && whole.Err() == nil {
 				return run.finish(whole)
@@ -106,6 +120,22 @@ func (run *session) ask(ctx context.Context, final bool) (llm.Response, error) {
 		return llm.Response{}, err
 	}
 	request.DiagnosisID = run.input.ID
+	request.DiagnosisLimitMicros = run.agent.limits.CostMicros
+	request.InputUpperBound = run.inputBound(len(clean))
+	requestTokens := request.InputUpperBound + int64(request.MaxTokens)
+	if requestTokens > run.agent.limits.ContextTokens {
+		run.result.BudgetReason = "单次请求上下文达到上限"
+		return llm.Response{}, llm.ErrDiagnosisBudget
+	}
+	remaining := run.agent.limits.Tokens - run.result.Usage.Input - run.result.Usage.Output
+	// 累计量也是硬边界，最后的报告和修正不能越过它。普通阶段提前留一份报告额度。
+	if requestTokens > remaining || (!final && run.result.Rounds > 0 && 2*requestTokens > remaining) {
+		run.result.BudgetReason = "累计 token 余额不足，预留最后报告空间"
+		return llm.Response{}, llm.ErrDiagnosisBudget
+	}
+	if run.result.CostMicros >= run.agent.limits.CostMicros {
+		return llm.Response{}, llm.ErrDiagnosisBudget
+	}
 	started := time.Now()
 	answer, callErr := run.agent.client.Complete(ctx, request)
 	run.result.Rounds++
@@ -136,26 +166,48 @@ func (run *session) ask(ctx context.Context, final bool) (llm.Response, error) {
 	}
 	run.existing[step.Seq] = true
 	if callErr == nil {
+		run.lastInput, run.lastBytes = answer.Usage.Input, len(clean)
 		run.history = append(run.history, answer.Message)
 	}
 	return answer, callErr
 }
 
-// finish 只给一次机会；仍然索要新工具、提交错误报告或没有提交，都标为超出预算。
+// finish 先要求整理；如果确实提交了报告但校验失败，再给一次修正机会。
+// 修正仍受总时间、上下文和费用约束，不会因为 JSON 错误获得无限次免费额度。
 func (run *session) finish(ctx context.Context) (Result, error) {
 	if ctx.Err() != nil {
 		return run.result, ctx.Err()
 	}
+	run.result.ReportMode = "budget"
+	if run.result.BudgetReason == "" {
+		run.result.BudgetReason = run.budgetReason()
+	}
+	if run.result.BudgetReason == "" {
+		run.result.BudgetReason = "查证时间用尽"
+	}
 	run.history = append(run.history, llm.Message{Role: "user", Content: "查证预算已用尽。请现在单独调用 submit_report，只使用已经保存的证据；不知道的内容写进 unknowns，不再调用查看工具。"})
-	answer, err := run.ask(ctx, true)
-	if err != nil {
-		return run.result, err
+	for attempt := 0; attempt < 2; attempt++ {
+		answer, err := run.ask(ctx, true)
+		if errors.Is(err, llm.ErrDiagnosisBudget) {
+			run.result.BudgetExceeded = true
+			return run.result, nil
+		}
+		if err != nil {
+			return run.result, err
+		}
+		done, err := run.calls(ctx, answer.Message.ToolCalls, true)
+		if err != nil {
+			return run.result, err
+		}
+		if done {
+			return run.result, nil
+		}
+		// 只修正已提交报告的校验错误；继续索要查询或只说普通文字，不算报告修正。
+		if len(answer.Message.ToolCalls) != 1 || answer.Message.ToolCalls[0].Function.Name != "submit_report" {
+			break
+		}
 	}
-	done, err := run.calls(ctx, answer.Message.ToolCalls, true)
-	if err != nil {
-		return run.result, err
-	}
-	run.result.BudgetExceeded = !done
+	run.result.BudgetExceeded = true
 	return run.result, nil
 }
 

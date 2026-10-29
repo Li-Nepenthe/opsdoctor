@@ -36,7 +36,7 @@ func TestAgentDefaults(t *testing.T) {
 		}
 		return "", false
 	}))
-	if err != nil || value.provider != "mock" || value.model != "mock-script-v1" || value.concurrent != 2 || value.perTarget != 1 || value.totalMicros != 20_000_000 {
+	if err != nil || value.provider != "mock" || value.model != "mock-script-v1" || value.concurrent != 2 || value.perTarget != 1 || value.totalMicros != 10_000_000 || value.budgetAccount != "phase-07-08" {
 		t.Fatalf("默认配置错误：%v", err)
 	}
 }

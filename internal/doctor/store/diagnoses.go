@@ -47,8 +47,10 @@ type Detail struct {
 	PromptVersion  string            `json:"prompt_version"`   // 本次诊断的提示版本。
 	TokensIn       int64             `json:"tokens_in"`        // 累计输入 token。
 	TokensOut      int64             `json:"tokens_out"`       // 累计输出 token。
-	CacheHit       int64             `json:"cache_hit_tokens"` // 供应商返回的缓存命中 token，保守费用仍按未命中算。
-	CostMicros     int64             `json:"cost_micros"`      // 已计入的保守费用。
+	CacheHit       int64             `json:"cache_hit_tokens"` // 供应商返回的缓存命中 token，结算时用于计算输入缓存优惠。
+	CostMicros     int64             `json:"cost_micros"`      // 已计入的结算费用及未知预留额。
+	ReportMode     string            `json:"report_mode"`      // 主动提交还是预算要求整理。
+	BudgetReason   string            `json:"budget_reason"`    // 哪个上限结束了调查。
 	Rounds         int               `json:"rounds"`           // 包含最终报告机会的轮数。
 	ToolCalls      int               `json:"tool_calls"`       // 处理过的查看工具请求数。
 	StartedAt      *time.Time        `json:"started_at"`       // 尚未执行时为 null。
@@ -95,7 +97,7 @@ func (store *Store) Detail(ctx context.Context, id string) (Detail, error) {
 	value := Detail{Alerts: []json.RawMessage{}}
 	var started, finished sql.NullTime
 	var rawReport []byte // SQL NULL 要先接到可空字节切片，之后再交给 JSON 字段。
-	err := store.database.QueryRowContext(ctx, "SELECT id,target,`trigger`,status,title,created_at,input,COALESCE(model,''),provider,report,COALESCE(error,''),COALESCE(prompt_version,''),tokens_in,tokens_out,cache_hit_tokens,cost_micros,rounds,tool_calls,started_at,finished_at,next_seq FROM diagnoses WHERE id=?", id).Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Input, &value.Model, &value.Provider, &rawReport, &value.Error, &value.PromptVersion, &value.TokensIn, &value.TokensOut, &value.CacheHit, &value.CostMicros, &value.Rounds, &value.ToolCalls, &started, &finished, &value.LastSeq)
+	err := store.database.QueryRowContext(ctx, "SELECT id,target,`trigger`,status,title,created_at,input,COALESCE(model,''),provider,report,COALESCE(error,''),COALESCE(prompt_version,''),tokens_in,tokens_out,cache_hit_tokens,cost_micros,rounds,tool_calls,started_at,finished_at,next_seq,report_mode,budget_reason FROM diagnoses WHERE id=?", id).Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Input, &value.Model, &value.Provider, &rawReport, &value.Error, &value.PromptVersion, &value.TokensIn, &value.TokensOut, &value.CacheHit, &value.CostMicros, &value.Rounds, &value.ToolCalls, &started, &finished, &value.LastSeq, &value.ReportMode, &value.BudgetReason)
 	if err != nil {
 		return value, err
 	}

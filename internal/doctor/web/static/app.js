@@ -92,7 +92,7 @@ async function refreshStatus() {
   byId("mode-banner").textContent = "Mock 模式，不是真实诊断。当前使用固定脚本：" + value.model;
   byId("budget-banner").hidden = !value.budget.blocked;
   byId("budget-banner").textContent = value.budget.reason || "全局费用额度不足，真实诊断已停止启动。";
-  byId("cost").replaceChildren(node("strong", money(value.budget.spent_micros) + " / " + money(value.budget.limit_micros)), node("div", "累计保守费用 · 含未结算预留额", "muted"));
+  byId("cost").replaceChildren(node("strong", money(value.budget.spent_micros) + " / " + money(value.budget.limit_micros)), node("div", "当前账户结算费用 · 含未知和未结算预留额", "muted"));
   byId("manual-submit").disabled = value.provider !== "mock" && value.budget.blocked;
 }
 

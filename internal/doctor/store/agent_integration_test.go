@@ -208,3 +208,56 @@ func TestIntegrationBudget(t *testing.T) {
 		t.Fatal("被停用的账户仍能发送下一次请求")
 	}
 }
+
+// TestIntegrationDiagnosisBudget 诊断上限包含未结算尝试；换预算账户也不能绕过它。
+func TestIntegrationDiagnosisBudget(t *testing.T) {
+	repository, target := integrationStore(t)
+	id, err := repository.Manual(t.Context(), target, "单次诊断预算")
+	if err != nil {
+		t.Fatal(err)
+	}
+	accounts := []string{"test-" + newID(), "test-" + newID()}
+	t.Cleanup(func() {
+		ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		for _, account := range accounts {
+			_, _ = repository.database.ExecContext(ctx, "DELETE FROM llm_attempts WHERE account=?", account)
+			_, _ = repository.database.ExecContext(ctx, "DELETE FROM llm_budget WHERE account=?", account)
+		}
+	})
+	ledger, err := repository.NewLedger(t.Context(), accounts[0], 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := llm.Reservation{DiagnosisID: id, Model: "mock-test", Request: json.RawMessage(`{}`), MaximumMicros: 60, DiagnosisLimitMicros: 100, Prices: llm.Prices{InputMicros: 2000000, CacheHitMicros: 40000, OutputMicros: 8000000}}
+	first, err := ledger.Reserve(t.Context(), request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 60 + 60 超过本次 100，账户虽有余额也不能发送。
+	if _, err = ledger.Reserve(t.Context(), request); !errors.Is(err, llm.ErrDiagnosisBudget) {
+		t.Fatalf("诊断上限失效：%v", err)
+	}
+	other, err := repository.NewLedger(t.Context(), accounts[1], 1000)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = other.Reserve(t.Context(), request); !errors.Is(err, llm.ErrDiagnosisBudget) {
+		t.Fatal("换账户绕过诊断费用")
+	}
+	// 有真实用量时退差额后可继续；另一份一直没有结算，模拟进程崩溃。
+	if err = ledger.Settle(t.Context(), first, llm.Settlement{CostMicros: 20, Status: "ok"}); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = other.Reserve(t.Context(), request); err != nil {
+		t.Fatal(err)
+	}
+	reopened, _ := repository.NewLedger(t.Context(), accounts[1], 1000)
+	if _, err = reopened.Reserve(t.Context(), request); !errors.Is(err, llm.ErrDiagnosisBudget) {
+		t.Fatal("崩溃后的未结算预留被清掉")
+	}
+	var price int64
+	if err = repository.database.QueryRowContext(t.Context(), "SELECT cache_hit_price_micros FROM llm_attempts WHERE id=?", first).Scan(&price); err != nil || price != 40000 {
+		t.Fatal("发送时价格未保留")
+	}
+}

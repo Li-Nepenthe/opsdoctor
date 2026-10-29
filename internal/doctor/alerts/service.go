@@ -16,6 +16,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"slices"
 	"time"
 )
 
@@ -117,16 +118,22 @@ func validLabels(values map[string]string) bool {
 
 // Title 只用于列表展示，数据库身份始终是系统名与分组键，不用可变的标题去重。
 func Title(value Notification) string {
-	text := value.GroupLabels["alertname"]
-	if service := value.GroupLabels["service"]; service != "" {
-		text = fmt.Sprintf("%s · %s", text, service)
+	// 系统级分组不再有 alertname 分组标签。直接取各条告警名称，排序避免重发顺序改变标题。
+	names := []string{}
+	for _, alert := range value.Alerts {
+		if name := alert.Labels["alertname"]; name != "" {
+			names = append(names, name)
+		}
 	}
-	if text == "" {
-		text = "收到告警分组"
+	if len(names) == 0 {
+		return "收到告警分组"
 	}
-	runes := []rune(text)
-	if len(runes) > 256 {
-		text = string(runes[:256])
+	slices.Sort(names)
+	// 给数量后缀留出空间，数据库 title 最多保存 256 个字符。
+	name := []rune(names[0])
+	text := string(name[:min(len(name), 220)])
+	if len(value.Alerts) > 1 {
+		text = fmt.Sprintf("%s 等 %d 条告警", text, len(value.Alerts))
 	}
 	return text
 }

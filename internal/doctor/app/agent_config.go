@@ -24,18 +24,19 @@ import (
 
 // agentSettings 含 API Key，不能作为整个对象写进日志或错误。
 type agentSettings struct {
-	provider     string        // mock 或兼容 OpenAI 协议的 openai。
-	model        string        // mock 固定为脚本名；真实值来自部署配置。
-	baseURL      string        // 只属于模型客户端，不是工具参数。
-	key          string        // 仅在 openai 模式读取。
-	timeout      time.Duration // 一轮模型请求连同重试的上限。
-	prices       llm.Prices    // 缓存未命中输入价与输出价。
-	totalMicros  int64         // 进程重启不清零的全局累计上限。
-	pendingAge   time.Duration // 告警排队超过此值不再执行。
-	faultSilence time.Duration // 整组恢复通知丢失时的兜底。
-	concurrent   int           // 全局名额 1–2。
-	perTarget    int           // 阶段 6 固定为 1。
-	secureCookie bool          // HTTPS 部署打开，回环 HTTP 演示关闭。
+	provider      string        // mock 或兼容 OpenAI 协议的 openai。
+	model         string        // mock 固定为脚本名；真实值来自部署配置。
+	baseURL       string        // 只属于模型客户端，不是工具参数。
+	key           string        // 仅在 openai 模式读取。
+	timeout       time.Duration // 一轮模型请求连同重试的上限。
+	prices        llm.Prices    // 缓存未命中输入价与输出价。
+	budgetAccount string        // 跨重启保留的预算账户，阶段 7、8 共用。
+	totalMicros   int64         // 进程重启不清零的全局累计上限。
+	pendingAge    time.Duration // 告警排队超过此值不再执行。
+	faultSilence  time.Duration // 整组恢复通知丢失时的兜底。
+	concurrent    int           // 全局名额 1–2。
+	perTarget     int           // 阶段 6 固定为 1。
+	secureCookie  bool          // HTTPS 部署打开，回环 HTTP 演示关闭。
 }
 
 // loadAgentConfig 的空值是配置错误，不把误拼的真实模型模式静默退回 Mock。
@@ -66,7 +67,11 @@ func loadAgentConfig(reader config.Reader) (agentSettings, error) {
 	}
 	value.provider = read("LLM_PROVIDER", "mock")
 	value.model = mock.Model
-	value.totalMicros = money("LLM_TOTAL_BUDGET_CNY", "20")
+	value.totalMicros = money("LLM_TOTAL_BUDGET_CNY", "10")
+	value.budgetAccount = read("LLM_BUDGET_ACCOUNT", "phase-07-08")
+	if len(value.budgetAccount) > 64 {
+		problems = append(problems, fmt.Errorf("LLM_BUDGET_ACCOUNT 最多 64 字节"))
+	}
 	value.timeout = duration("LLM_TIMEOUT", time.Minute, time.Second, 2*time.Minute)
 	value.pendingAge = duration("DOCTOR_ALERT_PENDING_MAX_AGE", 5*time.Minute, time.Second, time.Hour)
 	value.faultSilence = duration("DOCTOR_ALERT_SILENCE_TIMEOUT", 15*time.Minute, 3*time.Minute, 24*time.Hour)
@@ -82,7 +87,7 @@ func loadAgentConfig(reader config.Reader) (agentSettings, error) {
 		value.baseURL = read("LLM_BASE_URL", "")
 		value.model = read("LLM_MODEL", "")
 		value.key = read("LLM_API_KEY", "")
-		value.prices = llm.Prices{InputMicros: money("LLM_INPUT_PRICE_PER_MTOKEN", ""), OutputMicros: money("LLM_OUTPUT_PRICE_PER_MTOKEN", "")}
+		value.prices = llm.Prices{InputMicros: money("LLM_INPUT_PRICE_PER_MTOKEN", ""), CacheHitMicros: money("LLM_CACHE_HIT_PRICE_PER_MTOKEN", ""), OutputMicros: money("LLM_OUTPUT_PRICE_PER_MTOKEN", "")}
 		if strings.HasPrefix(value.model, "mock") || len(value.model) > 128 {
 			problems = append(problems, fmt.Errorf("真实模型名不能以 mock 开头，且最多 128 字节"))
 		}

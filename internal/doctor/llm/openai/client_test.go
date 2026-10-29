@@ -64,7 +64,7 @@ func (function transportFunc) RoundTrip(request *http.Request) (*http.Response, 
 // clientForTest 使用独立账本和日志缓冲，避免包级状态在并行测试中互相影响。
 func clientForTest(t *testing.T, ledger *memoryLedger, transport transportFunc, output io.Writer) *Client {
 	t.Helper()
-	client, err := New(Config{BaseURL: "https://model.invalid", Key: "sk-demo123456789", Timeout: time.Minute, Prices: llm.Prices{InputMicros: 2000000, OutputMicros: 8000000}}, transport, ledger, llm.NewRedactor(), slog.New(slog.NewTextHandler(output, nil)))
+	client, err := New(Config{BaseURL: "https://model.invalid", Key: "sk-demo123456789", Timeout: time.Minute, Prices: llm.Prices{InputMicros: 2000000, CacheHitMicros: 40000, OutputMicros: 8000000}}, transport, ledger, llm.NewRedactor(), slog.New(slog.NewTextHandler(output, nil)))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -124,7 +124,7 @@ func TestWireAudit(t *testing.T) {
 	request := requestForTest()
 	request.Messages[0].Content = "key sk-demo123456789"
 	result, err := client.Complete(t.Context(), request)
-	if err != nil || result.Model != "actual-model" || result.Usage.CacheHit != 80 || result.CostMicros != 360 || len(result.Message.ToolCalls) != 1 {
+	if err != nil || result.Model != "actual-model" || result.Usage.CacheHit != 80 || result.CostMicros != 204 || len(result.Message.ToolCalls) != 1 {
 		t.Fatalf("result=%+v err=%v", result, err)
 	}
 	ledger.deny = true

@@ -1,9 +1,9 @@
 // 本文件：用整数表示费用，并规定发送前预留、发送后结算的账本接口。
 //
-// 浮点数连加可能留下舍入误差，所以金额保存为百万分之一元。缓存优惠只在对照
-// 实际账单时分析；能否继续发送按较贵的缓存未命中价格判断。
+// 浮点数连加可能留下舍入误差，所以金额保存为百万分之一元。发送前按全部输入
+// 未命中缓存预留；收到用量后，再把命中的部分换成较低单价，退还差额。
 //
-// 主要内容：Prices.Cost 计算保守费用；Ledger 由 doctor 的数据库实现。
+// 主要内容：Prices.Cost 计算预留额；Charge 按缓存用量结算；Ledger 由数据库实现。
 // 阅读建议：Unknown 为 true 表示供应商可能已经计费，不能当作零费用。
 
 package llm
@@ -25,10 +25,14 @@ func (err Error) Error() string { return string(err) }
 // ErrBudget 既用于调度拦截，也用于两次模型调用之间的额度检查。
 const ErrBudget Error = "全局模型费用上限已用尽或不足以预留本次请求"
 
+// ErrDiagnosisBudget 与账户额度分开，页面才能解释是本次调查停止，而非所有诊断停用。
+const ErrDiagnosisBudget Error = "本次诊断费用已达上限或不足以预留本次请求"
+
 // Prices 保存每百万 token 的单价，单位同样是百万分之一元。
 type Prices struct {
-	InputMicros  int64 // 缓存未命中输入价。
-	OutputMicros int64 // 输出价。
+	InputMicros    int64 // 缓存未命中输入价。
+	CacheHitMicros int64 // 缓存命中的输入价；没有命中用量时按未命中价结算。
+	OutputMicros   int64 // 输出价。
 }
 
 // Money 将最多六位小数的元转换为整数，不接受科学计数法或负数。
@@ -63,19 +67,29 @@ func (prices Prices) Cost(input, output int64) int64 {
 	return (input*prices.InputMicros+tokensPerMillion-1)/tokensPerMillion + (output*prices.OutputMicros+tokensPerMillion-1)/tokensPerMillion
 }
 
-// Reservation 在网络发送之前落库，原文已经脱敏，不能包含 Authorization 头。
-type Reservation struct {
-	DiagnosisID   string          // 归属本次诊断。
-	Model         string          // 请求选择的模型。
-	Request       json.RawMessage // 实际发出的 JSON 字节。
-	MaximumMicros int64           // 本次输入上界加最大输出的费用。
+// Charge 只信任供应商明确返回的命中数，剩余输入全部按未命中计算。
+// 三部分分别向上取整到微元，和余额接口的分位金额相比会有很小的舍入差。
+func (prices Prices) Charge(usage Usage) int64 {
+	const million = int64(1_000_000)
+	hit := min(max(usage.CacheHit, 0), usage.Input)
+	return prices.Cost(usage.Input-hit, usage.Output) + (hit*prices.CacheHitMicros+million-1)/million
 }
 
-// Settlement 保存供应商回复与保守扣账；失败文本只用代码生成的简短原因。
+// Reservation 在网络发送之前落库，原文已经脱敏，不能包含 Authorization 头。
+type Reservation struct {
+	DiagnosisID          string          // 归属本次诊断。
+	Model                string          // 请求选择的模型。
+	Request              json.RawMessage // 实际发出的 JSON 字节。
+	MaximumMicros        int64           // 本次输入上界加最大输出的费用。
+	DiagnosisLimitMicros int64           // 本次诊断所有尝试合计的上限，失败预留也计入。
+	Prices               Prices          // 发送当时的三档单价，避免以后改配置后无法复算旧账。
+}
+
+// Settlement 保存供应商回复与结算额；失败文本只用代码生成的简短原因。
 type Settlement struct {
 	Response   json.RawMessage // 已脱敏的接口回复；没有回复时为 null。
 	Usage      Usage           // 接口报告的实际用量。
-	CostMicros int64           // 能确认时为实际用量对应的保守费用。
+	CostMicros int64           // 能确认时为实际用量对应的结算费用及未知预留额。
 	Unknown    bool            // 网络中断等情况保留全部预留额。
 	Status     string          // ok、cancelled、http_429 等有限分类。
 }

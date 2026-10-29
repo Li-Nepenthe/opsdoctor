@@ -174,7 +174,7 @@ func TestBudget(t *testing.T) {
 	}{
 		{"轮数", Limits{Rounds: 1, Tools: 40, Tokens: 80000, Duration: time.Minute, FinalTime: time.Second}},
 		{"工具数", Limits{Rounds: 15, Tools: 1, Tokens: 80000, Duration: time.Minute, FinalTime: time.Second}},
-		{"token", Limits{Rounds: 15, Tools: 40, Tokens: 1, Duration: time.Minute, FinalTime: time.Second}},
+		{"token", Limits{Rounds: 15, Tools: 40, Tokens: 14000, Duration: time.Minute, FinalTime: time.Second}},
 	} {
 		t.Run(testcase.name, func(t *testing.T) {
 			queries := 0
@@ -183,7 +183,12 @@ func TestBudget(t *testing.T) {
 				return tools.Result{Tool: "query", Status: "ok", Data: json.RawMessage(`null`)}
 			})
 			model := modelFunc(func(_ context.Context, request llm.Request) (llm.Response, error) {
-				return answer(call(fmt.Sprint(len(request.Messages)), "query", "{}")), nil
+				response := answer(call(fmt.Sprint(len(request.Messages)), "query", "{}"))
+				// token 用例先消耗四千，再检查下一轮是否给最终报告留下空间。
+				if testcase.name == "token" {
+					response.Usage.Input = 4000
+				}
+				return response, nil
 			})
 			agent, _ := New(model, "mock-test", llm.NewRedactor(), testcase.limits)
 			result, err := agent.Run(t.Context(), testInput(&memoryRecorder{}, toolbox))

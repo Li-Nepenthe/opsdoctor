@@ -17,7 +17,7 @@ import (
 )
 
 // PromptVersion 同时写入 diagnoses，后续比较结果时能知道模型当时读了哪份规则。
-const PromptVersion = "v6.2"
+const PromptVersion = "v7.0"
 
 // systemPrompt 随程序编译，容器不用读取源码目录。
 //

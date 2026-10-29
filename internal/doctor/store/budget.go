@@ -4,7 +4,7 @@
 // 原子扣出预留额，再发送 HTTP。拿到实际用量后退还差额；拿不到时保守保留。
 //
 // 主要内容：NewLedger 绑定账户与上限；Reserve 发送前记账；Settle 结算；Status 提供可见余额。
-// 阅读建议：测试使用独立账户名；真实进程固定 global，重启不会重新获得二十元。
+// 阅读建议：测试使用独立账户名；真实进程从配置绑定账户，重启不会重新获得额度。
 
 package store
 
@@ -62,9 +62,25 @@ func (ledger *Ledger) Reserve(ctx context.Context, value llm.Reservation) (strin
 	if count != 1 {
 		return "", llm.ErrBudget
 	}
+	// 账户行已锁住，同账户的两次预留不能同时读到旧的诊断费用。
+	// 失败尝试和未结算请求也在 charged_micros 中，重启不能让它们从预算里消失。
+	if value.DiagnosisLimitMicros > 0 {
+		// 同一诊断即使在改账户后恢复，也只允许一份预算。锁诊断行使不同账户的预留串行。
+		var diagnosis string
+		if err = tx.QueryRowContext(ctx, "SELECT id FROM diagnoses WHERE id=? FOR UPDATE", value.DiagnosisID).Scan(&diagnosis); err != nil {
+			return "", err
+		}
+		var spent int64
+		if err = tx.QueryRowContext(ctx, "SELECT COALESCE(SUM(charged_micros),0) FROM llm_attempts WHERE diagnosis_id=?", value.DiagnosisID).Scan(&spent); err != nil {
+			return "", err
+		}
+		if spent+value.MaximumMicros > value.DiagnosisLimitMicros {
+			return "", llm.ErrDiagnosisBudget
+		}
+	}
 	// 请求已经是实际发送的脱敏 JSON，审计内容不会比线上请求多一份敏感原文。
 	id := newID()
-	_, err = tx.ExecContext(ctx, "INSERT INTO llm_attempts(id,diagnosis_id,account,requested_model,request,maximum_micros,charged_micros) VALUES(?,?,?,?,?,?,?)", id, value.DiagnosisID, ledger.account, value.Model, clean, value.MaximumMicros, value.MaximumMicros)
+	_, err = tx.ExecContext(ctx, "INSERT INTO llm_attempts(id,diagnosis_id,account,requested_model,request,maximum_micros,charged_micros,input_price_micros,cache_hit_price_micros,output_price_micros) VALUES(?,?,?,?,?,?,?,?,?,?)", id, value.DiagnosisID, ledger.account, value.Model, clean, value.MaximumMicros, value.MaximumMicros, value.Prices.InputMicros, value.Prices.CacheHitMicros, value.Prices.OutputMicros)
 	if err != nil {
 		return "", err
 	}

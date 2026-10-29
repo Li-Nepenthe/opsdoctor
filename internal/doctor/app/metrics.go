@@ -26,7 +26,7 @@ type doctorMetrics struct {
 	diagnoses     *prometheus.CounterVec   // 状态进入次数，按系统与状态区分。
 	tokens        *prometheus.CounterVec   // 按模型和输入/输出方向。
 	cacheHits     *prometheus.CounterVec   // 供应商声明命中的输入 token。
-	costs         *prometheus.CounterVec   // 保守费用，单位人民币元。
+	costs         *prometheus.CounterVec   // 结算费用及未知预留额，单位人民币元。
 	calls         *prometheus.CounterVec   // 查看工具的结果次数。
 	toolDuration  *prometheus.HistogramVec // 每次工具耗时。
 	duration      *prometheus.HistogramVec // 执行至终态的时间。
@@ -43,11 +43,11 @@ func newDoctorMetrics(metrics *telemetry.Metrics, names map[string]bool) (*docto
 	value.diagnoses = metrics.Counter("doctor_diagnoses_total", "诊断进入各状态的次数。", "target", "status")
 	value.tokens = metrics.Counter("doctor_llm_tokens_total", "模型实际 token 用量。", "model", "direction")
 	value.cacheHits = metrics.Counter("doctor_llm_cache_hit_tokens_total", "供应商返回的缓存命中输入 token。", "model")
-	value.costs = metrics.Counter("doctor_llm_cost_total", "模型保守费用，单位人民币元。", "model")
+	value.costs = metrics.Counter("doctor_llm_cost_total", "模型结算费用及未知预留额，单位人民币元。", "model")
 	value.calls = metrics.Counter("doctor_tool_calls_total", "处理过的查看工具结果。", "tool", "result")
 	value.toolDuration = metrics.Histogram("doctor_tool_duration_seconds", "查看工具耗时。", "tool")
 	value.duration = prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: "doctor_diagnosis_duration_seconds", Help: "诊断开始执行至终态的耗时。", Buckets: []float64{1, 5, 15, 30, 60, 120, 180, 240, 300}}, []string{"target", "status"})
-	value.spent = prometheus.NewGauge(prometheus.GaugeOpts{Name: "doctor_llm_budget_spent_cny", Help: "全局保守费用与预留额，单位元。"})
+	value.spent = prometheus.NewGauge(prometheus.GaugeOpts{Name: "doctor_llm_budget_spent_cny", Help: "全局结算费用及未知预留额与预留额，单位元。"})
 	value.limit = prometheus.NewGauge(prometheus.GaugeOpts{Name: "doctor_llm_budget_limit_cny", Help: "全局累计费用上限，单位元。"})
 	value.blocked = prometheus.NewGauge(prometheus.GaugeOpts{Name: "doctor_llm_budget_blocked", Help: "真实诊断是否因费用不足停止启动。"})
 	value.blockedReason = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "doctor_llm_budget_blocked_reason", Help: "阻止真实诊断的原因，当前原因为1。"}, []string{"reason"})

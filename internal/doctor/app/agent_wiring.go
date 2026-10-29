@@ -53,7 +53,7 @@ func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB
 		raw, _ := json.Marshal(step)
 		hub.Publish(id, events.Event{ID: step.Seq, Data: raw})
 	}})
-	ledger, err := repository.NewLedger(ctx, "global", settings.totalMicros)
+	ledger, err := repository.NewLedger(ctx, settings.budgetAccount, settings.totalMicros)
 	if err != nil {
 		return nil, nil, nil, err
 	}
