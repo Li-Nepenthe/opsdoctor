@@ -80,9 +80,15 @@ func clockSamples(input io.Reader) error {
 	return nil
 }
 
+// clockGuardKey 只标记本包已经启动的守卫，嵌套等待不再启动重复的 Docker 采样。
+type clockGuardKey struct{}
+
 // guardClock 每段检查结束后立即开始下一段；发生跳变时保留具体原因传给等待器。
 func guardClock(parent context.Context, sample func(context.Context) error) (context.Context, func()) {
-	ctx, cancel := context.WithCancelCause(parent)
+	if parent.Value(clockGuardKey{}) != nil {
+		return parent, func() {}
+	}
+	ctx, cancel := context.WithCancelCause(context.WithValue(parent, clockGuardKey{}, true))
 	done := make(chan struct{}) // 检查 goroutine 关闭，调用方结束时等它回收本机进程。
 	go func() {
 		defer close(done)

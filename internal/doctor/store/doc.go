@@ -5,6 +5,14 @@
 // 才不会因为需要保存任务，就顺便把业务库的写权限交给医生。
 //
 // 文件清单：
+//   - eval_calibration.go：保存第一次抽中的二十份编号，不填写人的评分。
+//   - eval_listing.go：提供页面的批次列表，复用相同的结果查询。
+//   - eval_trials.go：保存整轮注入、恢复、冷却进度与追加的暂停原因。
+//   - eval_trials_integration_test.go：证明中断续读不会回退、跳过或覆盖故障轮次。
+//   - eval_judge.go：保存独立的评委收费归属，恢复已有回复并固定评分结果。
+//   - eval_lock.go：用数据库连接锁拒绝重复启动，连接丢失时取消评测。
+//   - eval_judge_integration_test.go：验证评委账户、调度隔离和同批互斥。
+//   - eval_execution_integration_test.go：验证配对诊断的配置、币种、账户绑定与独立槽位。
 //   - timing_integration_test.go：验证统一数据库时间戳与单调时钟耗时。
 //   - eval_results.go：保存实验槽位、冻结的告警输入和不可覆盖的终态结果。
 //   - eval_results_integration_test.go：验证输入冻结、重复续跑和失败结果不可覆盖。

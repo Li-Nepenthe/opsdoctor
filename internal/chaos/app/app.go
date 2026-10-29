@@ -79,19 +79,20 @@ func newEngine(reader config.Reader) (*Engine, error) {
 	if err != nil {
 		return nil, err
 	}
+	order, orderErr := reader.String("CHAOS_ORDER_URL", "http://127.0.0.1:8081")
 	proxy, proxyErr := reader.String("TOXIPROXY_URL", "http://127.0.0.1:8474")
 	load, loadErr := reader.String("LOADGEN_CONTROL_URL", "http://127.0.0.1:6070")
 	prometheus, promErr := reader.String("PROMETHEUS_URL", "http://127.0.0.1:9090")
 	redis, redisErr := reader.String("CHAOS_REDIS_ADDR", "127.0.0.1:6379")
 	products, productsErr := reader.Int("CHAOS_BASELINE_PRODUCT_COUNT", 10000, 1, 500000)
 	workers, workersErr := reader.Int("CHAOS_BASELINE_WORKERS", 64, 1, 256)
-	if err = errors.Join(proxyErr, loadErr, promErr, redisErr, productsErr, workersErr); err != nil {
+	if err = errors.Join(orderErr, proxyErr, loadErr, promErr, redisErr, productsErr, workersErr); err != nil {
 		return nil, err
 	}
 	// 缺少 DSN 时只在真正执行索引动作时报错，list、healthy 等只读命令不需要高权限凭据。
 	dsn, _ := reader.String("CHAOS_MYSQL_DSN", "")
 	password, _ := reader.String("REDIS_PASSWORD", "")
-	runner := &action.Runner{Root: root, RedisPassword: password, MySQLDSN: dsn, RedisAddress: redis, ProxyURL: proxy, LoadURL: load, HTTP: &http.Client{Timeout: 10 * time.Second}}
+	runner := &action.Runner{OrderURL: order, Root: root, RedisPassword: password, MySQLDSN: dsn, RedisAddress: redis, ProxyURL: proxy, LoadURL: load, HTTP: &http.Client{Timeout: 10 * time.Second}}
 	runner.RunCommand = runner.Command
 	baselineDSN, _ := reader.String("CHAOS_BASELINE_MYSQL_DSN", "")
 	observer := verify.WithBaseline(verify.New(prometheus), load, products, workers).WithRepairs(baselineDSN)

@@ -31,6 +31,10 @@ type Result struct {
 
 // Symptom 的 ctx 由注入开始时间计算截止，部署耗时也计入三分钟，不另送三分钟。
 func (client *Client) Symptom(ctx context.Context, symptom scenario.Symptom) (result Result, err error) {
+	// 无故障对照不能等到一条告警才算通过；仍使用完整的连续健康检查。
+	if symptom.Healthy {
+		return client.Healthy(ctx)
+	}
 	// 两个信号可能不在同一轮采样出现，分别记住是否真正见过，避免漏掉短暂症状。
 	start := time.Now()
 	defer func() { result.Elapsed = time.Since(start) }()

@@ -1,0 +1,18 @@
+id: S11
+title: 无故障对照与配置不变的重启
+inject:
+  - {action: restart, service: order-service}
+restore:
+  - {action: load, qps: 200, hot_sku_id: 0}
+symptom:
+  healthy: true
+  within: 3m
+ground_truth:
+  component: none
+  mechanism: no_fault
+  explanation: 正常基线下没有注入故障。仅重启同一个容器，代码和配置不变。启动时间变化不能单独证明发生了故障或错误发布。
+evidence_milestones:
+  - 核实请求延迟和错误率处于正常范围
+  - 核实依赖可用并且没有持续积压
+  - 区分进程重启与代码或配置变化
+  - 说明当前证据不足以支持存在故障，不提出无依据的修复

@@ -2,7 +2,7 @@
 //
 // prepare 先暂停自动诊断；操作者注入并验证真实故障以后，pilot 才创建付费任务。
 // 报告保存后仍需 chaos restore 和 healthy。finish 看到故障开放期结束才解除暂停。
-// 正式矩阵与评委尚未开放，不能把这几个试跑偷偷扩大成正式评测。
+// freeze/matrix 是用户确认试跑之后的配对入口，必须使用单独批次。
 //
 // 主要内容：RunCLI 装配依赖；prepare 固定版本；pilot 保存槽位和任务；
 // waitDiagnosis 有界等待并处理取消；finish 等待系统开放期结束。
@@ -16,12 +16,14 @@ import (
 	"flag"
 	"fmt"
 	"io"
+	"os"
 	"path/filepath"
 	"slices"
 	"strings"
 	"time"
 
 	chaos "github.com/Li-Nepenthe/opsdoctor/internal/chaos/app"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/store"
 	"github.com/Li-Nepenthe/opsdoctor/internal/eval/report"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
@@ -35,6 +37,7 @@ type command struct {
 	cases                                  []string
 	paid                                   bool
 	tokens                                 int
+	iterations, iteration                  int // 批次重复次数与当前轮次，正式每个场景三次。
 }
 
 // RunCLI 先解析命令再连接依赖，拼错参数不会触发任何模型任务。
@@ -47,9 +50,9 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 		}
 		return inspectClock(ctx, output)
 	}
-	// 第一停点之前只开放试跑命令，完整矩阵必须等用户确认估算后再运行。
-	if len(args) == 0 || !slices.Contains([]string{"prepare", "pilot", "finish", "export"}, args[0]) {
-		return fmt.Errorf("用法：eval check-clock；或 eval prepare|pilot|finish|export --run 批次 [--model 模型 --scenario 场景 --allow-paid]")
+	// 试跑和配对分别命名；同一个批次不能混用两种运行安排。
+	if len(args) == 0 || !slices.Contains([]string{"prepare", "pilot", "finish", "export", "freeze", "matrix", "run", "calibrate"}, args[0]) {
+		return fmt.Errorf("用法：eval check-clock；或 eval prepare|pilot|finish|export|freeze|matrix|run|calibrate --run 批次 [--model 模型 --scenario 场景 --allow-paid]")
 	}
 	options := command{action: args[0]}
 	flags := flag.NewFlagSet("eval "+args[0], flag.ContinueOnError)
@@ -58,6 +61,8 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 	flags.StringVar(&options.target, "target", "shop", "已经接入的系统")
 	flags.StringVar(&options.model, "model", "mock-script-v1", "明确指定医生模型")
 	flags.StringVar(&options.scenario, "scenario", "", "已经注入并验证的场景")
+	flags.IntVar(&options.iterations, "iterations", 3, "冻结批次的每场景次数，1 到 3")
+	flags.IntVar(&options.iteration, "iteration", 1, "本次运行的轮次")
 	flags.BoolVar(&options.paid, "allow-paid", false, "本次允许使用已授权的真实模型额度")
 	cases := flags.String("scenarios", "S01,S03,S10", "本批两至三个 E1 试跑场景")
 	if err := flags.Parse(args[1:]); err != nil {
@@ -67,12 +72,16 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 		return fmt.Errorf("请指定 --run，且不要提供额外位置参数")
 	}
 	options.cases = strings.Split(*cases, ",")
-	if len(options.cases) < 2 || len(options.cases) > 3 {
+	paired := options.action == "freeze" || options.action == "matrix" || options.action == "run"
+	if options.iterations < 1 || options.iterations > 3 || options.iteration < 1 || options.iteration > options.iterations {
+		return fmt.Errorf("次数须为 1 到 3，当前轮次不能超出批次")
+	}
+	if !paired && (len(options.cases) < 2 || len(options.cases) > 3) {
 		return fmt.Errorf("第一停点前只安排两至三个试跑场景")
 	}
 	seen := map[string]bool{}
 	for _, name := range options.cases {
-		if !slices.Contains([]string{"S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S13"}, name) || seen[name] {
+		if !slices.Contains([]string{"S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "S13"}, name) || seen[name] {
 			return fmt.Errorf("试跑清单必须是不重复的已实现故障场景")
 		}
 		seen[name] = true
@@ -95,7 +104,15 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 		return fmt.Errorf("无法连接医生数据库")
 	}
 	defer database.Close()
-	repository := store.New(database)
+	// 命令行的评委也使用同一份已知凭据清理规则，任何原文都不能从评分出口漏出。
+	secrets := []string{}
+	for _, entry := range os.Environ() {
+		key, value, _ := strings.Cut(entry, "=")
+		if strings.HasSuffix(key, "_API_KEY") || strings.HasSuffix(key, "_PASSWORD") || strings.HasSuffix(key, "_TOKEN") {
+			secrets = append(secrets, value)
+		}
+	}
+	repository := store.NewConfigured(database, store.Config{Redactor: llm.NewRedactor(secrets...)})
 	if options.action == "export" {
 		run, err := repository.EvalRun(ctx, options.runID)
 		if err != nil {
@@ -107,11 +124,24 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 		}
 		return report.Markdown(output, run, rows)
 	}
+	if options.action == "calibrate" {
+		return calibrate(ctx, repository, options.runID, output)
+	}
 	client, err := newDoctorClient(ctx, reader)
 	if err != nil {
 		return err
 	}
 	switch options.action {
+	case "freeze":
+		return repository.WithEvalLock(ctx, options.runID, func(locked context.Context) error {
+			return freezePaired(locked, options, reader, repository, client, output)
+		})
+	case "run":
+		return repository.WithEvalLock(ctx, options.runID, func(locked context.Context) error {
+			return automatic(locked, options, reader, repository, client, output)
+		})
+	case "matrix":
+		return repository.WithEvalLock(ctx, options.runID, func(locked context.Context) error { return matrix(locked, options, reader, repository, client, output) })
 	case "prepare":
 		return prepare(ctx, options, reader, repository, client, output)
 	case "pilot":

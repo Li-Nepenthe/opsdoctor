@@ -4,7 +4,7 @@
 // 文件大小、编号和动作范围都在这里收紧。
 //
 // 主要内容：
-//   - Load：按固定顺序读取阶段 4 的十一个场景。
+//   - Load：按固定顺序读取已实现的十三个场景。
 //   - Decode：拒绝未知字段，并检查必需的实验信息。
 //   - ValidateStep：检查每种动作自己的参数范围。
 //
@@ -24,9 +24,9 @@ import (
 
 // Load 只读取当前阶段明确支持的文件，不把目录中新放入的任意文件自动变成可执行场景。
 func Load(directory string) ([]Scenario, error) {
-	// 编号列表属于当前阶段的授权范围，S11/S12 不因目录中出现同名文件就启用。
+	// 编号列表属于当前阶段的授权范围，阶段 8 已明确授权 S11/S12，其余新编号仍须先修改白名单。
 	var result []Scenario
-	for _, id := range []string{"S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S13"} {
+	for _, id := range []string{"S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "S13"} {
 		data, err := os.ReadFile(filepath.Join(directory, id+".yaml"))
 		if err != nil {
 			return nil, fmt.Errorf("读取 %s：%w", id, err)
@@ -53,16 +53,27 @@ func Decode(data []byte) (Scenario, error) {
 	if err := yaml.UnmarshalWithOptions(data, &value, yaml.Strict()); err != nil {
 		return value, err
 	}
-	allowed := " S01 S02 S03 S04 S05 S06 S07 S08 S09 S10 S13 "
+	allowed := " S01 S02 S03 S04 S05 S06 S07 S08 S09 S10 S11 S12 S13 "
 	if value.ID == "" || !strings.Contains(allowed, " "+value.ID+" ") || value.Title == "" {
 		return Scenario{}, fmt.Errorf("场景编号或标题不合法")
 	}
 	within, err := time.ParseDuration(value.Symptom.Within)
-	if err != nil || within <= 0 || within > 3*time.Minute || value.Symptom.PromQL == "" || len(value.Symptom.Alerts) == 0 {
+	if err != nil || within <= 0 || within > 3*time.Minute || (!value.Symptom.Healthy && (value.Symptom.PromQL == "" || len(value.Symptom.Alerts) == 0)) {
 		return Scenario{}, fmt.Errorf("症状需要查询表达式与不超过三分钟的正等待时长")
+	}
+	if value.Symptom.Healthy && (value.ID != "S11" || value.GroundTruth.Component != "none" || len(value.Symptom.Alerts) != 0 || value.Symptom.PromQL != "") {
+		return Scenario{}, fmt.Errorf("只有 S11 可使用无告警健康对照")
 	}
 	if len(value.Inject) == 0 || len(value.Restore) == 0 || len(value.Evidence) == 0 || value.GroundTruth.Component == "" || value.GroundTruth.Mechanism == "" || value.GroundTruth.Explanation == "" {
 		return Scenario{}, fmt.Errorf("注入、恢复、答案和证据里程碑都不能为空")
+	}
+	// 评分规则单独校验，不能因为编号写错就把另一项证据算成已取得。
+	seenRules := map[int]bool{}
+	for _, rule := range value.Rules {
+		if rule.Milestone < 1 || rule.Milestone > len(value.Evidence) || seenRules[rule.Milestone] || (rule.Table != "stock" && rule.Table != "orders") || (rule.Kind != "full_scan" && rule.Kind != "missing_index") || (rule.Kind == "missing_index" && rule.Index == "") {
+			return Scenario{}, fmt.Errorf("证据规则类型、对象或项目编号不合法")
+		}
+		seenRules[rule.Milestone] = true
 	}
 	for _, step := range append(append([]Step{}, value.Inject...), value.Restore...) {
 		if err := ValidateStep(step); err != nil {

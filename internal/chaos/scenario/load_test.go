@@ -1,6 +1,6 @@
 // 本文件：检查场景定义在执行前能否挡住错误输入。
 //
-// 测试直接加载仓库中的十一个场景，也会构造拼错字段、越界参数和不支持的阶段编号。
+// 测试直接加载仓库中的十三个场景，也会构造拼错字段、越界参数和不支持的阶段编号。
 // 所有测试都只读文件，不执行场景中的动作。
 //
 // 主要内容：
@@ -25,7 +25,7 @@ func TestRepositoryScenarios(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(values) != 11 {
+	if len(values) != 13 {
 		t.Fatalf("场景数=%d", len(values))
 	}
 }
@@ -43,7 +43,7 @@ func TestDecodeRejectsInvalid(t *testing.T) {
 	}{
 		{"未知字段", "title:", "titel:"},                    // 拼错字段不能当成默认值继续。
 		{"超长预算", "within: 3m", "within: 4m"},            // 验收不能偷偷延长三分钟限制。
-		{"尚未授权阶段", "id: S01", "id: S11"},                // 阶段 8 的对照场景暂不开放。
+		{"尚未授权阶段", "id: S01", "id: S14"},                // 编号之外的场景不能自动启用。
 		{"错误索引", "index: uk_stock_sku", "index: other"}, // 不允许场景改掉其他索引。
 	} {
 		t.Run(testcase.name, func(t *testing.T) {

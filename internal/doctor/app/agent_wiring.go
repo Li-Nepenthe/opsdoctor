@@ -78,7 +78,17 @@ func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	scheduler, err := run.New(run.Config{LeaseTTL: settings.leaseTTL, Model: settings.model, Provider: settings.provider, Concurrent: settings.concurrent, PerTarget: settings.perTarget, PendingAge: settings.pendingAge, Budget: ledger.Status, ObservedBudget: metrics.budget, Prepare: prepareDiagnosis, Resolve: func(name string) (agent.Input, error) {
+	executions := map[string]run.Execution{"primary": {Model: settings.model, Provider: settings.provider, Account: settings.budgetAccount, Agent: loop, Repository: repository.ForExecution("primary", settings.budgetAccount, settings.currency), Budget: ledger.Status}}
+	if settings.comparison != nil {
+		// 第二家客户端用同一套脱敏规则，Key 也加入精确替换清单。
+		comparisonRedactor := llm.NewRedactor(append(knownSecrets(), settings.key, settings.comparison.key)...)
+		execution, err := comparisonExecution(ctx, *settings.comparison, repository, comparisonRedactor, logger)
+		if err != nil {
+			return nil, nil, nil, err
+		}
+		executions["comparison"] = execution
+	}
+	scheduler, err := run.New(run.Config{BudgetAccount: settings.budgetAccount, Executions: executions, LeaseTTL: settings.leaseTTL, Model: settings.model, Provider: settings.provider, Concurrent: settings.concurrent, PerTarget: settings.perTarget, PendingAge: settings.pendingAge, Budget: ledger.Status, ObservedBudget: metrics.budget, Prepare: prepareDiagnosis, Resolve: func(name string) (agent.Input, error) {
 		system, ok := catalog.Get(name)
 		if !ok {
 			return agent.Input{}, fmt.Errorf("任务绑定的系统已不在接入配置中")
@@ -93,5 +103,5 @@ func createModel(settings agentSettings, ledger llm.Ledger, redactor *llm.Redact
 	if settings.provider == "mock" {
 		return &mock.Client{}, nil
 	}
-	return openai.New(openai.Config{Format: settings.apiFormat, BaseURL: settings.baseURL, Key: settings.key, Timeout: settings.timeout, Prices: settings.prices}, nil, ledger, redactor, logger)
+	return openai.New(openai.Config{Format: settings.apiFormat, BaseURL: settings.baseURL, Key: settings.key, Timeout: settings.timeout, Prices: settings.prices, PricesAt: settings.pricesAt}, nil, ledger, redactor, logger)
 }

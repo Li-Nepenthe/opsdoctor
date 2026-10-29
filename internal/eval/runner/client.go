@@ -28,15 +28,18 @@ import (
 
 // doctorClient 的令牌只留在本进程，不写入评测配置。
 type doctorClient struct {
+	refreshAt   time.Time                                    // 长跑前主动续登录，不把一小时登录过期误记成模型失败。
+	renew       func(context.Context) (*doctorClient, error) // 只读取原来的环境凭据，不落盘。
 	base, token string
 	http        *http.Client
 }
 
 // runtimeStatus 同时核对模型、模式和当前币种，不能仅看宿主机环境变量。
 type runtimeStatus struct {
-	Provider string           `json:"provider"`
-	Model    string           `json:"model"`
-	Budget   run.BudgetStatus `json:"budget"`
+	Executions map[string]run.ExecutionStatus `json:"executions"` // 配对前核对每个模型和独立账户。
+	Provider   string                         `json:"provider"`
+	Model      string                         `json:"model"`
+	Budget     run.BudgetStatus               `json:"budget"`
 }
 
 // newDoctorClient 不读取任何模型 Key，登录仅用于已有的医生 API。
@@ -70,11 +73,20 @@ func newDoctorClient(ctx context.Context, reader config.Reader) (*doctorClient, 
 		return nil, fmt.Errorf("医生登录没有返回令牌")
 	}
 	client.token = login.Token
+	client.refreshAt = time.Now().Add(40 * time.Minute)
+	client.renew = func(ctx context.Context) (*doctorClient, error) { return newDoctorClient(ctx, reader) }
 	return client, nil
 }
 
 // request 的正文有界；遇到非成功响应不输出可能夹带认证信息的服务端原文。
 func (client *doctorClient) request(ctx context.Context, method, path string, body []byte, output any) error {
+	if client.renew != nil && !time.Now().Before(client.refreshAt) {
+		renewed, err := client.renew(ctx)
+		if err != nil {
+			return err
+		}
+		client.token, client.refreshAt = renewed.token, renewed.refreshAt
+	}
 	// 错误正文可能含凭据或模型原文，调用方只需要状态码来决定是否继续。
 	request, err := http.NewRequestWithContext(ctx, method, client.base+path, bytes.NewReader(body))
 	if err != nil {

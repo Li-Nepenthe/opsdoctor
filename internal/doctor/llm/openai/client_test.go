@@ -5,6 +5,7 @@
 //
 // 主要内容：TestHTTPPolicy 检查错误码；TestWireAudit 检查脱敏与协议；
 // TestCancel、TestCancelBody 分别检查等待响应头和读取正文时的取消。
+// TestAttemptPrices 检查请求跨过价格时段边界仍按发送时的价格结算。
 // 阅读建议：账本的 Reserve 必须先于 Transport 被调用，这也是测试中的断言。
 
 package openai
@@ -194,5 +195,22 @@ func TestCancelBody(t *testing.T) {
 		}
 	case <-time.After(2 * time.Second):
 		t.Fatal("取消读正文超过两秒")
+	}
+}
+
+// TestAttemptPrices 固定发送时的价格，返回时价格改变也不能改变这次结算。
+func TestAttemptPrices(t *testing.T) {
+	ledger := &memoryLedger{}
+	cheap := llm.Prices{InputMicros: 1000000, CacheHitMicros: 20000, OutputMicros: 4000000}
+	selected := cheap
+	client := clientForTest(t, ledger, func(*http.Request) (*http.Response, error) {
+		selected = llm.Prices{InputMicros: 2000000, CacheHitMicros: 40000, OutputMicros: 8000000}
+		return reply(200, `{"model":"requested-model","choices":[{"message":{"role":"assistant","content":"ok"}}],"usage":{"prompt_tokens":1000,"prompt_cache_hit_tokens":800,"completion_tokens":100}}`), nil
+	}, io.Discard)
+	client.config.PricesAt = func(time.Time) llm.Prices { return selected }
+	result, err := client.Complete(t.Context(), requestForTest())
+	// 200 未缓存输入 + 800 缓存输入 + 100 输出，按发出时的闲时价结算。
+	if err != nil || result.CostMicros != 616 || ledger.reservations[0].Prices != cheap || ledger.settlements[0].CostMicros != 616 {
+		t.Fatalf("结算改变：%+v %v", result, err)
 	}
 }

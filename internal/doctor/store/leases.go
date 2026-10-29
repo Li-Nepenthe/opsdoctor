@@ -48,9 +48,9 @@ func (store *Store) claimLease(ctx context.Context, id, model, prompt, provider 
 	if err = tx.QueryRowContext(ctx, "SELECT id FROM scheduler_guard WHERE id=1 FOR UPDATE").Scan(&guard); err != nil {
 		return false, err
 	}
-	var target, status, currency, trigger, expectedModel string
+	var target, status, currency, trigger, expectedModel, profile, expectedProvider, account string
 	var available, cancelled, recent bool
-	if err = tx.QueryRowContext(ctx, "SELECT target,status,COALESCE(lease_until<=UTC_TIMESTAMP(6),TRUE),cancel_requested,currency,COALESCE(lease_updated_at>=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)),FALSE),`trigger`,eval_expected_model FROM diagnoses WHERE id=? FOR UPDATE", -store.config.ResumeMaxAge.Microseconds(), id).Scan(&target, &status, &available, &cancelled, &currency, &recent, &trigger, &expectedModel); err != nil {
+	if err = tx.QueryRowContext(ctx, "SELECT target,status,COALESCE(lease_until<=UTC_TIMESTAMP(6),TRUE),cancel_requested,currency,COALESCE(lease_updated_at>=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)),FALSE),`trigger`,eval_expected_model,eval_profile,eval_provider,eval_account FROM diagnoses WHERE id=? FOR UPDATE", -store.config.ResumeMaxAge.Microseconds(), id).Scan(&target, &status, &available, &cancelled, &currency, &recent, &trigger, &expectedModel, &profile, &expectedProvider, &account); err != nil {
 		return false, err
 	}
 	var evaluating bool
@@ -62,6 +62,9 @@ func (store *Store) claimLease(ctx context.Context, id, model, prompt, provider 
 	}
 	if trigger == "eval" && (!evaluating || expectedModel != model) {
 		return false, fmt.Errorf("评测模式未开启或运行模型与实验配置不一致")
+	}
+	if profile != "" && (profile != store.config.ExecutionProfile || expectedProvider != provider || account != store.config.BudgetAccount || currency != store.config.Currency) {
+		return false, fmt.Errorf("评测绑定的执行配置、供应商、账户或币种不一致")
 	}
 	if status != "pending" && currency != store.config.Currency {
 		return false, fmt.Errorf("不能跨币种恢复诊断，请保持原账户或取消后重新发起")
@@ -150,7 +153,7 @@ func (store *Store) staleLeases(ctx context.Context) error {
 	if err = tx.QueryRowContext(ctx, "SELECT id FROM scheduler_guard WHERE id=1 FOR UPDATE").Scan(&guard); err != nil {
 		return err
 	}
-	rows, err := tx.QueryContext(ctx, "SELECT id,cancel_requested FROM diagnoses WHERE status='running' AND (lease_until IS NULL OR lease_until<=UTC_TIMESTAMP(6)) AND (cancel_requested=TRUE OR lease_updated_at IS NULL OR lease_updated_at<TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6))) FOR UPDATE", -store.config.ResumeMaxAge.Microseconds())
+	rows, err := tx.QueryContext(ctx, "SELECT id,cancel_requested FROM diagnoses WHERE `trigger`<>'judge' AND status='running' AND (lease_until IS NULL OR lease_until<=UTC_TIMESTAMP(6)) AND (cancel_requested=TRUE OR lease_updated_at IS NULL OR lease_updated_at<TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6))) FOR UPDATE", -store.config.ResumeMaxAge.Microseconds())
 	if err != nil {
 		return err
 	}

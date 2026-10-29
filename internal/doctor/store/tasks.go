@@ -33,7 +33,7 @@ func (store *Store) Manual(ctx context.Context, target, symptoms string) (string
 
 // Pending 先选出每个系统最老的一条，避免某系统大量排队挡住另一系统。
 func (store *Store) Pending(ctx context.Context) ([]run.Task, error) {
-	rows, err := store.database.QueryContext(ctx, "SELECT id,target,input,created_at,COALESCE(fault_started_at,created_at),eval_group,eval_expected_model FROM (SELECT id,target,input,created_at,fault_started_at,eval_group,eval_expected_model,ROW_NUMBER() OVER (PARTITION BY target ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'waiting_approval' THEN 1 ELSE 2 END,created_at,id) AS position_in_target FROM diagnoses WHERE (status='pending' OR (status='running' AND lease_until<=UTC_TIMESTAMP(6)) OR (status='waiting_approval' AND NOT EXISTS(SELECT 1 FROM approvals WHERE diagnosis_id=diagnoses.id AND status='pending'))) AND (`trigger`='eval' OR NOT EXISTS(SELECT 1 FROM evaluation_targets WHERE target=diagnoses.target AND enabled=TRUE))) AS candidates WHERE position_in_target=1 ORDER BY created_at,id LIMIT 128")
+	rows, err := store.database.QueryContext(ctx, "SELECT id,target,input,created_at,COALESCE(fault_started_at,created_at),eval_group,eval_expected_model,eval_profile FROM (SELECT id,target,input,created_at,fault_started_at,eval_group,eval_expected_model,eval_profile,ROW_NUMBER() OVER (PARTITION BY target ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'waiting_approval' THEN 1 ELSE 2 END,created_at,id) AS position_in_target FROM diagnoses WHERE `trigger`<>'judge' AND (status='pending' OR (status='running' AND lease_until<=UTC_TIMESTAMP(6)) OR (status='waiting_approval' AND NOT EXISTS(SELECT 1 FROM approvals WHERE diagnosis_id=diagnoses.id AND status='pending'))) AND (`trigger`='eval' OR NOT EXISTS(SELECT 1 FROM evaluation_targets WHERE target=diagnoses.target AND enabled=TRUE))) AS candidates WHERE position_in_target=1 ORDER BY created_at,id LIMIT 128")
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +41,7 @@ func (store *Store) Pending(ctx context.Context) ([]run.Task, error) {
 	tasks := []run.Task{}
 	for rows.Next() {
 		var task run.Task
-		if err = rows.Scan(&task.ID, &task.Target, &task.Input, &task.CreatedAt, &task.FaultStartedAt, &task.EvaluationGroup, &task.ExpectedModel); err != nil {
+		if err = rows.Scan(&task.ID, &task.Target, &task.Input, &task.CreatedAt, &task.FaultStartedAt, &task.EvaluationGroup, &task.ExpectedModel, &task.ExecutionProfile); err != nil {
 			return nil, err
 		}
 		tasks = append(tasks, task)

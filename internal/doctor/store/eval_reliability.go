@@ -49,7 +49,7 @@ func infrastructureFailure(state string, hasReport bool, statuses []string) bool
 	}
 	for _, status := range statuses {
 		switch status {
-		case "network_error", "http_429", "http_500", "http_502", "http_503", "http_504":
+		case "network_error", "network_timeout", "http_429", "http_500", "http_502", "http_503", "http_504":
 			// 请求被限流或供应商暂时不可用，尚未得到有效的模型回答。
 		default:
 			return false // 包含一次 ok 就不再豁免；未知状态也不能擅自当成基础设施失败。
@@ -79,7 +79,7 @@ func (store *Store) PrepareEvalMakeup(ctx context.Context, originalKey string) (
 		return EvalResult{}, fmt.Errorf("原槽位编号过长，无法附加补跑编号")
 	}
 	// 所有复制字段来自已保存的原槽位，调用方不能借补跑换模型输入或故障时间。
-	_, err = store.database.ExecContext(ctx, "INSERT INTO eval_results(result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,attempt,retry_of) SELECT ?,original.run_id,original.scenario,original.iteration,original.experiment_group,original.position,original.fault_started_at,original.input,1,original.result_key FROM eval_results AS original WHERE original.result_key=? ON DUPLICATE KEY UPDATE result_key=eval_results.result_key", key, original.Key)
+	_, err = store.database.ExecContext(ctx, "INSERT INTO eval_results(result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,attempt,retry_of,execution_profile) SELECT ?,original.run_id,original.scenario,original.iteration,original.experiment_group,original.position,original.fault_started_at,original.input,1,original.result_key,original.execution_profile FROM eval_results AS original WHERE original.result_key=? ON DUPLICATE KEY UPDATE result_key=eval_results.result_key", key, original.Key)
 	if err != nil {
 		return EvalResult{}, err
 	}

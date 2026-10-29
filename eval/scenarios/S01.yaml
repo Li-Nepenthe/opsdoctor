@@ -18,3 +18,7 @@ evidence_milestones:
   - EXPLAIN 显示 stock 全表扫描
   - SHOW INDEX 确认缺少 uk_stock_sku
   - 行锁等待上升而恢复索引后下降
+
+evidence_rules:
+  - {milestone: 3, kind: full_scan, table: stock}
+  - {milestone: 4, kind: missing_index, table: stock, index: uk_stock_sku}

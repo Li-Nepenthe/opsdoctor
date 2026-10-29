@@ -19,7 +19,7 @@ import (
 
 // Markdown 不在导出时重新评分，相同数据库快照应当生成相同的表格。
 func Markdown(output io.Writer, run store.EvalRun, rows []store.EvalResult) error {
-	if _, err := fmt.Fprintf(output, "# 评测试跑 %s\n\n这张表来自自建靶场的少量试跑，不是正式评测结论。机制尚未由评委评分。OpenAI 金额是用量账本，实际扣费由用户在平台核对。\n\n批次 token：%d / %d（含未确认预留）。\n\n| 场景 | 轮次 | 组 | 诊断 | 状态 | 组件一致 | 轮数 | 工具 | 输入 / 输出 token | 账本费用 | 耗时秒 | 提交方式 | 混合模型 |\n|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---|---|\n", cell(run.ID), run.TokensUsed, run.TokenLimit); err != nil {
+	if _, err := fmt.Fprintf(output, "# 评测记录 %s\n\n这张表来自自建靶场。请按批次配置区分试跑和正式评测；每个场景样本很少，不能代表生产准确率。OpenAI 金额是用量账本，实际扣费由用户在平台核对。\n\n批次 token：%d / %d（含未确认预留）。\n\n| 场景 | 轮次 | 组 | 诊断 | 状态 | 组件一致 | 轮数 | 工具 | 输入 / 输出 token | 账本费用 | 耗时秒 | 提交方式 | 混合模型 |\n|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---|---|\n", cell(run.ID), run.TokensUsed, run.TokenLimit); err != nil {
 		return err
 	}
 	for _, row := range rows {
@@ -60,10 +60,39 @@ func Markdown(output io.Writer, run store.EvalRun, rows []store.EvalResult) erro
 			return err
 		}
 	}
-	return nil
+	if err := Statistics(output, rows); err != nil {
+		return err
+	}
+	return gradingRows(output, rows)
 }
 
 // cell 只整理表格分隔符，不改报告的数据库原文。
 func cell(text string) string {
 	return strings.NewReplacer("|", "\\|", "\n", " ", "\r", " ").Replace(text)
+}
+
+// gradingRows 保留每份机制理由、评分失败和错误说明，人工校准之后再补“评分有误”的分析。
+func gradingRows(output io.Writer, rows []store.EvalResult) error {
+	// 显示原理由而不自动推定失败原因，人工校准可据完整步骤重新核对。
+	fmt.Fprintln(output, "\n## 评分与失败明细\n\n以下是原始结论与评委理由；评委也是模型，人工一致率未填写前不能视为标准答案。格式、预算、可靠性和评分失败分别显示。推理错误、工具不足、数据缺失以及评分有误的最终分类，需要结合原步骤逐条核对。\n\n| 槽位 | 医生错误 / 预算原因 | 机制 / 评分状态 | 评分理由 | 证据覆盖 | 评委账本 | S12 实际暴露 | 写提议 / 执行 |\n|---|---|---|---|---|---|---|---|")
+	for _, row := range rows {
+		var result Summary
+		if len(row.Data) > 0 && json.Unmarshal(row.Data, &result) != nil {
+			return fmt.Errorf("明细结果损坏")
+		}
+		var grade judgementView
+		if len(row.Judgement) > 0 && json.Unmarshal(row.Judgement, &grade) != nil {
+			return fmt.Errorf("明细评分损坏")
+		}
+		label, reason, coverage := "未评分", "", "—"
+		if grade.Status == "ok" {
+			label, reason, coverage = grade.Grade.Mechanism, grade.Grade.Reason, fmt.Sprintf("%.3f", grade.Coverage)
+		} else if grade.Status == "failed" {
+			label, reason = "评分失败", grade.Error
+		}
+		if _, err := fmt.Fprintf(output, "| %s | %s | %s | %s | %s | CNY %.6f | %t | %d / %d |\n", cell(row.Key), cell(result.Error+" "+result.BudgetReason), cell(label), cell(reason), coverage, float64(grade.CostMicros)/1e6, result.InjectionObserved, result.ApprovalProposals, result.WriteExecutions); err != nil {
+			return err
+		}
+	}
+	return nil
 }

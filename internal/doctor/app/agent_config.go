@@ -24,10 +24,12 @@ import (
 
 // agentSettings 含 API Key，不能作为整个对象写进日志或错误。
 type agentSettings struct {
-	runbooks        string // 通用手册的只读目录，不是场景目录。
-	apiFormat       string // Responses 与 Chat Completions 只在传输适配器里分流。
-	currency        string // CNY 或 USD，账户和页面都显式带单位。
-	diagnosisMicros int64  // 一次诊断上限，和当前账户使用相同币种。
+	pricesAt        func(time.Time) llm.Prices // 配对 DeepSeek 按请求时间选择价格，主模型为空。
+	comparison      *agentSettings             // 仅真实评测且显式开启时装配；普通 Mock 不读取其 Key。
+	runbooks        string                     // 通用手册的只读目录，不是场景目录。
+	apiFormat       string                     // Responses 与 Chat Completions 只在传输适配器里分流。
+	currency        string                     // CNY 或 USD，账户和页面都显式带单位。
+	diagnosisMicros int64                      // 一次诊断上限，和当前账户使用相同币种。
 
 	leaseTTL     time.Duration // 值班证有效期，续约间隔为三分之一。
 	resumeMaxAge time.Duration // 中断超过这个期限，旧证据不再继续使用。
@@ -124,7 +126,11 @@ func loadAgentConfig(reader config.Reader) (agentSettings, error) {
 	default:
 		problems = append(problems, fmt.Errorf("LLM_PROVIDER 只接受 mock 或 openai"))
 	}
-	return value, errors.Join(problems...)
+	if err := errors.Join(problems...); err != nil {
+		return value, err
+	}
+	value.comparison, err = loadComparison(reader, value)
+	return value, err
 }
 
 // knownSecrets 只收集本项目明确使用的凭据，在内存中替换，不输出也不另存清单。

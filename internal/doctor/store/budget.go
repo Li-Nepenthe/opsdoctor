@@ -69,6 +69,14 @@ func (ledger *Ledger) Reserve(ctx context.Context, value llm.Reservation) (strin
 		return "", err
 	}
 	defer tx.Rollback()
+	// 直接调用账本也不能跨过任务的绑定，防止调度之外的评委或补跑用错账户。
+	var expectedAccount string
+	if err = tx.QueryRowContext(ctx, "SELECT eval_account FROM diagnoses WHERE id=?", value.DiagnosisID).Scan(&expectedAccount); err != nil {
+		return "", err
+	}
+	if expectedAccount != "" && expectedAccount != ledger.account {
+		return "", fmt.Errorf("评测诊断与模型预算账户不一致")
+	}
 	result, err := tx.ExecContext(ctx, "UPDATE llm_budget SET spent_micros=spent_micros+? WHERE account=? AND spent_micros<=? AND stopped_reason=''", value.MaximumMicros, ledger.account, ledger.limit-value.MaximumMicros)
 	if err != nil {
 		return "", err

@@ -25,13 +25,14 @@ import (
 
 // Task 只包含执行所需的最小字段，模型不能改变 ID 或 Target。
 type Task struct {
-	FaultStartedAt  time.Time       // 初始故障时间；查询不能默认混入更早的一场实验。
-	EvaluationGroup string          // 空值是普通诊断，E0–E3 是由评测器固定的工具组。
-	ExpectedModel   string          // 评测指定的模型；切换进程后不能悄悄用另一个模型续跑。
-	ID              string          // 数据库任务 ID。
-	Target          string          // 创建时已绑定的系统。
-	Input           json.RawMessage // 脱敏后的告警或手动症状。
-	CreatedAt       time.Time       // 过时检查依据。
+	ExecutionProfile string          // 评测创建时选定的执行配置；普通诊断留空。
+	FaultStartedAt   time.Time       // 初始故障时间；查询不能默认混入更早的一场实验。
+	EvaluationGroup  string          // 空值是普通诊断，E0–E3 是由评测器固定的工具组。
+	ExpectedModel    string          // 评测指定的模型；切换进程后不能悄悄用另一个模型续跑。
+	ID               string          // 数据库任务 ID。
+	Target           string          // 创建时已绑定的系统。
+	Input            json.RawMessage // 脱敏后的告警或手动症状。
+	CreatedAt        time.Time       // 过时检查依据。
 }
 
 // BudgetStatus 同时供调度器、页面和指标读取，金额是百万分之一账户货币单位。
@@ -59,7 +60,9 @@ type Repository interface {
 
 // Config 保存进程内调度参数；Resolve 在任务开始时返回已固定系统的工具与说明。
 type Config struct {
-	LeaseTTL time.Duration // 续约间隔取三分之一，留出瞬时数据库失败的余量。
+	BudgetAccount string               // 默认模型的账户名，和相同账户的评测配置共用停用标志。
+	Executions    map[string]Execution // 只用于已绑定模型的评测任务；启动后不可变。
+	LeaseTTL      time.Duration        // 续约间隔取三分之一，留出瞬时数据库失败的余量。
 
 	Model          string                                      // 初始模型名写入 diagnoses.model。
 	Provider       string                                      // mock 或 openai，决定是否检查真实费用。
@@ -82,17 +85,18 @@ type running struct {
 
 // Scheduler 的 worker 都计入 WaitGroup，Close 等它们退出后才允许 app 关数据库。
 type Scheduler struct {
-	mu         sync.Mutex         // 保护 running、stopped、blocked。
-	running    map[string]running // 仅包含本进程持有的执行，不用于恢复。
-	stopped    bool               // 停机后禁止新增 worker。
-	blocked    bool               // 本轮发现预留额不足时阻止后续真实任务。
-	config     Config             // 构造后固定。
-	repository Repository         // 实际数据库或测试实现。
-	agent      *agent.Agent       // 无共享对话状态，可以并行 Run。
-	logger     *slog.Logger       // 只记任务 ID 与状态，不记模型正文。
-	wake       chan struct{}      // API 可唤醒，容量一合并重复信号；不关闭，随 loop 退出失效。
-	workers    sync.WaitGroup     // loop 与每个执行 goroutine 各登记一次。
-	cancel     context.CancelFunc // 关闭整个调度树。
+	mu             sync.Mutex         // 保护 running、stopped、blocked。
+	running        map[string]running // 仅包含本进程持有的执行，不用于恢复。
+	stopped        bool               // 停机后禁止新增 worker。
+	blocked        bool               // 本轮发现预留额不足时阻止后续真实任务。
+	accountBlocked map[string]bool    // 每个执行配置分别停用，美元不足不能冻结人民币账户。
+	config         Config             // 构造后固定。
+	repository     Repository         // 实际数据库或测试实现。
+	agent          *agent.Agent       // 无共享对话状态，可以并行 Run。
+	logger         *slog.Logger       // 只记任务 ID 与状态，不记模型正文。
+	wake           chan struct{}      // API 可唤醒，容量一合并重复信号；不关闭，随 loop 退出失效。
+	workers        sync.WaitGroup     // loop 与每个执行 goroutine 各登记一次。
+	cancel         context.CancelFunc // 关闭整个调度树。
 }
 
 // New 只检查配置，Start 完成数据库清理后才真正接受任务。
@@ -103,7 +107,16 @@ func New(config Config, repository Repository, agent *agent.Agent, logger *slog.
 	if repository == nil || agent == nil || logger == nil || config.Resolve == nil || config.Budget == nil || config.Concurrent < 1 || config.Concurrent > 2 || config.PerTarget != 1 || config.PendingAge <= 0 || (config.Provider != "mock" && config.Provider != "openai") {
 		return nil, fmt.Errorf("调度依赖或并发配置不合法")
 	}
-	return &Scheduler{config: config, repository: repository, agent: agent, logger: logger, running: map[string]running{}, wake: make(chan struct{}, 1)}, nil
+	// 拷贝白名单，调用方之后改 map 也不能改变一份已创建实验的执行路径。
+	executions := make(map[string]Execution, len(config.Executions))
+	for name, execution := range config.Executions {
+		if name == "" || execution.Model == "" || execution.Agent == nil || execution.Repository == nil || execution.Budget == nil || (execution.Provider != "mock" && execution.Provider != "openai") || (config.Provider == "mock" && execution.Provider != "mock") {
+			return nil, fmt.Errorf("评测执行配置不完整")
+		}
+		executions[name] = execution
+	}
+	config.Executions = executions
+	return &Scheduler{config: config, repository: repository, agent: agent, logger: logger, running: map[string]running{}, accountBlocked: map[string]bool{}, wake: make(chan struct{}, 1)}, nil
 }
 
 // Start 先检查过时的断点，再清理过时告警；可恢复的任务会由循环接手。
@@ -175,12 +188,9 @@ func (scheduler *Scheduler) dispatch(ctx context.Context) error {
 	if err := scheduler.repository.Expire(bounded, time.Now().Add(-scheduler.config.PendingAge)); err != nil {
 		return err
 	}
-	status, err := scheduler.Status(bounded)
+	_, err := scheduler.Status(bounded)
 	if err != nil {
 		return err
-	}
-	if scheduler.config.Provider != "mock" && status.Blocked {
-		return nil
 	}
 	tasks, err := scheduler.repository.Pending(bounded)
 	if err != nil {
@@ -189,6 +199,23 @@ func (scheduler *Scheduler) dispatch(ctx context.Context) error {
 	for _, task := range tasks {
 		if ctx.Err() != nil {
 			return ctx.Err()
+		}
+		execution, err := scheduler.executionFor(task)
+		if err != nil {
+			return err
+		}
+		status, err := execution.Budget(bounded)
+		if err != nil {
+			return err
+		}
+		scheduler.mu.Lock()
+		blocked := scheduler.accountBlocked[execution.Account]
+		if execution.Account == scheduler.config.BudgetAccount {
+			blocked = scheduler.blocked
+		}
+		scheduler.mu.Unlock()
+		if execution.Provider != "mock" && (status.Blocked || blocked) {
+			continue // 只跳过这个账户；其他币种仍按自己的余额判断。
 		}
 		var nonce [16]byte
 		_, _ = rand.Read(nonce[:])
@@ -199,7 +226,7 @@ func (scheduler *Scheduler) dispatch(ctx context.Context) error {
 		}
 		scheduler.workers.Add(1)
 		// execute 自己归还名额；work 由用户取消、停机或父 context 结束。
-		go func() { defer scheduler.workers.Done(); defer cancel(); scheduler.execute(work, task) }()
+		go func() { defer scheduler.workers.Done(); defer cancel(); scheduler.execute(work, task, execution) }()
 	}
 	return nil
 }
@@ -224,14 +251,14 @@ func (scheduler *Scheduler) claim(task Task, cancel context.CancelFunc) bool {
 }
 
 // execute 将取消、预算和普通失败转换为有限状态；结束写入也有独立的短预算。
-func (scheduler *Scheduler) execute(ctx context.Context, task Task) {
+func (scheduler *Scheduler) execute(ctx context.Context, task Task, execution Execution) {
 	defer func() {
 		scheduler.mu.Lock()
 		delete(scheduler.running, task.ID)
 		scheduler.mu.Unlock()
 		scheduler.Wake()
 	}()
-	started, err := scheduler.repository.StartTask(ctx, task.ID, scheduler.config.Model, agent.PromptVersion, scheduler.config.Provider)
+	started, err := execution.Repository.StartTask(ctx, task.ID, execution.Model, agent.PromptVersion, execution.Provider)
 	if err != nil || !started {
 		if err != nil && ctx.Err() == nil {
 			scheduler.logger.Warn("开始诊断失败", "diagnosis_id", task.ID, "error", err)
@@ -252,10 +279,10 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task) {
 	}
 	var result agent.Result
 	if err == nil {
-		input.ID, input.Symptoms, input.Recorder = task.ID, string(task.Input), taskRecorder{scheduler: scheduler, id: task.ID}
-		input.History, input.ActiveTime, input.KnownCost, err = scheduler.repository.Resume(ctx, task.ID)
+		input.ID, input.Symptoms, input.Recorder = task.ID, string(task.Input), taskRecorder{scheduler: scheduler, repository: execution.Repository, id: task.ID}
+		input.History, input.ActiveTime, input.KnownCost, err = execution.Repository.Resume(ctx, task.ID)
 		if err == nil {
-			result, err = scheduler.agent.Run(ctx, input)
+			result, err = execution.Agent.Run(ctx, input)
 		}
 	}
 	// 停机不是用户取消。保留断点等租约过期，下一进程才有机会继续。
@@ -273,7 +300,11 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task) {
 	case errors.Is(err, llm.ErrBudget):
 		status, reason = BudgetExceeded, llm.ErrBudget.Error()
 		scheduler.mu.Lock()
-		scheduler.blocked = true
+		if execution.Account == scheduler.config.BudgetAccount {
+			scheduler.blocked = true
+		} else {
+			scheduler.accountBlocked[execution.Account] = true
+		}
 		scheduler.mu.Unlock()
 	case errors.Is(err, llm.ErrEvaluationBudget):
 		status, reason = BudgetExceeded, err.Error()
@@ -287,7 +318,7 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task) {
 	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 500*time.Millisecond)
 	defer cancel()
 	result.Elapsed = time.Since(executionStarted)
-	if saveErr := scheduler.repository.EndTask(cleanup, task.ID, status, result, reason); saveErr != nil {
+	if saveErr := execution.Repository.EndTask(cleanup, task.ID, status, result, reason); saveErr != nil {
 		scheduler.logger.Error("保存诊断结束状态失败", "diagnosis_id", task.ID, "error", saveErr)
 		return
 	}
@@ -337,13 +368,14 @@ func (scheduler *Scheduler) Status(ctx context.Context) (BudgetStatus, error) {
 
 // taskRecorder 把 agent 的一步绑定到任务 ID，并在提交后通知订阅者。
 type taskRecorder struct {
-	scheduler *Scheduler
-	id        string
+	scheduler  *Scheduler
+	repository Repository // 与本次模型绑定的仓储，确保步骤费用带正确币种。
+	id         string
 }
 
 // Record 先保存后发布，SSE 的 Last-Event-ID 才一定能在数据库里找到。
 func (recorder taskRecorder) Record(ctx context.Context, step agent.Step) (agent.Step, error) {
-	saved, err := recorder.scheduler.repository.RecordStep(ctx, recorder.id, step)
+	saved, err := recorder.repository.RecordStep(ctx, recorder.id, step)
 	if err == nil && !saved.AlreadySaved && recorder.scheduler.config.Published != nil {
 		recorder.scheduler.config.Published(recorder.id, saved)
 	}

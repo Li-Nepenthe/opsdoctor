@@ -2,6 +2,7 @@
 //
 // 主要内容：TestNetworkRetry 检查无响应、部分响应和恢复；TestNetworkRetryBudget
 // 检查第二次预留被拒时不再发送；TestNetworkAuditFailure 检查记账失败就停下。
+// TestNetworkTimeoutOrigin 区分供应商未响应与上层取消，不把总预算到期当作补跑理由。
 // 阅读建议：synctest 使用虚拟时钟，退避一秒和两秒无需真实等待。
 
 package openai
@@ -9,6 +10,7 @@ package openai
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptrace"
@@ -102,5 +104,36 @@ func TestNetworkAuditFailure(t *testing.T) {
 	client.ledger = brokenSettlement{ledger}
 	if _, err := client.Complete(t.Context(), requestForTest()); err == nil || calls != 1 {
 		t.Fatalf("calls=%d err=%v", calls, err)
+	}
+}
+
+// TestNetworkTimeoutOrigin 用虚拟时钟验证审计分类；次数与未知预留都不能随分类改变。
+func TestNetworkTimeoutOrigin(t *testing.T) {
+	for _, callerTimeout := range []bool{false, true} {
+		t.Run(fmt.Sprintf("上层到期=%t", callerTimeout), func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				ledger := &memoryLedger{}
+				client := clientForTest(t, ledger, func(request *http.Request) (*http.Response, error) {
+					<-request.Context().Done()
+					return nil, request.Context().Err()
+				}, io.Discard)
+				client.config.Timeout = 2 * time.Second
+				parent, cancel := context.WithCancel(t.Context())
+				defer cancel()
+				if callerTimeout {
+					var stop context.CancelFunc
+					parent, stop = context.WithTimeout(parent, time.Second)
+					defer stop()
+				}
+				_, err := client.Complete(parent, requestForTest())
+				want := "network_timeout"
+				if callerTimeout {
+					want = "cancelled" // 上层时限或取消不能申请额外的付费补跑。
+				}
+				if !errors.Is(err, context.DeadlineExceeded) || len(ledger.reservations) != 1 || len(ledger.settlements) != 1 || ledger.settlements[0].Status != want || !ledger.settlements[0].Unknown {
+					t.Fatalf("审计状态错误：%+v %v", ledger.settlements, err)
+				}
+			})
+		})
 	}
 }

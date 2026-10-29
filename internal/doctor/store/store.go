@@ -39,9 +39,11 @@ type Store struct {
 
 // Config 把时间和通知作为依赖注入，测试无需真的等待分组过期。
 type Config struct {
-	Currency     string        // 新执行采用的账本币种，旧任务跨币种恢复必须拒绝。
-	LeaseTTL     time.Duration // 持有者必须在此期限内续约，否则新进程可接手。
-	ResumeMaxAge time.Duration // 断开太久后证据已过时，直接失败，不继续旧调查。
+	ExecutionProfile string        // 评测执行配置的白名单名，空值用于原有默认诊断。
+	BudgetAccount    string        // 本执行配置固定的账户；领租约时和诊断绑定核对。
+	Currency         string        // 新执行采用的账本币种，旧任务跨币种恢复必须拒绝。
+	LeaseTTL         time.Duration // 持有者必须在此期限内续约，否则新进程可接手。
+	ResumeMaxAge     time.Duration // 断开太久后证据已过时，直接失败，不继续旧调查。
 
 	RecoveryWindows map[string]time.Duration            // 按系统绑定观察期；缺少配置时拒绝接收，不能悄悄立即关闭故障。
 	FaultSilence    time.Duration                       // 长时间未收到整组通知时，允许下一次 firing 开新任务。
@@ -49,6 +51,13 @@ type Config struct {
 	Now             func() time.Time                    // 生产使用 time.Now，测试使用可控时间。
 	Published       func(string, agent.Step)            // 步骤提交后的轻量通知，不在事务里推送网络数据。
 	Changed         func(string, string, time.Duration) // 已提交的状态转换，仅用系统名和有限状态作为指标标签。
+}
+
+// ForExecution 共用连接池和通知，只固定另一套币种与账户，不修改原仓储配置。
+func (store *Store) ForExecution(profile, account, currency string) *Store {
+	configuration := store.config
+	configuration.ExecutionProfile, configuration.BudgetAccount, configuration.Currency = profile, account, currency
+	return NewConfigured(store.database, configuration)
 }
 
 // New 只装配已有池，连接检查和生命周期由 app 统一负责。

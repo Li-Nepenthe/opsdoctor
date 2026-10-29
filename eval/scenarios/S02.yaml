@@ -17,3 +17,6 @@ evidence_milestones:
   - 调用链定位到 orders 查询
   - EXPLAIN 显示扫描行数和排序增加
   - 核实 user_id 与 created_at 上的联合索引缺失
+
+evidence_rules:
+  - {milestone: 4, kind: missing_index, table: orders, index: idx_orders_user_created}

@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/run"
+
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/httpx"
 	"github.com/gin-gonic/gin"
 )
@@ -91,5 +93,14 @@ func (server *api) runtimeStatus(ctx *gin.Context) {
 		httpx.Failure(ctx, 503, "UNAVAILABLE", "无法读取费用账本")
 		return
 	}
-	httpx.Success(ctx, 200, map[string]any{"provider": server.options.Provider, "model": server.options.Model, "budget": budget})
+	executions := map[string]run.ExecutionStatus{}
+	// 评测器必须看运行中的两套配置，不能把本机尚未部署的 .env 当作生效配置。
+	if server.options.Executions != nil {
+		executions, err = server.options.Executions(bounded)
+		if err != nil {
+			httpx.Failure(ctx, 503, "UNAVAILABLE", "无法读取评测模型的费用账本")
+			return
+		}
+	}
+	httpx.Success(ctx, 200, map[string]any{"provider": server.options.Provider, "model": server.options.Model, "budget": budget, "executions": executions})
 }

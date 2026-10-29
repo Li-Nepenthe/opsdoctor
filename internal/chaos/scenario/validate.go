@@ -13,6 +13,7 @@ package scenario
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"time"
 )
@@ -34,6 +35,11 @@ func ValidateStep(step Step) error {
 			break
 		}
 		return ValidateEnvironment(step.Environment)
+	case "restart", "probe_log":
+		// 对照与注入只操作订单入口，不能携带新环境变量、镜像或任意请求地址。
+		if step.Service == "order-service" && reflect.DeepEqual(step, Step{Action: step.Action, Service: step.Service}) {
+			return nil
+		}
 	case "stop", "start":
 		if step.Service == "order-worker" {
 			return nil

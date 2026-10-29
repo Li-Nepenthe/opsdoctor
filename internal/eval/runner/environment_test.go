@@ -73,10 +73,10 @@ func TestCLIValidation(t *testing.T) {
 		args []string
 		want string
 	}{
-		// 缺命令、重复场景和未实现对照场景分别检查三个入口分支。
+		// 缺命令、重复场景和白名单以外场景分别检查三个入口分支。
 		{nil, "用法"}, {[]string{"prepare", "--run", "test", "--scenarios", "S01,S01"}, "不重复"},
 		{[]string{"check-clock", "--run", "test"}, "不接受"}, // 独立校时不接受模型或批次选项。
-		{[]string{"prepare", "--run", "test", "--scenarios", "S01,S11"}, "已实现"},
+		{[]string{"prepare", "--run", "test", "--scenarios", "S01,S14"}, "已实现"},
 	} {
 		if err := RunCLI(t.Context(), test.args, reader, io.Discard); err == nil || !strings.Contains(err.Error(), test.want) {
 			t.Fatalf("args=%v err=%v", test.args, err)

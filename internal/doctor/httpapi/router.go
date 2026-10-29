@@ -56,20 +56,22 @@ type Runner interface {
 
 // Options 只接收已经装配的对象，不读取环境变量或创建第二套数据库池。
 type Options struct {
-	Approvals         Approvals                   // 人的审批入口，模型与 MCP 没有这个接口。
-	MCP               map[string]http.Handler     // 各入口已绑定系统和独立令牌，不经过页面登录。
-	Targets           *target.Catalog             // 各系统独立的工具与告警身份。
-	Store             Repository                  // 医生自己的用户和任务。
-	Tokens            *auth.Tokens                // JWT 签发与验证。
-	Logger            *slog.Logger                // 日志只记录固定字段，不记录请求正文。
-	Ready             func(context.Context) error // 检查医生自己的数据库。
-	Metrics           http.Handler                // 通用进程指标，不在这里创建全局注册表。
-	DummyPasswordHash string                      // 未知邮箱也做同等成本的密码比较。
-	Runner            Runner                      // 队列唤醒、取消与累计预算。
-	Events            *events.Hub                 // 步骤提交之后的实时通知。
-	Provider          string                      // 页面醒目标出 mock。
-	Model             string                      // 当前配置，不等于历史任务的模型。
-	SecureCookie      bool                        // HTTPS 部署设 true；本机回环 HTTP 演示为 false。
+	Evaluations       Evaluations                                                   // 登录后的只读结果查询。
+	Executions        func(context.Context) (map[string]run.ExecutionStatus, error) // 评测器只读核对已经启用的模型及账户。
+	Approvals         Approvals                                                     // 人的审批入口，模型与 MCP 没有这个接口。
+	MCP               map[string]http.Handler                                       // 各入口已绑定系统和独立令牌，不经过页面登录。
+	Targets           *target.Catalog                                               // 各系统独立的工具与告警身份。
+	Store             Repository                                                    // 医生自己的用户和任务。
+	Tokens            *auth.Tokens                                                  // JWT 签发与验证。
+	Logger            *slog.Logger                                                  // 日志只记录固定字段，不记录请求正文。
+	Ready             func(context.Context) error                                   // 检查医生自己的数据库。
+	Metrics           http.Handler                                                  // 通用进程指标，不在这里创建全局注册表。
+	DummyPasswordHash string                                                        // 未知邮箱也做同等成本的密码比较。
+	Runner            Runner                                                        // 队列唤醒、取消与累计预算。
+	Events            *events.Hub                                                   // 步骤提交之后的实时通知。
+	Provider          string                                                        // 页面醒目标出 mock。
+	Model             string                                                        // 当前配置，不等于历史任务的模型。
+	SecureCookie      bool                                                          // HTTPS 部署设 true；本机回环 HTTP 演示为 false。
 }
 
 // api 持有服务范围的登录限流器，不能让猜密码请求无限占用 bcrypt 的 CPU。
@@ -106,6 +108,8 @@ func New(options Options) *gin.Engine {
 	secured.GET("/auth/session", server.session)
 	secured.POST("/auth/logout", server.logout)
 	secured.GET("/status", server.runtimeStatus)
+	secured.GET("/eval/runs", server.evalRuns)
+	secured.GET("/eval/runs/:id", server.evalResults)
 	secured.POST("/targets/:target/tools/:tool/run", server.runTool)
 	secured.GET("/diagnoses", server.listDiagnoses)
 	secured.GET("/diagnoses/:id", server.diagnosis)

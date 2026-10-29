@@ -48,7 +48,7 @@ async function enter() {
   }
   state.loggedIn = true;
   byId("workspace").hidden = false; byId("logout").hidden = false; byId("login-panel").hidden = true;
-  notify(""); await refresh();
+  notify(""); await refresh(); await refreshEvaluations();
 }
 
 // 刷新合并并发触发，慢请求不会让计时器不断叠加新的请求。
@@ -158,7 +158,7 @@ function subscribe(id) {
 function renderDetail() {
   const detail = state.detail; const area = byId("detail"); area.replaceChildren();
   const head = node("div", undefined, "detail-head"); const title = node("div");
-  title.append(node("p", detail.target + " / " + (detail.trigger === "alert" ? "告警触发" : "手动发起"), "eyebrow"), node("h2", detail.title));
+  title.append(node("p", detail.target + " / " + ({alert:"告警触发", manual:"手动发起", eval:"评测诊断", judge:"独立评委"}[detail.trigger] || detail.trigger), "eyebrow"), node("h2", detail.title));
   const badge = node("span", labels[detail.status] || detail.status, "pill"); badge.id = "diagnosis-state"; title.append(badge); head.append(title);
   if (!finished(detail.status)) {
     const cancel = node("button", "取消诊断", "danger-button");
@@ -172,7 +172,10 @@ function renderDetail() {
   if (detail.model && (detail.provider === "mock" || detail.model.startsWith("mock"))) area.append(node("p", "Mock 模式，不是真实诊断。", "banner"));
   const progress = node("p", "", "metadata"); progress.id = "diagnosis-progress"; area.append(progress); updateProgress();
   if (detail.error) area.append(node("p", detail.error, "banner danger"));
-  if (detail.report) renderReport(area, detail.report);
+  if (detail.report) {
+    if (detail.trigger === "judge") area.append(node("h3","独立评分审计"),node("pre",JSON.stringify(detail.report,null,2)));
+    else renderReport(area, detail.report);
+  }
   const connection = node("p", finished(detail.status) ? "诊断已结束，以下为保存的完整过程。" : "正在连接实时步骤……", "muted"); connection.id = "connection-state"; area.append(connection);
   const alerts = node("div"); alerts.id = "alert-history"; area.append(alerts); renderAlerts();
   const approvals = node("div"); approvals.id = "approvals"; area.append(approvals);
@@ -265,3 +268,40 @@ async function refreshApprovals() {
     area.append(card);
   }
 }
+
+// 评测结果仍是纯文字。模型输出里的脚本不能成为表格 HTML，也不能触发工具。
+async function refreshEvaluations() {
+  if (!state.loggedIn) return;
+  const select = byId("evaluation-run"); const previous = select.value;
+  const runs = await api("/eval/runs"); select.replaceChildren();
+  for (const run of runs) select.add(new Option(run.id + " · " + run.status, run.id));
+  if (runs.some(run => run.id === previous)) select.value = previous;
+  await renderEvaluation();
+}
+async function renderEvaluation() {
+  const id = byId("evaluation-run").value; const area = byId("evaluation-results");
+  area.replaceChildren(); if (!id) { byId("evaluation-status").textContent = "暂无评测批次。"; return; }
+  const value = await api("/eval/runs/" + encodeURIComponent(id));
+  if (byId("evaluation-run").value !== id) return;
+  byId("evaluation-status").textContent = value.run.status + " · token " + value.run.tokens_used + " / " + value.run.token_limit + (value.run.stopped_reason ? " · " + value.run.stopped_reason : "");
+  const table = node("table"); const head = node("tr");
+  for (const title of ["场景 / 次数 / 顺序", "组 / 模型", "状态", "组件一致", "机制", "证据覆盖", "医生账本", "评委账本", "秒", "记录"]) head.append(node("th", title));
+  const heading = node("thead"); heading.append(head); table.append(heading); const body = node("tbody");
+  for (const item of value.items) {
+    const result = item.result || {}; const score = item.judgement || {};
+    const row = node("tr");
+    let status = result.status || "未完成";
+    if (result.reliability_failure) status += " · 可靠性，排除正确率";
+    if (result.mixed_model) status += " · 混合模型，排除统计";
+    if (item.attempt) status += " · 补跑，原失败保留";
+    const mechanism = score.status === "ok" ? ({correct:"正确", partial:"部分正确", incorrect:"不正确"}[score.grade.mechanism] || "未知") : (score.status === "failed" ? "评分失败" : "未评分");
+    for (const text of [item.scenario + " / " + item.iteration + " / " + item.position, item.group + " / " + (result.model || item.execution_profile), status, item.result ? String(result.component_match) : "—", mechanism, score.status === "ok" ? (score.coverage * 100).toFixed(1) + "%" : "—", money(result.cost_micros,result.currency), item.judgement ? money(score.cost_micros,"CNY") : "—", result.duration_known ? Number(result.seconds).toFixed(3) : "未测量"]) row.append(node("td",text));
+    const links = node("td");
+    if (item.diagnosis_id) { const button = node("button","诊断","quiet"); button.addEventListener("click",()=>selectDiagnosis(item.diagnosis_id).catch(error=>notify(error.message))); links.append(button); }
+    if (item.judgement) { const details = node("details"); details.append(node("summary","评分依据"),node("pre",JSON.stringify(score,null,2))); links.append(details); }
+    row.append(links); body.append(row);
+  }
+  table.append(body); area.append(table);
+}
+byId("evaluation-refresh").addEventListener("click",()=>refreshEvaluations().catch(error=>notify(error.message)));
+byId("evaluation-run").addEventListener("change",()=>renderEvaluation().catch(error=>notify(error.message)));

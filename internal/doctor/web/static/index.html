@@ -16,6 +16,11 @@
   <div id="workspace" hidden>
     <section class="overview"><div><p class="eyebrow">OPERATIONS / DIAGNOSTICS</p><h1>诊断工作台</h1></div><div id="cost" class="cost"></div></section>
     <p id="mode-banner" class="banner" hidden></p><p id="budget-banner" class="banner danger" hidden></p>
+    <details id="evaluation-panel" class="card"><summary>评测结果 · 按模型分开查看</summary>
+      <p class="muted">自建靶场，每个场景只有三次。组件一致、机制和证据覆盖分别展示，不能当作生产准确率。OpenAI 实际扣费请在平台核对。</p>
+      <div class="section-title"><label>批次<select id="evaluation-run"></select></label><button id="evaluation-refresh" class="quiet">刷新结果</button></div>
+      <p id="evaluation-status" class="muted"></p><div id="evaluation-results" class="table-scroll"></div>
+    </details>
     <div class="layout">
       <aside>
         <section class="card"><div class="section-title"><h2>诊断记录</h2><button id="refresh" class="quiet">刷新</button></div><label>系统筛选<select id="filter"><option value="">全部系统</option></select></label><div id="diagnosis-list" class="diagnosis-list"></div></section>

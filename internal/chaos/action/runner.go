@@ -29,6 +29,7 @@ const commandBudget = 3 * time.Minute
 
 // Runner 只保存配置，不长时间占用数据库连接。测试可以替换 RunCommand 来观察命令。
 type Runner struct {
+	OrderURL      string                                                             // 宿主机正常商品入口，不提供专用故障接口。
 	Root          string                                                             // 仓库根目录，Compose 的相对路径由此解释。
 	MySQLDSN      string                                                             // 独立的 chaos 账号 DSN，绝不写进输出或本机恢复记录。
 	RedisPassword string                                                             // REDIS_PASSWORD，只供宿主机实验动作使用，不写进恢复记录。
@@ -52,6 +53,12 @@ func (runner *Runner) Execute(ctx context.Context, step scenario.Step) error {
 		return runner.index(ctx, step)
 	case "deploy":
 		return runner.deploy(ctx, step, nil)
+	case "restart":
+		// restart 复用原容器，不读取 .env 重建，不改镜像、APP_VERSION 或任何配置。
+		_, err := runner.compose(ctx, []string{"restart", step.Service}, nil)
+		return err
+	case "probe_log":
+		return ProbeLog(ctx, runner.OrderURL)
 	case "stop", "start":
 		_, err := runner.compose(ctx, []string{step.Action, step.Service}, nil)
 		return err

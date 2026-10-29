@@ -14,13 +14,14 @@ package scenario
 
 // Scenario 把实验操作与验收条件放在一起，避免两者各自修改后不再对应。
 type Scenario struct {
-	ID          string   `yaml:"id"`                  // 文件名必须与编号相同，只接收阶段 4 的编号。
-	Title       string   `yaml:"title"`               // 显示给操作者，不传给业务服务。
-	Inject      []Step   `yaml:"inject"`              // 按顺序执行，任一步失败都需要恢复。
-	Restore     []Step   `yaml:"restore"`             // 显式列出恢复顺序，数据库恢复尤其不能猜。
-	Symptom     Symptom  `yaml:"symptom"`             // 用实际指标判断症状，不读取注入器自己的状态。
-	GroundTruth Truth    `yaml:"ground_truth"`        // 将来给评测器使用，阶段 4 只校验非空。
-	Evidence    []string `yaml:"evidence_milestones"` // 人类工程师应拿到的证据。
+	Rules       []EvidenceRule `yaml:"evidence_rules,omitempty"` // 可由表格机械核对的项目，其余交给评委。
+	ID          string         `yaml:"id"`                       // 文件名必须与编号相同，只接收阶段 4 的编号。
+	Title       string         `yaml:"title"`                    // 显示给操作者，不传给业务服务。
+	Inject      []Step         `yaml:"inject"`                   // 按顺序执行，任一步失败都需要恢复。
+	Restore     []Step         `yaml:"restore"`                  // 显式列出恢复顺序，数据库恢复尤其不能猜。
+	Symptom     Symptom        `yaml:"symptom"`                  // 用实际指标判断症状，不读取注入器自己的状态。
+	GroundTruth Truth          `yaml:"ground_truth"`             // 将来给评测器使用，阶段 4 只校验非空。
+	Evidence    []string       `yaml:"evidence_milestones"`      // 人类工程师应拿到的证据。
 }
 
 // Step 只允许已经实现的动作。加载器会拒绝未知字段，防止拼错名字后静默失效。
@@ -44,9 +45,10 @@ type Step struct {
 
 // Symptom 的表达式采用 PromQL，即 Prometheus 用来筛选和计算指标的查询语言。
 type Symptom struct {
-	PromQL string   `yaml:"promql"` // 使用不带 bool 的比较表达式；返回有限样本就表示条件成立。
-	Within string   `yaml:"within"` // 必须为不超过三分钟的正时长。
-	Alerts []string `yaml:"alerts"` // 至少响过其中一条症状告警，不能拿不相关的重启告警顶替。
+	Healthy bool     `yaml:"healthy,omitempty"` // S11 只验证健康，不等待故障告警。
+	PromQL  string   `yaml:"promql"`            // 使用不带 bool 的比较表达式；返回有限样本就表示条件成立。
+	Within  string   `yaml:"within"`            // 必须为不超过三分钟的正时长。
+	Alerts  []string `yaml:"alerts"`            // 至少响过其中一条症状告警，不能拿不相关的重启告警顶替。
 }
 
 // Truth 保存解释，不参与业务行为或告警规则。
@@ -54,4 +56,12 @@ type Truth struct {
 	Component   string `yaml:"component"`   // 定位到服务、表或链路。
 	Mechanism   string `yaml:"mechanism"`   // 供以后评测分类。
 	Explanation string `yaml:"explanation"` // 用自然语言解释原因如何引出症状。
+}
+
+// EvidenceRule 只用于事后评分，编号对应人类可读的里程碑，不参与注入或医生工具。
+type EvidenceRule struct {
+	Milestone int    `yaml:"milestone"`       // 从一开始，不能越过 evidence_milestones。
+	Kind      string `yaml:"kind"`            // full_scan 或 missing_index。
+	Table     string `yaml:"table"`           // 结构化表格中的目标表。
+	Index     string `yaml:"index,omitempty"` // 判断缺失时要求精确索引名。
 }

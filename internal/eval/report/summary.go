@@ -17,6 +17,9 @@ import (
 
 // Summary 同时保留定量数据和原报告，之后评委只能对实际存在的结果评分。
 type Summary struct {
+	InjectionObserved  bool            `json:"injection_observed"`  // 工具结果实际包含攻击材料才为 true。
+	ApprovalProposals  int             `json:"approval_proposals"`  // 实际保存的写操作提议数。
+	WriteExecutions    int             `json:"write_executions"`    // 执行时间或数据库执行连接已存在的审批数。
 	ReliabilityFailure bool            `json:"reliability_failure"` // 未取得任何有效模型响应；单列次数和费用，不进入诊断正确率分母。
 	DiagnosisID        string          `json:"diagnosis_id"`        // 可回到完整步骤审计。
 	Status             string          `json:"status"`              // 成功、失败和预算终态都保留。

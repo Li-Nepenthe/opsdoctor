@@ -18,18 +18,21 @@ import (
 
 // EvalResult 包含运行位置和原始输入；Data 在诊断结束前为空。
 type EvalResult struct {
-	Attempt        int             `json:"attempt"`            // 0 是原运行，1 是唯一一次基础设施补跑。
-	RetryOf        string          `json:"retry_of,omitempty"` // 指回原失败，导出时不能把两次尝试混成一次成功。
-	Key            string          `json:"key"`                // 全局唯一槽位编号。
-	RunID          string          `json:"run_id"`             // 批次拥有自己的 token 额度。
-	Scenario       string          `json:"scenario"`           // 仅评测器和结果页使用，不发给诊断模型。
-	Iteration      int             `json:"iteration"`          // 从一开始的重复轮次。
-	Group          string          `json:"group"`              // E0–E3。
-	Position       int             `json:"position"`           // 同次故障中实际执行的先后位置。
-	FaultStartedAt time.Time       `json:"fault_started_at"`   // 配对组共用的开始时间。
-	Input          json.RawMessage `json:"input"`              // 最初告警快照，续跑不重抓一份来替换。
-	DiagnosisID    string          `json:"diagnosis_id"`       // 与诊断表的唯一关联。
-	Data           json.RawMessage `json:"result"`             // 不可变终态摘要；完整步骤仍在诊断表。
+	JudgeID          string          `json:"judge_id"`           // 独立的人民币审计归属。
+	Judgement        json.RawMessage `json:"judgement"`          // 评分失败也保存，原医生摘要不被改写。
+	ExecutionProfile string          `json:"execution_profile"`  // 同组的不同模型分别占槽位。
+	Attempt          int             `json:"attempt"`            // 0 是原运行，1 是唯一一次基础设施补跑。
+	RetryOf          string          `json:"retry_of,omitempty"` // 指回原失败，导出时不能把两次尝试混成一次成功。
+	Key              string          `json:"key"`                // 全局唯一槽位编号。
+	RunID            string          `json:"run_id"`             // 批次拥有自己的 token 额度。
+	Scenario         string          `json:"scenario"`           // 仅评测器和结果页使用，不发给诊断模型。
+	Iteration        int             `json:"iteration"`          // 从一开始的重复轮次。
+	Group            string          `json:"group"`              // E0–E3。
+	Position         int             `json:"position"`           // 同次故障中实际执行的先后位置。
+	FaultStartedAt   time.Time       `json:"fault_started_at"`   // 配对组共用的开始时间。
+	Input            json.RawMessage `json:"input"`              // 最初告警快照，续跑不重抓一份来替换。
+	DiagnosisID      string          `json:"diagnosis_id"`       // 与诊断表的唯一关联。
+	Data             json.RawMessage `json:"result"`             // 不可变终态摘要；完整步骤仍在诊断表。
 }
 
 // EvalDiagnosisState 的轮询只取一个状态字段，不反复加载可能很长的模型对话。
@@ -48,7 +51,7 @@ func (store *Store) PrepareEvalResult(ctx context.Context, value EvalResult) (Ev
 	if err != nil {
 		return value, err
 	}
-	_, err = store.database.ExecContext(ctx, "INSERT INTO eval_results(result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input) VALUES(?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE result_key=result_key", value.Key, value.RunID, value.Scenario, value.Iteration, value.Group, value.Position, value.FaultStartedAt.UTC(), clean)
+	_, err = store.database.ExecContext(ctx, "INSERT INTO eval_results(result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,execution_profile) VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE result_key=result_key", value.Key, value.RunID, value.Scenario, value.Iteration, value.Group, value.Position, value.FaultStartedAt.UTC(), clean, value.ExecutionProfile)
 	if err != nil {
 		return value, err
 	}
@@ -57,7 +60,7 @@ func (store *Store) PrepareEvalResult(ctx context.Context, value EvalResult) (Ev
 		return value, err
 	}
 	// 同编号的配置不同是调用错误；相同编号的告警已变化则只是重试，沿用旧快照。
-	if saved.Attempt != 0 || saved.RetryOf != "" || saved.RunID != value.RunID || saved.Scenario != value.Scenario || saved.Iteration != value.Iteration || saved.Group != value.Group || saved.Position != value.Position {
+	if saved.ExecutionProfile != value.ExecutionProfile || saved.Attempt != 0 || saved.RetryOf != "" || saved.RunID != value.RunID || saved.Scenario != value.Scenario || saved.Iteration != value.Iteration || saved.Group != value.Group || saved.Position != value.Position {
 		return value, fmt.Errorf("实验槽位已有不同配置")
 	}
 	return saved, nil
@@ -66,15 +69,15 @@ func (store *Store) PrepareEvalResult(ctx context.Context, value EvalResult) (Ev
 // readEvalResult 在一个查询里取回完整槽位，避免分别读取时拼出不同版本的快照。
 func (store *Store) readEvalResult(ctx context.Context, key string) (EvalResult, error) {
 	var value EvalResult
-	var data []byte
-	err := store.database.QueryRowContext(ctx, "SELECT result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,COALESCE(diagnosis_id,''),result,attempt,COALESCE(retry_of,'') FROM eval_results WHERE result_key=?", key).Scan(&value.Key, &value.RunID, &value.Scenario, &value.Iteration, &value.Group, &value.Position, &value.FaultStartedAt, &value.Input, &value.DiagnosisID, &data, &value.Attempt, &value.RetryOf)
-	value.Data = data
+	var data, judgement []byte
+	err := store.database.QueryRowContext(ctx, "SELECT result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,COALESCE(diagnosis_id,''),result,attempt,COALESCE(retry_of,''),execution_profile,COALESCE(judge_id,''),judgement FROM eval_results WHERE result_key=?", key).Scan(&value.Key, &value.RunID, &value.Scenario, &value.Iteration, &value.Group, &value.Position, &value.FaultStartedAt, &value.Input, &value.DiagnosisID, &data, &value.Attempt, &value.RetryOf, &value.ExecutionProfile, &value.JudgeID, &judgement)
+	value.Data, value.Judgement = data, judgement
 	return value, err
 }
 
 // AttachEvalDiagnosis 只接受同批次、同幂等编号的任务，不能把另一次好结果移过来替换失败。
 func (store *Store) AttachEvalDiagnosis(ctx context.Context, key, id string) error {
-	changed, err := store.database.ExecContext(ctx, "UPDATE eval_results r JOIN diagnoses d ON d.id=? AND d.eval_key=r.result_key AND d.eval_run_id=r.run_id SET r.diagnosis_id=d.id WHERE r.result_key=? AND (r.diagnosis_id IS NULL OR r.diagnosis_id=d.id)", id, key)
+	changed, err := store.database.ExecContext(ctx, "UPDATE eval_results r JOIN diagnoses d ON d.id=? AND d.eval_key=r.result_key AND d.eval_run_id=r.run_id AND d.eval_profile=r.execution_profile SET r.diagnosis_id=d.id WHERE r.result_key=? AND (r.diagnosis_id IS NULL OR r.diagnosis_id=d.id)", id, key)
 	if err != nil {
 		return err
 	}

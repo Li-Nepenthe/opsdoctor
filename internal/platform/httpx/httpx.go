@@ -57,7 +57,7 @@ func RequestIDs(logger *slog.Logger) gin.HandlerFunc {
 		ctx.Next()
 		// 使用路由模板，不写原始 URL/query，避免密码等查询参数出现在日志里。
 		logger.InfoContext(ctx.Request.Context(), "HTTP 请求完成", "method", ctx.Request.Method,
-			"route", ctx.FullPath(), "status", ctx.Writer.Status(), "duration_ms", time.Since(started).Milliseconds())
+			"route", ctx.FullPath(), "status", ctx.Writer.Status(), "duration_ms", time.Since(started).Milliseconds(), "user_agent", clientAgent(ctx.GetHeader("User-Agent")))
 	}
 }
 

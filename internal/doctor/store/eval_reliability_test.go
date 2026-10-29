@@ -16,6 +16,7 @@ func TestInfrastructureFailure(t *testing.T) {
 		want        bool
 	}{
 		{"网络尝试全失败", "failed", false, []string{"network_error", "network_error"}, true}, // 没有一次回答，可补跑一次。
+		{"单轮无响应超时", "failed", false, []string{"network_timeout"}, true},                // 与用户取消或诊断总时限分开记账。
 		{"上游暂不可用", "failed", false, []string{"http_503", "http_429"}, true},            // 限流也是可观测的可靠性失败。
 		{"回答后才断网", "failed", false, []string{"ok", "network_error"}, false},            // 已开始推理，不能从正确率分母排除。
 		{"格式错误", "failed", false, []string{"http_200"}, false},                         // 收到损坏回复仍保留格式失败。

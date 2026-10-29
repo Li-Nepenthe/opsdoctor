@@ -52,7 +52,7 @@ func sourceHash() (string, error) {
 			if entry.IsDir() {
 				return nil
 			}
-			if strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, ".md") && !strings.HasSuffix(path, "system.md") && !strings.HasSuffix(path, "shop.profile.md") {
+			if strings.HasSuffix(path, "_test.go") || strings.HasSuffix(path, ".md") && !strings.HasSuffix(path, "system.md") && !strings.HasSuffix(path, "shop.profile.md") && !strings.HasSuffix(path, "rubric.md") {
 				return nil
 			} // 测试和导航改动不改变运行行为。
 			if !entry.Type().IsRegular() {

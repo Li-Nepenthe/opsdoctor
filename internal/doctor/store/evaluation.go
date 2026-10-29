@@ -28,13 +28,17 @@ type EvaluationMode struct {
 
 // EvaluationInput 只含实验安排和捕获的症状，标准答案始终留在评测器一侧。
 type EvaluationInput struct {
-	Target         string          // 已接入的系统。
-	RunID          string          // 当前拥有评测模式的批次。
-	Key            string          // 批次、场景轮次和组的唯一编号，重试不能重复收费。
-	Group          string          // E0–E3 决定工具菜单。
-	ExpectedModel  string          // 启动时必须使用这个模型。
-	FaultStartedAt time.Time       // 注入前保存的时间，所有配对组共用。
-	Symptoms       json.RawMessage // 告警快照或例行检查说明，不含答案。
+	ExecutionProfile string          // 启动时已经注册的执行配置名。
+	Provider         string          // 和配置名一起保存，防止另一供应商接手。
+	Account          string          // 费用账户，不能在恢复时变更。
+	Currency         string          // USD 或 CNY；空配置沿用旧试跑入口。
+	Target           string          // 已接入的系统。
+	RunID            string          // 当前拥有评测模式的批次。
+	Key              string          // 批次、场景轮次和组的唯一编号，重试不能重复收费。
+	Group            string          // E0–E3 决定工具菜单。
+	ExpectedModel    string          // 启动时必须使用这个模型。
+	FaultStartedAt   time.Time       // 注入前保存的时间，所有配对组共用。
+	Symptoms         json.RawMessage // 告警快照或例行检查说明，不含答案。
 }
 
 // EvaluationMode 不存在时返回关闭状态；数据库读取错误不能被当作“没在评测”。
@@ -112,6 +116,14 @@ func (store *Store) SetEvaluationMode(ctx context.Context, target, runID string,
 
 // Evaluation 用唯一键收回同一个任务；返回旧 ID 前核对配置，不能把不同实验误认成重试。
 func (store *Store) Evaluation(ctx context.Context, value EvaluationInput) (string, error) {
+	// 老试跑的空配置仍兼容；新配对实验必须一次给全，不能留一个靠进程默认猜。
+	if value.ExecutionProfile != "" {
+		if !regexp.MustCompile(`^[a-z][a-z0-9-]{0,31}$`).MatchString(value.ExecutionProfile) || (value.Provider != "mock" && value.Provider != "openai") || value.Account == "" || len(value.Account) > 64 || (value.Currency != "CNY" && value.Currency != "USD") {
+			return "", fmt.Errorf("评测执行配置、供应商、账户或币种不完整")
+		}
+	} else if value.Provider != "" || value.Account != "" || value.Currency != "" {
+		return "", fmt.Errorf("评测账户绑定必须同时指定执行配置")
+	}
 	if !slices.Contains([]string{"E0", "E1", "E2", "E3"}, value.Group) || value.ExpectedModel == "" || len(value.ExpectedModel) > 128 || value.FaultStartedAt.IsZero() || len(value.Key) == 0 || len(value.Key) > 128 || len(value.Symptoms) > 65536 || !json.Valid(value.Symptoms) {
 		return "", fmt.Errorf("评测配置、故障时间或症状不合法")
 	}
@@ -136,18 +148,22 @@ func (store *Store) Evaluation(ctx context.Context, value EvaluationInput) (stri
 		return "", fmt.Errorf("请先为这批评测暂停系统的自动诊断")
 	}
 	id := newID()
-	_, err = tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,fault_started_at,eval_group,eval_expected_model,eval_key,eval_run_id) VALUES(?,?,'eval','pending',?,'',?,?,?,?,?,?) ON DUPLICATE KEY UPDATE id=id", id, value.Target, "评测 "+value.Group, clean, value.FaultStartedAt.UTC(), value.Group, value.ExpectedModel, value.Key, value.RunID)
+	currency := value.Currency
+	if currency == "" {
+		currency = store.config.Currency // 仅兼容原来没有配对配置的入口。
+	}
+	_, err = tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,fault_started_at,eval_group,eval_expected_model,eval_key,eval_run_id,eval_profile,eval_provider,eval_account,currency) VALUES(?,?,'eval','pending',?,'',?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE id=id", id, value.Target, "评测 "+value.Group, clean, value.FaultStartedAt.UTC(), value.Group, value.ExpectedModel, value.Key, value.RunID, value.ExecutionProfile, value.Provider, value.Account, currency)
 	if err != nil {
 		return "", err
 	}
-	var target, group, model, runID string
+	var target, group, model, runID, profile, provider, account, savedCurrency string
 	var savedInput []byte
 	var start time.Time
-	if err = tx.QueryRowContext(ctx, "SELECT id,target,eval_group,eval_expected_model,fault_started_at,input,eval_run_id FROM diagnoses WHERE eval_key=?", value.Key).Scan(&id, &target, &group, &model, &start, &savedInput, &runID); err != nil {
+	if err = tx.QueryRowContext(ctx, "SELECT id,target,eval_group,eval_expected_model,fault_started_at,input,eval_run_id,eval_profile,eval_provider,eval_account,currency FROM diagnoses WHERE eval_key=?", value.Key).Scan(&id, &target, &group, &model, &start, &savedInput, &runID, &profile, &provider, &account, &savedCurrency); err != nil {
 		return "", err
 	}
 	// MySQL 的 JSON 会调整空白，解码后比较规范编码，不能靠原始字节判断同一份输入。
-	if target != value.Target || group != value.Group || model != value.ExpectedModel || runID != value.RunID || !start.Equal(value.FaultStartedAt.UTC().Truncate(time.Microsecond)) || !sameJSON(savedInput, clean) {
+	if target != value.Target || group != value.Group || model != value.ExpectedModel || runID != value.RunID || profile != value.ExecutionProfile || provider != value.Provider || account != value.Account || (profile != "" && savedCurrency != currency) || !start.Equal(value.FaultStartedAt.UTC().Truncate(time.Microsecond)) || !sameJSON(savedInput, clean) {
 		return "", fmt.Errorf("同一评测编号已有不同配置，拒绝覆盖或重新收费")
 	}
 	return id, tx.Commit()
