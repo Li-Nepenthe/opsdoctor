@@ -10,7 +10,6 @@ package openai
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -37,25 +36,11 @@ func decodeResponse(response *http.Response, fallback string, redactor *llm.Reda
 		}
 		return result, clean, retry, retryAfter(response.Header.Get("Retry-After")), problem
 	}
-	var body struct {
-		Model   string     `json:"model"` // 实际模型名可能带供应商版本后缀。
-		Usage   *llm.Usage `json:"usage"` // 指针用于区分缺字段与真实零值。
-		Choices []struct {
-			Message llm.Message `json:"message"`
-		} `json:"choices"` // 本项目只请求一个候选。
+	if cleanErr != nil {
+		return result, clean, false, 0, fmt.Errorf("模型回复不是合法 JSON，费用待核对")
 	}
-	if cleanErr != nil || json.Unmarshal(clean, &body) != nil || body.Usage == nil || len(body.Choices) != 1 || body.Choices[0].Message.Role != "assistant" {
-		return result, clean, false, 0, fmt.Errorf("模型回复缺少消息或用量，费用待核对")
-	}
-	usage := *body.Usage
-	if usage.Input < 0 || usage.Output < 0 || usage.Input > 2000000 || usage.Output > maximumOutputTokens || usage.CacheHit < 0 || usage.CacheHit > usage.Input {
-		return result, clean, false, 0, fmt.Errorf("模型用量超出协议范围，费用待核对")
-	}
-	if body.Model != "" {
-		result.Model = body.Model
-	}
-	result.Message, result.Usage = body.Choices[0].Message, usage
-	return result, clean, false, 0, nil
+	result, err = DecodeSavedResponse(clean, fallback)
+	return result, clean, false, 0, err
 }
 
 // httpProblem 的白名单不包含网络错误，避免无法确认是否计费时盲目重复生成。

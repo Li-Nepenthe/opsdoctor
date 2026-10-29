@@ -39,6 +39,10 @@ type Store struct {
 
 // Config 把时间和通知作为依赖注入，测试无需真的等待分组过期。
 type Config struct {
+	Currency     string        // 新执行采用的账本币种，旧任务跨币种恢复必须拒绝。
+	LeaseTTL     time.Duration // 持有者必须在此期限内续约，否则新进程可接手。
+	ResumeMaxAge time.Duration // 断开太久后证据已过时，直接失败，不继续旧调查。
+
 	RecoveryWindows map[string]time.Duration            // 按系统绑定观察期；缺少配置时拒绝接收，不能悄悄立即关闭故障。
 	FaultSilence    time.Duration                       // 长时间未收到整组通知时，允许下一次 firing 开新任务。
 	Redactor        *llm.Redactor                       // 入库的外部文字和发给模型的文字遵循同一套规则。
@@ -52,6 +56,16 @@ func New(database *sql.DB) *Store { return NewConfigured(database, Config{}) }
 
 // NewConfigured 保留无网络的构造过程，缺省时间与脱敏器也适用于集成测试。
 func NewConfigured(database *sql.DB, config Config) *Store {
+	// 测试和旧调用方可省略这些选项；默认值仍给恢复设置有限期限。
+	if config.Currency == "" {
+		config.Currency = "CNY"
+	}
+	if config.LeaseTTL == 0 {
+		config.LeaseTTL = 30 * time.Second
+	}
+	if config.ResumeMaxAge == 0 {
+		config.ResumeMaxAge = 2 * time.Minute
+	}
 	if config.FaultSilence <= 0 {
 		config.FaultSilence = 15 * time.Minute
 	}

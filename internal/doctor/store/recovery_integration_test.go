@@ -16,6 +16,7 @@ import (
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/alerts"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/run"
 )
 
@@ -29,7 +30,7 @@ func TestIntegrationRecoveryWindow(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err := repository.StartTask(t.Context(), first.DiagnosisID, "mock-test", "v-test", "mock"); err != nil {
+	if _, err := repository.StartTask(llm.WithLease(t.Context(), "test-owner"), first.DiagnosisID, "mock-test", "v-test", "mock"); err != nil {
 		t.Fatal(err)
 	}
 	if err := repository.EndTask(t.Context(), first.DiagnosisID, run.Succeeded, agent.Result{}, ""); err != nil {

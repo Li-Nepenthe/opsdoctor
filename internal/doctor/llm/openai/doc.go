@@ -5,6 +5,8 @@
 // HTTP 请求使用诊断的 context，因此取消按钮能中断正在等待的模型回答。
 //
 // 文件清单：
+//   - responses.go：转换 Responses 的调用条目，并读取缓存命中和写入用量。
+//   - responses_test.go：用假 HTTP 回复证明函数往返和费用换算。
 //   - doc.go：HTTP 模型客户端的边界与阅读入口。
 //   - client.go：配置检查、脱敏、发送和费用结算。
 //   - protocol.go：读取回复、解释错误码、按 Retry-After 等待。

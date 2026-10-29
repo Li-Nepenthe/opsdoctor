@@ -118,7 +118,14 @@ func TestLoopCorrection(t *testing.T) {
 			if !strings.Contains(request.Messages[len(request.Messages)-1].Content, "不存在") {
 				t.Fatal("编造步骤未退回")
 			}
-			return answer(call("good-report", "submit_report", reportArgs(4))), nil
+			// 取真实保存的查看步骤；发送前断点也占序号，不能硬编码某个数字。
+			seq := 0
+			for _, step := range recorder.steps {
+				if step.ToolName == "service_topology" {
+					seq = step.Seq
+				}
+			}
+			return answer(call("good-report", "submit_report", reportArgs(seq))), nil
 		default:
 			t.Fatal("报告成功后仍在调用模型")
 			return llm.Response{}, nil

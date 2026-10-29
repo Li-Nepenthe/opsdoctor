@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/approval"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/events"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm/mock"
@@ -38,6 +39,9 @@ func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB
 			toolNames[definition.Name] = true
 		}
 	}
+	for _, name := range []string{"create_index", "set_db_pool_size", "warm_cache"} {
+		toolNames[name] = true
+	}
 	metrics, err := newDoctorMetrics(common, toolNames)
 	if err != nil {
 		return nil, nil, nil, err
@@ -47,13 +51,13 @@ func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB
 	}
 	redactor := llm.NewRedactor(append(knownSecrets(), settings.key)...)
 	hub := events.New()
-	repository := store.NewConfigured(database, store.Config{RecoveryWindows: recoveryWindows, FaultSilence: settings.faultSilence, Redactor: redactor, Changed: metrics.changed, Published: func(id string, step agent.Step) {
+	repository := store.NewConfigured(database, store.Config{Currency: settings.currency, LeaseTTL: settings.leaseTTL, ResumeMaxAge: settings.resumeMaxAge, RecoveryWindows: recoveryWindows, FaultSilence: settings.faultSilence, Redactor: redactor, Changed: metrics.changed, Published: func(id string, step agent.Step) {
 		// 数据库提交以后只做内存工作，不在这里等待浏览器读取或另发网络请求。
 		metrics.step(step)
 		raw, _ := json.Marshal(step)
 		hub.Publish(id, events.Event{ID: step.Seq, Data: raw})
 	}})
-	ledger, err := repository.NewLedger(ctx, settings.budgetAccount, settings.totalMicros)
+	ledger, err := repository.NewCurrencyLedger(ctx, settings.budgetAccount, settings.totalMicros, settings.currency)
 	if err != nil {
 		return nil, nil, nil, err
 	}
@@ -61,16 +65,18 @@ func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	loop, err := agent.New(model, settings.model, redactor, agent.DefaultLimits())
+	limits := agent.DefaultLimits()
+	limits.CostMicros = settings.diagnosisMicros
+	loop, err := agent.New(model, settings.model, redactor, limits)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	scheduler, err := run.New(run.Config{Model: settings.model, Provider: settings.provider, Concurrent: settings.concurrent, PerTarget: settings.perTarget, PendingAge: settings.pendingAge, Budget: ledger.Status, ObservedBudget: metrics.budget, Resolve: func(name string) (agent.Input, error) {
+	scheduler, err := run.New(run.Config{LeaseTTL: settings.leaseTTL, Model: settings.model, Provider: settings.provider, Concurrent: settings.concurrent, PerTarget: settings.perTarget, PendingAge: settings.pendingAge, Budget: ledger.Status, ObservedBudget: metrics.budget, Resolve: func(name string) (agent.Input, error) {
 		system, ok := catalog.Get(name)
 		if !ok {
 			return agent.Input{}, fmt.Errorf("任务绑定的系统已不在接入配置中")
 		}
-		return agent.Input{Profile: system.Profile(), Unavailable: system.Unavailable(), Components: system.Components(), Tools: system.Tools()}, nil
+		return agent.Input{Profile: system.Profile(), Unavailable: system.Unavailable(), Components: system.Components(), Tools: system.Tools(), Approvals: approval.New(name, system.Actions(), repository, redactor)}, nil
 	}}, repository, loop, logger)
 	return repository, scheduler, hub, err
 }
@@ -80,5 +86,5 @@ func createModel(settings agentSettings, ledger llm.Ledger, redactor *llm.Redact
 	if settings.provider == "mock" {
 		return &mock.Client{}, nil
 	}
-	return openai.New(openai.Config{BaseURL: settings.baseURL, Key: settings.key, Timeout: settings.timeout, Prices: settings.prices}, nil, ledger, redactor, logger)
+	return openai.New(openai.Config{Format: settings.apiFormat, BaseURL: settings.baseURL, Key: settings.key, Timeout: settings.timeout, Prices: settings.prices}, nil, ledger, redactor, logger)
 }

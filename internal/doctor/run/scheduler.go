@@ -10,6 +10,8 @@ package run
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -29,8 +31,9 @@ type Task struct {
 	CreatedAt time.Time       // 过时检查依据。
 }
 
-// BudgetStatus 同时供调度器、页面和指标读取，金额是百万分之一元。
+// BudgetStatus 同时供调度器、页面和指标读取，金额是百万分之一账户货币单位。
 type BudgetStatus struct {
+	Currency    string `json:"currency"`              // 本账户币种，不能把历史人民币显示成美元。
 	SpentMicros int64  `json:"spent_micros"`          // 含无法确认扣费时保留的预留额。
 	LimitMicros int64  `json:"limit_micros"`          // 本进程配置的总上限。
 	Blocked     bool   `json:"blocked"`               // true 时真实模型不再启动新任务。
@@ -41,6 +44,8 @@ type BudgetStatus struct {
 // Repository 把状态与步骤保存放在同一个边界，假仓储可完整验证调度行为。
 type Repository interface {
 	Recover(context.Context) error
+	Renew(context.Context, string) (bool, error)
+	Resume(context.Context, string) ([]agent.Step, time.Duration, int64, error)
 	Expire(context.Context, time.Time) error
 	Pending(context.Context) ([]Task, error)
 	StartTask(context.Context, string, string, string, string) (bool, error)
@@ -51,6 +56,8 @@ type Repository interface {
 
 // Config 保存进程内调度参数；Resolve 在任务开始时返回已固定系统的工具与说明。
 type Config struct {
+	LeaseTTL time.Duration // 续约间隔取三分之一，留出瞬时数据库失败的余量。
+
 	Model          string                                      // 初始模型名写入 diagnoses.model。
 	Provider       string                                      // mock 或 openai，决定是否检查真实费用。
 	Concurrent     int                                         // 全局名额，默认 2，范围 1–2。
@@ -64,8 +71,9 @@ type Config struct {
 
 // running 保存取消函数和系统名，mu 保护这张表与 stopped、blocked。
 type running struct {
-	target string
-	cancel context.CancelFunc
+	userCancelled bool // 显式用户操作，与停机和丢租约区分。
+	target        string
+	cancel        context.CancelFunc
 }
 
 // Scheduler 的 worker 都计入 WaitGroup，Close 等它们退出后才允许 app 关数据库。
@@ -85,13 +93,16 @@ type Scheduler struct {
 
 // New 只检查配置，Start 完成数据库清理后才真正接受任务。
 func New(config Config, repository Repository, agent *agent.Agent, logger *slog.Logger) (*Scheduler, error) {
+	if config.LeaseTTL == 0 {
+		config.LeaseTTL = 30 * time.Second
+	}
 	if repository == nil || agent == nil || logger == nil || config.Resolve == nil || config.Budget == nil || config.Concurrent < 1 || config.Concurrent > 2 || config.PerTarget != 1 || config.PendingAge <= 0 || (config.Provider != "mock" && config.Provider != "openai") {
 		return nil, fmt.Errorf("调度依赖或并发配置不合法")
 	}
 	return &Scheduler{config: config, repository: repository, agent: agent, logger: logger, running: map[string]running{}, wake: make(chan struct{}, 1)}, nil
 }
 
-// Start 先失败化遗留 running，再清理过时告警；任何一步失败都不启动后台诊断。
+// Start 先检查过时的断点，再清理过时告警；可恢复的任务会由循环接手。
 func (scheduler *Scheduler) Start(parent context.Context) error {
 	if err := scheduler.repository.Recover(parent); err != nil {
 		return err
@@ -154,6 +165,9 @@ func (scheduler *Scheduler) loop(ctx context.Context) {
 func (scheduler *Scheduler) dispatch(ctx context.Context) error {
 	bounded, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
+	if err := scheduler.repository.Recover(bounded); err != nil {
+		return err
+	}
 	if err := scheduler.repository.Expire(bounded, time.Now().Add(-scheduler.config.PendingAge)); err != nil {
 		return err
 	}
@@ -172,7 +186,9 @@ func (scheduler *Scheduler) dispatch(ctx context.Context) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		work, cancel := context.WithCancel(ctx)
+		var nonce [16]byte
+		_, _ = rand.Read(nonce[:])
+		work, cancel := context.WithCancel(llm.WithLease(ctx, hex.EncodeToString(nonce[:])))
 		if !scheduler.claim(task, cancel) {
 			cancel()
 			continue
@@ -213,27 +229,32 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task) {
 	}()
 	started, err := scheduler.repository.StartTask(ctx, task.ID, scheduler.config.Model, agent.PromptVersion, scheduler.config.Provider)
 	if err != nil || !started {
-		// 取消可能恰好发生在登记在途表之后、写 running 之前。此时也必须留下取消结果。
-		if ctx.Err() != nil {
-			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 500*time.Millisecond)
-			defer cancel()
-			changed, saveErr := scheduler.repository.CancelPending(cleanup, task.ID, "用户取消或服务停止")
-			if saveErr == nil && !changed {
-				saveErr = scheduler.repository.EndTask(cleanup, task.ID, Cancelled, agent.Result{}, "用户取消或服务停止")
-			}
-			if saveErr != nil {
-				scheduler.logger.Error("保存启动前取消失败", "diagnosis_id", task.ID, "error", saveErr)
-			}
-		} else if err != nil {
+		if err != nil && ctx.Err() == nil {
 			scheduler.logger.Warn("开始诊断失败", "diagnosis_id", task.ID, "error", err)
 		}
 		return
 	}
+
+	renewCtx, stopRenew := context.WithCancel(ctx)
+	renewed := make(chan struct{})
+	defer func() { stopRenew(); <-renewed }()
+	go func() { defer close(renewed); scheduler.renew(renewCtx, task.ID) }()
 	input, err := scheduler.config.Resolve(task.Target)
 	var result agent.Result
 	if err == nil {
 		input.ID, input.Symptoms, input.Recorder = task.ID, string(task.Input), taskRecorder{scheduler: scheduler, id: task.ID}
-		result, err = scheduler.agent.Run(ctx, input)
+		input.History, input.ActiveTime, input.KnownCost, err = scheduler.repository.Resume(ctx, task.ID)
+		if err == nil {
+			result, err = scheduler.agent.Run(ctx, input)
+		}
+	}
+	// 停机不是用户取消。保留断点等租约过期，下一进程才有机会继续。
+	scheduler.mu.Lock()
+	stopped := scheduler.stopped
+	userCancelled := scheduler.running[task.ID].userCancelled
+	scheduler.mu.Unlock()
+	if stopped || (ctx.Err() != nil && !userCancelled) {
+		return
 	}
 	status, reason := Succeeded, ""
 	switch {
@@ -246,6 +267,8 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task) {
 		scheduler.mu.Unlock()
 	case err != nil:
 		status, reason = Failed, err.Error()
+	case result.WaitingApproval:
+		status, reason = WaitingApproval, "等待人工审批，活动时间已暂停"
 	case result.BudgetExceeded:
 		status, reason = BudgetExceeded, "查证预算已用尽，最后一次机会未提交合法报告"
 	}
@@ -260,22 +283,21 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task) {
 
 // Cancel 取消正在运行的 context；排队任务直接以条件更新改为 cancelled。
 func (scheduler *Scheduler) Cancel(ctx context.Context, id string) error {
-	scheduler.mu.Lock()
-	// 登记在途比写 running 更早，所以取消总能找到执行中的 context。
-	current, exists := scheduler.running[id]
-	if exists {
-		current.cancel()
-	}
-	scheduler.mu.Unlock()
-	if exists {
-		return nil
-	}
+	// 先持久化意图，点击取消之后即使进程马上崩溃，也不能在下次启动时重跑。
 	changed, err := scheduler.repository.CancelPending(ctx, id, "用户取消")
 	if err != nil {
 		return err
 	}
-	if !changed {
-		return fmt.Errorf("任务已结束或不属于当前进程的在途任务")
+	scheduler.mu.Lock()
+	current, exists := scheduler.running[id]
+	if exists {
+		current.userCancelled = true
+		scheduler.running[id] = current
+		current.cancel()
+	}
+	scheduler.mu.Unlock()
+	if !changed && !exists {
+		return fmt.Errorf("任务已结束或不存在")
 	}
 	return nil
 }
@@ -309,8 +331,59 @@ type taskRecorder struct {
 // Record 先保存后发布，SSE 的 Last-Event-ID 才一定能在数据库里找到。
 func (recorder taskRecorder) Record(ctx context.Context, step agent.Step) (agent.Step, error) {
 	saved, err := recorder.scheduler.repository.RecordStep(ctx, recorder.id, step)
-	if err == nil && recorder.scheduler.config.Published != nil {
+	if err == nil && !saved.AlreadySaved && recorder.scheduler.config.Published != nil {
 		recorder.scheduler.config.Published(recorder.id, saved)
 	}
 	return saved, err
+}
+
+// renew 定期证明执行者仍在工作；一次明确失去租约就取消本机请求，不能再继续花钱。
+func (scheduler *Scheduler) renew(ctx context.Context, id string) {
+	ticker := time.NewTicker(scheduler.config.LeaseTTL / 3)
+	defer ticker.Stop()
+	// 即使数据库一直不可达，也不能无限相信旧租约。用本机较早的起点保守停工。
+	validUntil := time.Now().Add(scheduler.config.LeaseTTL)
+	expiry := time.NewTimer(time.Until(validUntil))
+	defer expiry.Stop()
+	lose := func() {
+		scheduler.mu.Lock()
+		defer scheduler.mu.Unlock()
+		if current, ok := scheduler.running[id]; ok {
+			current.cancel()
+		}
+	}
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-expiry.C:
+			lose()
+			return
+		case <-ticker.C:
+			started := time.Now()
+			deadline := minTime(started.Add(scheduler.config.LeaseTTL/6), validUntil)
+			bounded, cancel := context.WithDeadline(ctx, deadline)
+			ok, err := scheduler.repository.Renew(bounded, id)
+			cancel()
+			if err != nil {
+				scheduler.logger.Warn("续租暂时失败", "diagnosis_id", id, "error", err)
+				continue
+			}
+			if !ok {
+				lose()
+				return
+			}
+			// 从请求发出时起算，比收到成功回复后再加 TTL 更保守，避免网络耗时延长执行权。
+			validUntil = started.Add(scheduler.config.LeaseTTL)
+			expiry.Reset(max(0, time.Until(validUntil)))
+		}
+	}
+}
+
+// minTime 选较早的截止时间，续约查询本身也不能越过旧租约的保守期限。
+func minTime(first, second time.Time) time.Time {
+	if first.Before(second) {
+		return first
+	}
+	return second
 }

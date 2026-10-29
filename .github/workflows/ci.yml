@@ -58,20 +58,21 @@ jobs:
           # 空库初始化时尚无业务表；服务健康说明迁移已完成，此时才授予精确的表级权限。
           docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/005_chaos_user.sh
           docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/006_doctor_readonly.sh
+          docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/007_doctor_index.sh
           docker compose --env-file .env -f deploy/docker-compose.yml ps
       - name: MySQL 和 Redis 集成测试与竞态检查
         # .env.example 只含演示假值；通过环境注入，不把密码写入工作流。
         run: |
           while IFS= read -r line; do
             case "$line" in
-              TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*|TEST_REDIS_PASSWORD=*|TEST_SHOP_MYSQL_RO_DSN=*|TEST_SHOP_REDIS_RO_URL=*|TEST_DOCTOR_MYSQL_DSN=*) export "$line" ;;
+              TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*|TEST_REDIS_PASSWORD=*|TEST_SHOP_MYSQL_RO_DSN=*|TEST_SHOP_MYSQL_DDL_DSN=*|TEST_SHOP_REDIS_RO_URL=*|TEST_DOCTOR_MYSQL_DSN=*) export "$line" ;;
             esac
           done < .env
           # 医生自己的空闲连接也计入账号上限；先暂停它，再独占验证第四条连接被拒绝。
           docker compose --env-file .env -f deploy/docker-compose.yml stop doctor alertmanager
           trap 'docker compose --env-file .env -f deploy/docker-compose.yml start doctor alertmanager' EXIT
           # Go 把 Skip 也算作正常退出，必须另查事件，避免漏配变量时 CI 假绿。
-          go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product ./internal/doctor/store ./internal/doctor/source/mysqlinspect ./internal/doctor/source/redisinspect -run Integration -count=1 -timeout=90s -json | tee "$RUNNER_TEMP/integration.jsonl"
+          go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product ./internal/doctor/store ./internal/doctor/source/mysqlinspect ./internal/doctor/source/redisinspect ./internal/doctor/approval ./tools/recoverycheck -run Integration -count=1 -timeout=90s -json | tee "$RUNNER_TEMP/integration.jsonl"
           python3 - <<'PY'
           import json, os
           from pathlib import Path

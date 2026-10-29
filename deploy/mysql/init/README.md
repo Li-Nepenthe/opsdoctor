@@ -23,3 +23,5 @@ MySQL 官方镜像在数据目录为空时（也就是第一次启动时），�
 空库第一次启动时，`stock` 和 `orders` 还不存在。它们要等业务服务连接 MySQL 后执行迁移才会创建。005 此时只建账号，服务健康后再按根 README 显式运行一次，补上两张表的权限。这样既能完成首次启动，也不用给实验账号整个业务库的修改权限。CI 同样按这个顺序执行。
 
 006 同样分两步运行。它把 diag_ro 限制为最多三条连接，不授予修改表或业务行的权限。已有账号不自动换密码；根 README 给出迁移后的补授权命令。医生自己的库和测试库由另一个容器初始化，见 [doctor/mysql-init](../../doctor/mysql-init/README.md)。
+
+阶段 7 的 [007_doctor_index.sh](007_doctor_index.sh) 为 diag_ddl 创建独立账号，最多一条连接，只授予五张业务表的 INDEX。空库时先建账号，迁移完成后再次执行补表级权限。006 另增加 performance_schema.threads 的 PROCESSLIST_ID 单列查看，医生据此判断旧 DDL 连接是否还在，不读取线程的业务语句内容。

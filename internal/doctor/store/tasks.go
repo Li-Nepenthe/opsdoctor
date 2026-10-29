@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/run"
 )
 
@@ -32,7 +33,7 @@ func (store *Store) Manual(ctx context.Context, target, symptoms string) (string
 
 // Pending 先选出每个系统最老的一条，避免某系统大量排队挡住另一系统。
 func (store *Store) Pending(ctx context.Context) ([]run.Task, error) {
-	rows, err := store.database.QueryContext(ctx, "SELECT id,target,input,created_at FROM (SELECT id,target,input,created_at,ROW_NUMBER() OVER (PARTITION BY target ORDER BY created_at,id) AS position_in_target FROM diagnoses WHERE status='pending') AS candidates WHERE position_in_target=1 ORDER BY created_at,id LIMIT 128")
+	rows, err := store.database.QueryContext(ctx, "SELECT id,target,input,created_at FROM (SELECT id,target,input,created_at,ROW_NUMBER() OVER (PARTITION BY target ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'waiting_approval' THEN 1 ELSE 2 END,created_at,id) AS position_in_target FROM diagnoses WHERE status='pending' OR (status='running' AND lease_until<=UTC_TIMESTAMP(6)) OR (status='waiting_approval' AND NOT EXISTS(SELECT 1 FROM approvals WHERE diagnosis_id=diagnoses.id AND status='pending'))) AS candidates WHERE position_in_target=1 ORDER BY created_at,id LIMIT 128")
 	if err != nil {
 		return nil, err
 	}
@@ -48,9 +49,12 @@ func (store *Store) Pending(ctx context.Context) ([]run.Task, error) {
 	return tasks, rows.Err()
 }
 
-// Recover 不重建对话；阶段 6 的重启必须明确失败，恢复执行留给阶段 7。
+// Recover 只结束中断太久的任务；有效的过期租约由调度器接手并重建对话。
 func (store *Store) Recover(ctx context.Context) error {
-	return store.endSelected(ctx, "SELECT id FROM diagnoses WHERE status='running'", nil, run.Running, run.Failed, "进程重启，恢复功能在阶段 7")
+	if err := store.ExpireApprovals(ctx); err != nil {
+		return err
+	}
+	return store.staleLeases(ctx)
 }
 
 // Expire 只清理告警触发的旧 pending，手动任务不会被这条告警时效规则取消。
@@ -92,11 +96,15 @@ func (store *Store) endSelected(ctx context.Context, query string, args []any, f
 
 // StartTask 记录本次选用的模型与提示版本，不能沿用上一个进程的隐含配置。
 func (store *Store) StartTask(ctx context.Context, id, model, prompt, provider string) (bool, error) {
-	return store.changeState(ctx, id, run.Pending, run.Running, "开始诊断", "started_at=?,model=?,prompt_version=?,provider=?", []any{store.config.Now().UTC(), model, prompt, provider})
+	return store.claimLease(ctx, id, model, prompt, provider)
 }
 
 // EndTask 用累计结果覆盖最终计数，失败时也保存已经发生的用量。
 func (store *Store) EndTask(ctx context.Context, id, status string, result agent.Result, reason string) error {
+	if status == run.WaitingApproval {
+		_, err := store.changeState(ctx, id, run.Running, status, reason, "active_ms=active_ms+GREATEST(0,TIMESTAMPDIFF(MICROSECOND,lease_updated_at,UTC_TIMESTAMP(6)) DIV 1000),rounds=?,tool_calls=?", []any{result.Rounds, result.ToolCalls})
+		return err
+	}
 	var report any
 	if len(result.Report) > 0 {
 		clean, err := store.config.Redactor.JSON(result.Report)
@@ -111,7 +119,20 @@ func (store *Store) EndTask(ctx context.Context, id, status string, result agent
 
 // CancelPending 和启动竞争同一行的 pending 状态，只有先拿到行锁的操作成功。
 func (store *Store) CancelPending(ctx context.Context, id, reason string) (bool, error) {
-	return store.changeState(ctx, id, run.Pending, run.Cancelled, reason, "finished_at=?,error=?", []any{store.config.Now().UTC(), reason})
+	changed, err := store.changeState(ctx, id, run.Pending, run.Cancelled, reason, "finished_at=?,error=?", []any{store.config.Now().UTC(), reason})
+	if err != nil || changed {
+		return changed, err
+	}
+	changed, err = store.changeState(ctx, id, run.WaitingApproval, run.Cancelled, reason, "finished_at=?,error=?,cancel_requested=TRUE", []any{store.config.Now().UTC(), reason})
+	if err != nil || changed {
+		return changed, err
+	}
+	result, err := store.database.ExecContext(ctx, "UPDATE diagnoses SET cancel_requested=TRUE WHERE id=? AND status IN ('running','waiting_approval') AND cancel_requested=FALSE", id)
+	if err != nil {
+		return false, err
+	}
+	count, err := result.RowsAffected()
+	return count == 1, err
 }
 
 // changeState 仅接受本文件拼出的字段片段，外部内容始终用参数绑定。
@@ -124,6 +145,11 @@ func (store *Store) changeState(ctx context.Context, id, from, to, reason, field
 		return false, err
 	}
 	defer tx.Rollback()
+	if owner := llm.Lease(ctx); owner != "" {
+		if err = requireLease(ctx, tx, id, owner); err != nil {
+			return false, err
+		}
+	}
 	values := append([]any{to}, args...)
 	values = append(values, id, from)
 	result, err := tx.ExecContext(ctx, "UPDATE diagnoses SET status=?,"+fields+" WHERE id=? AND status=?", values...)
@@ -142,6 +168,12 @@ func (store *Store) changeState(ctx context.Context, id, from, to, reason, field
 	step, err := store.appendStep(ctx, tx, id, agent.Step{Kind: "system", Status: to, Result: string(payload)})
 	if err != nil {
 		return false, fmt.Errorf("保存状态步骤：%w", err)
+	}
+	// 先保存状态步骤，再释放租约；反过来会让本事务自己的步骤被租约校验拒绝。
+	if from == run.Running && to != run.Running {
+		if _, err = tx.ExecContext(ctx, "UPDATE diagnoses SET lease_owner=NULL,lease_until=NULL WHERE id=?", id); err != nil {
+			return false, err
+		}
 	}
 	var target string
 	var started sql.NullTime

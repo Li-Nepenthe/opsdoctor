@@ -134,7 +134,7 @@ func (server *api) listDiagnoses(ctx *gin.Context) {
 		}
 	}
 	status := ctx.Query("status")
-	if status != "" && status != run.Pending && status != run.Running && status != run.Succeeded && status != run.Failed && status != run.Cancelled && status != run.BudgetExceeded {
+	if status != "" && status != run.Pending && status != run.Running && status != run.WaitingApproval && status != run.Succeeded && status != run.Failed && status != run.Cancelled && status != run.BudgetExceeded {
 		httpx.Failure(ctx, 400, "INVALID_ARGUMENT", "未知诊断状态")
 		return
 	}

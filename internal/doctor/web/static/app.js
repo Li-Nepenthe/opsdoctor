@@ -3,7 +3,7 @@
 "use strict";
 
 const byId = (id) => document.getElementById(id);
-const labels = {pending:"等待执行", running:"正在诊断", succeeded:"报告已提交", failed:"执行失败", cancelled:"已取消", budget_exceeded:"预算已用尽"};
+const labels = {pending:"等待执行", running:"正在诊断", waiting_approval:"等待人工审批", succeeded:"报告已提交", failed:"执行失败", cancelled:"已取消", budget_exceeded:"预算已用尽"};
 const state = {csrf:"", selected:"", source:null, detail:null, steps:new Map(), page:1, loggedIn:false, refreshing:false};
 
 // 元素内容只作为文字写入；模型返回的标签、事件属性和脚本都不会被浏览器解析。
@@ -14,8 +14,8 @@ function node(tag, text, className) {
   return value;
 }
 function notify(message) { byId("notice").textContent = message; byId("notice").hidden = !message; }
-function money(micros) { return "¥" + (Number(micros || 0) / 1000000).toFixed(4); }
-function finished(status) { return !["pending", "running"].includes(status); }
+function money(micros, currency = "CNY") { return (currency === "USD" ? "$" : "¥") + (Number(micros || 0) / 1000000).toFixed(4); }
+function finished(status) { return !["pending", "running", "waiting_approval"].includes(status); }
 function closeStream() { if (state.source) state.source.close(); state.source = null; }
 
 // JWT 留在 HttpOnly Cookie，脚本只持有会话派生的 CSRF 值；地址从不带凭据。
@@ -55,7 +55,7 @@ async function enter() {
 async function refresh() {
   if (!state.loggedIn || state.refreshing) return;
   state.refreshing = true;
-  try { await Promise.all([refreshStatus(), refreshList(), refreshAlerts()]); }
+  try { await Promise.all([refreshStatus(), refreshList(), refreshAlerts(), refreshApprovals()]); }
   catch (error) { notify(error.message); }
   finally { state.refreshing = false; }
 }
@@ -92,7 +92,7 @@ async function refreshStatus() {
   byId("mode-banner").textContent = "Mock 模式，不是真实诊断。当前使用固定脚本：" + value.model;
   byId("budget-banner").hidden = !value.budget.blocked;
   byId("budget-banner").textContent = value.budget.reason || "全局费用额度不足，真实诊断已停止启动。";
-  byId("cost").replaceChildren(node("strong", money(value.budget.spent_micros) + " / " + money(value.budget.limit_micros)), node("div", "当前账户结算费用 · 含未知和未结算预留额", "muted"));
+  byId("cost").replaceChildren(node("strong", money(value.budget.spent_micros,value.budget.currency) + " / " + money(value.budget.limit_micros,value.budget.currency)), node("div", "当前账户结算费用 · 含未知和未结算预留额", "muted"));
   byId("manual-submit").disabled = value.provider !== "mock" && value.budget.blocked;
 }
 
@@ -122,7 +122,7 @@ async function selectDiagnosis(id) {
   const detail = await api("/diagnoses/" + encodeURIComponent(id));
   if (state.selected !== id) return;
   state.detail = detail; state.steps = new Map(detail.steps.map(step => [step.seq, step]));
-  renderDetail(); refreshList().catch(error => notify(error.message));
+  renderDetail(); refreshApprovals().catch(error => notify(error.message)); refreshList().catch(error => notify(error.message));
   if (!finished(detail.status)) subscribe(id);
 }
 
@@ -137,7 +137,8 @@ function subscribe(id) {
       const step = JSON.parse(event.data);
       if (state.steps.has(step.seq)) return;
       state.steps.set(step.seq, step); appendStep(step); updateProgress();
-      if (step.kind === "system") {
+      if (step.kind === "approval") refreshApprovals().catch(error => notify(error.message));
+      if (step.kind === "system" && labels[step.status]) {
         state.detail.status = step.status;
         byId("diagnosis-state").textContent = labels[step.status] || step.status;
         // pending 行尚未绑定实际模型；开始执行后重读一次，不能把迁移默认值误标成 Mock。
@@ -174,11 +175,12 @@ function renderDetail() {
   if (detail.report) renderReport(area, detail.report);
   const connection = node("p", finished(detail.status) ? "诊断已结束，以下为保存的完整过程。" : "正在连接实时步骤……", "muted"); connection.id = "connection-state"; area.append(connection);
   const alerts = node("div"); alerts.id = "alert-history"; area.append(alerts); renderAlerts();
+  const approvals = node("div"); approvals.id = "approvals"; area.append(approvals);
   const steps = node("div", undefined, "steps"); steps.id = "steps"; steps.append(node("h3", "诊断步骤")); area.append(steps);
   for (const step of [...state.steps.values()].sort((a,b) => a.seq-b.seq)) appendStep(step);
 }
 
-// 报告的建议只显示，不生成可执行按钮；写操作和审批不在本阶段范围。
+// 报告里的建议仍只显示。只有已保存的审批单才有批准按钮，不能直接执行报告文字。
 function renderReport(area, report) {
   const block = node("section", undefined, "report"); block.append(node("h3", "诊断报告"), node("p", report.summary));
   block.append(node("p", "组件：" + report.root_cause.component + " · 置信度：" + Math.round(report.root_cause.confidence * 100) + "%"), node("p", report.root_cause.mechanism));
@@ -193,10 +195,10 @@ function renderReport(area, report) {
 // 步骤里的实际模型与任务初始模型不一致时明确标出来，不能默默混成同一种模型。
 function appendStep(step) {
   const block = node("details", undefined, "step");
-  const title = "#" + step.seq + " · " + ({llm:"模型调用",tool:"查看工具",system:"状态变化"}[step.kind] || step.kind) + (step.tool_name ? " / " + step.tool_name : "") + (step.kind === "llm" ? " / " + step.model + (state.detail.model && step.model !== state.detail.model ? "（与初始模型不同）" : "") : "") + " · " + step.status + " · " + step.duration_ms + " ms";
+  const title = "#" + step.seq + " · " + ({llm:"模型调用",tool:"工具结果",approval:"人工审批",system:"状态变化"}[step.kind] || step.kind) + (step.tool_name ? " / " + step.tool_name : "") + (step.kind === "llm" ? " / " + step.model + (state.detail.model && step.model !== state.detail.model ? "（与初始模型不同）" : "") : "") + " · " + step.status + " · " + step.duration_ms + " ms";
   block.append(node("summary", title));
   if (step.kind === "llm") {
-    block.append(node("p", "实际模型：" + step.model + " · " + money(step.cost_micros)));
+    block.append(node("p", "实际模型：" + step.model + " · " + money(step.cost_micros,step.currency)));
     if (state.detail.model && step.model !== state.detail.model) block.append(node("p", "本步模型与诊断初始模型不同", "warning"));
   }
   block.append(node("h3", "发送内容（已脱敏）"), node("pre", JSON.stringify(step.args, null, 2)), node("h3", "返回内容（已脱敏）"));
@@ -212,7 +214,7 @@ function updateProgress() {
   const views = steps.filter(step => step.kind === "tool" && step.tool_name !== "submit_report");
   const total = (field) => models.reduce((sum, step) => sum + Number((step.usage || {})[field] || 0), 0);
   const cost = models.reduce((sum, step) => sum + Number(step.cost_micros || 0), 0);
-  byId("diagnosis-progress").textContent = "模型：" + (detail.model || "尚未开始") + " · 提示版本：" + (detail.prompt_version || "—") + " · 已保存 " + models.length + " 轮模型 / " + views.length + " 份查看结果 · 输入 " + total("prompt_tokens") + " / 输出 " + total("completion_tokens") + " token · " + money(cost);
+  byId("diagnosis-progress").textContent = "模型：" + (detail.model || "尚未开始") + " · 提示版本：" + (detail.prompt_version || "—") + " · 已保存 " + models.length + " 轮模型 / " + views.length + " 份工具结果 · 输入 " + total("prompt_tokens") + " / 输出 " + total("completion_tokens") + " token · " + money(cost,detail.currency);
 }
 
 // 所有事件处理都收敛到统一 API，表单提交失败时给用户可见反馈。
@@ -231,3 +233,35 @@ byId("filter").addEventListener("change", () => { state.page=1; refresh(); });
 byId("refresh").addEventListener("click", refresh);
 setInterval(refresh, 10000);
 enter().catch(() => showLogin());
+
+// 每张单展示数据库里的确切计划；按钮不携带参数，避免审阅后被另一份值替换。
+async function refreshApprovals() {
+  const id = state.selected; if (!id || !state.detail || state.detail.id !== id || !byId("approvals")) return;
+  const approvals = await api("/diagnoses/" + encodeURIComponent(id) + "/approvals");
+  if (state.selected !== id || !byId("approvals")) return;
+  const area = byId("approvals"); area.replaceChildren();
+  if (!approvals.length) return;
+  area.append(node("h3", "人工审批"));
+  const names = {pending:"待审批", approved:"已批准，等待执行", executing:"执行中或正在核对断点", rejected:"已拒绝", expired:"已过期", executed:"执行完成", failed:"执行未确认或失败"};
+  for (const item of approvals) {
+    const card = node("section", undefined, "step");
+    card.append(node("h3", item.tool_name + " · " + (names[item.status] || item.status)), node("p", "审批编号：" + item.id), node("pre", item.plan.preview));
+    card.append(node("p", "理由：" + item.reason), node("p", "证据步骤：" + item.evidence_steps.join("、")), node("p", "预期效果：" + item.expected_effect), node("p", "风险：" + item.risk));
+    card.append(node("h4", "撤销方法（由人执行）"), node("pre", item.plan.rollback), node("p", "过期时间：" + new Date(item.expires_at).toLocaleString()));
+    if (item.tool_name === "create_index") card.append(node("p", "取消医生请求不保证 MySQL 已停止建索引；执行不确定时请先核对真实状态。", "warning"));
+    if (item.decided_by) card.append(node("p", "决定人：" + item.decided_by + " · " + new Date(item.decided_at).toLocaleString()));
+    if (item.result && item.result.summary) card.append(node("pre", JSON.stringify(item.result, null, 2)));
+    if (item.status === "pending" && !finished(state.detail.status)) {
+      const buttons = node("div", undefined, "section-title");
+      for (const [action, label] of [["approve", "批准此具体操作"], ["reject", "拒绝"]]) {
+        const button = node("button", label, action === "approve" ? "danger-button" : "quiet");
+        button.addEventListener("click", async () => {
+          for (const control of buttons.querySelectorAll("button")) control.disabled = true;
+          try { await api("/approvals/" + item.id + "/" + action, {method:"POST", body:"{}"}); notify("决定已保存，诊断将继续。"); await refreshApprovals(); }
+          catch (error) { notify(error.message); await refreshApprovals(); }
+        }); buttons.append(button);
+      } card.append(buttons);
+    }
+    area.append(card);
+  }
+}

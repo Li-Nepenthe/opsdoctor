@@ -1,0 +1,26 @@
+-- 审批保存的是具体计划；executing 和连接编号用于崩溃后核对真实状态。
+CREATE TABLE approvals (
+    id CHAR(32) PRIMARY KEY,
+    diagnosis_id CHAR(32) NOT NULL,
+    parent_seq INT NOT NULL,
+    call_id VARCHAR(128) NOT NULL,
+    step_seq INT NOT NULL DEFAULT 0,
+    tool_name VARCHAR(64) NOT NULL,
+    args JSON NOT NULL,
+    plan JSON NOT NULL,
+    reason TEXT NOT NULL,
+    evidence_steps JSON NOT NULL,
+    expected_effect TEXT NOT NULL,
+    risk TEXT NOT NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'pending',
+    expires_at DATETIME(6) NOT NULL,
+    decided_by VARCHAR(128) NOT NULL DEFAULT '',
+    decided_at DATETIME(6) NULL,
+    executed_at DATETIME(6) NULL,
+    execution_owner VARCHAR(64) NOT NULL DEFAULT '',
+    connection_id BIGINT NOT NULL DEFAULT 0,
+    result JSON NULL,
+    UNIQUE KEY uk_approval_call (diagnosis_id,parent_seq,call_id),
+    KEY idx_approval_expiry (status,expires_at),
+    CONSTRAINT fk_approval_diagnosis FOREIGN KEY (diagnosis_id) REFERENCES diagnoses(id) ON DELETE CASCADE
+) ENGINE=InnoDB;

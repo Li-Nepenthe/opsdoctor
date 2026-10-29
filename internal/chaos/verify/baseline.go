@@ -22,10 +22,11 @@ import (
 
 // Baseline 在原有指标观察前加参数核对。嵌入 Client 仍提供原来的 Symptom 方法。
 type Baseline struct {
-	*Client         // 负责指标、告警和连续健康时间。
-	loadURL  string // 压测器控制根地址，仅供宿主机实验使用。
-	products int    // 预期活跃商品数，不是数据库总商品数。
-	workers  int    // 预期固定工作者数，决定最大在途请求数。
+	indexes  func(context.Context) ([]string, error) // 生产绑定只读元数据，测试可换成确定样例。
+	*Client                                          // 负责指标、告警和连续健康时间。
+	loadURL  string                                  // 压测器控制根地址，仅供宿主机实验使用。
+	products int                                     // 预期活跃商品数，不是数据库总商品数。
+	workers  int                                     // 预期固定工作者数，决定最大在途请求数。
 }
 
 // WithBaseline 由 app 传入校验过的配置，单元测试仍可单独验证原来的指标观察器。
@@ -38,7 +39,18 @@ func (baseline *Baseline) Healthy(ctx context.Context) (Result, error) {
 	if err := baseline.check(ctx); err != nil {
 		return Result{LastProblem: err.Error()}, err
 	}
-	return baseline.Client.Healthy(ctx)
+	if err := baseline.checkRepairs(ctx); err != nil {
+		return Result{LastProblem: err.Error()}, err
+	}
+	result, err := baseline.Client.Healthy(ctx)
+	if err != nil {
+		return result, err
+	}
+	// 等待连续健康期间还可能有人修改，结束前再核对一次，不把旧快照当结论。
+	if err = baseline.checkRepairs(ctx); err != nil {
+		result.LastProblem = err.Error()
+	}
+	return result, err
 }
 
 // check 只读取小型配置响应；老版本缺字段时得到零值，也必须报错，不能默认放行。

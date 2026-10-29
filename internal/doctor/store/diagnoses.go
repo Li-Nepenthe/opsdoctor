@@ -24,6 +24,7 @@ import (
 
 // Diagnosis 是列表所需的最小摘要，不包含账号或工具凭据。
 type Diagnosis struct {
+	Currency  string    `json:"currency"`   // 历史任务按创建执行时的币种显示。
 	ID        string    `json:"id"`         // 稳定任务编号。
 	Target    string    `json:"target"`     // 创建时绑定的系统。
 	Trigger   string    `json:"trigger"`    // alert 或 manual。
@@ -63,7 +64,7 @@ func (store *Store) List(ctx context.Context, target, status string, limit, offs
 	if limit < 1 || limit > 100 || offset < 0 || offset > 100000 {
 		return nil, fmt.Errorf("分页范围不合法")
 	}
-	query := "SELECT id,target,`trigger`,status,title,created_at,COALESCE(model,''),provider FROM diagnoses WHERE 1=1"
+	query := "SELECT id,target,`trigger`,status,title,created_at,COALESCE(model,''),provider,currency FROM diagnoses WHERE 1=1"
 	args := []any{}
 	if target != "" {
 		query += " AND target=?"
@@ -83,7 +84,7 @@ func (store *Store) List(ctx context.Context, target, status string, limit, offs
 	values := []Diagnosis{}
 	for rows.Next() {
 		var value Diagnosis
-		if err := rows.Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Model, &value.Provider); err != nil {
+		if err := rows.Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Model, &value.Provider, &value.Currency); err != nil {
 			return nil, err
 		}
 		values = append(values, value)
@@ -97,7 +98,7 @@ func (store *Store) Detail(ctx context.Context, id string) (Detail, error) {
 	value := Detail{Alerts: []json.RawMessage{}}
 	var started, finished sql.NullTime
 	var rawReport []byte // SQL NULL 要先接到可空字节切片，之后再交给 JSON 字段。
-	err := store.database.QueryRowContext(ctx, "SELECT id,target,`trigger`,status,title,created_at,input,COALESCE(model,''),provider,report,COALESCE(error,''),COALESCE(prompt_version,''),tokens_in,tokens_out,cache_hit_tokens,cost_micros,rounds,tool_calls,started_at,finished_at,next_seq,report_mode,budget_reason FROM diagnoses WHERE id=?", id).Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Input, &value.Model, &value.Provider, &rawReport, &value.Error, &value.PromptVersion, &value.TokensIn, &value.TokensOut, &value.CacheHit, &value.CostMicros, &value.Rounds, &value.ToolCalls, &started, &finished, &value.LastSeq, &value.ReportMode, &value.BudgetReason)
+	err := store.database.QueryRowContext(ctx, "SELECT id,target,`trigger`,status,title,created_at,input,COALESCE(model,''),provider,report,COALESCE(error,''),COALESCE(prompt_version,''),tokens_in,tokens_out,cache_hit_tokens,cost_micros,rounds,tool_calls,started_at,finished_at,next_seq,report_mode,budget_reason,currency FROM diagnoses WHERE id=?", id).Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Input, &value.Model, &value.Provider, &rawReport, &value.Error, &value.PromptVersion, &value.TokensIn, &value.TokensOut, &value.CacheHit, &value.CostMicros, &value.Rounds, &value.ToolCalls, &started, &finished, &value.LastSeq, &value.ReportMode, &value.BudgetReason, &value.Currency)
 	if err != nil {
 		return value, err
 	}

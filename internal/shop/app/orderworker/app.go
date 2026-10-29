@@ -90,6 +90,11 @@ func Run(parent context.Context) (result error) {
 		return err
 	}
 	admin := adminserver.New(address, database.PingContext, observability.Metrics.Registry)
+	closeOps, err := app.StartOps(ctx, stop, database, nil, observability.Metrics)
+	if err != nil {
+		return err
+	}
+	defer func() { result = errors.Join(result, closeOps()) }()
 	cancel()
 	// 只输出生效参数，不输出 DSN。消费组名固定，重启才能接着上次的位置读。
 	logger.Info("订单消费者配置已加载", "version", telemetry.Version, "admin_addr", address, "group", "order-worker", "message_timeout", messageTimeout.String())

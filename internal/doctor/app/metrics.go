@@ -26,12 +26,12 @@ type doctorMetrics struct {
 	diagnoses     *prometheus.CounterVec   // 状态进入次数，按系统与状态区分。
 	tokens        *prometheus.CounterVec   // 按模型和输入/输出方向。
 	cacheHits     *prometheus.CounterVec   // 供应商声明命中的输入 token。
-	costs         *prometheus.CounterVec   // 结算费用及未知预留额，单位人民币元。
+	costs         *prometheus.CounterVec   // 结算费用及未知预留额，单位由固定 currency 标签说明。
 	calls         *prometheus.CounterVec   // 查看工具的结果次数。
 	toolDuration  *prometheus.HistogramVec // 每次工具耗时。
 	duration      *prometheus.HistogramVec // 执行至终态的时间。
-	spent         prometheus.Gauge         // 全局账本，包括尚未结算的预留。
-	limit         prometheus.Gauge         // 配置的全局上限。
+	spent         *prometheus.GaugeVec     // 全局账本，包括尚未结算的预留。
+	limit         *prometheus.GaugeVec     // 配置的全局上限。
 	blocked       prometheus.Gauge         // 0 可启动，1 额度不足。
 	blockedReason *prometheus.GaugeVec     // 有限原因分类，便于直接从指标解释为何停止。
 }
@@ -43,12 +43,12 @@ func newDoctorMetrics(metrics *telemetry.Metrics, names map[string]bool) (*docto
 	value.diagnoses = metrics.Counter("doctor_diagnoses_total", "诊断进入各状态的次数。", "target", "status")
 	value.tokens = metrics.Counter("doctor_llm_tokens_total", "模型实际 token 用量。", "model", "direction")
 	value.cacheHits = metrics.Counter("doctor_llm_cache_hit_tokens_total", "供应商返回的缓存命中输入 token。", "model")
-	value.costs = metrics.Counter("doctor_llm_cost_total", "模型结算费用及未知预留额，单位人民币元。", "model")
+	value.costs = metrics.Counter("doctor_llm_cost_total", "模型结算费用及未知预留额，单位由 currency 指定。", "model", "currency")
 	value.calls = metrics.Counter("doctor_tool_calls_total", "处理过的查看工具结果。", "tool", "result")
 	value.toolDuration = metrics.Histogram("doctor_tool_duration_seconds", "查看工具耗时。", "tool")
 	value.duration = prometheus.NewHistogramVec(prometheus.HistogramOpts{Name: "doctor_diagnosis_duration_seconds", Help: "诊断开始执行至终态的耗时。", Buckets: []float64{1, 5, 15, 30, 60, 120, 180, 240, 300}}, []string{"target", "status"})
-	value.spent = prometheus.NewGauge(prometheus.GaugeOpts{Name: "doctor_llm_budget_spent_cny", Help: "全局结算费用及未知预留额与预留额，单位元。"})
-	value.limit = prometheus.NewGauge(prometheus.GaugeOpts{Name: "doctor_llm_budget_limit_cny", Help: "全局累计费用上限，单位元。"})
+	value.spent = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "doctor_llm_budget_spent", Help: "当前账户费用与预留额，单位由 currency 指定。"}, []string{"currency"})
+	value.limit = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "doctor_llm_budget_limit", Help: "当前账户费用上限，单位由 currency 指定。"}, []string{"currency"})
 	value.blocked = prometheus.NewGauge(prometheus.GaugeOpts{Name: "doctor_llm_budget_blocked", Help: "真实诊断是否因费用不足停止启动。"})
 	value.blockedReason = prometheus.NewGaugeVec(prometheus.GaugeOpts{Name: "doctor_llm_budget_blocked_reason", Help: "阻止真实诊断的原因，当前原因为1。"}, []string{"reason"})
 	for _, collector := range []prometheus.Collector{value.duration, value.spent, value.limit, value.blocked, value.blockedReason} {
@@ -82,7 +82,7 @@ func (metrics *doctorMetrics) step(step agent.Step) {
 		metrics.tokens.WithLabelValues(model, "input").Add(float64(step.Usage.Input))
 		metrics.tokens.WithLabelValues(model, "output").Add(float64(step.Usage.Output))
 		metrics.cacheHits.WithLabelValues(model).Add(float64(step.Usage.CacheHit))
-		metrics.costs.WithLabelValues(model).Add(float64(step.CostMicros) / 1_000_000)
+		metrics.costs.WithLabelValues(model, moneyCurrency(step.Currency)).Add(float64(step.CostMicros) / 1_000_000)
 	case "tool":
 		name := step.ToolName
 		if !metrics.tools[name] && name != "submit_report" {
@@ -109,8 +109,8 @@ func (metrics *doctorMetrics) changed(target, status string, duration time.Durat
 
 // budget 与页面共享调度器读数，额度不足不会只在日志中留下难发现的一句话。
 func (metrics *doctorMetrics) budget(value run.BudgetStatus) {
-	metrics.spent.Set(float64(value.SpentMicros) / 1_000_000)
-	metrics.limit.Set(float64(value.LimitMicros) / 1_000_000)
+	metrics.spent.WithLabelValues(moneyCurrency(value.Currency)).Set(float64(value.SpentMicros) / 1_000_000)
+	metrics.limit.WithLabelValues(moneyCurrency(value.Currency)).Set(float64(value.LimitMicros) / 1_000_000)
 	blocked := float64(0)
 	if value.Blocked {
 		blocked = 1
@@ -130,4 +130,12 @@ func (metrics *doctorMetrics) budget(value run.BudgetStatus) {
 		}
 		metrics.blockedReason.WithLabelValues(reason).Set(active)
 	}
+}
+
+// moneyCurrency 限定两个标签；测试旧步骤没带字段时仍按旧人民币口径处理。
+func moneyCurrency(value string) string {
+	if value == "USD" {
+		return "USD"
+	}
+	return "CNY"
 }

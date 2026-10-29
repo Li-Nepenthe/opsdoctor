@@ -2,6 +2,7 @@
 //
 // 主要内容：
 //   - TestDoctorMounts：覆盖额外挂载、长格式挂载、整份环境和提权配置。
+//   - TestOpsInternal：覆盖短格式、长格式端口映射和主机网络的绕过入口。
 // 阅读建议：每个用例只加一个越界入口，避免测试因另一条规则失败而漏检。
 
 package main
@@ -42,6 +43,29 @@ func TestDoctorMounts(t *testing.T) {
 			issues, err := doctorMountProblems(path)
 			if err != nil || (len(issues) > 0) != tc.want {
 				t.Fatalf("issues=%v err=%v", issues, err)
+			}
+		})
+	}
+}
+
+// TestOpsInternal 运维端口即使只映射到 localhost 也不符合本项目的“仅内部网络”约定。
+func TestOpsInternal(t *testing.T) {
+	// 业务端口是正常对外入口；其余写法都试图把内部运维接口带到宿主机。
+	for _, test := range []struct {
+		name    string
+		service map[string]any
+		denied  bool
+	}{
+		{"只发布业务端口", map[string]any{"ports": []any{"127.0.0.1:8080:8080"}}, false},
+		{"短格式运维端口", map[string]any{"ports": []any{"127.0.0.1:6064:6064"}}, true},
+		{"自动分配宿主端口", map[string]any{"ports": []any{6064}}, true},
+		{"长格式运维端口", map[string]any{"ports": []any{map[string]any{"target": 6064, "published": 9000}}}, true},
+		{"主机网络", map[string]any{"network_mode": "host"}, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			issues := opsPortProblems("compose.yml", map[string]map[string]any{"inventory-service": test.service})
+			if (len(issues) > 0) != test.denied {
+				t.Fatalf("检查结果=%v", issues)
 			}
 		})
 	}

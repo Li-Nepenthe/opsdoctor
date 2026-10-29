@@ -9,6 +9,6 @@
 //   - state.go：明确的状态转换表。
 //   - scheduler.go：并发名额、启动清理和任务执行。
 //
-// 本阶段重启只把遗留 running 标为失败，阶段 7 才实现恢复；这里不含租约或写审批。
+// 进程关闭会保留步骤。旧租约到期后，新进程才能接手；断开太久则结束任务，避免拿旧证据继续诊断。
 // 阅读顺序：state.go → Repository 接口 → Scheduler.Start → execute。
 package run

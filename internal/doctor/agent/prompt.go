@@ -17,7 +17,7 @@ import (
 )
 
 // PromptVersion 同时写入 diagnoses，后续比较结果时能知道模型当时读了哪份规则。
-const PromptVersion = "v7.0"
+const PromptVersion = "v7.2"
 
 // systemPrompt 随程序编译，容器不用读取源码目录。
 //
@@ -43,6 +43,9 @@ func definitions(input Input) []llm.Tool {
 	for _, definition := range input.Tools.List() {
 		parameters, _ := json.Marshal(definition.Parameters)
 		values = append(values, llm.Tool{Type: "function", Function: llm.ToolDefinition{Name: definition.Name, Description: definition.Description, Parameters: parameters}})
+	}
+	if input.Approvals != nil {
+		values = append(values, input.Approvals.List()...)
 	}
 	return append(values, reportDefinition(input.Components))
 }

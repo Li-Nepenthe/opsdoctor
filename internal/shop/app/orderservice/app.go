@@ -30,6 +30,7 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/logging"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/resilience"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
+	"github.com/Li-Nepenthe/opsdoctor/internal/shop/app"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/order"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/product"
 	"github.com/gin-gonic/gin"
@@ -77,6 +78,15 @@ func Run(parent context.Context) (result error) {
 	if err != nil {
 		return err
 	}
+	opsCache, err := product.NewRedisCache(resources.redis, settings.CacheJitter)
+	if err != nil {
+		return err
+	}
+	closeOps, err := app.StartOps(ctx, stop, resources.database, opsCache, observability.Metrics)
+	if err != nil {
+		return err
+	}
+	defer func() { result = errors.Join(result, closeOps()) }()
 	cancel()
 	logger.Info("订单服务配置已加载", "version", telemetry.Version, "http_addr", settings.HTTPAddress, "admin_addr", settings.AdminAddress,
 		"rate_limit_rps", settings.RateRPS, "rate_limit_burst", settings.RateBurst, "request_timeout", settings.HTTPBudget.String(),

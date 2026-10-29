@@ -22,6 +22,7 @@ import (
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/auth"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/httpapi"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/store"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/target"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/adminserver"
@@ -77,7 +78,18 @@ func Run(parent context.Context) error {
 		return err
 	}
 	defer scheduler.Close()
-	router := httpapi.New(httpapi.Options{Targets: catalog, Store: repository, Tokens: tokens, Logger: logger, Ready: database.PingContext,
+	mcpHandlers := map[string]http.Handler{}
+	for _, name := range catalog.Names() {
+		system, _ := catalog.Get(name)
+		handler, err := system.MCPHandler(repository, llm.NewRedactor(knownSecrets()...))
+		if err != nil {
+			return err
+		}
+		if handler != nil {
+			mcpHandlers[name] = handler
+		}
+	}
+	router := httpapi.New(httpapi.Options{Approvals: repository, MCP: mcpHandlers, Targets: catalog, Store: repository, Tokens: tokens, Logger: logger, Ready: database.PingContext,
 		Metrics: promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{}), DummyPasswordHash: settings.passwordHash, Runner: scheduler, Events: hub, Provider: agentConfig.provider, Model: agentConfig.model, SecureCookie: agentConfig.secureCookie})
 	// SSE 不能用整个响应十五秒的时限；每帧在处理器中设置五秒写入时限。
 	server := &http.Server{Addr: settings.address, Handler: router, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, IdleTimeout: time.Minute, MaxHeaderBytes: 16 << 10, BaseContext: func(net.Listener) context.Context { return ctx }}

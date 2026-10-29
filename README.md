@@ -7,7 +7,7 @@
 
 用 Go 构建可复现的微服务故障靶场，再逐步实现带证据报告的故障诊断 Agent。
 
-当前已完成**阶段 6：Agent 循环与实时页面**的工程收尾，等待 Claude 验收和用户学习。医生收到告警后会自动查证据并保存报告；页面展示每一步。默认使用免费 Mock 脚本，真实模型必须显式启用。最新验收状态以[进度看板](进度.md)为准。
+当前处于**阶段 7：审批、断点恢复与安全**的工程收尾。医生可以申请有限修复，经页面批准后执行，并在进程退出后接续保存的断点。默认使用免费 Mock 脚本，真实模型必须显式启用。最新验收状态以[进度看板](进度.md)为准。
 
 - 唯一需求来源：[项目计划书](项目计划书.md)
 - 开发规则：[AGENTS.md](AGENTS.md)
@@ -21,6 +21,7 @@
 - 阶段 4：[汇报书](docs/reports/phase-04-chaos.md)、[学习材料](docs/learn/phase-04-chaos.md)
 - 阶段 5：[汇报书](docs/reports/phase-05-doctor-tools.md)、[学习材料](docs/learn/phase-05-doctor-tools.md)
 - 阶段 6：[汇报书](docs/reports/phase-06-agent.md)、[学习材料](docs/learn/phase-06-agent.md)
+- 阶段 7：[汇报书](docs/reports/phase-07-reliability.md)、[学习材料](docs/learn/phase-07-reliability.md)
 
 ## 启动靶场环境
 
@@ -50,7 +51,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml ps
 
 端口仅映射到 `127.0.0.1`：3306、6379、9092、订单 HTTP 8081、库存 gRPC 9001、三个服务管理端口 6061/6062/6063、压测控制 6070。管理端口的 `/health` 应返回 `ok`。服务自动迁移五张 shop 表，创建或检查三分区 `order.created` 主题，但不自动造数。容器内 Kafka 地址是 `kafka:29092`，宿主机是 `127.0.0.1:9092`。
 
-Redis 使用 `noeviction`、AOF 每次刷盘及持久卷，避免幂等记录被缓存淘汰或普通重启丢失。内存不足时新写入会失败，带幂等键的订单返回 503。不要删除数据卷来“解决”内存不足；这会丢掉仍有效的去重记录。
+Redis 的数据上限为 2 GiB、容器上限为 2.5 GiB。阶段 7 整套环境实际内存超过 6 GiB 时暂停实验。长时间无人观察时请暂停流量，二十四小时幂等记录也会占内存。Redis 使用 `noeviction`、AOF 每次刷盘及持久卷，避免幂等记录被缓存淘汰或普通重启丢失。内存不足时新写入会失败，带幂等键的订单返回 503。不要删除数据卷来“解决”内存不足；这会丢掉仍有效的去重记录。
 
 停止环境，保留数据卷（两种 shell 相同）：
 
@@ -130,7 +131,7 @@ Compose 首次初始化创建六个独立测试库：`opsdoctor_mysql_test`、`o
 
 跑完后，不论测试是否通过，都要先执行 `docker compose --env-file .env -f deploy/docker-compose.yml start doctor`，再恢复原来的流量。医生的采集端点恢复后，等 `chaos healthy` 通过，最后执行 `docker compose --env-file .env -f deploy/docker-compose.yml start alertmanager`。如果仍有异常，先排查，不要为了恢复通知而忽略告警。若没有暂停通知，测试告警会留下 pending 任务；阶段 6 调度器还会自动执行它们。因此测试开始前必须确认 `.env` 和正在运行的 `/api/v1/status` 都是 **Mock**，改完环境变量后要重新创建 doctor 容器，光修改文件不会影响旧进程。过时告警会被取消，未过时的会跑固定脚本。恢复告警不会删除记录，之后暂停通知也不会撤回已经送达的通知。
 
-`.env` 必须包含以下 **11 个**变量（业务 8 个、医生 3 个）。不要只把名字复制过去；六个 DSN 要使用本机的测试账号和对应测试库，不能指向业务库。下面的命令会先检查缺项，并且把跳过的测试视为失败。
+`.env` 必须包含以下 **12 个**变量（业务 8 个、医生及权限测试 4 个）。不要只把名字复制过去；六个业务读写测试 DSN 要使用本机测试账号和对应专用库；医生测试 DSN 也要指向专用库。两个只读/索引权限 DSN 则连接 shop 的受限账号。下面的命令会先检查缺项，并且把跳过的测试视为失败。
 
 | 变量 | 用途 |
 |---|---|
@@ -144,6 +145,7 @@ Compose 首次初始化创建六个独立测试库：`opsdoctor_mysql_test`、`o
 | `TEST_REDIS_PASSWORD` | Redis 业务账号密码，与本机 `REDIS_PASSWORD` 相同；缺少时测试会明确跳过 |
 | `TEST_SHOP_MYSQL_RO_DSN` | 宿主机连接 shop 的 diag_ro；验证权限和三连接上限，绝不清理业务表 |
 | `TEST_SHOP_REDIS_RO_URL` | 宿主机连接 Redis DB 0 的 diag_ro；验证查看成功、读取 key 和写命令被拒绝 |
+| `TEST_SHOP_MYSQL_DDL_DSN` | shop 的 diag_ddl；验证 INDEX 权限及越权拒绝，测试索引结束后撤销 |
 | `TEST_DOCTOR_MYSQL_DSN` | 独立 doctor-mysql 上的 `opsdoctor_doctor_test` 库，使用 doctor 账号 |
 
 从阶段 1 升级时，保留数据卷，手动补建阶段 2 测试库（密码只由容器环境传递）：
@@ -157,22 +159,22 @@ bash 用 `cat deploy/mysql/init/003_order_sales_test_databases.sql | docker comp
 PowerShell：
 
 ```powershell
-$testNames = @('TEST_MYSQL_DSN', 'TEST_MIGRATE_MYSQL_DSN', 'TEST_INVENTORY_MYSQL_DSN', 'TEST_SEED_MYSQL_DSN', 'TEST_ORDER_MYSQL_DSN', 'TEST_SALES_MYSQL_DSN', 'TEST_REDIS_ADDR', 'TEST_REDIS_PASSWORD', 'TEST_SHOP_MYSQL_RO_DSN', 'TEST_SHOP_REDIS_RO_URL', 'TEST_DOCTOR_MYSQL_DSN')
+$testNames = @('TEST_MYSQL_DSN', 'TEST_MIGRATE_MYSQL_DSN', 'TEST_INVENTORY_MYSQL_DSN', 'TEST_SEED_MYSQL_DSN', 'TEST_ORDER_MYSQL_DSN', 'TEST_SALES_MYSQL_DSN', 'TEST_REDIS_ADDR', 'TEST_REDIS_PASSWORD', 'TEST_SHOP_MYSQL_RO_DSN', 'TEST_SHOP_MYSQL_DDL_DSN', 'TEST_SHOP_REDIS_RO_URL', 'TEST_DOCTOR_MYSQL_DSN')
 # 只从本次 .env 读取，避免旧终端残留的值掩盖缺项。
 $testNames | ForEach-Object { [Environment]::SetEnvironmentVariable($_, $null, 'Process') }
-Get-Content .env | Where-Object { $_ -match '^TEST_(((MIGRATE|INVENTORY|SEED|ORDER|SALES|DOCTOR|SHOP)_)?MYSQL_DSN|REDIS_ADDR|REDIS_PASSWORD|SHOP_MYSQL_RO_DSN|SHOP_REDIS_RO_URL)=' } | ForEach-Object {
+Get-Content .env | Where-Object { $_ -match '^TEST_(((MIGRATE|INVENTORY|SEED|ORDER|SALES|DOCTOR|SHOP)_)?MYSQL_DSN|REDIS_ADDR|REDIS_PASSWORD|SHOP_MYSQL_RO_DSN|SHOP_MYSQL_DDL_DSN|SHOP_REDIS_RO_URL)=' } | ForEach-Object {
     $entry = $_ -split '=', 2
     [Environment]::SetEnvironmentVariable($entry[0], $entry[1], 'Process')
 }
 $missing = @($testNames | Where-Object { [string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($_, 'Process')) })
 if ($missing.Count -gt 0) { throw "请补齐 .env 中的变量：$($missing -join ', ')" }
 $integrationLog = Join-Path $env:TEMP ('opsdoctor-integration-' + [guid]::NewGuid().ToString('N') + '.jsonl')
-go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product ./internal/doctor/store ./internal/doctor/source/mysqlinspect ./internal/doctor/source/redisinspect -run Integration -count=1 -timeout=90s -json | Tee-Object -FilePath $integrationLog
+go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product ./internal/doctor/store ./internal/doctor/source/mysqlinspect ./internal/doctor/source/redisinspect ./internal/doctor/approval ./tools/recoverycheck -run Integration -count=1 -timeout=90s -json | Tee-Object -FilePath $integrationLog
 $testExit = $LASTEXITCODE
 $events = @(Get-Content $integrationLog | ForEach-Object { $_ | ConvertFrom-Json })
 $skipped = @($events | Where-Object { $_.Action -eq 'skip' -and $_.Test })
 $passed = @($events | Where-Object { $_.Action -eq 'pass' -and $_.Test })
-Remove-Item Env:TEST_MYSQL_DSN, Env:TEST_MIGRATE_MYSQL_DSN, Env:TEST_INVENTORY_MYSQL_DSN, Env:TEST_SEED_MYSQL_DSN, Env:TEST_ORDER_MYSQL_DSN, Env:TEST_SALES_MYSQL_DSN, Env:TEST_REDIS_ADDR, Env:TEST_REDIS_PASSWORD, Env:TEST_SHOP_MYSQL_RO_DSN, Env:TEST_SHOP_REDIS_RO_URL, Env:TEST_DOCTOR_MYSQL_DSN -ErrorAction SilentlyContinue
+Remove-Item Env:TEST_MYSQL_DSN, Env:TEST_MIGRATE_MYSQL_DSN, Env:TEST_INVENTORY_MYSQL_DSN, Env:TEST_SEED_MYSQL_DSN, Env:TEST_ORDER_MYSQL_DSN, Env:TEST_SALES_MYSQL_DSN, Env:TEST_REDIS_ADDR, Env:TEST_REDIS_PASSWORD, Env:TEST_SHOP_MYSQL_RO_DSN, Env:TEST_SHOP_MYSQL_DDL_DSN, Env:TEST_SHOP_REDIS_RO_URL, Env:TEST_DOCTOR_MYSQL_DSN -ErrorAction SilentlyContinue
 Write-Output "pass=$($passed.Count), skip=$($skipped.Count), exit=$testExit；记录：$integrationLog"
 if ($testExit -ne 0 -or $skipped.Count -ne 0 -or $passed.Count -eq 0) { throw '集成验收未通过：需要有测试通过、exit=0，并且 skip=0' }
 ```
@@ -180,23 +182,23 @@ if ($testExit -ne 0 -or $skipped.Count -ne 0 -or $passed.Count -eq 0) { throw '�
 bash：
 
 ```bash
-test_names=(TEST_MYSQL_DSN TEST_MIGRATE_MYSQL_DSN TEST_INVENTORY_MYSQL_DSN TEST_SEED_MYSQL_DSN TEST_ORDER_MYSQL_DSN TEST_SALES_MYSQL_DSN TEST_REDIS_ADDR TEST_REDIS_PASSWORD TEST_SHOP_MYSQL_RO_DSN TEST_SHOP_REDIS_RO_URL TEST_DOCTOR_MYSQL_DSN)
+test_names=(TEST_MYSQL_DSN TEST_MIGRATE_MYSQL_DSN TEST_INVENTORY_MYSQL_DSN TEST_SEED_MYSQL_DSN TEST_ORDER_MYSQL_DSN TEST_SALES_MYSQL_DSN TEST_REDIS_ADDR TEST_REDIS_PASSWORD TEST_SHOP_MYSQL_RO_DSN TEST_SHOP_MYSQL_DDL_DSN TEST_SHOP_REDIS_RO_URL TEST_DOCTOR_MYSQL_DSN)
 unset "${test_names[@]}"
 while IFS= read -r line; do
   line=${line%$'\r'} # 兼容 Windows 保存的换行，不执行文件中的内容。
   case "$line" in
-    TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*|TEST_REDIS_PASSWORD=*|TEST_SHOP_MYSQL_RO_DSN=*|TEST_SHOP_REDIS_RO_URL=*|TEST_DOCTOR_MYSQL_DSN=*) export "$line" ;;
+    TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*|TEST_REDIS_PASSWORD=*|TEST_SHOP_MYSQL_RO_DSN=*|TEST_SHOP_MYSQL_DDL_DSN=*|TEST_SHOP_REDIS_RO_URL=*|TEST_DOCTOR_MYSQL_DSN=*) export "$line" ;;
   esac
 done < .env
 for name in "${test_names[@]}"; do
   if [ -z "${!name}" ]; then echo "请补齐 .env 中的变量：$name"; exit 1; fi
 done
 integration_log=$(mktemp)
-go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product ./internal/doctor/store ./internal/doctor/source/mysqlinspect ./internal/doctor/source/redisinspect -run Integration -count=1 -timeout=90s -v | tee "$integration_log"
+go test -race ./internal/platform/mysqlx ./internal/platform/migrate ./internal/shop/inventory ./internal/shop/seed ./internal/shop/order ./internal/shop/sales ./internal/shop/product ./internal/doctor/store ./internal/doctor/source/mysqlinspect ./internal/doctor/source/redisinspect ./internal/doctor/approval ./tools/recoverycheck -run Integration -count=1 -timeout=90s -v | tee "$integration_log"
 test_exit=${PIPESTATUS[0]}
 skipped=$(grep -c -- '--- SKIP:' "$integration_log" || true)
 passed=$(grep -c -- '--- PASS:' "$integration_log" || true)
-unset TEST_MYSQL_DSN TEST_MIGRATE_MYSQL_DSN TEST_INVENTORY_MYSQL_DSN TEST_SEED_MYSQL_DSN TEST_ORDER_MYSQL_DSN TEST_SALES_MYSQL_DSN TEST_REDIS_ADDR TEST_REDIS_PASSWORD TEST_SHOP_MYSQL_RO_DSN TEST_SHOP_REDIS_RO_URL TEST_DOCTOR_MYSQL_DSN
+unset TEST_MYSQL_DSN TEST_MIGRATE_MYSQL_DSN TEST_INVENTORY_MYSQL_DSN TEST_SEED_MYSQL_DSN TEST_ORDER_MYSQL_DSN TEST_SALES_MYSQL_DSN TEST_REDIS_ADDR TEST_REDIS_PASSWORD TEST_SHOP_MYSQL_RO_DSN TEST_SHOP_MYSQL_DDL_DSN TEST_SHOP_REDIS_RO_URL TEST_DOCTOR_MYSQL_DSN
 echo "pass=$passed, skip=$skipped, exit=$test_exit；记录：$integration_log"
 test "$test_exit" -eq 0 && test "$skipped" -eq 0 && test "$passed" -gt 0
 ```
@@ -224,7 +226,7 @@ Invoke-RestMethod http://127.0.0.1:8090/health/ready
 
 你应该看到医生健康接口成功。已有账号的密码不会被这个脚本自动重置；修改 `.env` 不等于修改数据库中的账号密码。Redis 的 ACL 在每次启动时从环境生成，密码不会出现在启动参数里。
 
-登录、环境变量注入、十六项工具菜单和 S01 的逐步操作见[阶段 5 学习材料](docs/learn/phase-05-doctor-tools.md)。登录令牌只放当前终端的 `DOCTOR_TOKEN`，不要贴到命令参数或笔记里。从阶段 6 起，新任务会自动执行；旧 pending 告警按过时规则取消。医生仍只有查看权限，报告中的建议不会自动执行。
+登录、环境变量注入、十六项工具菜单和 S01 的逐步操作见[阶段 5 学习材料](docs/learn/phase-05-doctor-tools.md)。登录令牌只放当前终端的 `DOCTOR_TOKEN`，不要贴到命令参数或笔记里。从阶段 6 起，新任务会自动执行；旧 pending 告警按过时规则取消。阶段 5 的取证命令仍只查看；阶段 7 的写操作必须先保存审批单，报告中的建议不会自动执行。
 
 ## 阶段 6：打开实时诊断页面
 
@@ -236,7 +238,7 @@ Invoke-RestMethod http://127.0.0.1:8090/health/ready
 
 下一场实验除了通过 `chaos healthy`，还要读取 `GET /api/v1/targets`，等 shop 的 `fault.open` 变成 false。`fault.recovery_until` 是预计观察结束时间；又有 firing 时它会变回 null，不能按旧时间或固定 sleep 猜测故障已经结束。也要确认 Prometheus 没有仍在 pending 的症状，避免刚恢复流量时的真实慢请求稍后才满足告警的持续时间。
 
-页面展示每次模型调用的实际模型名；点击步骤可以查看脱敏后的请求与结果。费用在发送前按未命中价预留，收到用量后按缓存命中、未命中和输出三档价格结算。取消时无法确认的费用仍保留预留。阶段 7、8 共用 `phase-07-08` 账户，上限 ¥10；旧账户不清零。真实调用前按官方忙闲时段设置三档单价，并用余额接口核对实际扣费。
+页面展示每次模型调用的实际模型名；点击步骤可以查看脱敏后的请求与结果。阶段 7 起可以恢复断点，并通过页面审批三个有限的写操作。费用在发送前按最贵的输入档预留，收到回复后按缓存命中、普通输入、缓存写入和输出分别结算。取消等结果不确定的请求保留预留额。当前用户选择 GPT-6.1 Terra：`responses` 协议、`USD`、`phase-07-08-openai` 账户，上限 $40、每次诊断 $0.30。早先 DeepSeek 人民币账户保留，两种币种不相加。项目 Key 无权读取 OpenAI 组织账单，本地按接口用量和官方单价结算，实际扣费仍需用户在平台核对。
 
 页面用 HttpOnly Cookie 登录，浏览器自动携带它建立 SSE 连接。令牌不出现在 URL 中。命令行仍使用 Bearer。模型输出只当文字显示，建议由人核对后执行。详细讲解见[阶段 6 学习材料](docs/learn/phase-06-agent.md)。
 
@@ -367,7 +369,7 @@ S04 会先暂停普通流量，再对一组商品进行有限批次的突发；�
 
 缓存告警返工后，同时判断回源比例和此前流量，并要求条件持续三十秒。停流超过十一分钟后恢复、随后持续健康运行、S04 和 S05 各两次定向流程均已实测，额外完整 selftest 也通过 11/11；数字见 P4-28 至 P4-39。具体判断与适用范围见[告警规则说明](deploy/prometheus/rules/README.md)。
 
-长实验会积累尚未过期的幂等记录。Redis 写入预算现为 512 MiB，容器上限 768 MiB，保持二十四小时期限和 noeviction。noeviction 表示内存不足时拒绝新写入，保留原有凭据。原 128 MiB 预算曾被约三十万个幂等键填满，导致下单被拒绝，记录见 P4-17。继续增加实验时长时需要重新估算容量，不能靠清除凭据维持流量。
+长实验会积累尚未过期的幂等记录。Redis 写入预算现为 2 GiB，容器上限 2.5 GiB，保持二十四小时期限和 noeviction。noeviction 表示内存不足时拒绝新写入，保留原有凭据。原 128 MiB 预算曾被约三十万个幂等键填满，导致下单被拒绝，记录见 P4-17。继续增加实验时长时需要重新估算容量，不能靠清除凭据维持流量。
 
 PowerShell 在启动 Compose 前设置本次实验参数；这些值只影响当前终端，不覆盖 `.env`：
 
@@ -476,3 +478,19 @@ docker compose --env-file .env -f deploy/docker-compose.yml up -d --no-deps --wa
 ```
 
 两次商品查询都应返回 `stock.status=ok`。最后重建订单容器，恢复 `.env` 中的配置，示例为 30m。使用已有商品，不重新造数；更完整的前后实验与限制见阶段 3 学习材料。MySQL 上限调整为 1536 MiB，保留 256 MiB buffer pool 与最多 100 个连接，给其他数据库内存分配留出余量。
+
+
+## 阶段 7：审批与恢复
+
+先保持 `LLM_PROVIDER=mock`。接入配置中的 `SHOP_OPS_TOKEN`、`SHOP_MCP_TOKEN` 和 `SHOP_MYSQL_DDL_PASSWORD` 各用一个独立值；索引 DSN 使用 diag_ddl，不能复用 diag_ro。服务启动后补表级权限：
+
+```powershell
+docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/006_doctor_readonly.sh
+docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/007_doctor_index.sh
+```
+
+医生提交写申请后，页面显示确切操作、证据、风险和撤销方法。人批准后只执行这份保存的参数。等待审批不会耗掉五分钟调查时间。进程崩溃后，三十秒租约到期即可被新进程接手；中断超过两分钟则明确失败，避免用过时证据继续判断。
+
+演示完成后按审批单撤销医生索引；调整过连接池的服务要重启以恢复启动值。`chaos healthy` 会检查这些残留，不能带着修复状态开始下一场实验。所有真实模型验收结束后，把本机 `.env` 改回 Mock，并重建 doctor 确认运行实例也已切换。
+
+外部只读工具连接方法见 [MCP 文档](docs/mcp.md)。恢复测试已经纳入上述十二项 TEST 配置的集成测试流程，全程不调用付费模型。

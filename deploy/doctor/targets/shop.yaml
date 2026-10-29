@@ -14,3 +14,19 @@ pprof:
   order-service: http://order-service:6061
   inventory-service: http://inventory-service:6062
   order-worker: http://order-worker:6063
+
+# 外部 MCP 客户端只读入口使用独立令牌，不复用告警令牌或网页登录。
+mcp_token_env: SHOP_MCP_TOKEN
+
+# 写操作与只读查询分账号。DDL 可能需要几秒，独立预算仍受诊断剩余活动时间限制。
+mysql_ddl_dsn_env: SHOP_MYSQL_DDL_DSN
+write_timeout: 2m
+ops_api:
+  token_env: SHOP_OPS_TOKEN
+  pool_min: 5
+  pool_max: 200
+  warm_cache_service: order-service
+  services:
+    inventory-service: http://inventory-service:6064
+    order-service: http://order-service:6064
+    order-worker: http://order-worker:6064

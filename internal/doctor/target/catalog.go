@@ -17,10 +17,14 @@ import (
 	"crypto/subtle"
 	"errors"
 	"fmt"
+	"net/http"
 	"sort"
 	"strings"
 	"time"
 
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/approval"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/mcpserver"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/jaeger"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/loki"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/mysqlinspect"
@@ -34,14 +38,17 @@ import (
 
 // System 不导出令牌与后端连接，接口层只能使用固定注册表。
 type System struct {
-	recoveryWindow time.Duration   // 部署者按本系统告警规则填写，运行时不由请求修改。
-	profile        string          // 部署者的架构说明，不含实验答案。
-	components     []string        // 架构说明中的完整允许标识。
-	unavailable    []string        // 未配置的数据源类别。
-	name           string          // 创建任务时绑定的名字，构造后不再更改。
-	token          [32]byte        // 只保留令牌摘要，用定长比较检查推送身份。
-	registry       *tools.Registry // 已绑定这个系统的工具集合。
-	closers        []func() error  // 进程结束或装配失败时归还连接资源。
+	actions        *approval.Backend // 写能力只能交给审批服务。
+	mysqlMetadata  approval.Metadata // 复用 diag_ro 池，不能为审批另开三条连接。
+	mcpToken       string            // 仅交给绑定本系统的 MCP 构造函数，禁止写入日志。
+	recoveryWindow time.Duration     // 部署者按本系统告警规则填写，运行时不由请求修改。
+	profile        string            // 部署者的架构说明，不含实验答案。
+	components     []string          // 架构说明中的完整允许标识。
+	unavailable    []string          // 未配置的数据源类别。
+	name           string            // 创建任务时绑定的名字，构造后不再更改。
+	token          [32]byte          // 只保留令牌摘要，用定长比较检查推送身份。
+	registry       *tools.Registry   // 已绑定这个系统的工具集合。
+	closers        []func() error    // 进程结束或装配失败时归还连接资源。
 }
 
 // Catalog 不公开内部 map，调用方无法在运行中替换系统。
@@ -152,12 +159,12 @@ func credentials(configs []Config, lookup func(string) (string, bool)) (map[stri
 func credentialIdentity(config Config, name, value string) (string, error) {
 	// 令牌按完整值比较；数据库按地址和用户名比较，不能靠换密码绕过账号隔离。
 	switch name {
-	case config.AlertTokenEnv:
+	case config.AlertTokenEnv, config.MCPTokenEnv, config.Ops.TokenEnv:
 		if len(value) < 32 {
 			return "", fmt.Errorf("%s 至少需要 32 字节", name)
 		}
 		return "token:" + value, nil
-	case config.MySQLDSNEnv:
+	case config.MySQLDSNEnv, config.MySQLDDLEnv:
 		parsed, err := drivermysql.ParseDSN(value)
 		if err != nil {
 			return "", fmt.Errorf("%s 不是合法 MySQL DSN", name)
@@ -179,7 +186,7 @@ func build(config Config, profile string, values map[string]string) (_ *System, 
 	if err != nil {
 		return nil, err
 	}
-	system := &System{name: config.Name, token: sha256.Sum256([]byte(values[config.AlertTokenEnv])), profile: profile, components: components, unavailable: missingSources(config)}
+	system := &System{mcpToken: values[config.MCPTokenEnv], name: config.Name, token: sha256.Sum256([]byte(values[config.AlertTokenEnv])), profile: profile, components: components, unavailable: missingSources(config)}
 	// 配置已在创建客户端前校验，这里只把文字时长变成计算用的 Duration。
 	system.recoveryWindow, _ = time.ParseDuration(config.AlertRecoveryWindow)
 	// 具名 result 让 defer 知道是否装配失败。失败时不能留下半套连接池。
@@ -195,6 +202,9 @@ func build(config Config, profile string, values map[string]string) (_ *System, 
 		return nil, err
 	}
 	if err := system.bindNative(config, values, &deps); err != nil {
+		return nil, err
+	}
+	if err := system.bindActions(config, values); err != nil {
 		return nil, err
 	}
 	system.registry = tools.New(deps)
@@ -240,6 +250,7 @@ func (system *System) bindNative(config Config, values map[string]string, deps *
 			return err
 		}
 		deps.MySQL = client
+		system.mysqlMetadata = client
 		system.closers = append(system.closers, client.Close)
 	}
 	if config.RedisURLEnv != "" {
@@ -259,4 +270,12 @@ func (system *System) bindNative(config Config, values map[string]string, deps *
 		system.closers = append(system.closers, func() error { client.Close(); return nil })
 	}
 	return nil
+}
+
+// MCPHandler 不向 app 导出令牌，直接构造一个只能访问本系统只读工具的入口。
+func (system *System) MCPHandler(auditor mcpserver.Auditor, redactor *llm.Redactor) (http.Handler, error) {
+	if system.mcpToken == "" {
+		return nil, nil
+	}
+	return mcpserver.New(system.name, system.mcpToken, system.registry, auditor, redactor)
 }

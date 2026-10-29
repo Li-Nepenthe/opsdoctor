@@ -55,6 +55,8 @@ type Runner interface {
 
 // Options 只接收已经装配的对象，不读取环境变量或创建第二套数据库池。
 type Options struct {
+	Approvals         Approvals                   // 人的审批入口，模型与 MCP 没有这个接口。
+	MCP               map[string]http.Handler     // 各入口已绑定系统和独立令牌，不经过页面登录。
 	Targets           *target.Catalog             // 各系统独立的工具与告警身份。
 	Store             Repository                  // 医生自己的用户和任务。
 	Tokens            *auth.Tokens                // JWT 签发与验证。
@@ -88,6 +90,14 @@ func New(options Options) *gin.Engine {
 	router.GET("/health/ready", server.ready)
 	router.GET("/metrics", gin.WrapH(options.Metrics))
 	router.POST("/api/v1/auth/login", server.login)
+	router.Any("/mcp/:target", func(ctx *gin.Context) {
+		handler := options.MCP[ctx.Param("target")]
+		if handler == nil {
+			ctx.Status(http.StatusNotFound)
+			return
+		}
+		handler.ServeHTTP(ctx.Writer, ctx.Request)
+	})
 	router.POST("/api/v1/targets/:target/alerts", server.receiveAlert)
 	// JWT 只保护人的入口；告警推送必须走它自己的系统令牌校验。
 	secured := router.Group("/api/v1", server.requireLogin)
@@ -102,6 +112,9 @@ func New(options Options) *gin.Engine {
 	secured.POST("/diagnoses", server.manual)
 	secured.POST("/diagnoses/:id/cancel", server.cancelDiagnosis)
 	secured.GET("/diagnoses/:id/events", server.stream)
+	secured.GET("/diagnoses/:id/approvals", server.listApprovals)
+	secured.POST("/approvals/:id/approve", func(ctx *gin.Context) { server.decideApproval(ctx, true) })
+	secured.POST("/approvals/:id/reject", func(ctx *gin.Context) { server.decideApproval(ctx, false) })
 	return router
 }
 
@@ -120,7 +133,8 @@ func (server *api) requireLogin(ctx *gin.Context) {
 		return
 	}
 	token := strings.TrimPrefix(raw, "Bearer ")
-	if _, err := server.options.Tokens.Parse(token); err != nil {
+	user, err := server.options.Tokens.Parse(token)
+	if err != nil {
 		httpx.Failure(ctx, 401, "UNAUTHORIZED", "登录凭据无效或已过期")
 		return
 	}
@@ -130,6 +144,7 @@ func (server *api) requireLogin(ctx *gin.Context) {
 		return
 	}
 	ctx.Set("login_token", token)
+	ctx.Set("login_user", user)
 	ctx.Next()
 }
 

@@ -25,3 +25,5 @@
 - **阶段 1**：从 `app/inventoryservice` 进入，读到 `inventory`。
 - **阶段 2 下单**：从 `app/orderservice` 进入，读 `order/service.go` 的 `Create`。
 - **阶段 2 销量统计**：从 `app/orderworker` 进入，读 `events/consumer.go`，再到 `sales/repository.go`。
+
+阶段 7 的 [ops](ops/doc.go) 提供内部运维接口：查看和临时调整连接池、预热少量商品缓存。它只认识 HTTP 请求和本系统运维令牌，不依赖医生；审批由医生完成，接口自己仍检查范围与操作编号。

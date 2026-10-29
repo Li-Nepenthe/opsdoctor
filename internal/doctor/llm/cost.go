@@ -1,7 +1,7 @@
 // 本文件：用整数表示费用，并规定发送前预留、发送后结算的账本接口。
 //
-// 浮点数连加可能留下舍入误差，所以金额保存为百万分之一元。发送前按全部输入
-// 未命中缓存预留；收到用量后，再把命中的部分换成较低单价，退还差额。
+// 浮点数连加可能留下舍入误差，所以金额保存为百万分之一账户货币单位。发送前按最贵的输入档
+// 预留；收到用量后，按命中、普通输入、缓存写入和输出分别结算，退还差额。
 //
 // 主要内容：Prices.Cost 计算预留额；Charge 按缓存用量结算；Ledger 由数据库实现。
 // 阅读建议：Unknown 为 true 表示供应商可能已经计费，不能当作零费用。
@@ -28,14 +28,15 @@ const ErrBudget Error = "全局模型费用上限已用尽或不足以预留本�
 // ErrDiagnosisBudget 与账户额度分开，页面才能解释是本次调查停止，而非所有诊断停用。
 const ErrDiagnosisBudget Error = "本次诊断费用已达上限或不足以预留本次请求"
 
-// Prices 保存每百万 token 的单价，单位同样是百万分之一元。
+// Prices 保存每百万 token 的单价，单位同样是百万分之一账户货币单位。
 type Prices struct {
-	InputMicros    int64 // 缓存未命中输入价。
-	CacheHitMicros int64 // 缓存命中的输入价；没有命中用量时按未命中价结算。
-	OutputMicros   int64 // 输出价。
+	CacheWriteMicros int64 // 缓存写入价；DeepSeek 没有这一档时为零。
+	InputMicros      int64 // 缓存未命中输入价。
+	CacheHitMicros   int64 // 缓存命中的输入价；没有命中用量时按未命中价结算。
+	OutputMicros     int64 // 输出价。
 }
 
-// Money 将最多六位小数的元转换为整数，不接受科学计数法或负数。
+// Money 将最多六位小数的金额转换为整数，不接受科学计数法或负数。
 func Money(text string) (int64, error) {
 	parts := strings.Split(text, ".")
 	if len(parts) > 2 || parts[0] == "" {
@@ -72,11 +73,19 @@ func (prices Prices) Cost(input, output int64) int64 {
 func (prices Prices) Charge(usage Usage) int64 {
 	const million = int64(1_000_000)
 	hit := min(max(usage.CacheHit, 0), usage.Input)
-	return prices.Cost(usage.Input-hit, usage.Output) + (hit*prices.CacheHitMicros+million-1)/million
+	write := min(max(usage.CacheWrite, 0), usage.Input-hit)
+	return prices.Cost(usage.Input-hit-write, usage.Output) + (hit*prices.CacheHitMicros+million-1)/million + (write*prices.CacheWriteMicros+million-1)/million
+}
+
+// ReserveCost 按最贵的输入类别预留。OpenAI 写缓存比普通输入贵，不能只按未命中价估算。
+func (prices Prices) ReserveCost(input, output int64) int64 {
+	prices.InputMicros = max(prices.InputMicros, prices.CacheWriteMicros)
+	return prices.Cost(input, output)
 }
 
 // Reservation 在网络发送之前落库，原文已经脱敏，不能包含 Authorization 头。
 type Reservation struct {
+	CallID               string          // 对应 Agent 发送前保存的请求步骤，不能由模型指定。
 	DiagnosisID          string          // 归属本次诊断。
 	Model                string          // 请求选择的模型。
 	Request              json.RawMessage // 实际发出的 JSON 字节。

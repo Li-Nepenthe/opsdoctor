@@ -93,7 +93,8 @@ func newEngine(reader config.Reader) (*Engine, error) {
 	password, _ := reader.String("REDIS_PASSWORD", "")
 	runner := &action.Runner{Root: root, RedisPassword: password, MySQLDSN: dsn, RedisAddress: redis, ProxyURL: proxy, LoadURL: load, HTTP: &http.Client{Timeout: 10 * time.Second}}
 	runner.RunCommand = runner.Command
-	observer := verify.WithBaseline(verify.New(prometheus), load, products, workers)
+	baselineDSN, _ := reader.String("CHAOS_BASELINE_MYSQL_DSN", "")
+	observer := verify.WithBaseline(verify.New(prometheus), load, products, workers).WithRepairs(baselineDSN)
 	return &Engine{Executor: runner, Observer: observer, StatePath: filepath.Join(root, ".opsdoctor-chaos.json")}, nil
 }
 

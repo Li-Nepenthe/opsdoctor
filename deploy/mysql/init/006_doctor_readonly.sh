@@ -19,6 +19,8 @@ GRANT SELECT (ENGINE,ENGINE_LOCK_ID,OBJECT_SCHEMA,OBJECT_NAME,INDEX_NAME,LOCK_TY
   ON performance_schema.data_locks TO 'diag_ro'@'%';
 GRANT SELECT (VARIABLE_NAME,VARIABLE_VALUE)
   ON performance_schema.global_status TO 'diag_ro'@'%';
+-- 恢复时只看旧 DDL 连接是否仍在，不授 PROCESSLIST_INFO，不能读取正在执行的 SQL。
+GRANT SELECT (PROCESSLIST_ID) ON performance_schema.threads TO 'diag_ro'@'%';
 SQL
 
 # 首次空库中还没有业务表。先建账号和监控权限，让 MySQL 正常启动；服务完成迁移后

@@ -111,6 +111,9 @@ func TestCredentialReuse(t *testing.T) {
 		{"令牌", "", strings.Repeat("same-demo-token-", 3)},                                                      // 相同令牌会让跨系统推送通过。
 		{"MySQL账号", "mysql_readonly_dsn_env: %s_MYSQL_RO_DSN\n", "diag_ro:demo-only@tcp(localhost:3306)/shop"}, // 同主机同用户名仍是同一个数据库账号。
 		{"Redis账号", "redis_readonly_url_env: %s_REDIS_RO_URL\n", "redis://diag_ro:demo-only@localhost:6379/0"}, // 两个变量不能掩盖同一个 ACL 账号。
+		{"索引账号", "mysql_ddl_dsn_env: %s_MYSQL_DDL_DSN\n", "diag_ddl:demo-only@tcp(localhost:3306)/shop"},       // 写的一侧也必须各系统独立。
+		{"运维令牌", "ops_api:\n  token_env: %s_OPS_TOKEN\n", strings.Repeat("ops-demo-token-", 3)},                // 地址不同不能掩盖令牌共用。
+		{"MCP令牌", "mcp_token_env: %s_MCP_TOKEN\n", strings.Repeat("mcp-demo-token-", 3)},                       // 外部客户端同样不能跨系统。
 	} {
 		t.Run(testcase.name, func(t *testing.T) {
 			directory := t.TempDir()

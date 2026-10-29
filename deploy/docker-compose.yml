@@ -21,6 +21,8 @@ services:
       DB_CONN_MAX_LIFETIME: ${DB_CONN_MAX_LIFETIME:-5m}
       GRPC_ADDR: :9001
       ADMIN_ADDR: :6062
+      OPS_ADDR: :6064 # 不映射到宿主机，只有内部网络可达。
+      OPS_TOKEN: ${SHOP_OPS_TOKEN:?请设置 shop 运维令牌}
       OTEL_SERVICE_NAME: inventory-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-parentbased_traceidratio}
@@ -59,6 +61,8 @@ services:
       DB_CONN_MAX_LIFETIME: ${DB_CONN_MAX_LIFETIME:-5m}
       HTTP_ADDR: :8081
       ADMIN_ADDR: :6061
+      OPS_ADDR: :6064 # 不映射到宿主机，只有内部网络可达。
+      OPS_TOKEN: ${SHOP_OPS_TOKEN:?请设置 shop 运维令牌}
       OTEL_SERVICE_NAME: order-service
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-parentbased_traceidratio}
@@ -123,6 +127,8 @@ services:
       DB_MAX_IDLE_CONNS: ${DB_MAX_IDLE_CONNS:-10}
       DB_CONN_MAX_LIFETIME: ${DB_CONN_MAX_LIFETIME:-5m}
       ADMIN_ADDR: :6063
+      OPS_ADDR: :6064 # 不映射到宿主机，只有内部网络可达。
+      OPS_TOKEN: ${SHOP_OPS_TOKEN:?请设置 shop 运维令牌}
       OTEL_SERVICE_NAME: order-worker
       OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
       OTEL_TRACES_SAMPLER: ${OTEL_TRACES_SAMPLER:-parentbased_traceidratio}
@@ -184,6 +190,7 @@ services:
       MYSQL_EXPORTER_PASSWORD: ${MYSQL_EXPORTER_PASSWORD:?请设置监控账号密码}
       CHAOS_MYSQL_PASSWORD: ${CHAOS_MYSQL_PASSWORD:?请设置独立实验账号密码}
       SHOP_MYSQL_RO_PASSWORD: ${SHOP_MYSQL_RO_PASSWORD:?请设置医生只读账号密码}
+      SHOP_MYSQL_DDL_PASSWORD: ${SHOP_MYSQL_DDL_PASSWORD:?请设置医生索引账号密码}
       MYSQL_USER: app
       MYSQL_PASSWORD: ${MYSQL_PASSWORD:?请复制 .env.example 为 .env 并指定 --env-file .env}
       MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?请设置本机 MySQL root 密码}
@@ -226,18 +233,18 @@ services:
       - "127.0.0.1:6379:6379"
     # Redis 现在还保存幂等凭据，不能因缓存淘汰而让旧请求重新执行。
     # noeviction 在内存用完时拒绝新写入；AOF 每次确认前刷盘，普通重启保留未到期记录。
-    # 连续实验累积约三十万个幂等键后曾耗尽 128 MiB。扩大容量，不清键或缩短承诺的保存期限。
-    # 数据上限之外再留 256 MiB，容纳分配器、连接与 AOF 重写时的额外内存；仍须实测监控。
+    # 阶段 7 累积约 124 万个键后耗尽 512 MiB，用户批准扩到 2 GiB，不清键。
+    # 数据上限之外再留 512 MiB，容纳分配器、连接与 AOF 的额外内存；仍须实测监控。
     entrypoint: ["sh", "/usr/local/bin/start-with-acl.sh"]
     environment:
       REDIS_PASSWORD: ${REDIS_PASSWORD:?请设置业务 Redis 密码}
       SHOP_REDIS_RO_PASSWORD: ${SHOP_REDIS_RO_PASSWORD:?请设置医生 Redis 密码}
-    command: ["--maxmemory", "512mb", "--maxmemory-policy", "noeviction", "--save", "", "--appendonly", "yes", "--appendfsync", "always"]
+    command: ["--maxmemory", "2gb", "--maxmemory-policy", "noeviction", "--save", "", "--appendonly", "yes", "--appendfsync", "always"]
     volumes:
       - redis-data:/data
       - ./redis/start-with-acl.sh:/usr/local/bin/start-with-acl.sh:ro
     tmpfs: ["/run/redis-acl:mode=0700,size=1m"]
-    mem_limit: 768m
+    mem_limit: 2560m # 数据最多 2 GiB，另外 512 MiB 留给连接、AOF 和分配器开销。
     logging: *bounded-logging
     healthcheck:
       test: ["CMD-SHELL", 'REDISCLI_AUTH="$${REDIS_PASSWORD}" redis-cli ping | grep -qx PONG']
@@ -440,16 +447,25 @@ services:
     environment:
       GIN_MODE: release
       DOCTOR_ADDR: :8090
+      SHOP_MCP_TOKEN: ${SHOP_MCP_TOKEN:?set SHOP_MCP_TOKEN}
+      SHOP_OPS_TOKEN: ${SHOP_OPS_TOKEN:?请设置 shop 运维令牌}
+      SHOP_MYSQL_DDL_DSN: ${SHOP_MYSQL_DDL_DSN:?请设置 INDEX 专用 DSN}
       LLM_PROVIDER: ${LLM_PROVIDER:-mock}
-      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.deepseek.com}
-      LLM_MODEL: ${LLM_MODEL:-deepseek-flash}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_API_FORMAT: ${LLM_API_FORMAT:-responses}
+      LLM_MODEL: ${LLM_MODEL:-gpt-6.1-terra}
       LLM_API_KEY: ${LLM_API_KEY:-}
       LLM_TIMEOUT: ${LLM_TIMEOUT:-60s}
-      LLM_INPUT_PRICE_PER_MTOKEN: ${LLM_INPUT_PRICE_PER_MTOKEN:-2}
-      LLM_OUTPUT_PRICE_PER_MTOKEN: ${LLM_OUTPUT_PRICE_PER_MTOKEN:-8}
-      LLM_CACHE_HIT_PRICE_PER_MTOKEN: ${LLM_CACHE_HIT_PRICE_PER_MTOKEN:-0.04}
-      LLM_BUDGET_ACCOUNT: ${LLM_BUDGET_ACCOUNT:-phase-07-08}
-      LLM_TOTAL_BUDGET_CNY: ${LLM_TOTAL_BUDGET_CNY:-10}
+      LLM_INPUT_PRICE_PER_MTOKEN: ${LLM_INPUT_PRICE_PER_MTOKEN:-1}
+      LLM_OUTPUT_PRICE_PER_MTOKEN: ${LLM_OUTPUT_PRICE_PER_MTOKEN:-5}
+      LLM_CACHE_HIT_PRICE_PER_MTOKEN: ${LLM_CACHE_HIT_PRICE_PER_MTOKEN:-0.05}
+      LLM_CACHE_WRITE_PRICE_PER_MTOKEN: ${LLM_CACHE_WRITE_PRICE_PER_MTOKEN:-1.25}
+      LLM_BUDGET_ACCOUNT: ${LLM_BUDGET_ACCOUNT:-phase-07-08-openai}
+      LLM_BUDGET_CURRENCY: ${LLM_BUDGET_CURRENCY:-USD}
+      LLM_TOTAL_BUDGET: ${LLM_TOTAL_BUDGET:-40}
+      LLM_DIAGNOSIS_BUDGET: ${LLM_DIAGNOSIS_BUDGET:-0.30}
+      DOCTOR_LEASE_TTL: ${DOCTOR_LEASE_TTL:-30s}
+      DOCTOR_RESUME_MAX_AGE: ${DOCTOR_RESUME_MAX_AGE:-2m}
       DOCTOR_MAX_CONCURRENT: ${DOCTOR_MAX_CONCURRENT:-2}
       DOCTOR_MAX_CONCURRENT_PER_TARGET: ${DOCTOR_MAX_CONCURRENT_PER_TARGET:-1}
       DOCTOR_ALERT_PENDING_MAX_AGE: ${DOCTOR_ALERT_PENDING_MAX_AGE:-5m}

@@ -25,6 +25,7 @@ import (
 
 // Config 的 Key 只能来自环境变量，调用者不能把整个配置写入日志。
 type Config struct {
+	Format  string        // chat_completions 或 responses，由部署配置选择，不由模型决定。
 	BaseURL string        // 固定供应商根地址，工具参数不能覆盖。
 	Key     string        // 仅用于 Authorization 请求头。
 	Timeout time.Duration // 一轮逻辑调用的总预算，重试也在其中。
@@ -50,6 +51,15 @@ const (
 
 // New 允许回环 HTTP 用于 httptest，真实地址必须 HTTPS；不会在构造时联网。
 func New(config Config, transport http.RoundTripper, ledger llm.Ledger, redactor *llm.Redactor, logger *slog.Logger) (*Client, error) {
+	if config.Format == "" {
+		config.Format = "chat_completions"
+	}
+	if config.Format != "chat_completions" && config.Format != "responses" {
+		return nil, fmt.Errorf("LLM_API_FORMAT 只支持 chat_completions 或 responses")
+	}
+	if config.Format == "responses" && config.Prices.CacheWriteMicros <= 0 {
+		return nil, fmt.Errorf("模型 Responses 必须配置缓存写入单价")
+	}
 	// 先检查目的地，再创建 HTTP 客户端；协议错误不能等到第一次付费调用才发现。
 	address, err := url.Parse(config.BaseURL)
 	if err != nil || address.Host == "" || address.User != nil || address.RawQuery != "" || address.Fragment != "" {
@@ -77,7 +87,7 @@ func (client *Client) Complete(parent context.Context, request llm.Request) (res
 	if request.DiagnosisID == "" || request.Model == "" || request.MaxTokens < 1 || request.MaxTokens > maximumOutputTokens {
 		return result, fmt.Errorf("模型请求缺少归属、模型名或合法输出上限")
 	}
-	raw, err := json.Marshal(request)
+	raw, err := encodeRequest(request, client.config.Format)
 	if err != nil {
 		return result, fmt.Errorf("编码模型请求：%w", err)
 	}
@@ -91,9 +101,10 @@ func (client *Client) Complete(parent context.Context, request llm.Request) (res
 		}
 		answer, retry, delay, callErr := client.attempt(bounded, request, raw)
 		result.CostMicros += answer.CostMicros
+		result.Model, result.Message, result.Usage, result.UsageKnown = answer.Model, answer.Message, answer.Usage, answer.UsageKnown
 		result.AttemptIDs = append(result.AttemptIDs, answer.AttemptIDs...)
 		if callErr == nil {
-			result.Model, result.Message, result.Usage = answer.Model, answer.Message, answer.Usage
+			result.Model, result.Message, result.Usage, result.UsageKnown = answer.Model, answer.Message, answer.Usage, answer.UsageKnown
 			return result, nil
 		}
 		err = callErr
@@ -115,13 +126,17 @@ func (client *Client) attempt(ctx context.Context, request llm.Request, raw []by
 	if request.InputUpperBound > 0 {
 		inputBound = min(inputBound, request.InputUpperBound)
 	}
-	reserved := client.config.Prices.Cost(inputBound, int64(request.MaxTokens))
-	id, err := client.ledger.Reserve(ctx, llm.Reservation{DiagnosisID: request.DiagnosisID, Model: request.Model, Request: raw, MaximumMicros: reserved, DiagnosisLimitMicros: request.DiagnosisLimitMicros, Prices: client.config.Prices})
+	reserved := client.config.Prices.ReserveCost(inputBound, int64(request.MaxTokens))
+	id, err := client.ledger.Reserve(ctx, llm.Reservation{CallID: request.CallID, DiagnosisID: request.DiagnosisID, Model: request.Model, Request: raw, MaximumMicros: reserved, DiagnosisLimitMicros: request.DiagnosisLimitMicros, Prices: client.config.Prices})
 	if err != nil {
 		return llm.Response{}, false, 0, err
 	}
 	result := llm.Response{Model: request.Model, CostMicros: reserved, AttemptIDs: []string{id}}
-	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, client.config.BaseURL+"/chat/completions", bytes.NewReader(raw))
+	path := "/chat/completions"
+	if client.config.Format == "responses" {
+		path = "/responses"
+	}
+	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, client.config.BaseURL+path, bytes.NewReader(raw))
 	if err != nil {
 		result.CostMicros = 0
 		return result, false, 0, client.settle(ctx, id, llm.Settlement{Status: "invalid_request"}, err)
@@ -150,14 +165,17 @@ func (client *Client) attempt(ctx context.Context, request llm.Request, raw []by
 	if problem != nil {
 		settlement.Status = fmt.Sprintf("http_%d", response.StatusCode)
 		// 明确被拒绝的请求没有生成 token。5xx 或损坏的成功回复不能这样假定。
-		settlement.Unknown = response.StatusCode >= 500 || response.StatusCode < 400
+		settlement.Unknown = !answer.UsageKnown && (response.StatusCode >= 500 || response.StatusCode < 400)
+		if answer.UsageKnown {
+			settlement.CostMicros = client.config.Prices.Charge(answer.Usage)
+		}
 	} else {
 		settlement.CostMicros = client.config.Prices.Charge(answer.Usage)
 	}
 	if !settlement.Unknown {
 		result.CostMicros = settlement.CostMicros
 	}
-	result.Model, result.Message, result.Usage = answer.Model, answer.Message, answer.Usage
+	result.Model, result.Message, result.Usage, result.UsageKnown = answer.Model, answer.Message, answer.Usage, answer.UsageKnown
 	if auditErr := client.settle(ctx, id, settlement, nil); auditErr != nil {
 		return result, false, 0, auditErr
 	}

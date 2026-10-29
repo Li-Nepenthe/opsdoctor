@@ -27,6 +27,7 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/logging"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/mysqlx"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
+	"github.com/Li-Nepenthe/opsdoctor/internal/shop/app"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/inventory"
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/migrations"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
@@ -62,6 +63,11 @@ func Run(parent context.Context) (result error) {
 	if err := migrations.Apply(startup, database); err != nil {
 		return fmt.Errorf("迁移 shop：%w", err)
 	}
+	closeOps, err := app.StartOps(ctx, stop, database, nil, observability.Metrics)
+	if err != nil {
+		return err
+	}
+	defer func() { result = errors.Join(result, closeOps()) }()
 	cancel()
 	server := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler(otelgrpc.WithTracerProvider(observability.Provider), otelgrpc.WithPropagators(observability.Propagator))), grpc.ChainUnaryInterceptor(observability.Metrics.Server(), grpcx.Logging(logger), grpcx.Recovery(logger)))
 	service := inventory.NewService(inventory.NewMySQLStockRepository(database))

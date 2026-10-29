@@ -20,6 +20,17 @@
 | 0012_recovery_alerts.sql | 首次在观察期内补入的时间；之后恢复也保留这条来历 |
 | 0013_pricing_and_report.sql | 保存每次请求的三档价格，旧账不改写 |
 | 0014_report_reason.sql | 保存报告是主动提交还是预算触发，以及具体原因 |
+| 0015_mcp_audit.sql | 保存每一次外部 MCP 调用，未知工具也留下记录 |
+| 0016_lease_clock.sql | 记录执行时间、续约时间和用户取消意图 |
+| 0017_step_identity.sql | 为一轮请求和工具结果分配唯一标识，恢复不重复记步骤 |
+| 0018_attempt_call.sql | 把实际 HTTP 尝试对应到发送前保存的请求 |
+| 0019_scheduler_lock.sql | 创建跨进程分配名额时使用的锁表 |
+| 0020_scheduler_guard.sql | 写入唯一的协调行，两个进程不能同时抢到同一名额 |
+| 0021_budget_currency.sql | 为账本固定币种，旧金额仍为人民币 |
+| 0022_diagnosis_currency.sql | 保存诊断币种和缓存写入用量 |
+| 0023_step_currency.sql | 保存每步币种、缓存写入和思考 token |
+| 0024_attempt_cache_write.sql | 保存每次调用的缓存写入用量和当时单价 |
+| 0025_approvals.sql | 保存不可变审批计划、一次决定、执行者与旧 DDL 连接线索 |
 
 任务结束与故障恢复是两件事。阶段 6 不再用 active_group 判断故障开放期，而用 alert_groups 保存整组恢复和最近通知时间。旧列保留以兼容已有迁移，后续没有拿它创建第二套去重规则。
 

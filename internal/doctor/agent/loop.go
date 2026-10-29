@@ -29,14 +29,16 @@ type Agent struct {
 
 // session 保存一次诊断的状态，不把历史挂在共享模型客户端上。
 type session struct {
-	agent       *Agent        // 构造依赖。
-	input       Input         // 固定系统与记录器。
-	history     []llm.Message // 每轮只追加，不改固定前缀。
-	definitions []llm.Tool    // 本系统工具加 submit_report。
-	existing    map[int]bool  // 本次已经成功保存的步骤编号。
-	result      Result        // 用量与报告累计。
-	lastInput   int64         // 上一轮供应商计量，作为下一轮估计历史的依据。
-	lastBytes   int           // 上一轮发送的 JSON 大小，新增内容单独计算。
+	parentSeq   int             // 当前工具批次所属的模型步骤。
+	completed   map[string]Step // 已保存的工具结果；恢复时只重做没有结果的查看请求。
+	agent       *Agent          // 构造依赖。
+	input       Input           // 固定系统与记录器。
+	history     []llm.Message   // 每轮只追加，不改固定前缀。
+	definitions []llm.Tool      // 本系统工具加 submit_report。
+	existing    map[int]bool    // 本次已经成功保存的步骤编号。
+	result      Result          // 用量与报告累计。
+	lastInput   int64           // 上一轮供应商计量，作为下一轮估计历史的依据。
+	lastBytes   int             // 上一轮发送的 JSON 大小，新增内容单独计算。
 }
 
 // New 不联网，参数错误在启动时暴露，单元测试可使用较小预算。
@@ -59,11 +61,14 @@ func (agent *Agent) Run(parent context.Context, input Input) (Result, error) {
 	if input.ID == "" || input.Tools == nil || input.Recorder == nil || len(input.Components) == 0 {
 		return Result{}, fmt.Errorf("诊断缺少系统、工具或审计依赖")
 	}
-	whole, cancel := context.WithTimeout(parent, agent.limits.Duration)
+	whole, cancel := context.WithTimeout(parent, max(0, agent.limits.Duration-input.ActiveTime))
 	defer cancel()
-	work, stop := context.WithTimeout(whole, agent.limits.Duration-agent.limits.FinalTime)
+	work, stop := context.WithTimeout(whole, max(0, agent.limits.Duration-agent.limits.FinalTime-input.ActiveTime))
 	defer stop()
-	run := &session{agent: agent, input: input, history: messages(input, agent.redactor), definitions: definitions(input), existing: map[int]bool{}, result: Result{ReportMode: "voluntary"}}
+	run := &session{agent: agent, input: input, history: messages(input, agent.redactor), definitions: definitions(input), existing: map[int]bool{}, completed: map[string]Step{}, result: Result{ReportMode: "voluntary"}}
+	if done, err := run.restore(whole); done || err != nil {
+		return run.result, err
+	}
 	result, err := run.execute(whole, work)
 	// 总时限耗尽属于预算终态，主动取消仍保留 context.Canceled 给调度器区分。
 	if parent.Err() == nil && errors.Is(whole.Err(), context.DeadlineExceeded) {
@@ -137,11 +142,19 @@ func (run *session) ask(ctx context.Context, final bool) (llm.Response, error) {
 		return llm.Response{}, llm.ErrDiagnosisBudget
 	}
 	started := time.Now()
+	// 先保存发送意图。若结算成功后、保存 llm 步骤前崩溃，仓储能用这个编号找回回复。
+	pending, err := record(ctx, run.input.Recorder, Step{Kind: "system", Status: "llm_pending", Args: clean})
+	if err != nil {
+		return llm.Response{}, fmt.Errorf("保存模型请求断点：%w", err)
+	}
+	request.CallID = fmt.Sprintf("request:%d", pending.Seq)
 	answer, callErr := run.agent.client.Complete(ctx, request)
 	run.result.Rounds++
 	run.result.Usage.Input += answer.Usage.Input
 	run.result.Usage.Output += answer.Usage.Output
 	run.result.Usage.CacheHit += answer.Usage.CacheHit
+	run.result.Usage.CacheWrite += answer.Usage.CacheWrite
+	run.result.Usage.Reasoning += answer.Usage.Reasoning
 	run.result.Usage.CacheMiss += answer.Usage.CacheMiss
 	run.result.CostMicros += answer.CostMicros
 	if answer.Model == "" {
@@ -160,11 +173,12 @@ func (run *session) ask(ctx context.Context, final bool) (llm.Response, error) {
 	if errors.Is(callErr, context.Canceled) {
 		status = "cancelled"
 	}
-	step, recordErr := record(ctx, run.input.Recorder, Step{Kind: "llm", Model: answer.Model, Args: clean, Result: string(response), Status: status, DurationMS: time.Since(started).Milliseconds(), Usage: answer.Usage, CostMicros: answer.CostMicros})
+	step, recordErr := record(ctx, run.input.Recorder, Step{EventKey: request.CallID, CallID: request.CallID, Kind: "llm", Model: answer.Model, Args: clean, Result: string(response), Status: status, DurationMS: time.Since(started).Milliseconds(), Usage: answer.Usage, CostMicros: answer.CostMicros})
 	if recordErr != nil {
 		return answer, fmt.Errorf("保存模型步骤：%w", recordErr)
 	}
 	run.existing[step.Seq] = true
+	run.parentSeq = step.Seq
 	if callErr == nil {
 		run.lastInput, run.lastBytes = answer.Usage.Input, len(clean)
 		run.history = append(run.history, answer.Message)

@@ -5,6 +5,7 @@
 //
 // 主要内容：
 //   - doctorMountProblems：读取 Compose，检查医生的挂载和提权入口。
+//   - opsPortProblems：确保业务运维端口只在容器网络内使用。
 // 阅读建议：先看允许的唯一挂载，再看为什么拒绝 env_file 和 Docker 连接变量。
 
 package main
@@ -54,5 +55,36 @@ func doctorMountProblems(path string) ([]string, error) {
 			reject("不得接收实验控制或靶场业务凭据变量 " + key)
 		}
 	}
-	return problems, nil
+	return append(problems, opsPortProblems(path, compose.Services)...), nil
+}
+
+// opsPortProblems 同时识别 Compose 两种端口格式，不能只靠“没有写 localhost”猜是否公开。
+func opsPortProblems(path string, services map[string]map[string]any) []string {
+	var problems []string
+	for _, name := range []string{"inventory-service", "order-service", "order-worker"} {
+		service := services[name]
+		// 主机网络不需要 ports 就能公开监听端口，因此先单独拒绝它。
+		if service["network_mode"] == "host" {
+			problems = append(problems, fmt.Sprintf("%s:1: %s 运维接口不能使用主机网络", path, name))
+		}
+		ports, _ := service["ports"].([]any)
+		for _, port := range ports {
+			target := ""
+			switch value := port.(type) {
+			case string:
+				// 短格式最后一段是容器端口，前面的 IP 和宿主端口不改变判断。
+				parts := strings.Split(strings.Split(value, "/")[0], ":")
+				target = parts[len(parts)-1]
+			case map[string]any:
+				// 长格式显式写 target；published 使用其他数字也不能放行。
+				target = fmt.Sprint(value["target"])
+			default:
+				target = fmt.Sprint(value)
+			}
+			if target == "6064" {
+				problems = append(problems, fmt.Sprintf("%s:1: %s 的 6064 运维端口只能在内部网络开放", path, name))
+			}
+		}
+	}
+	return problems
 }

@@ -23,8 +23,12 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
-// Config 只保存地址和变量名；阶段 7 的写入口尚未开放，也不能提前填进来。
+// Config 只保存地址、允许范围和变量名；凭据值仅从环境变量读取。
 type Config struct {
+	MySQLDDLEnv         string            `yaml:"mysql_ddl_dsn_env"`      // INDEX 专用账号，不兼作只读来源。
+	Ops                 opsConfig         `yaml:"ops_api"`                // 固定服务地址与每系统独立令牌。
+	WriteTimeout        string            `yaml:"write_timeout"`          // DDL 使用独立时限，默认两分钟。
+	MCPTokenEnv         string            `yaml:"mcp_token_env"`          // 独立长期令牌，留空表示不开这个系统的 MCP。
 	AlertRecoveryWindow string            `yaml:"alert_recovery_window"`  // 整组恢复后继续接收迟到症状的时间，由各系统的告警规则决定。
 	Name                string            `yaml:"name"`                   // 在目录中唯一，之后成为任务绑定的系统名。
 	Profile             string            `yaml:"profile"`                // 同目录的架构说明文件名。
@@ -132,5 +136,5 @@ func validateConfigs(configs []Config) error {
 
 // variables 只包含本阶段真正使用的凭据，不提前向医生传递写账号。
 func (config Config) variables() []string {
-	return []string{config.AlertTokenEnv, config.MySQLDSNEnv, config.RedisURLEnv}
+	return []string{config.AlertTokenEnv, config.MySQLDSNEnv, config.RedisURLEnv, config.MCPTokenEnv, config.MySQLDDLEnv, config.Ops.TokenEnv}
 }

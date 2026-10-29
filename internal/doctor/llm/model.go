@@ -54,6 +54,7 @@ type ToolDefinition struct {
 
 // Request 的诊断 ID 只交给本机审计，不进入外部请求或指标标签。
 type Request struct {
+	CallID               string    `json:"-"`          // 一次逻辑请求的本机编号；重试共用，恢复时据此找回已收到的回复。
 	DiagnosisID          string    `json:"-"`          // 费用归属，不能由模型指定。
 	InputUpperBound      int64     `json:"-"`          // 已计量历史加新增文本的保守上界，只在本机使用。
 	DiagnosisLimitMicros int64     `json:"-"`          // 由 Agent 固定，供应商和模型都不能修改。
@@ -72,14 +73,17 @@ type Thinking struct {
 
 // Usage 保留供应商的计量；命中的输入用较低价格结算，不能重复计入未命中部分。
 type Usage struct {
-	Input     int64 `json:"prompt_tokens"`            // 本次完整输入 token 数。
-	Output    int64 `json:"completion_tokens"`        // 本次输出 token 数。
-	CacheHit  int64 `json:"prompt_cache_hit_tokens"`  // 输入中命中缓存的部分。
-	CacheMiss int64 `json:"prompt_cache_miss_tokens"` // 供应商提供时保留。
+	CacheWrite int64 `json:"cache_write_tokens"`       // 写入缓存的输入，已包含在 Input 中，不能再加一次。
+	Reasoning  int64 `json:"reasoning_tokens"`         // 输出中用于推理的部分，已包含在 Output 中。
+	Input      int64 `json:"prompt_tokens"`            // 本次完整输入 token 数。
+	Output     int64 `json:"completion_tokens"`        // 本次输出 token 数。
+	CacheHit   int64 `json:"prompt_cache_hit_tokens"`  // 输入中命中缓存的部分。
+	CacheMiss  int64 `json:"prompt_cache_miss_tokens"` // 供应商提供时保留。
 }
 
 // Response 即使伴随 error 也可能已有费用，调用方必须先记账再判断是否继续。
 type Response struct {
+	UsageKnown bool     `json:"usage_known"` // 明确计量后，即使回复因长度截断而不可用，也按实际费用结算。
 	Model      string   `json:"model"`       // 优先使用接口实际返回值。
 	Message    Message  `json:"message"`     // 下一轮可直接追加的 assistant 消息。
 	Usage      Usage    `json:"usage"`       // 成功回答的用量。

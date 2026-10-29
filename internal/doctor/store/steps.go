@@ -15,6 +15,7 @@ import (
 	"fmt"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
 )
 
 // RecordStep 在数据库提交之后才发布事件，失败时不会产生只有页面看得到的虚假步骤。
@@ -37,7 +38,7 @@ func (store *Store) RecordStep(ctx context.Context, id string, step agent.Step) 
 
 // appendStep 被普通步骤和状态转换共用，使终态事件也有可补发的数据库编号。
 func (store *Store) appendStep(ctx context.Context, tx *sql.Tx, id string, step agent.Step) (agent.Step, error) {
-	if step.Kind != "llm" && step.Kind != "tool" && step.Kind != "system" {
+	if step.Kind != "llm" && step.Kind != "tool" && step.Kind != "system" && step.Kind != "approval" {
 		return step, fmt.Errorf("不支持的步骤类型")
 	}
 	if len(step.Args) == 0 {
@@ -51,20 +52,37 @@ func (store *Store) appendStep(ctx context.Context, tx *sql.Tx, id string, step 
 	if err = tx.QueryRowContext(ctx, "SELECT next_seq FROM diagnoses WHERE id=? FOR UPDATE", id).Scan(&step.Seq); err != nil {
 		return step, err
 	}
+	// 行锁也把租约检查与写入放在一起，旧执行者不能在检查后被接手又继续写。
+	if owner := llm.Lease(ctx); owner != "" {
+		if err = requireLease(ctx, tx, id, owner); err != nil {
+			return step, err
+		}
+	}
+	if step.EventKey != "" {
+		previous, lookupErr := readStep(ctx, tx, id, step.EventKey)
+		if lookupErr == nil {
+			previous.AlreadySaved = true
+			return previous, nil
+		}
+		if lookupErr != sql.ErrNoRows {
+			return step, lookupErr
+		}
+	}
+	step.Currency = store.config.Currency
 	step.Seq++
 	step.CreatedAt = store.config.Now().UTC()
 	// 一个事务同时写行与递增编号；回滚时两者一起消失，不留下无内容的编号。
-	_, err = tx.ExecContext(ctx, "INSERT INTO diagnosis_steps(diagnosis_id,seq,kind,model,tool_name,args,result,status,duration_ms,tokens_in,tokens_out,cache_hit_tokens,cost_micros,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)", id, step.Seq, step.Kind, step.Model, step.ToolName, step.Args, step.Result, step.Status, step.DurationMS, step.Usage.Input, step.Usage.Output, step.Usage.CacheHit, step.CostMicros, step.CreatedAt)
+	_, err = tx.ExecContext(ctx, "INSERT INTO diagnosis_steps(diagnosis_id,seq,kind,model,tool_name,args,result,status,duration_ms,tokens_in,tokens_out,cache_hit_tokens,cost_micros,created_at,event_key,parent_seq,call_id,counted,currency,cache_write_tokens,reasoning_tokens) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", id, step.Seq, step.Kind, step.Model, step.ToolName, step.Args, step.Result, step.Status, step.DurationMS, step.Usage.Input, step.Usage.Output, step.Usage.CacheHit, step.CostMicros, step.CreatedAt, nullableKey(step.EventKey), step.ParentSeq, step.CallID, step.Counted, step.Currency, step.Usage.CacheWrite, step.Usage.Reasoning)
 	if err != nil {
 		return step, err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE diagnoses SET next_seq=?,tokens_in=tokens_in+?,tokens_out=tokens_out+?,cache_hit_tokens=cache_hit_tokens+?,cost_micros=cost_micros+? WHERE id=?", step.Seq, step.Usage.Input, step.Usage.Output, step.Usage.CacheHit, step.CostMicros, id)
+	_, err = tx.ExecContext(ctx, "UPDATE diagnoses SET next_seq=?,tokens_in=tokens_in+?,tokens_out=tokens_out+?,cache_hit_tokens=cache_hit_tokens+?,cost_micros=cost_micros+?,cache_write_tokens=cache_write_tokens+? WHERE id=?", step.Seq, step.Usage.Input, step.Usage.Output, step.Usage.CacheHit, step.CostMicros, step.Usage.CacheWrite, id)
 	return step, err
 }
 
 // publish 不持有数据库锁；回调只能做有界的内存投递，慢浏览器不能拖住事务。
 func (store *Store) publish(id string, step agent.Step) {
-	if store.config.Published != nil {
+	if store.config.Published != nil && !step.AlreadySaved {
 		store.config.Published(id, step)
 	}
 }
@@ -74,7 +92,7 @@ func (store *Store) StepsAfter(ctx context.Context, id string, after int) ([]age
 	if after < 0 {
 		return nil, fmt.Errorf("步骤编号不能为负数")
 	}
-	rows, err := store.database.QueryContext(ctx, "SELECT seq,kind,model,tool_name,args,result,status,duration_ms,tokens_in,tokens_out,cache_hit_tokens,cost_micros,created_at FROM diagnosis_steps WHERE diagnosis_id=? AND seq>? ORDER BY seq LIMIT 100", id, after)
+	rows, err := store.database.QueryContext(ctx, "SELECT seq,kind,model,tool_name,args,result,status,duration_ms,tokens_in,tokens_out,cache_hit_tokens,cost_micros,created_at,COALESCE(event_key,''),parent_seq,call_id,counted,currency,cache_write_tokens,reasoning_tokens FROM diagnosis_steps WHERE diagnosis_id=? AND seq>? ORDER BY seq LIMIT 100", id, after)
 	if err != nil {
 		return nil, err
 	}
@@ -83,10 +101,25 @@ func (store *Store) StepsAfter(ctx context.Context, id string, after int) ([]age
 	steps := []agent.Step{}
 	for rows.Next() {
 		var step agent.Step
-		if err = rows.Scan(&step.Seq, &step.Kind, &step.Model, &step.ToolName, &step.Args, &step.Result, &step.Status, &step.DurationMS, &step.Usage.Input, &step.Usage.Output, &step.Usage.CacheHit, &step.CostMicros, &step.CreatedAt); err != nil {
+		if err = rows.Scan(&step.Seq, &step.Kind, &step.Model, &step.ToolName, &step.Args, &step.Result, &step.Status, &step.DurationMS, &step.Usage.Input, &step.Usage.Output, &step.Usage.CacheHit, &step.CostMicros, &step.CreatedAt, &step.EventKey, &step.ParentSeq, &step.CallID, &step.Counted, &step.Currency, &step.Usage.CacheWrite, &step.Usage.Reasoning); err != nil {
 			return nil, err
 		}
 		steps = append(steps, step)
 	}
 	return steps, rows.Err()
+}
+
+// nullableKey 让旧记录和无须去重的状态事件使用 SQL NULL，避免空串互相冲突。
+func nullableKey(key string) any {
+	if key == "" {
+		return nil
+	}
+	return key
+}
+
+// readStep 在同一事务内返回已保存的完整结果，重试保存不会分配第二个步骤号。
+func readStep(ctx context.Context, tx *sql.Tx, id, key string) (agent.Step, error) {
+	var step agent.Step
+	err := tx.QueryRowContext(ctx, "SELECT seq,kind,model,tool_name,args,result,status,duration_ms,tokens_in,tokens_out,cache_hit_tokens,cost_micros,created_at,COALESCE(event_key,''),parent_seq,call_id,counted,currency,cache_write_tokens,reasoning_tokens FROM diagnosis_steps WHERE diagnosis_id=? AND event_key=?", id, key).Scan(&step.Seq, &step.Kind, &step.Model, &step.ToolName, &step.Args, &step.Result, &step.Status, &step.DurationMS, &step.Usage.Input, &step.Usage.Output, &step.Usage.CacheHit, &step.CostMicros, &step.CreatedAt, &step.EventKey, &step.ParentSeq, &step.CallID, &step.Counted, &step.Currency, &step.Usage.CacheWrite, &step.Usage.Reasoning)
+	return step, err
 }

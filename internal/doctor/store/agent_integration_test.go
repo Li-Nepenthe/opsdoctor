@@ -35,7 +35,7 @@ func TestIntegrationFaultPeriod(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = repository.StartTask(t.Context(), first.DiagnosisID, "mock-test", "v-test", "mock"); err != nil {
+	if _, err = repository.StartTask(llm.WithLease(t.Context(), "test-owner"), first.DiagnosisID, "mock-test", "v-test", "mock"); err != nil {
 		t.Fatal(err)
 	}
 	if err = repository.EndTask(t.Context(), first.DiagnosisID, run.Succeeded, agent.Result{}, ""); err != nil {
@@ -79,7 +79,7 @@ func TestIntegrationTasks(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, err = repository.StartTask(t.Context(), id, "mock-test", "v-test", "mock"); err != nil {
+	if _, err = repository.StartTask(llm.WithLease(t.Context(), "test-owner"), id, "mock-test", "v-test", "mock"); err != nil {
 		t.Fatal(err)
 	}
 	var workers sync.WaitGroup
@@ -100,11 +100,15 @@ func TestIntegrationTasks(t *testing.T) {
 			t.Fatalf("序号断裂：%d", step.Seq)
 		}
 	}
+	// 先让租约和最后续约都过时，模拟长时间宕机；活租约不能被启动清理误杀。
+	if _, err = repository.database.ExecContext(t.Context(), "UPDATE diagnoses SET lease_until=UTC_TIMESTAMP(6)-INTERVAL 3 MINUTE,lease_updated_at=UTC_TIMESTAMP(6)-INTERVAL 4 MINUTE WHERE id=?", id); err != nil {
+		t.Fatal(err)
+	}
 	if err = repository.Recover(t.Context()); err != nil {
 		t.Fatal(err)
 	}
 	detail, err := repository.Detail(t.Context(), id)
-	if err != nil || detail.Status != run.Failed || detail.Error != "进程重启，恢复功能在阶段 7" {
+	if err != nil || detail.Status != run.Failed || detail.Error != "中断时间超过恢复期限，旧证据已过时，未继续诊断" {
 		t.Fatalf("重启=%+v err=%v", detail, err)
 	}
 	// 恢复后的终态不能被迟到的 Agent 成功结果覆盖。

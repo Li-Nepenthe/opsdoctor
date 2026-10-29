@@ -6,6 +6,7 @@
 // 主要内容：TestTransitions 穷举状态边界；TestSchedulerIsolation 检查两个系统；
 // TestSchedulerBudgetAndExpiry 检查额度、旧任务和启动清理；TestCancelBeforeStart 检查取消空窗。
 // TestBudgetStatusReason 检查持久账本原因优先于进程内预留失败标志。
+// TestRenewUnavailable 检查数据库一直断开时，执行者会在旧租约到期前停工。
 // 阅读建议：假仓储只模拟状态竞争，SQL 原子性另由 store 集成测试证明。
 
 package run
@@ -32,6 +33,7 @@ type queued struct {
 	status string
 	reason string
 	alert  bool
+	stale  bool
 	seq    int
 }
 
@@ -43,14 +45,14 @@ type memoryTasks struct {
 	recovered  bool
 }
 
-// Recover 和生产一样只处理遗留 running，不把它们重新排队。
+// Recover 模拟过时断点的清理；仍在恢复期限内的任务由后续调度接手。
 func (memory *memoryTasks) Recover(context.Context) error {
 	memory.mu.Lock()
 	defer memory.mu.Unlock()
 	memory.recovered = true
 	for _, item := range memory.items {
-		if item.status == Running {
-			item.status, item.reason = Failed, "进程重启，恢复功能在阶段 7"
+		if item.status == Running && item.stale {
+			item.status, item.reason = Failed, "中断时间超过恢复期限，旧证据已过时，未继续诊断"
 		}
 	}
 	return nil
@@ -171,10 +173,10 @@ func taskForTest(id, target string) *queued {
 
 // TestTransitions 穷举全部状态对；终态回到 running 等情况必须拒绝。
 func TestTransitions(t *testing.T) {
-	values := []string{Pending, Running, Succeeded, Failed, Cancelled, BudgetExceeded, "invented"}
+	values := []string{Pending, Running, WaitingApproval, Succeeded, Failed, Cancelled, BudgetExceeded, "invented"}
 	for _, from := range values {
 		for _, to := range values {
-			allowed := from == Pending && (to == Running || to == Cancelled) || from == Running && (to == Succeeded || to == Failed || to == Cancelled || to == BudgetExceeded)
+			allowed := from == Pending && (to == Running || to == Cancelled) || from == Running && (to == WaitingApproval || to == Succeeded || to == Failed || to == Cancelled || to == BudgetExceeded) || from == WaitingApproval && (to == Running || to == Failed || to == Cancelled)
 			if got := Transition(from, to) == nil; got != allowed {
 				t.Fatalf("%s -> %s: got=%v", from, to, got)
 			}
@@ -214,10 +216,8 @@ func TestSchedulerIsolation(t *testing.T) {
 		}
 		memory.mu.Lock()
 		defer memory.mu.Unlock()
-		for _, item := range memory.items {
-			if item.status == Running {
-				t.Fatal("取消后仍在执行")
-			}
+		if memory.items[0].status != Running || memory.items[5].status != Running {
+			t.Fatal("关闭进程应保留 running 断点供新进程接手")
 		}
 	})
 }
@@ -227,7 +227,7 @@ func TestSchedulerBudgetAndExpiry(t *testing.T) {
 	synctest.Test(t, func(t *testing.T) {
 		old, fresh, orphan := taskForTest("old", "A"), taskForTest("fresh", "B"), taskForTest("orphan", "C")
 		old.task.CreatedAt = time.Now().Add(-6 * time.Minute)
-		orphan.status = Running
+		orphan.status, orphan.stale = Running, true
 		memory := &memoryTasks{items: []*queued{old, fresh, orphan}}
 		scheduler := testScheduler(t, memory, "openai", true)
 		if err := scheduler.Start(t.Context()); err != nil {
@@ -236,7 +236,7 @@ func TestSchedulerBudgetAndExpiry(t *testing.T) {
 		synctest.Wait()
 		scheduler.Close()
 		// 新任务保留 pending，旧告警与重启中断各有自己的明确原因。
-		if fresh.status != Pending || old.status != Cancelled || old.reason != "告警已过时，未执行" || orphan.status != Failed || orphan.reason != "进程重启，恢复功能在阶段 7" {
+		if fresh.status != Pending || old.status != Cancelled || old.reason != "告警已过时，未执行" || orphan.status != Failed || orphan.reason != "中断时间超过恢复期限，旧证据已过时，未继续诊断" {
 			t.Fatal("启动清理或费用拦截错误")
 		}
 	})
@@ -284,4 +284,56 @@ func TestBudgetStatusReason(t *testing.T) {
 			}
 		})
 	}
+}
+
+// Renew 在单进程假仓储中确认任务还在运行；租约时钟和多进程竞争由真实库测试覆盖。
+func (memory *memoryTasks) Renew(_ context.Context, id string) (bool, error) {
+	memory.mu.Lock()
+	defer memory.mu.Unlock()
+	for _, item := range memory.items {
+		if item.task.ID == id {
+			return item.status == Running, nil
+		}
+	}
+	return false, nil
+}
+
+// Resume 的这些调度测试没有历史；Agent 对话回放另用带步骤的专门用例。
+func (memory *memoryTasks) Resume(context.Context, string) ([]agent.Step, time.Duration, int64, error) {
+	return nil, 0, 0, nil
+}
+
+// unavailableTasks 模拟续租请求一直失败，其他行为沿用内存仓储。
+type unavailableTasks struct{ *memoryTasks }
+
+// Renew 返回网络错误，不能用它证明旧租约仍然有效。
+func (unavailableTasks) Renew(context.Context, string) (bool, error) {
+	return false, fmt.Errorf("测试：数据库不可达")
+}
+
+// TestRenewUnavailable 用虚拟时钟等到租约边界，避免依赖真实机器的调度速度。
+func TestRenewUnavailable(t *testing.T) {
+	// 用虚拟时间分别观察到期前与到期后，真实调度快慢不会改变结论。
+	synctest.Test(t, func(t *testing.T) {
+		ctx, cancel := context.WithCancel(t.Context())
+		defer cancel()
+		scheduler := &Scheduler{
+			config:     Config{LeaseTTL: 30 * time.Second},
+			repository: unavailableTasks{&memoryTasks{}},
+			running:    map[string]running{"lost": {cancel: cancel}},
+			logger:     slog.New(slog.NewTextHandler(io.Discard, nil)),
+		}
+		go scheduler.renew(ctx, "lost")
+		synctest.Wait()
+		time.Sleep(29 * time.Second)
+		synctest.Wait()
+		if ctx.Err() != nil {
+			t.Fatal("短暂失败不应提前耗掉旧租约")
+		}
+		time.Sleep(time.Second)
+		synctest.Wait()
+		if ctx.Err() != context.Canceled {
+			t.Fatal("数据库一直不可达时，旧租约到期必须停工")
+		}
+	})
 }

@@ -5,6 +5,13 @@
 // 才不会因为需要保存任务，就顺便把业务库的写权限交给医生。
 //
 // 文件清单：
+//   - approvals.go：事务保存审批、一次决定和执行线索。
+//   - approval_integration_test.go：验证等待、争抢、过期和执行恢复。
+//   - leases.go：领取和续租执行权，过时断点不再继续。
+//   - model_recovery.go：从费用审计找回崩溃前已收到的回答。
+//   - lease_integration_test.go：验证租约争抢、回复恢复和币种隔离。
+//   - mcp_integration_test.go：用专用库验证外部调用审计和脱敏。
+//   - mcp.go：把外部 MCP 调用的开始和结果单独保存。
 //   - agent_integration_test.go：在专用数据库验证故障开放期、任务清理、步骤编号和累计费用。
 //   - budget.go：把真实模型的费用预留与结算保存到医生数据库。
 //   - steps.go：给步骤分配编号，并为页面断线后的补发提供有序读取。
