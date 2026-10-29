@@ -4,7 +4,7 @@
 // 已经推来通知，医生却还没有表可以保存。启动调度器前还要清理过时和中断的任务。
 //
 // 主要内容：
-//   - Run：读取配置、打开医生数据库、迁移、初始化用户并组装服务。
+//   - Run：启动服务；显式 --clock-samples 则只读本机时钟，不装配任何业务。
 //   - serve：等待退出信号，给已经接收的通知有限的提交时间。
 //
 // 阅读建议：医生自己的数据库与 target 中的只读连接分开创建、分开关闭。
@@ -14,6 +14,7 @@ package app
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net"
 	"net/http"
@@ -26,6 +27,7 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/store"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/target"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/adminserver"
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/clockcheck"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/lifecycle"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/logging"
@@ -35,7 +37,15 @@ import (
 )
 
 // Run 只有装配完全成功才监听端口，启动失败也会关闭已经创建的资源。
-func Run(parent context.Context) error {
+func Run(parent context.Context, args ...string) error {
+	// 时钟采样只是容器内读本机时间；必须在读凭据、迁移和启动调度之前分流，
+	// 避免每次预检都额外启动一个医生，更不能趁采样触发付费任务。
+	if len(args) > 0 {
+		if len(args) != 1 || args[0] != "--clock-samples" {
+			return fmt.Errorf("医生只接受无参数启动服务，或 --clock-samples 只读采样")
+		}
+		return clockcheck.Sample(parent, os.Stdout)
+	}
 	settings, err := loadConfig()
 	if err != nil {
 		return err

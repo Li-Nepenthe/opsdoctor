@@ -4,12 +4,14 @@
 //   - TestCLIUsesServer：错误参数也原样送给服务器，再输出服务器的校验结果。
 //   - TestCLIRejectsRedirect：登录令牌不能跟着重定向发给另一个地址。
 //   - TestCLICommand：未知选项和缺少系统名在发请求前拒绝。
+//   - TestClockEntry：采样入口不读取服务配置，也不启动模型。
 // 阅读建议：这里用本地假 HTTP 服务记录请求，没有数据库或 Docker 依赖。
 
 package app
 
 import (
 	"bytes"
+	"context"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -72,6 +74,20 @@ func TestCLICommand(t *testing.T) {
 	} {
 		if _, err := parseCommand(args); err == nil {
 			t.Fatalf("接受了非法命令 %v", args)
+		}
+	}
+}
+
+// TestClockEntry 即使服务凭据不存在，纯采样分支仍直接响应取消。
+func TestClockEntry(t *testing.T) {
+	ctx, cancel := context.WithCancel(t.Context())
+	cancel()
+	if err := Run(ctx, "--clock-samples"); err != context.Canceled {
+		t.Fatal("纯采样没有直接进入时钟检查", err)
+	}
+	for _, args := range [][]string{{"--unknown"}, {"--clock-samples", "extra"}} {
+		if err := Run(t.Context(), args...); err == nil || !strings.Contains(err.Error(), "只接受") {
+			t.Fatal("非法参数没有在装配前拒绝", err)
 		}
 	}
 }

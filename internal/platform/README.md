@@ -34,6 +34,12 @@
 | [telemetry](telemetry/doc.go) | 指标的统一注册、调用链初始化、在 Kafka 消息里传递调用链 |
 | [alertsink](alertsink/doc.go) | 临时的告警接收器，检查令牌后把告警摘要写进日志。阶段 5 由医生取代 |
 
+**长时间实验的时间检查（阶段 8）：**
+
+| 包 | 作用 |
+|---|---|
+| [clockcheck](clockcheck/doc.go) | 同时读取日期和经过时间，区分校时跳变与任务晚得到 CPU；不连接任何外部服务 |
+
 ## 从哪里开始读
 
 按上面的分组顺序读。阶段 0 的六个包是所有服务的地基，建议先读 config、logging、httpx，再读 mysqlx、migrate、lifecycle。

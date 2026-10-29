@@ -14,7 +14,7 @@ import (
 
 // main 把 os.Exit 放在 Run 返回之后，避免跳过数据库和 HTTP 的清理。
 func main() {
-	if err := app.Run(context.Background()); err != nil {
+	if err := app.Run(context.Background(), os.Args[1:]...); err != nil {
 		fmt.Fprintln(os.Stderr, "医生服务退出：", err)
 		os.Exit(1)
 	}

@@ -502,7 +502,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql b
 
 试跑使用 10000 活跃商品、200 QPS、64 工作者。每次重建前先检查这三个值，启动后还要检查 loadgen `/control` 的实际返回。先在 Mock 下执行 `chaos healthy`，确认没有残留索引或运行中改过的连接池。集成测试和 selftest 始终留在 Mock，不能在真实模型期间跑。
 
-先运行 `go run ./cmd/eval check-clock`。它在医生容器里连续检查六十个一秒步长，输出原始时间戳；不需要数据库或模型凭据。任一步长不等于一秒就失败。`prepare`、`pilot` 也有这道检查，等待诊断时继续监测。失败后先处理 Windows、WSL 的校时问题，不能只靠重新运行挑出一段正常样本。
+先运行 `go run ./cmd/eval check-clock`。它在医生容器里每秒读取日期和单调经过时间，连续检查六十次并输出原始样本；不需要数据库或模型凭据。两种时间增量相差超过 100ms，或 75 秒内样本不完整，就失败。程序晚得到 CPU 会让两种增量一起变长，不再用整数秒取整误报。`prepare`、`pilot`、`freeze` 和 `run` 都有前置检查，执行期间继续监测。失败后先处理 Windows、WSL 的校时问题，不能只靠重新运行挑出一段正常样本。
 
 评测器读取医生自己的 `DOCTOR_MYSQL_DSN`，宿主机地址为 `127.0.0.1:3307`，账号和库名均为 `doctor`。登录沿用 `DOCTOR_ADMIN_EMAIL`、`DOCTOR_ADMIN_PASSWORD`；这些都由环境注入，不放进命令参数。不要把容器内的 doctor-mysql 主机名直接拿给宿主机命令使用。`EVAL_TOKEN_BUDGET` 默认一千万，批次创建后固定，续跑不清零；费用还受原币种账户限制。
 
