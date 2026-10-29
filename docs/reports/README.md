@@ -20,3 +20,5 @@
 阶段 8 进行中：先看 [手册与试跑审核材料](phase-08-pilot.md) 和 [数据库导出结果](phase-08-pilot-results.md)。这是第一个停点，不是阶段完成汇报。
 
 第一个停点已获同意。后续的[开跑前检查](phase-08-preflight.md)记录网络阻塞及重试、计时修复；原始[网络采样](phase-08-network-preflight.jsonl)和[时钟采样](phase-08-clock-preflight.json)只含状态与时间，不含凭据。正式评测尚未开始。
+
+用户校时后的[六十次稳定性复核](phase-08-clock-stability.jsonl)仍有跳变，当前先等待时钟稳定。

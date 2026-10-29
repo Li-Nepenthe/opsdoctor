@@ -116,6 +116,9 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 
 // prepare 先核对健康环境，再保存版本和暂停状态；此命令本身不会调用付费模型。
 func prepare(ctx context.Context, options command, reader config.Reader, repository *store.Store, client *doctorClient, output io.Writer) error {
+	if err := checkClock(ctx); err != nil {
+		return err
+	}
 	// 先检查真实环境，再落库。未通过检查时不能留下一个看起来已经开始的批次。
 	if err := checkBaseline(ctx, reader); err != nil {
 		return err
@@ -190,6 +193,9 @@ func pilot(ctx context.Context, options command, reader config.Reader, repositor
 	if err = checkBaseline(ctx, reader); err != nil {
 		return err
 	}
+	if err = checkClock(ctx); err != nil {
+		return err
+	}
 	engine := chaos.Engine{StatePath: filepath.Join(".", ".opsdoctor-chaos.json")}
 	record, err := engine.Read()
 	if err != nil || record.Scenario.ID != options.scenario {
@@ -231,10 +237,19 @@ func pilot(ctx context.Context, options command, reader config.Reader, repositor
 }
 
 // waitDiagnosis 停止等待时也请求取消，不能让命令行退出后留下一条无人看管的付费请求。
-func waitDiagnosis(parent context.Context, id string, repository *store.Store, client *doctorClient, output io.Writer) (store.Detail, error) {
+func waitDiagnosis(parent context.Context, id string, repository *store.Store, client *doctorClient, output io.Writer) (detail store.Detail, problem error) {
+	guarded, stopClock := guardClock(parent, checkClock)
+	defer stopClock()
 	// 等待器比诊断自身的五分钟预算略长，给排队和终态落库留出时间。
-	ctx, cancel := context.WithTimeout(parent, 7*time.Minute)
+	ctx, cancel := context.WithTimeout(guarded, 7*time.Minute)
 	defer cancel()
+	// 时钟守卫可能在数据库轮询期间取消请求。保留具体的跳变原因，
+	// 不让底层查询返回的 context cancelled 把需要用户处理的问题藏起来。
+	defer func() {
+		if problem != nil && ctx.Err() != nil {
+			problem = context.Cause(ctx)
+		}
+	}()
 	done := false
 	defer func() {
 		if !done {
@@ -266,7 +281,7 @@ func waitDiagnosis(parent context.Context, id string, repository *store.Store, c
 		}
 		select {
 		case <-ctx.Done():
-			return store.Detail{}, ctx.Err()
+			return store.Detail{}, context.Cause(ctx)
 		case <-time.After(2 * time.Second):
 		}
 	}

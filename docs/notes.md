@@ -1450,3 +1450,13 @@ Claude 已审阅手册，用户已确认试跑估算。先把 changes-and-safety
 最终本机检查：gofmt、vet、staticcheck、commentcheck 364 文件、archcheck 均通过。全仓 race 221 顶层 / 763 含子例通过；完整集成 42 顶层 / 63 含子例通过，全部十二项 TEST 配置，skip=0。完整测试 JSONL 仍在本机临时目录 opsdoctor-phase08。09:48:59 UTC 的接口确认 Mock、故障关闭、评测模式关闭、10000 商品 / 200 QPS / 64 工作者，USD 账本 139178 微美元不变。
 
 按用户“失败率明显不为零先停下来”的要求，已请求用户检查 Docker 代理或网络。没有执行五组付费检查，没有调用评委，没有正式冻结或运行。一次补跑与 DeepSeek 配对等剩余实现尚未完成。当前运行镜像保持旧版 Mock，新增迁移仅在专用测试库应用；下一次继续前需重建医生。两处用户修改完整保留。
+
+#### 阶段 8：用户校时后仍发现跳变
+
+用户转述 Claude 查明 Windows 快约十秒、WSL NTP 校时冲突，并说明 OpenAI 依赖 v2rayN。按要求先从 doctor 容器检查六十次：命令先读 prev=date +%s，然后循环 sleep 1、读取 now、记录序号/now/now-prev。57 次为一秒，第 53–55 次分别为 0、+12、−10 秒。完整记录已转为 reports/phase-08-clock-stability.jsonl，没有删掉异常样本。
+
+后续十分钟网络命令前的校验明确失败，因此 Go 网络探测二进制没有重新构建，网络请求没有发出。先前仅查看末几行都是一秒不能代表整段通过，检查器核对了全部六十行才作结论。已向用户说明仍跳变，并请求继续检查环境。
+
+离线增加 runner/clock.go 和 clock_test.go，把开跑前检查接入 prepare、pilot，把持续守卫接入 waitDiagnosis。分段命令有限运行六十秒，按行发现异常，不等满一分钟。取消原因用 context.WithCancelCause 保留，数据库轮询被取消时也返回时钟原因；原有 defer 再请求取消医生诊断。固定样本和取消 Mock 测试通过，runner race 通过，全仓静态及规则检查通过，commentcheck 366 文件。未启动正式矩阵或付费流程。
+
+此前提交 4ff94e5 的 CI 40853597449 全部通过，包含固定 Linux 环境的整套 Compose 和 Mock 验证。时钟守卫在它之后新增，将单独提交检查；没有用旧 CI 冒充新代码的结果。
