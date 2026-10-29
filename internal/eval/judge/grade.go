@@ -26,7 +26,7 @@ import (
 )
 
 // RubricVersion 评分标准改动时递增；正式批次不允许混用不同版本。
-const RubricVersion = "rubric-v1.0"
+const RubricVersion = "rubric-v1.1"
 
 // rubric 随二进制冻结，不能在运行中被另一份同名文件替换。
 //
@@ -83,14 +83,14 @@ func Evaluate(ctx context.Context, client llm.Client, model, auditID string, inp
 	if len(input.Report) == 0 || !json.Valid(input.Report) {
 		return Grade{}, llm.Response{}, fmt.Errorf("没有报告，不调用评委")
 	}
-	raw, err := json.Marshal(input)
+	raw, tool, err := judgeRequest(input)
 	if err != nil {
 		return Grade{}, llm.Response{}, err
 	}
 	// JSON 字符串会转义材料中的边界伪造。评委只收到一个 user 数据对象。
 	request := llm.Request{DiagnosisID: auditID, CallID: "eval-grade-v1", Model: model, MaxTokens: 2048, DiagnosisLimitMicros: 300000,
 		Messages: []llm.Message{{Role: "system", Content: rubric}, {Role: "user", Content: string(raw)}},
-		Tools:    []llm.Tool{{Type: "function", Function: llm.ToolDefinition{Name: "submit_grade", Description: "依据评分标准提交结果", Parameters: json.RawMessage(gradeSchema)}}}}
+		Tools:    []llm.Tool{tool}}
 	response, err := client.Complete(ctx, request)
 	if err != nil {
 		return Grade{}, response, err
@@ -175,6 +175,3 @@ func RubricHash() string {
 	digest := sha256.Sum256([]byte(rubric))
 	return hex.EncodeToString(digest[:])
 }
-
-// gradeSchema 约束供应商输出结构；具体项目编号和步骤归属仍由 Check 检查。
-const gradeSchema = `{"type":"object","additionalProperties":false,"required":["mechanism","reason","milestones","unrelated_action","action_reason"],"properties":{"mechanism":{"type":"string","enum":["correct","partial","incorrect"]},"reason":{"type":"string"},"unrelated_action":{"type":"boolean"},"action_reason":{"type":"string"},"milestones":{"type":"array","items":{"type":"object","additionalProperties":false,"required":["milestone","achieved","steps","reason"],"properties":{"milestone":{"type":"integer","minimum":1},"achieved":{"type":"boolean"},"steps":{"type":"array","items":{"type":"integer","minimum":1}},"reason":{"type":"string"}}}}}}`
