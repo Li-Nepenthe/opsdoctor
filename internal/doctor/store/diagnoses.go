@@ -37,7 +37,8 @@ type Diagnosis struct {
 
 // Detail 的嵌入字段使摘要与列表保持一致，避免维护两套字段映射。
 type Detail struct {
-	LastSeq        int               `json:"last_seq"` // 已提交的最大步骤号，用来拒绝越过当前进度的续传。
+	DurationMS     *int64            `json:"duration_ms"` // 同一进程测得的执行耗时；老任务或跨进程恢复没有完整测量，返回 null。
+	LastSeq        int               `json:"last_seq"`    // 已提交的最大步骤号，用来拒绝越过当前进度的续传。
 	Diagnosis                        // Go 的结构体嵌入：JSON 会把这些公开字段放在同一层。
 	Input          json.RawMessage   `json:"input"`            // 初次触发任务的通知。
 	Alerts         []json.RawMessage `json:"alerts"`           // 每条告警的最新快照，可能已经 resolved。
@@ -97,12 +98,16 @@ func (store *Store) Detail(ctx context.Context, id string) (Detail, error) {
 	// 先查任务再查快照，任务不存在时立刻返回，不能拿空 ID 继续查关联记录。
 	value := Detail{Alerts: []json.RawMessage{}}
 	var started, finished sql.NullTime
+	var duration sql.NullInt64
 	var rawReport []byte // SQL NULL 要先接到可空字节切片，之后再交给 JSON 字段。
-	err := store.database.QueryRowContext(ctx, "SELECT id,target,`trigger`,status,title,created_at,input,COALESCE(model,''),provider,report,COALESCE(error,''),COALESCE(prompt_version,''),tokens_in,tokens_out,cache_hit_tokens,cost_micros,rounds,tool_calls,started_at,finished_at,next_seq,report_mode,budget_reason,currency FROM diagnoses WHERE id=?", id).Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Input, &value.Model, &value.Provider, &rawReport, &value.Error, &value.PromptVersion, &value.TokensIn, &value.TokensOut, &value.CacheHit, &value.CostMicros, &value.Rounds, &value.ToolCalls, &started, &finished, &value.LastSeq, &value.ReportMode, &value.BudgetReason, &value.Currency)
+	err := store.database.QueryRowContext(ctx, "SELECT id,target,`trigger`,status,title,created_at,input,COALESCE(model,''),provider,report,COALESCE(error,''),COALESCE(prompt_version,''),tokens_in,tokens_out,cache_hit_tokens,cost_micros,rounds,tool_calls,started_at,finished_at,next_seq,report_mode,budget_reason,currency,duration_ms FROM diagnoses WHERE id=?", id).Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Input, &value.Model, &value.Provider, &rawReport, &value.Error, &value.PromptVersion, &value.TokensIn, &value.TokensOut, &value.CacheHit, &value.CostMicros, &value.Rounds, &value.ToolCalls, &started, &finished, &value.LastSeq, &value.ReportMode, &value.BudgetReason, &value.Currency, &duration)
 	if err != nil {
 		return value, err
 	}
 	value.Report = rawReport
+	if duration.Valid {
+		value.DurationMS = &duration.Int64
+	}
 	if started.Valid {
 		value.StartedAt = &started.Time
 	}

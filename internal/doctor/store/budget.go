@@ -159,7 +159,7 @@ func (ledger *Ledger) Settle(ctx context.Context, id string, value llm.Settlemen
 	if err != nil {
 		return err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE llm_attempts SET response=?,charged_micros=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cache_write_tokens=?,reasoning_tokens=?,status=?,settled_at=? WHERE id=?", clean, actual, value.Usage.Input, value.Usage.Output, value.Usage.CacheHit, value.Usage.CacheWrite, value.Usage.Reasoning, value.Status, ledger.store.config.Now().UTC(), id)
+	_, err = tx.ExecContext(ctx, "UPDATE llm_attempts SET response=?,charged_micros=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cache_write_tokens=?,reasoning_tokens=?,status=?,settled_at=UTC_TIMESTAMP(6) WHERE id=?", clean, actual, value.Usage.Input, value.Usage.Output, value.Usage.CacheHit, value.Usage.CacheWrite, value.Usage.Reasoning, value.Status, id)
 	if err != nil {
 		return err
 	}

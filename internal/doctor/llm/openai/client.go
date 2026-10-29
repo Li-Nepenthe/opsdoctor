@@ -16,8 +16,10 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"net/http/httptrace"
 	"net/url"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
@@ -46,6 +48,7 @@ const (
 	maximumRequestBytes = 256 << 10              // 足以容纳本阶段 40 份每份 4KB 的工具结果。
 	maximumOutputTokens = 4096                   // 报告和工具参数不需要无限长的回答。
 	maximumRetries      = 2                      // 计划书只允许最多两次额外尝试。
+	networkRetryDelay   = time.Second            // 网络抖动先等一秒，再等两秒，避免立即重复挤同一条连接。
 	auditTimeout        = 500 * time.Millisecond // 取消后短时记账，给两秒退出要求留出余量。
 )
 
@@ -77,7 +80,7 @@ func New(config Config, transport http.RoundTripper, ledger llm.Ledger, redactor
 	return &Client{config: config, http: client, ledger: ledger, redactor: redactor, logger: logger}, nil
 }
 
-// Complete 每次重试都重新记账；401、402、400、网络错误和取消不进入重试分支。
+// Complete 每次重试都重新记账；尚未收到任何响应的网络错误可有限重试，取消立即退出。
 func (client *Client) Complete(parent context.Context, request llm.Request) (result llm.Response, err error) {
 	// 所有重试共用一个截止时间，不能每次失败都额外获得一分钟。
 	bounded, cancel := context.WithTimeout(parent, client.config.Timeout)
@@ -99,7 +102,7 @@ func (client *Client) Complete(parent context.Context, request llm.Request) (res
 		if bounded.Err() != nil {
 			return result, bounded.Err()
 		}
-		answer, retry, delay, callErr := client.attempt(bounded, request, raw)
+		answer, retry, delay, callErr := client.attempt(bounded, request, raw, attempt)
 		result.CostMicros += answer.CostMicros
 		result.Model, result.Message, result.Usage, result.UsageKnown = answer.Model, answer.Message, answer.Usage, answer.UsageKnown
 		result.AttemptIDs = append(result.AttemptIDs, answer.AttemptIDs...)
@@ -119,7 +122,7 @@ func (client *Client) Complete(parent context.Context, request llm.Request) (res
 }
 
 // attempt 在发送前记录预留额。输入按 UTF-8 字节加协议余量估计，比按中文字数计 token 更保守。
-func (client *Client) attempt(ctx context.Context, request llm.Request, raw []byte) (llm.Response, bool, time.Duration, error) {
+func (client *Client) attempt(ctx context.Context, request llm.Request, raw []byte, number int) (llm.Response, bool, time.Duration, error) {
 	const protocolTokenMargin = 1024 // 覆盖消息分隔等供应商协议 token，正文按每字节一个 token 预留。
 	inputBound := int64(len(raw) + protocolTokenMargin)
 	// Agent 已有前一轮的真实 token 数时，只对新增部分按字节预留，避免把历史再次高估。
@@ -136,7 +139,12 @@ func (client *Client) attempt(ctx context.Context, request llm.Request, raw []by
 	if client.config.Format == "responses" {
 		path = "/responses"
 	}
-	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, client.config.BaseURL+path, bytes.NewReader(raw))
+	// Do 返回错误并不等于对面什么都没发过：响应头只传到一半也会报错。
+	// 记录第一个响应字节，严格限制新增的网络重试只发生在“尚未收到响应”时。
+	// 回调可能由 Transport 的 goroutine 调用，所以用 atomic.Bool 避免读写竞争。
+	var received atomic.Bool
+	traced := httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{GotFirstResponseByte: func() { received.Store(true) }})
+	httpRequest, err := http.NewRequestWithContext(traced, http.MethodPost, client.config.BaseURL+path, bytes.NewReader(raw))
 	if err != nil {
 		result.CostMicros = 0
 		return result, false, 0, client.settle(ctx, id, llm.Settlement{Status: "invalid_request"}, err)
@@ -152,7 +160,11 @@ func (client *Client) attempt(ctx context.Context, request llm.Request, raw []by
 			status, problem = "cancelled", ctx.Err()
 		}
 		client.logger.Info("模型请求已中断", "diagnosis_id", request.DiagnosisID, "attempt_id", id, "reason", status, "duration_ms", time.Since(started).Milliseconds())
-		return result, false, 0, client.settle(ctx, id, llm.Settlement{Unknown: true, Status: status}, problem)
+		settled := client.settle(ctx, id, llm.Settlement{Unknown: true, Status: status}, problem)
+		// 没拿到响应也可能已经生成过 token，因此保留旧预留额。下一次 attempt
+		// 必须重新 Reserve；审计保存失败、请求取消或已收到响应时都不继续花钱。
+		retry := settled == problem && ctx.Err() == nil && !received.Load()
+		return result, retry, networkRetryDelay << number, settled
 	}
 	defer response.Body.Close()
 	answer, body, retry, delay, problem := decodeResponse(response, request.Model, client.redactor)

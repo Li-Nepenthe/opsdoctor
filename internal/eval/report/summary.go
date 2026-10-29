@@ -30,7 +30,8 @@ type Summary struct {
 	OutputTokens   int64           `json:"output_tokens"`   // 累计输出。
 	CostMicros     int64           `json:"cost_micros"`     // 费用账本金额，含未知请求预留。
 	Currency       string          `json:"currency"`        // CNY 和 USD 不相加。
-	Seconds        float64         `json:"seconds"`         // 从医生开始执行到终态的墙钟时间。
+	Seconds        float64         `json:"seconds"`         // 医生执行进程用单调时钟测得的秒数。
+	DurationKnown  bool            `json:"duration_known"`  // 没有完整测量时不进入耗时统计。
 	ReportMode     string          `json:"report_mode"`     // 主动提交还是预算要求收尾。
 	BudgetReason   string          `json:"budget_reason"`   // 预算终态的具体限制。
 	Error          string          `json:"error"`           // 已脱敏的失败说明。
@@ -62,9 +63,11 @@ func Summarize(detail store.Detail, expected string) Summary {
 		value.Component = parsed.RootCause.Component
 	}
 	value.ComponentMatch = value.Component != "" && value.Component == expected
-	// 未结束的任务没有最终耗时，不能用当前时间冒充结果。
-	if detail.StartedAt != nil && detail.FinishedAt != nil {
-		value.Seconds = detail.FinishedAt.Sub(*detail.StartedAt).Seconds()
+	// 不再相减数据库时间戳；系统校时可能让结束日期早于开始日期。
+	// 老记录和跨进程恢复没有完整单调时钟测量，明确保留未知。
+	if detail.DurationMS != nil {
+		value.Seconds = float64(*detail.DurationMS) / 1000
+		value.DurationKnown = true
 	}
 	return value
 }

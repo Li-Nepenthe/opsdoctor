@@ -1,0 +1,186 @@
+{
+  "initial": [
+    {
+      "source": "doctor_container",
+      "value": "2026-10-29T09:37:29Z",
+      "host_before_utc": "2026-10-29T09:37:28.560580+00:00",
+      "host_after_utc": "2026-10-29T09:37:28.667638+00:00",
+      "roundtrip_ms": 107.088,
+      "offset_vs_host_midpoint_ms": 385.891,
+      "resolution_ms": 1000
+    },
+    {
+      "source": "doctor_mysql",
+      "value": "2026-10-29T09:37:29.271327Z",
+      "host_before_utc": "2026-10-29T09:37:28.667680+00:00",
+      "host_after_utc": "2026-10-29T09:37:28.767409+00:00",
+      "roundtrip_ms": 99.757,
+      "offset_vs_host_midpoint_ms": 553.782,
+      "resolution_ms": 0.001
+    },
+    {
+      "source": "doctor_container",
+      "value": "2026-10-29T09:37:29Z",
+      "host_before_utc": "2026-10-29T09:37:28.767446+00:00",
+      "host_after_utc": "2026-10-29T09:37:28.874241+00:00",
+      "roundtrip_ms": 106.822,
+      "offset_vs_host_midpoint_ms": 179.157,
+      "resolution_ms": 1000
+    },
+    {
+      "source": "doctor_mysql",
+      "value": "2026-10-29T09:37:29.499988Z",
+      "host_before_utc": "2026-10-29T09:37:28.874275+00:00",
+      "host_after_utc": "2026-10-29T09:37:28.977156+00:00",
+      "roundtrip_ms": 102.918,
+      "offset_vs_host_midpoint_ms": 574.273,
+      "resolution_ms": 0.001
+    },
+    {
+      "source": "doctor_container",
+      "value": "2026-10-29T09:37:29Z",
+      "host_before_utc": "2026-10-29T09:37:28.977201+00:00",
+      "host_after_utc": "2026-10-29T09:37:29.069242+00:00",
+      "roundtrip_ms": 92.074,
+      "offset_vs_host_midpoint_ms": -23.221,
+      "resolution_ms": 1000
+    },
+    {
+      "source": "doctor_mysql",
+      "value": "2026-10-29T09:37:29.715105Z",
+      "host_before_utc": "2026-10-29T09:37:29.069284+00:00",
+      "host_after_utc": "2026-10-29T09:37:29.176593+00:00",
+      "roundtrip_ms": 107.336,
+      "offset_vs_host_midpoint_ms": 592.167,
+      "resolution_ms": 0.001
+    },
+    {
+      "source": "doctor_container",
+      "value": "2026-10-29T09:37:29Z",
+      "host_before_utc": "2026-10-29T09:37:29.176627+00:00",
+      "host_after_utc": "2026-10-29T09:37:29.278381+00:00",
+      "roundtrip_ms": 101.78,
+      "offset_vs_host_midpoint_ms": -227.504,
+      "resolution_ms": 1000
+    },
+    {
+      "source": "doctor_mysql",
+      "value": "2026-10-29T09:37:29.933280Z",
+      "host_before_utc": "2026-10-29T09:37:29.278415+00:00",
+      "host_after_utc": "2026-10-29T09:37:29.376875+00:00",
+      "roundtrip_ms": 98.487,
+      "offset_vs_host_midpoint_ms": 605.635,
+      "resolution_ms": 0.001
+    },
+    {
+      "source": "doctor_container",
+      "value": "2026-10-29T09:37:30Z",
+      "host_before_utc": "2026-10-29T09:37:29.376909+00:00",
+      "host_after_utc": "2026-10-29T09:37:29.473274+00:00",
+      "roundtrip_ms": 96.39,
+      "offset_vs_host_midpoint_ms": 574.908,
+      "resolution_ms": 1000
+    },
+    {
+      "source": "doctor_mysql",
+      "value": "2026-10-29T09:37:30.160628Z",
+      "host_before_utc": "2026-10-29T09:37:29.473307+00:00",
+      "host_after_utc": "2026-10-29T09:37:29.587404+00:00",
+      "roundtrip_ms": 114.124,
+      "offset_vs_host_midpoint_ms": 630.272,
+      "resolution_ms": 0.001
+    }
+  ],
+  "precise": [
+    {
+      "source": "doctor_container",
+      "value": "2026-10-29T09:47:04.092123517Z",
+      "host_before_utc": "2026-10-29T09:47:14.109803+00:00",
+      "host_after_utc": "2026-10-29T09:47:14.234728+00:00",
+      "roundtrip_ms": 124.959,
+      "offset_vs_host_midpoint_ms": -10080.142,
+      "resolution_ms": 1e-06
+    },
+    {
+      "source": "doctor_mysql",
+      "value": "2026-10-29T09:47:04.219738Z",
+      "host_before_utc": "2026-10-29T09:47:14.234775+00:00",
+      "host_after_utc": "2026-10-29T09:47:14.351455+00:00",
+      "roundtrip_ms": 116.71,
+      "offset_vs_host_midpoint_ms": -10073.377,
+      "resolution_ms": 0.001
+    },
+    {
+      "source": "doctor_container",
+      "value": "2026-10-29T09:47:04.345934001Z",
+      "host_before_utc": "2026-10-29T09:47:14.351494+00:00",
+      "host_after_utc": "2026-10-29T09:47:14.467666+00:00",
+      "roundtrip_ms": 116.198,
+      "offset_vs_host_midpoint_ms": -10063.646,
+      "resolution_ms": 1e-06
+    },
+    {
+      "source": "doctor_mysql",
+      "value": "2026-10-29T09:47:04.463118Z",
+      "host_before_utc": "2026-10-29T09:47:14.467699+00:00",
+      "host_after_utc": "2026-10-29T09:47:14.575992+00:00",
+      "roundtrip_ms": 108.32,
+      "offset_vs_host_midpoint_ms": -10058.728,
+      "resolution_ms": 0.001
+    },
+    {
+      "source": "doctor_container",
+      "value": "2026-10-29T09:47:04.586887262Z",
+      "host_before_utc": "2026-10-29T09:47:14.576027+00:00",
+      "host_after_utc": "2026-10-29T09:47:14.692382+00:00",
+      "roundtrip_ms": 116.382,
+      "offset_vs_host_midpoint_ms": -10047.318,
+      "resolution_ms": 1e-06
+    },
+    {
+      "source": "doctor_mysql",
+      "value": "2026-10-29T09:47:04.702982Z",
+      "host_before_utc": "2026-10-29T09:47:14.692416+00:00",
+      "host_after_utc": "2026-10-29T09:47:14.798957+00:00",
+      "roundtrip_ms": 106.568,
+      "offset_vs_host_midpoint_ms": -10042.705,
+      "resolution_ms": 0.001
+    },
+    {
+      "source": "doctor_container",
+      "value": "2026-10-29T09:47:04.836496183Z",
+      "host_before_utc": "2026-10-29T09:47:14.798993+00:00",
+      "host_after_utc": "2026-10-29T09:47:14.919578+00:00",
+      "roundtrip_ms": 120.612,
+      "offset_vs_host_midpoint_ms": -10022.789,
+      "resolution_ms": 1e-06
+    },
+    {
+      "source": "doctor_mysql",
+      "value": "2026-10-29T09:47:04.951430Z",
+      "host_before_utc": "2026-10-29T09:47:14.919612+00:00",
+      "host_after_utc": "2026-10-29T09:47:15.026635+00:00",
+      "roundtrip_ms": 107.052,
+      "offset_vs_host_midpoint_ms": -10021.693,
+      "resolution_ms": 0.001
+    },
+    {
+      "source": "doctor_container",
+      "value": "2026-10-29T09:47:05.071416211Z",
+      "host_before_utc": "2026-10-29T09:47:15.026672+00:00",
+      "host_after_utc": "2026-10-29T09:47:15.137103+00:00",
+      "roundtrip_ms": 110.464,
+      "offset_vs_host_midpoint_ms": -10010.472,
+      "resolution_ms": 1e-06
+    },
+    {
+      "source": "doctor_mysql",
+      "value": "2026-10-29T09:47:05.186423Z",
+      "host_before_utc": "2026-10-29T09:47:15.137145+00:00",
+      "host_after_utc": "2026-10-29T09:47:15.246345+00:00",
+      "roundtrip_ms": 109.233,
+      "offset_vs_host_midpoint_ms": -10005.322,
+      "resolution_ms": 0.001
+    }
+  ]
+}

@@ -49,7 +49,9 @@ func (store *Store) appendStep(ctx context.Context, tx *sql.Tx, id string, step 
 		return step, err
 	}
 	step.Args, step.Result = clean, store.config.Redactor.Text(step.Result)
-	if err = tx.QueryRowContext(ctx, "SELECT next_seq FROM diagnoses WHERE id=? FOR UPDATE", id).Scan(&step.Seq); err != nil {
+	// 创建、开始和结束时间都使用数据库 UTC 时钟。不同进程的系统时间
+	// 可能相差几秒，不能把它们混在同一条诊断的时间线上。
+	if err = tx.QueryRowContext(ctx, "SELECT next_seq,UTC_TIMESTAMP(6) FROM diagnoses WHERE id=? FOR UPDATE", id).Scan(&step.Seq, &step.CreatedAt); err != nil {
 		return step, err
 	}
 	// 行锁也把租约检查与写入放在一起，旧执行者不能在检查后被接手又继续写。
@@ -70,7 +72,6 @@ func (store *Store) appendStep(ctx context.Context, tx *sql.Tx, id string, step 
 	}
 	step.Currency = store.config.Currency
 	step.Seq++
-	step.CreatedAt = store.config.Now().UTC()
 	// 一个事务同时写行与递增编号；回滚时两者一起消失，不留下无内容的编号。
 	_, err = tx.ExecContext(ctx, "INSERT INTO diagnosis_steps(diagnosis_id,seq,kind,model,tool_name,args,result,status,duration_ms,tokens_in,tokens_out,cache_hit_tokens,cost_micros,created_at,event_key,parent_seq,call_id,counted,currency,cache_write_tokens,reasoning_tokens) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", id, step.Seq, step.Kind, step.Model, step.ToolName, step.Args, step.Result, step.Status, step.DurationMS, step.Usage.Input, step.Usage.Output, step.Usage.CacheHit, step.CostMicros, step.CreatedAt, nullableKey(step.EventKey), step.ParentSeq, step.CallID, step.Counted, step.Currency, step.Usage.CacheWrite, step.Usage.Reasoning)
 	if err != nil {

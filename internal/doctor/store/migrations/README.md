@@ -37,6 +37,7 @@
 | 0029_diagnosis_eval_run.sql | 将评测诊断绑定到唯一批次 |
 | 0030_eval_attempts.sql | 每次真实调用都预留 token，结果不明时保留 |
 | 0031_eval_results.sql | 保存每个场景轮次与实验组的固定输入、诊断关联和最终结果 |
+| 0032_diagnosis_duration.sql | 单独保存进程内单调时钟测得的耗时，老记录和跨进程恢复不伪造时长 |
 
 任务结束与故障恢复是两件事。阶段 6 不再用 active_group 判断故障开放期，而用 alert_groups 保存整组恢复和最近通知时间。旧列保留以兼容已有迁移，后续没有拿它创建第二套去重规则。
 

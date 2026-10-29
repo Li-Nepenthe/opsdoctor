@@ -1431,3 +1431,22 @@ S10 在 08:59:38 UTC 注入，09:00:34 verify 通过，注入起 55.394 秒。�
 DeepSeek 官方余额在 08:41:34 为 ¥3.34，09:04:37 为 ¥3.33；本阶段没有 DeepSeek 模型调用，人民币账本没有增量，¥0.01 差额未归因。不得声称这就是评委费，也不得把差额抹掉。OpenAI 项目 Key 无组织费用权限，没有再次无意义探测该接口。
 
 原始 CLI/接口 JSON、完整步骤、单元与集成 JSONL 位于本机临时目录 opsdoctor-phase08；正式可复核摘要和任务 ID 已写进仓库报告与数据台账，完整诊断仍在 doctor 库。试跑版本、金额和时间估算见 phase-08-pilot.md。没有执行正式矩阵、没有付费评委、没有替用户打分。
+
+<a id="phase08-preflight"></a>
+#### 阶段 8：审阅后的网络阻塞与计时修复
+
+Claude 已审阅手册，用户已确认试跑估算。先把 changes-and-safety 的两句话改为通用描述，版本为 runbooks-v1.1，正文哈希 d86e159673bf5351743b10ec737f4b52b7281b1cad525e4c09c17c4897790f54。缓存文章未改，正式版本尚未冻结。
+
+网络检查在现有 doctor 容器中执行，命令为 `docker exec opsdoctor-doctor-1 /etc/doctor/targets/.networkcheck.out`。临时程序由本机 Go 1.27.1 用 GOOS=linux、GOARCH=amd64、CGO_ENABLED=0 编译，只依赖标准库。它与生产代码一样以 nil Transport 创建 http.Client，禁止重定向；Key 只从容器环境读取。每次请求以 context.WithTimeout 限六十秒，用 httptrace.GotFirstResponseByte 记录首字节，用 time.Since 计时。五秒串行间隔，总单调时长十分钟，无重试；只访问固定 https://api.openai.com/v1/models。没有修改真实客户端或切换出 Mock。
+
+网络程序起止墙钟为 09:35:32.717455904 / 09:45:22.695297125 UTC，单调耗时 600003ms。109 次中 2 次失败：第 99 次墙钟开始 09:43:42.969373954，60002ms 后仍无首字节；第 100 次开始 09:44:42.969846219，整数耗时记 0ms，也无首字节。没有保存原始网络异常文字，因此不能声称已经定位 DNS、代理或上游原因。完整采样已保存为 reports/phase-08-network-preflight.jsonl。完成后删除两个临时二进制；没有把新的挂载或执行工具留在医生容器中。
+
+检查期间源码读到 StartTask 用数据库时间，EndTask 用进程 Now。初次读时钟发现数据库领先宿主机约半秒，稍后五轮高精度采样又发现 doctor 与 doctor-mysql 都落后约十秒。网络样本相邻开始日期倒序 19 次。原始时钟采样包含宿主机请求前后边界和精度，保存在 reports/phase-08-clock-preflight.json。没有修改系统时间，没有把回拨原因猜成某个软件。
+
+已新增迁移 0032，保存独立 duration_ms 与执行段数；同一 execute 内 time.Since 测量。统一诊断审计时间戳为数据库 UTC。旧结果不重写；跨进程接手或老记录缺少测量时留空。单调时长的 Mock 测试故意设置日期倒序；集成测试把可注入进程时钟设到 2000 年，仍应保存数据库日期。恢复测试证明末段不能冒充完整时长。
+
+无响应重试最多额外两次，退避一秒、两秒；每次先独立 Reserve，旧未知预留不退。测试覆盖部分响应、取消、无余额与审计失败。第一次 commentcheck 发现新增调度测试缺内部说明，补上后通过。staticcheck 最初不在当前 PATH，随后使用已安装的 C:/Users/Nepenthe/go/bin/staticcheck.exe，通过；没有安装系统软件。一次 Go 测试因现有外部缓存目录权限失败，经授权使用缓存后通过。
+
+最终本机检查：gofmt、vet、staticcheck、commentcheck 364 文件、archcheck 均通过。全仓 race 221 顶层 / 763 含子例通过；完整集成 42 顶层 / 63 含子例通过，全部十二项 TEST 配置，skip=0。完整测试 JSONL 仍在本机临时目录 opsdoctor-phase08。09:48:59 UTC 的接口确认 Mock、故障关闭、评测模式关闭、10000 商品 / 200 QPS / 64 工作者，USD 账本 139178 微美元不变。
+
+按用户“失败率明显不为零先停下来”的要求，已请求用户检查 Docker 代理或网络。没有执行五组付费检查，没有调用评委，没有正式冻结或运行。一次补跑与 DeepSeek 配对等剩余实现尚未完成。当前运行镜像保持旧版 Mock，新增迁移仅在专用测试库应用；下一次继续前需重建医生。两处用户修改完整保留。

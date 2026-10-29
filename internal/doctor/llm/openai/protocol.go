@@ -43,7 +43,7 @@ func decodeResponse(response *http.Response, fallback string, redactor *llm.Reda
 	return result, clean, false, 0, err
 }
 
-// httpProblem 的白名单不包含网络错误，避免无法确认是否计费时盲目重复生成。
+// httpProblem 只判断已经收到的 HTTP 状态；没有响应的网络错误由 attempt 单独处理。
 func httpProblem(status int) (error, bool) {
 	switch status {
 	case 400:

@@ -239,6 +239,9 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task) {
 		return
 	}
 
+	// time.Now 返回值带单调时钟读数，time.Since 不受系统校时影响。
+	// 起止都留在本次 execute 中；恢复任务不能把另一进程的墙钟拼成耗时。
+	executionStarted := time.Now()
 	renewCtx, stopRenew := context.WithCancel(ctx)
 	renewed := make(chan struct{})
 	defer func() { stopRenew(); <-renewed }()
@@ -283,6 +286,7 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task) {
 	}
 	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 500*time.Millisecond)
 	defer cancel()
+	result.Elapsed = time.Since(executionStarted)
 	if saveErr := scheduler.repository.EndTask(cleanup, task.ID, status, result, reason); saveErr != nil {
 		scheduler.logger.Error("保存诊断结束状态失败", "diagnosis_id", task.ID, "error", saveErr)
 		return

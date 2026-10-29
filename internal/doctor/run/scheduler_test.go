@@ -7,6 +7,7 @@
 // TestSchedulerBudgetAndExpiry 检查额度、旧任务和启动清理；TestCancelBeforeStart 检查取消空窗。
 // TestBudgetStatusReason 检查持久账本原因优先于进程内预留失败标志。
 // TestRenewUnavailable 检查数据库一直断开时，执行者会在旧租约到期前停工。
+// TestExecutionDuration 检查取消后仍保存同一进程实际测得的时长。
 // 阅读建议：假仓储只模拟状态竞争，SQL 原子性另由 store 集成测试证明。
 
 package run
@@ -29,6 +30,7 @@ import (
 
 // queued 保存假的持久化状态，所有访问由 memoryTasks.mu 保护。
 type queued struct {
+	result agent.Result // 保存调度器提供的独立耗时，不能靠测试自己的时间戳补算。
 	task   Task
 	status string
 	reason string
@@ -101,15 +103,41 @@ func (memory *memoryTasks) StartTask(ctx context.Context, id, _, _, _ string) (b
 }
 
 // EndTask 不覆盖已有终态，让迟到结果也经过同一条件约束。
-func (memory *memoryTasks) EndTask(_ context.Context, id, status string, _ agent.Result, reason string) error {
+func (memory *memoryTasks) EndTask(_ context.Context, id, status string, result agent.Result, reason string) error {
 	memory.mu.Lock()
 	defer memory.mu.Unlock()
 	for _, item := range memory.items {
 		if item.task.ID == id && item.status == Running {
 			item.status, item.reason = status, reason
+			item.result = result
 		}
 	}
 	return nil
+}
+
+// TestExecutionDuration 用虚拟时钟验证实际执行两秒，取消后保存的也是两秒。
+func TestExecutionDuration(t *testing.T) {
+	synctest.Test(t, func(t *testing.T) {
+		item := taskForTest("timed", "shop")
+		memory := &memoryTasks{items: []*queued{item}}
+		scheduler := testScheduler(t, memory, "mock", false)
+		if err := scheduler.Start(t.Context()); err != nil {
+			t.Fatal(err)
+		}
+		defer scheduler.Close()
+		synctest.Wait()
+		// 等请求真的阻塞后再推进两秒，避免把排队或启动时间算进执行耗时。
+		time.Sleep(2 * time.Second)
+		if err := scheduler.Cancel(t.Context(), item.task.ID); err != nil {
+			t.Fatal(err)
+		}
+		synctest.Wait()
+		memory.mu.Lock()
+		defer memory.mu.Unlock()
+		if item.status != Cancelled || item.result.Elapsed != 2*time.Second {
+			t.Fatalf("status=%s elapsed=%s", item.status, item.result.Elapsed)
+		}
+	})
 }
 
 // CancelPending 与 StartTask 竞争同一个状态，只有一方能先推进。

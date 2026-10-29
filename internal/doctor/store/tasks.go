@@ -87,7 +87,7 @@ func (store *Store) endSelected(ctx context.Context, query string, args []any, f
 	}
 	// 查询之后任务可能已被另一操作处理，changeState 的条件更新会跳过它。
 	for _, id := range ids {
-		if _, err = store.changeState(ctx, id, from, to, reason, "finished_at=?,error=?", []any{store.config.Now().UTC(), reason}); err != nil {
+		if _, err = store.changeState(ctx, id, from, to, reason, "finished_at=UTC_TIMESTAMP(6),error=?", []any{reason}); err != nil {
 			return err
 		}
 	}
@@ -113,17 +113,19 @@ func (store *Store) EndTask(ctx context.Context, id, status string, result agent
 		}
 		report = clean
 	}
-	_, err := store.changeState(ctx, id, run.Running, status, reason, "finished_at=?,report=?,error=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cost_micros=?,rounds=?,tool_calls=?,report_mode=?,budget_reason=?", []any{store.config.Now().UTC(), report, store.config.Redactor.Text(reason), result.Usage.Input, result.Usage.Output, result.Usage.CacheHit, result.CostMicros, result.Rounds, result.ToolCalls, result.ReportMode, result.BudgetReason})
+	// 崩溃前的单调时钟随进程消失。多段执行没有完整测量，就保留 NULL，
+	// 不能拿最后一段冒充整个诊断。评测仍保留报告，但不把未知时长算进平均值。
+	_, err := store.changeState(ctx, id, run.Running, status, reason, "finished_at=UTC_TIMESTAMP(6),duration_ms=IF(execution_segments=1,?,NULL),report=?,error=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cost_micros=?,rounds=?,tool_calls=?,report_mode=?,budget_reason=?", []any{max(0, result.Elapsed.Milliseconds()), report, store.config.Redactor.Text(reason), result.Usage.Input, result.Usage.Output, result.Usage.CacheHit, result.CostMicros, result.Rounds, result.ToolCalls, result.ReportMode, result.BudgetReason})
 	return err
 }
 
 // CancelPending 和启动竞争同一行的 pending 状态，只有先拿到行锁的操作成功。
 func (store *Store) CancelPending(ctx context.Context, id, reason string) (bool, error) {
-	changed, err := store.changeState(ctx, id, run.Pending, run.Cancelled, reason, "finished_at=?,error=?", []any{store.config.Now().UTC(), reason})
+	changed, err := store.changeState(ctx, id, run.Pending, run.Cancelled, reason, "finished_at=UTC_TIMESTAMP(6),error=?", []any{reason})
 	if err != nil || changed {
 		return changed, err
 	}
-	changed, err = store.changeState(ctx, id, run.WaitingApproval, run.Cancelled, reason, "finished_at=?,error=?,cancel_requested=TRUE", []any{store.config.Now().UTC(), reason})
+	changed, err = store.changeState(ctx, id, run.WaitingApproval, run.Cancelled, reason, "finished_at=UTC_TIMESTAMP(6),error=?,cancel_requested=TRUE", []any{reason})
 	if err != nil || changed {
 		return changed, err
 	}
@@ -176,8 +178,8 @@ func (store *Store) changeState(ctx context.Context, id, from, to, reason, field
 		}
 	}
 	var target string
-	var started sql.NullTime
-	if err = tx.QueryRowContext(ctx, "SELECT target,started_at FROM diagnoses WHERE id=?", id).Scan(&target, &started); err != nil {
+	var elapsed sql.NullInt64
+	if err = tx.QueryRowContext(ctx, "SELECT target,duration_ms FROM diagnoses WHERE id=?", id).Scan(&target, &elapsed); err != nil {
 		return false, err
 	}
 	if err = tx.Commit(); err != nil {
@@ -186,8 +188,8 @@ func (store *Store) changeState(ctx context.Context, id, from, to, reason, field
 	store.publish(id, step)
 	if store.config.Changed != nil {
 		duration := time.Duration(0)
-		if started.Valid && to != run.Running {
-			duration = max(0, store.config.Now().Sub(started.Time))
+		if elapsed.Valid && to != run.Running {
+			duration = time.Duration(elapsed.Int64) * time.Millisecond
 		}
 		store.config.Changed(target, to, duration)
 	}

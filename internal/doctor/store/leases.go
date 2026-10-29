@@ -97,10 +97,11 @@ func (store *Store) claimLease(ctx context.Context, id, model, prompt, provider 
 		return false, nil
 	}
 	// 中断到租约过期的时间也保守计入执行预算；接手后的等待不能重新拿五分钟。
+	// 旧版本正在运行的记录还没有段数，接手时直接记成两段，不能误报完整耗时。
 	_, err = tx.ExecContext(ctx, `UPDATE diagnoses SET
  active_ms=active_ms+IF(status='running' AND lease_updated_at IS NOT NULL,GREATEST(0,TIMESTAMPDIFF(MICROSECOND,lease_updated_at,LEAST(UTC_TIMESTAMP(6),lease_until)) DIV 1000),0),
  model=IF(status='pending',?,model),prompt_version=IF(status='pending',?,prompt_version),provider=?,
- currency=?,started_at=COALESCE(started_at,UTC_TIMESTAMP(6)),status='running',lease_owner=?,
+ currency=?,started_at=COALESCE(started_at,UTC_TIMESTAMP(6)),execution_segments=IF(execution_segments=0 AND status<>'pending',2,execution_segments+1),status='running',lease_owner=?,
  lease_until=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)),lease_updated_at=UTC_TIMESTAMP(6) WHERE id=?`, model, prompt, provider, store.config.Currency, owner, store.config.LeaseTTL.Microseconds(), id)
 	if err != nil {
 		return false, err

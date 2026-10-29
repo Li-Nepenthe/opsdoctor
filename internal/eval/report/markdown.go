@@ -38,6 +38,8 @@ func Markdown(output io.Writer, run store.EvalRun, rows []store.EvalResult) erro
 		elapsed := fmt.Sprintf("%.3f", value.Seconds)
 		if value.Seconds < 0 {
 			elapsed = fmt.Sprintf("无效（原值 %.3f）", value.Seconds)
+		} else if !value.DurationKnown {
+			elapsed = fmt.Sprintf("未测量（历史字段 %.3f）", value.Seconds)
 		}
 		tokens := fmt.Sprintf("%d / %d", value.InputTokens, value.OutputTokens)
 		if value.InputTokens == 0 && value.OutputTokens == 0 && value.CostMicros > 0 {

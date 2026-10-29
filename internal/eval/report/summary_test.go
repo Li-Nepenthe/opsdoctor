@@ -2,6 +2,7 @@
 //
 // 主要内容：TestSummarize 比较实际存下来的报告；TestMarkdown 保留未完成行。
 // TestMarkdownUnknown 明确展示未知用量和无效时间，不让失败看起来像正常提交。
+// TestMissingDuration 检查没有单调时钟测量的老记录不会被补算成有效耗时。
 // 阅读建议：组件别名和大小写变化都不自动纠正，避免把宽松匹配冒充精确比较。
 
 package report
@@ -32,8 +33,9 @@ func TestSummarize(t *testing.T) {
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			start := time.Date(2026, 10, 29, 0, 0, 0, 0, time.UTC)
-			end := start.Add(12 * time.Second)
-			detail := store.Detail{Diagnosis: store.Diagnosis{ID: "test", Model: "mock-a", Status: "failed", Currency: "USD"}, StartedAt: &start, FinishedAt: &end, Error: "保留失败", CostMicros: 123}
+			end := start.Add(-time.Second) // 故意模拟校时倒退，耗时必须仍采用独立测量值。
+			duration := int64(12000)
+			detail := store.Detail{Diagnosis: store.Diagnosis{ID: "test", Model: "mock-a", Status: "failed", Currency: "USD"}, StartedAt: &start, FinishedAt: &end, DurationMS: &duration, Error: "保留失败", CostMicros: 123}
 			// 没报告的用例保留空值；不能替失败诊断填入标准答案。
 			if test.component != "" {
 				detail.Report, _ = json.Marshal(map[string]any{"root_cause": map[string]string{"component": test.component}})
@@ -42,10 +44,20 @@ func TestSummarize(t *testing.T) {
 				detail.Steps = append(detail.Steps, agent.Step{Kind: "llm", Model: model})
 			}
 			got := Summarize(detail, "inventory")
-			if got.MixedModel != test.mixed || got.ComponentMatch != test.match || got.Seconds != 12 || got.Error != "保留失败" || got.CostMicros != 123 {
+			if got.MixedModel != test.mixed || got.ComponentMatch != test.match || got.Seconds != 12 || !got.DurationKnown || got.Error != "保留失败" || got.CostMicros != 123 {
 				t.Fatalf("summary=%+v", got)
 			}
 		})
+	}
+}
+
+// TestMissingDuration 不用老记录的起止时间推算未实际测量过的耗时。
+func TestMissingDuration(t *testing.T) {
+	start := time.Now()
+	end := start.Add(time.Minute)
+	got := Summarize(store.Detail{StartedAt: &start, FinishedAt: &end}, "unknown")
+	if got.DurationKnown || got.Seconds != 0 {
+		t.Fatal("把旧时间戳冒充单调时钟测量")
 	}
 }
 

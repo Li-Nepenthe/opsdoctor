@@ -5,6 +5,7 @@
 // 才不会因为需要保存任务，就顺便把业务库的写权限交给医生。
 //
 // 文件清单：
+//   - timing_integration_test.go：验证统一数据库时间戳与单调时钟耗时。
 //   - eval_results.go：保存实验槽位、冻结的告警输入和不可覆盖的终态结果。
 //   - eval_results_integration_test.go：验证输入冻结、重复续跑和失败结果不可覆盖。
 //   - eval_budget.go：把整批 token 预留、结算和中断保留接到真实费用事务。

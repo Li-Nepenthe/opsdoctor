@@ -91,6 +91,7 @@ func DefaultLimits() Limits {
 
 // Result 失败也带用量，费用不能因最终没有报告而消失。
 type Result struct {
+	Elapsed         time.Duration   // 调度器在同一进程用单调时钟测得，不从两个时间戳相减。
 	WaitingApproval bool            // 对话已经保存，等待人决定，不占活动时间。
 	Report          json.RawMessage // 校验成功的最终报告，失败时为 nil。
 	Rounds          int             // 包含最后一次机会的模型调用数。
