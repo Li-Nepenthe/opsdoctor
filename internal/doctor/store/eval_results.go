@@ -51,7 +51,8 @@ func (store *Store) PrepareEvalResult(ctx context.Context, value EvalResult) (Ev
 	if err != nil {
 		return value, err
 	}
-	_, err = store.database.ExecContext(ctx, "INSERT INTO eval_results(result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,execution_profile) VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE result_key=result_key", value.Key, value.RunID, value.Scenario, value.Iteration, value.Group, value.Position, value.FaultStartedAt.UTC(), clean, value.ExecutionProfile)
+	// 与恢复文件的比较统一用微秒截断，不能交给数据库自行四舍五入。
+	_, err = store.database.ExecContext(ctx, "INSERT INTO eval_results(result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,execution_profile) VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE result_key=result_key", value.Key, value.RunID, value.Scenario, value.Iteration, value.Group, value.Position, value.FaultStartedAt.UTC().Truncate(time.Microsecond), clean, value.ExecutionProfile)
 	if err != nil {
 		return value, err
 	}

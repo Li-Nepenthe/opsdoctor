@@ -152,7 +152,8 @@ func (store *Store) Evaluation(ctx context.Context, value EvaluationInput) (stri
 	if currency == "" {
 		currency = store.config.Currency // 仅兼容原来没有配对配置的入口。
 	}
-	_, err = tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,fault_started_at,eval_group,eval_expected_model,eval_key,eval_run_id,eval_profile,eval_provider,eval_account,currency) VALUES(?,?,'eval','pending',?,'',?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE id=id", id, value.Target, "评测 "+value.Group, clean, value.FaultStartedAt.UTC(), value.Group, value.ExpectedModel, value.Key, value.RunID, value.ExecutionProfile, value.Provider, value.Account, currency)
+	// 入库和下方幂等比较使用同一种精度；否则纳秒被四舍五入后会立即比较失败。
+	_, err = tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,fault_started_at,eval_group,eval_expected_model,eval_key,eval_run_id,eval_profile,eval_provider,eval_account,currency) VALUES(?,?,'eval','pending',?,'',?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE id=id", id, value.Target, "评测 "+value.Group, clean, value.FaultStartedAt.UTC().Truncate(time.Microsecond), value.Group, value.ExpectedModel, value.Key, value.RunID, value.ExecutionProfile, value.Provider, value.Account, currency)
 	if err != nil {
 		return "", err
 	}

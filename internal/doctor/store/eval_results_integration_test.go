@@ -9,6 +9,7 @@ package store
 import (
 	"encoding/json"
 	"testing"
+	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
@@ -17,6 +18,8 @@ import (
 // TestIntegrationEvalResults 按“先保存槽位、后建任务、最后保存结果”的真实顺序逐处重试。
 func TestIntegrationEvalResults(t *testing.T) {
 	repository, input := evaluationFixture(t)
+	// 纳秒尾数会让 MySQL 默认向上取整；槽位和任务都必须主动截断到微秒。
+	input.FaultStartedAt = time.Date(2026, 10, 29, 12, 20, 2, 15277600, time.UTC)
 	ctx := llm.WithLease(t.Context(), "eval-results-owner")
 	if err := repository.SetEvaluationMode(ctx, input.Target, input.RunID, true); err != nil {
 		t.Fatal(err)
@@ -25,6 +28,9 @@ func TestIntegrationEvalResults(t *testing.T) {
 	saved, err := repository.PrepareEvalResult(ctx, slot)
 	if err != nil {
 		t.Fatal(err)
+	}
+	if !saved.FaultStartedAt.Equal(input.FaultStartedAt.Truncate(time.Microsecond)) {
+		t.Fatal("故障开始时间被四舍五入，续跑会误判为另一轮")
 	}
 	// 新通知到了，但续跑必须沿用第一份输入，不能把环境变化混入旧任务。
 	slot.Input = json.RawMessage(`{"alerts":["later"]}`)

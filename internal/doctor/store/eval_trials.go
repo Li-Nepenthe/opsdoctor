@@ -52,7 +52,14 @@ func (store *Store) AdvanceEvalTrial(ctx context.Context, value EvalTrial, next 
 		return fmt.Errorf("实验轮次转换不合法")
 	}
 	// 故障开始时间只能在确认注入时写一次；恢复时间由数据库产生，不混用宿主机墙钟。
-	result, err := store.database.ExecContext(ctx, "UPDATE eval_trials SET state=?,fault_started_at=COALESCE(fault_started_at,?),restored_at=IF(?='cooling',UTC_TIMESTAMP(6),restored_at),updated_at=UTC_TIMESTAMP(6) WHERE run_id=? AND scenario=? AND iteration=? AND state=?", next, fault, next, value.RunID, value.Scenario, value.Iteration, value.State)
+	// Go 可以保存纳秒，DATETIME(6) 只能保存微秒。先主动截断，避免 MySQL
+	// 四舍五入后比恢复文件晚一微秒，让同一次注入被误认成另一轮。
+	var persistedFault *time.Time
+	if fault != nil {
+		value := fault.UTC().Truncate(time.Microsecond)
+		persistedFault = &value
+	}
+	result, err := store.database.ExecContext(ctx, "UPDATE eval_trials SET state=?,fault_started_at=COALESCE(fault_started_at,?),restored_at=IF(?='cooling',UTC_TIMESTAMP(6),restored_at),updated_at=UTC_TIMESTAMP(6) WHERE run_id=? AND scenario=? AND iteration=? AND state=?", next, persistedFault, next, value.RunID, value.Scenario, value.Iteration, value.State)
 	if err != nil {
 		return err
 	}

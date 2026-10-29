@@ -36,7 +36,8 @@ func TestTrialTransition(t *testing.T) {
 func TestIntegrationEvalTrial(t *testing.T) {
 	repository, input := evaluationFixture(t)
 	ctx := t.Context()
-	fault := time.Now().UTC().Truncate(time.Microsecond)
+	// 故意保留会被数据库向上取整的纳秒，也带上本地时区，复现真实恢复文件。
+	fault := time.Date(2026, 10, 29, 5, 20, 2, 15277600, time.FixedZone("test", -7*3600))
 	for _, next := range []string{"injecting", "verifying", "diagnosing", "restoring", "cooling", "done"} {
 		value, err := repository.EvalTrial(ctx, input.RunID, "S01", 1)
 		if err != nil {
@@ -56,7 +57,7 @@ func TestIntegrationEvalTrial(t *testing.T) {
 		if err != nil || current.State != next {
 			t.Fatal(current, err)
 		}
-		if next != "injecting" && (current.FaultStartedAt == nil || !current.FaultStartedAt.Equal(fault)) {
+		if next != "injecting" && (current.FaultStartedAt == nil || !current.FaultStartedAt.Equal(fault.UTC().Truncate(time.Microsecond))) {
 			t.Fatal("重启丢失原故障时间")
 		}
 		if next == "cooling" && (current.RestoredAt == nil || current.CooldownSeconds < 299) {
