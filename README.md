@@ -506,6 +506,8 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql b
 
 评测器读取医生自己的 `DOCTOR_MYSQL_DSN`，宿主机地址为 `127.0.0.1:3307`，账号和库名均为 `doctor`。登录沿用 `DOCTOR_ADMIN_EMAIL`、`DOCTOR_ADMIN_PASSWORD`；这些都由环境注入，不放进命令参数。不要把容器内的 doctor-mysql 主机名直接拿给宿主机命令使用。`EVAL_TOKEN_BUDGET` 默认一千万，批次创建后固定，续跑不清零；费用还受原币种账户限制。
 
+这次正式三十九轮使用 `EVAL_TOKEN_BUDGET=30000000`。最后检查单轮约 41.5 万 token，直接外推已超过默认一千万，因此在冻结前明确选择三千万；不是运行中改额度。美元 $40、人民币 ¥10 两个账户的原上限保持不变。
+
 ```powershell
 # 在仓库根目录执行。先按本节准备环境变量，再创建试跑批次。
 go run ./cmd/eval prepare --run phase08-pilot-20261029 --model gpt-6.1-terra --scenarios S01,S03,S10
