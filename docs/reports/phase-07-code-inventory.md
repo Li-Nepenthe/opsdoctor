@@ -21,14 +21,14 @@
 | [docs/learn/README.md](../../docs/learn/README.md) | 32 | +2/−0 | docs/learn：逐阶段学习材料 |
 | [docs/learn/phase-07-reliability.md](../../docs/learn/phase-07-reliability.md) | 362 | +362/−0 | 阶段 7 学习材料：审批、断点恢复与安全 |
 | [docs/mcp.md](../../docs/mcp.md) | 43 | +43/−0 | 从外部客户端使用医生的只读工具 |
-| [docs/notes.md](../../docs/notes.md) | 1386 | +84/−0 | 实测记录 |
+| [docs/notes.md](../../docs/notes.md) | 1392 | +90/−0 | 实测记录 |
 | [docs/reports/README.md](../../docs/reports/README.md) | 18 | +1/−0 | docs/reports：阶段汇报书 |
 | [docs/reports/phase-07-approval.png](../../docs/reports/phase-07-approval.png) | 二进制 | +-/−- | 真实验收页面截图 |
 | [docs/reports/phase-07-code-inventory.md](../../docs/reports/phase-07-code-inventory.md) | 514 | +514/−0 | 阶段 7 代码清单 |
 | [docs/reports/phase-07-final-mock.png](../../docs/reports/phase-07-final-mock.png) | 二进制 | +-/−- | 真实验收页面截图 |
 | [docs/reports/phase-07-reliability.md](../../docs/reports/phase-07-reliability.md) | 208 | +208/−0 | 阶段 7 汇报书：审批、断点恢复与安全 |
 | [docs/代码地图.md](../../docs/代码地图.md) | 407 | +48/−4 | OpsDoctor 代码地图 |
-| [docs/数据台账.md](../../docs/数据台账.md) | 352 | +29/−0 | 数据台账 |
+| [docs/数据台账.md](../../docs/数据台账.md) | 353 | +30/−0 | 数据台账 |
 | [go.mod](../../go.mod) | 86 | +6/−0 | 固定模块与直接、间接依赖版本 |
 | [go.sum](../../go.sum) | 213 | +14/−0 | 依赖内容校验值 |
 | [internal/chaos/app/app.go](../../internal/chaos/app/app.go) | 221 | +2/−1 | 本文件：把 chaos 命令行接到场景、执行器和自动验收流程。 |
@@ -146,7 +146,7 @@
 | [tools/recoverycheck/crash_integration_test.go](../../tools/recoverycheck/crash_integration_test.go) | 405 | +405/−0 | 本文件：真的终止一个子进程，再用同一个测试库恢复诊断。 |
 | [tools/recoverycheck/doc.go](../../tools/recoverycheck/doc.go) | 13 | +13/−0 | Package recoverycheck 验证医生进程真的消失以后，数据库中的断点是否足够恢复。 |
 | [tools/recoverycheck/fixture_test.go](../../tools/recoverycheck/fixture_test.go) | 68 | +68/−0 | 本文件：给进程崩溃验收准备独立的医生测试库记录。 |
-| [进度.md](../../进度.md) | 163 | +8/−8 | OpsDoctor 进度看板 |
+| [进度.md](../../进度.md) | 163 | +13/−13 | OpsDoctor 进度看板 |
 | [项目计划书.md](../../项目计划书.md) | 2128 | +34/−12 | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 |
 
 ## 类型与函数导航

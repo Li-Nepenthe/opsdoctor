@@ -103,7 +103,7 @@ Compose 容器数量仍为 19，doctor 256 MiB、doctor-mysql 512 MiB。按用�
 | promtool 配置与两套规则测试 | 配置有效、12 条规则、cache/goroutine 测试通过 |
 | go mod tidy | 模块依赖完整 |
 | 学习材料两个 Go 例子 | gofmt、go run 通过，输出逐字写入材料 |
-| GitHub CI | 待推送后填写实际运行链接与结果 |
+| GitHub CI | [40831023926](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/40831023926) 全部通过，源码提交 `6a22664`；包括真实依赖 race、服务冒烟与 Mock 医生接线 |
 
 没有用依赖测试的 SKIP 冒充通过。单元测试、CI 和集成测试都没有真实模型请求。集成期间暂停 doctor/Alertmanager，避免专用库的资源负载创建诊断；之后恢复基线，healthy 60.461 秒通过。
 
@@ -171,7 +171,7 @@ Redis diag_ro 的实际规则为 `-@all +hello +ping +info +slowlog|get +slowlog
 
 最终 [Mock 页面截图](phase-07-final-mock.png) 与 `/api/v1/status` 一致，provider=mock，model=mock-script-v1，美元账本 $0.037005。
 
-本阶段新增台账条目：**P7-1—P7-20**，最终 CI 与收尾状态另附后续条目。原始过程见 [notes](../notes.md#阶段-7审批断点恢复与安全进行中)。
+本阶段新增台账条目：**P7-1—P7-21**，包括最终 CI 与收尾状态。原始过程见 [notes](../notes.md#阶段-7审批断点恢复与安全进行中)。
 
 ## 六、偏离计划之处
 

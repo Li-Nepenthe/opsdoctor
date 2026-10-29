@@ -1384,3 +1384,9 @@ SHOW GRANTS 实际为 diag_ddl：USAGE，加 shop.orders、processed_events、pr
 暂停流量和 doctor/Alertmanager 后注入十二个 TEST 变量，全套 `go test -race ... -run Integration -count=1 -timeout=90s -json`：37 个顶层通过，含子例 56 个通过，0 skip、0 fail。全仓离线 `go test -race ./... -count=1 -timeout=180s -json`：202 个顶层通过，含子例 712 个通过，41 个依赖用例跳过；这批跳过由独立真实集成补验，不能写成全仓没有跳过。vet、staticcheck、archcheck 通过，补完格式和函数内部说明后 commentcheck 337 个文件通过。原始 JSONL 保存在本机临时目录 opsdoctor-phase07，后续提交对应 CI 另记。
 
 06:21:12.981836 UTC，集成后恢复流量的 healthy 通过，60.461 秒。随后启动 Alertmanager。最新医生 status 为 provider=mock、model=mock-script-v1，USD 账本 37005/40000000 微单位；页面同样显示 Mock 横幅，截图 reports/phase-07-final-mock.png。Prometheus 配置与 12 条告警规则有效，两份 promtool 规则测试均通过。
+
+### 阶段 7 提交、CI 与最终状态
+
+源码与完整学习材料提交 6a22664 已推送 phase-07-reliability；[CI 40831023926](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/40831023926) 全部通过（GitHub 最后更新时间 2026-10-29T06:55:02Z）。包括固定 ubuntu-24.04 上的格式、静态与项目规则、全仓竞态、真实依赖集成、库存/订单/消息/观测接线和 Mock 医生冒烟。没有真实模型调用。
+
+提交后复核本机 LLM_PROVIDER=mock，运行 status 为 mock/mock-script-v1，美元账本仍 37005/40000000 微单位；活跃流量参数仍为 10000 商品、200 QPS、64 工作者。没有新付费诊断。用户在阶段 0 学习材料的表格修改与库存服务两处 defer 换行仍在工作区，未纳入任何提交。所有阶段的学习验收保持未勾选；不合并 main，不开始阶段 8。最后文档收尾提交只更新验收链接与进度。
