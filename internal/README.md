@@ -13,6 +13,7 @@
 | [doctor](doctor/README.md) | 医生：登录、按系统接告警、保存任务与只读取证工具 |
 | [loadgen](loadgen/doc.go) | 压测工具的实现：生成流量、控制速率、统计结果 |
 | [chaos](chaos/README.md) | 宿主机实验工具：改动真实原因、恢复环境、检查症状和健康 |
+| [eval](eval/README.md) | 宿主机评测器：保存实验安排、捕获输入、创建诊断并整理结果；医生不能导入它 |
 
 ## 谁能依赖谁
 

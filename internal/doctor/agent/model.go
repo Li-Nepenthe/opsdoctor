@@ -58,17 +58,19 @@ type ApprovalFlow interface {
 
 // Input 在开始诊断时固定，后续告警仍入库，但不会改变已经发送的固定消息前缀。
 type Input struct {
-	Approvals   ApprovalFlow  // 缺省表示只读模式；存在时写操作仍必须由人审批。
-	History     []Step        // 已提交的步骤；恢复从这些事实重建，而非重新问一次相同问题。
-	ActiveTime  time.Duration // 已经消耗的执行时间，等待审批不计入。
-	KnownCost   int64         // 仓储账本中包含未结算预留的费用下界。
-	ID          string        // 本次诊断的审计归属。
-	Profile     string        // 部署者写的架构说明。
-	Unavailable []string      // 本系统未配置的观测来源。
-	Components  []string      // 架构说明列出的组件标识，包含 unknown。
-	Symptoms    string        // 最初告警或手动输入；作为不可信数据发送。
-	Tools       Toolbox       // 已绑定本系统的注册表。
-	Recorder    Recorder      // 持久化与实时推送的出口。
+	FaultStartedAt time.Time     // 本次故障的开始时间；例行检查用检查开始时间，不能由模型改写。
+	InputOnly      bool          // E0 只准引用最初告警输入，模型回复或工具拒绝消息不能冒充证据。
+	Approvals      ApprovalFlow  // 缺省表示只读模式；存在时写操作仍必须由人审批。
+	History        []Step        // 已提交的步骤；恢复从这些事实重建，而非重新问一次相同问题。
+	ActiveTime     time.Duration // 已经消耗的执行时间，等待审批不计入。
+	KnownCost      int64         // 仓储账本中包含未结算预留的费用下界。
+	ID             string        // 本次诊断的审计归属。
+	Profile        string        // 部署者写的架构说明。
+	Unavailable    []string      // 本系统未配置的观测来源。
+	Components     []string      // 架构说明列出的组件标识，包含 unknown。
+	Symptoms       string        // 最初告警或手动输入；作为不可信数据发送。
+	Tools          Toolbox       // 已绑定本系统的注册表。
+	Recorder       Recorder      // 持久化与实时推送的出口。
 }
 
 // Limits 的默认值来自计划书，测试可调小以快速检查预算边界。

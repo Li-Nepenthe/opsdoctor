@@ -66,6 +66,9 @@ func integrationStore(t *testing.T) (*Store, string) {
 		if _, err := database.ExecContext(ctx, "DELETE FROM diagnoses WHERE target IN (?,?)", target, target+"-b"); err != nil {
 			t.Error(err)
 		}
+		if _, err := database.ExecContext(ctx, "DELETE FROM eval_runs WHERE target IN (?,?)", target, target+"-b"); err != nil {
+			t.Error(err)
+		}
 		if err := database.Close(); err != nil {
 			t.Error(err)
 		}

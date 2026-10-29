@@ -11,13 +11,15 @@ package agent
 import (
 	_ "embed"
 	"encoding/json"
+	"fmt"
 	"strings"
+	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
 )
 
 // PromptVersion 同时写入 diagnoses，后续比较结果时能知道模型当时读了哪份规则。
-const PromptVersion = "v7.2"
+const PromptVersion = "v8.0"
 
 // systemPrompt 随程序编译，容器不用读取源码目录。
 //
@@ -29,6 +31,12 @@ func messages(input Input, redactor *llm.Redactor) []llm.Message {
 	missing := "本系统的全部已支持数据源均已配置。"
 	if len(input.Unavailable) > 0 {
 		missing = "本系统以下数据源不可用：" + strings.Join(input.Unavailable, "、") + "。相关工具不会提供。"
+	}
+	if !input.FaultStartedAt.IsZero() {
+		missing += fmt.Sprintf("\n本次故障或例行检查的开始时间：%s。默认查询从该时刻前五分钟开始，最长回看一小时。需要更早的数据时明确填写 lookback_seconds；不要把之前实验的异常当成本次证据。", input.FaultStartedAt.UTC().Format(time.RFC3339))
+	}
+	if input.InputOnly {
+		missing += "\n本次只提供初始告警和架构资料，没有查看工具。报告只可引用初始输入的步骤号；信息不足就明确保留未知项，不能编造查询或证据。"
 	}
 	return []llm.Message{
 		{Role: "system", Content: redactor.Text(systemPrompt + "\n\n" + missing)},

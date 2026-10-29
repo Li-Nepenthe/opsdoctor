@@ -31,6 +31,12 @@
 | 0023_step_currency.sql | 保存每步币种、缓存写入和思考 token |
 | 0024_attempt_cache_write.sql | 保存每次调用的缓存写入用量和当时单价 |
 | 0025_approvals.sql | 保存不可变审批计划、一次决定、执行者与旧 DDL 连接线索 |
+| 0026_evaluation_context.sql | 固定故障开始时间、实验组、期望模型和幂等编号 |
+| 0027_evaluation_targets.sql | 保存哪个评测批次暂停了系统的自动告警诊断 |
+| 0028_eval_runs.sql | 固定整批运行配置和 token 上限，续跑不能清零 |
+| 0029_diagnosis_eval_run.sql | 将评测诊断绑定到唯一批次 |
+| 0030_eval_attempts.sql | 每次真实调用都预留 token，结果不明时保留 |
+| 0031_eval_results.sql | 保存每个场景轮次与实验组的固定输入、诊断关联和最终结果 |
 
 任务结束与故障恢复是两件事。阶段 6 不再用 active_group 判断故障开放期，而用 alert_groups 保存整组恢复和最近通知时间。旧列保留以兼容已有迁移，后续没有拿它创建第二套去重规则。
 

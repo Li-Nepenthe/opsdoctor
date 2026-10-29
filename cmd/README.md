@@ -30,3 +30,5 @@
 | [doctorctl](doctorctl/main.go) | 用登录身份调用正在运行的医生，共用同一个工具菜单和连接池 |
 
 alertsink 代码保留供阶段 3 学习，但默认 Compose 的告警已经交给 doctor。
+
+阶段 8 新增 [eval](eval/main.go)。当前先提供暂停自动诊断、E1 试跑、保存结果和导出的命令。故障仍由宿主机 chaos 注入和恢复。正式矩阵与评委要等第一个审核节点通过后再开放。

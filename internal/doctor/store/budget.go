@@ -110,6 +110,9 @@ func (ledger *Ledger) Reserve(ctx context.Context, value llm.Reservation) (strin
 	if err != nil {
 		return "", err
 	}
+	if err = reserveEvalTokens(ctx, tx, id, value); err != nil {
+		return "", err
+	}
 	if err = tx.Commit(); err != nil {
 		return "", err
 	}
@@ -166,11 +169,18 @@ func (ledger *Ledger) Settle(ctx context.Context, id string, value llm.Settlemen
 			return err
 		}
 	}
+	tokenOverflow, err := settleEvalTokens(ctx, tx, id, value)
+	if err != nil {
+		return err
+	}
 	if err = tx.Commit(); err != nil {
 		return err
 	}
 	if overflow {
 		return fmt.Errorf("实际费用已记账，后续调用已停止：%w", llm.ErrBudget)
+	}
+	if tokenOverflow {
+		return llm.ErrEvaluationBudget
 	}
 	return nil
 }

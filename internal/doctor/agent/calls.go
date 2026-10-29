@@ -44,7 +44,7 @@ func (run *session) calls(ctx context.Context, calls []llm.ToolCall, final bool)
 				return false, saveErr
 			}
 			run.history = append(run.history, message)
-			run.existing[step.Seq] = true
+			run.rememberEvidence(step)
 			run.result.Report = raw
 			return true, nil
 		}
@@ -53,7 +53,7 @@ func (run *session) calls(ctx context.Context, calls []llm.ToolCall, final bool)
 			return false, saveErr
 		}
 		run.history = append(run.history, message)
-		run.existing[step.Seq] = true
+		run.rememberEvidence(step)
 		return false, nil
 	}
 	return false, run.readTools(ctx, calls, final)
@@ -120,7 +120,7 @@ func (run *session) readTools(ctx context.Context, calls []llm.ToolCall, final b
 	}
 	for index := range replies {
 		run.history = append(run.history, replies[index])
-		run.existing[steps[index].Seq] = true
+		run.rememberEvidence(steps[index])
 	}
 	if ctx.Err() != nil {
 		return ctx.Err()
@@ -195,6 +195,6 @@ func (run *session) writeTool(ctx context.Context, call llm.ToolCall) (bool, err
 		return false, err
 	}
 	run.history = append(run.history, message)
-	run.existing[step.Seq] = true
+	run.rememberEvidence(step)
 	return false, nil
 }

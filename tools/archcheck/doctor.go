@@ -1,12 +1,12 @@
 // 本文件：检查医生容器能从宿主机拿到什么。
 //
 // Go 导入检查只能管源码。即使代码没有引用场景包，把整个仓库挂进容器仍然会泄露答案。
-// 因此部署配置也要检查，只允许那一个只读接入目录。
+// 因此部署配置也要检查，只允许只读接入目录和阶段 8 的通用手册目录。
 //
 // 主要内容：
 //   - doctorMountProblems：读取 Compose，检查医生的挂载和提权入口。
 //   - opsPortProblems：确保业务运维端口只在容器网络内使用。
-// 阅读建议：先看允许的唯一挂载，再看为什么拒绝 env_file 和 Docker 连接变量。
+// 阅读建议：先看两个精确允许的挂载，再看为什么拒绝 env_file 和 Docker 连接变量。
 
 package main
 
@@ -37,8 +37,20 @@ func doctorMountProblems(path string) ([]string, error) {
 	var problems []string
 	reject := func(reason string) { problems = append(problems, fmt.Sprintf("%s:1: doctor %s", path, reason)) }
 	mounts, ok := doctor["volumes"].([]any)
-	if !ok || len(mounts) != 1 || mounts[0] != "./doctor/targets:/etc/doctor/targets:ro" {
-		reject("只能挂载只读接入目录；不能读取仓库、场景、恢复记录或 Docker socket")
+	allowed := map[string]bool{"./doctor/targets:/etc/doctor/targets:ro": true, "../docs/runbooks:/etc/doctor/runbooks:ro": true}
+	seen := map[string]bool{}
+	if !ok || len(mounts) < 1 || len(mounts) > 2 {
+		reject("只能挂载只读接入目录和通用手册")
+	}
+	for _, mount := range mounts {
+		name, valid := mount.(string)
+		if !valid || !allowed[name] || seen[name] {
+			reject("挂载必须精确匹配只读接入目录或通用手册；不能读取仓库、场景、恢复记录或 Docker socket")
+		}
+		seen[name] = true
+	}
+	if !seen["./doctor/targets:/etc/doctor/targets:ro"] {
+		reject("缺少只读接入目录")
 	}
 	// 这些入口可以绕过普通文件挂载限制；本阶段的医生没有使用它们的理由。
 	for _, key := range []string{"volumes_from", "devices", "privileged", "cap_add", "pid", "network_mode", "env_file"} {

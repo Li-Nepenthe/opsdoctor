@@ -61,11 +61,17 @@ func (agent *Agent) Run(parent context.Context, input Input) (Result, error) {
 	if input.ID == "" || input.Tools == nil || input.Recorder == nil || len(input.Components) == 0 {
 		return Result{}, fmt.Errorf("诊断缺少系统、工具或审计依赖")
 	}
+	if input.InputOnly && (len(input.Tools.List()) != 0 || input.Approvals != nil) {
+		return Result{}, fmt.Errorf("只用初始输入的诊断不能同时提供查询或审批工具")
+	}
 	whole, cancel := context.WithTimeout(parent, max(0, agent.limits.Duration-input.ActiveTime))
 	defer cancel()
 	work, stop := context.WithTimeout(whole, max(0, agent.limits.Duration-agent.limits.FinalTime-input.ActiveTime))
 	defer stop()
 	run := &session{agent: agent, input: input, history: messages(input, agent.redactor), definitions: definitions(input), existing: map[int]bool{}, completed: map[string]Step{}, result: Result{ReportMode: "voluntary"}}
+	if err := run.prepareInput(whole); err != nil {
+		return run.result, err
+	}
 	if done, err := run.restore(whole); done || err != nil {
 		return run.result, err
 	}
@@ -177,7 +183,7 @@ func (run *session) ask(ctx context.Context, final bool) (llm.Response, error) {
 	if recordErr != nil {
 		return answer, fmt.Errorf("保存模型步骤：%w", recordErr)
 	}
-	run.existing[step.Seq] = true
+	run.rememberEvidence(step)
 	run.parentSeq = step.Seq
 	if callErr == nil {
 		run.lastInput, run.lastBytes = answer.Usage.Input, len(clean)
@@ -199,7 +205,7 @@ func (run *session) finish(ctx context.Context) (Result, error) {
 	if run.result.BudgetReason == "" {
 		run.result.BudgetReason = "查证时间用尽"
 	}
-	run.history = append(run.history, llm.Message{Role: "user", Content: "查证预算已用尽。请现在单独调用 submit_report，只使用已经保存的证据；不知道的内容写进 unknowns，不再调用查看工具。"})
+	run.history = append(run.history, llm.Message{Role: "user", Content: finalInstruction})
 	for attempt := 0; attempt < 2; attempt++ {
 		answer, err := run.ask(ctx, true)
 		if errors.Is(err, llm.ErrDiagnosisBudget) {

@@ -5,6 +5,12 @@
 // 才不会因为需要保存任务，就顺便把业务库的写权限交给医生。
 //
 // 文件清单：
+//   - eval_results.go：保存实验槽位、冻结的告警输入和不可覆盖的终态结果。
+//   - eval_results_integration_test.go：验证输入冻结、重复续跑和失败结果不可覆盖。
+//   - eval_budget.go：把整批 token 预留、结算和中断保留接到真实费用事务。
+//   - eval_budget_integration_test.go：验证批次 token 与费用原子记账，以及未知用量不因重启消失。
+//   - evaluation.go：保存评测模式和可重试的实验诊断，防止重复自动付费。
+//   - evaluation_integration_test.go：验证评测任务去重、暂停告警执行和写操作拒绝。
 //   - approvals.go：事务保存审批、一次决定和执行线索。
 //   - approval_integration_test.go：验证等待、争抢、过期和执行恢复。
 //   - leases.go：领取和续租执行权，过时断点不再继续。

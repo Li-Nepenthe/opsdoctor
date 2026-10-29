@@ -494,3 +494,33 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql b
 演示完成后按审批单撤销医生索引；调整过连接池的服务要重启以恢复启动值。`chaos healthy` 会检查这些残留，不能带着修复状态开始下一场实验。所有真实模型验收结束后，把本机 `.env` 改回 Mock，并重建 doctor 确认运行实例也已切换。
 
 外部只读工具连接方法见 [MCP 文档](docs/mcp.md)。恢复测试已经纳入上述十二项 TEST 配置的集成测试流程，全程不调用付费模型。
+
+
+## 阶段 8：先审手册，再批准正式评测
+
+本阶段当前处于试跑准备和估算节点，不是正式结果。[通用手册](docs/runbooks/README.md) 教的是排查顺序，只在 E2 开放检索。手册需要先由 Claude 审阅，试跑估算需要用户确认；这两个条件满足后才冻结版本、运行完整矩阵。不要把几个试跑的组件一致次数写成总体准确率。
+
+试跑使用 10000 活跃商品、200 QPS、64 工作者。每次重建前先检查这三个值，启动后还要检查 loadgen `/control` 的实际返回。先在 Mock 下执行 `chaos healthy`，确认没有残留索引或运行中改过的连接池。集成测试和 selftest 始终留在 Mock，不能在真实模型期间跑。
+
+评测器读取医生自己的 `DOCTOR_MYSQL_DSN`，宿主机地址为 `127.0.0.1:3307`，账号和库名均为 `doctor`。登录沿用 `DOCTOR_ADMIN_EMAIL`、`DOCTOR_ADMIN_PASSWORD`；这些都由环境注入，不放进命令参数。不要把容器内的 doctor-mysql 主机名直接拿给宿主机命令使用。`EVAL_TOKEN_BUDGET` 默认一千万，批次创建后固定，续跑不清零；费用还受原币种账户限制。
+
+```powershell
+# 在仓库根目录执行。先按本节准备环境变量，再创建试跑批次。
+go run ./cmd/eval prepare --run phase08-pilot-20261029 --model gpt-6.1-terra --scenarios S01,S03,S10
+# 按已授权方案短暂切换真实模型并重新创建 doctor，确认 /api/v1/status 的实际模型。
+go run ./cmd/chaos inject S01
+go run ./cmd/chaos verify S01
+go run ./cmd/eval pilot --run phase08-pilot-20261029 --model gpt-6.1-terra --scenarios S01,S03,S10 --scenario S01 --allow-paid
+go run ./cmd/chaos restore S01
+go run ./cmd/chaos healthy
+# 下一场前还要等待 /api/v1/targets 的 fault.open=false，且距恢复至少五分钟。
+go run ./cmd/eval export --run phase08-pilot-20261029
+# 全部试跑结束，先把本机与运行中的医生切回 Mock，再退出评测模式。
+go run ./cmd/eval finish --run phase08-pilot-20261029
+```
+
+上面的批次编号属于已保存的试跑。重复命令会取回同一个输入和诊断，不重跑；版本变化也会被拒绝。新的获批实验必须使用自己的批次编号。命令行中断会请求取消正在等的诊断；原报告、失败和费用不删除。当前试跑的故障注入与恢复由操作者完成，尚未声称完成正式矩阵的自动续跑。
+
+评测模式下，新告警继续留档并更新开放期，但捕获任务直接记为 cancelled，不触发模型。真正参与比较的任务是 trigger=eval。所有写审批自动拒绝，拒绝理由和模型建议仍可在详情中查看。不能为了让评测成功而手工批准它们。
+
+本轮已保存的三场试跑和分币种估算见 [审核材料](docs/reports/phase-08-pilot.md)。S01、S03 有报告，S10 首次网络请求失败并保留费用预留；失败没有重跑覆盖。完整矩阵尚未开始。

@@ -14,6 +14,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log/slog"
+	"os"
 	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
@@ -25,12 +26,18 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/run"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/store"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/target"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/tools"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
 )
 
 // assembleAgent 只装配，不启动 goroutine；全部成功后 Run 才启动调度和监听端口。
 func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB, catalog *target.Catalog, logger *slog.Logger, common *telemetry.Metrics) (*store.Store, *run.Scheduler, *events.Hub, error) {
+	runbooks, err := tools.LoadRunbooks(os.DirFS(settings.runbooks))
+	if err != nil {
+		return nil, nil, nil, err
+	}
 	toolNames := map[string]bool{}
+	toolNames["runbook_search"] = true
 	recoveryWindows := map[string]time.Duration{}
 	for _, name := range catalog.Names() {
 		system, _ := catalog.Get(name)
@@ -71,12 +78,12 @@ func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	scheduler, err := run.New(run.Config{LeaseTTL: settings.leaseTTL, Model: settings.model, Provider: settings.provider, Concurrent: settings.concurrent, PerTarget: settings.perTarget, PendingAge: settings.pendingAge, Budget: ledger.Status, ObservedBudget: metrics.budget, Resolve: func(name string) (agent.Input, error) {
+	scheduler, err := run.New(run.Config{LeaseTTL: settings.leaseTTL, Model: settings.model, Provider: settings.provider, Concurrent: settings.concurrent, PerTarget: settings.perTarget, PendingAge: settings.pendingAge, Budget: ledger.Status, ObservedBudget: metrics.budget, Prepare: prepareDiagnosis, Resolve: func(name string) (agent.Input, error) {
 		system, ok := catalog.Get(name)
 		if !ok {
 			return agent.Input{}, fmt.Errorf("任务绑定的系统已不在接入配置中")
 		}
-		return agent.Input{Profile: system.Profile(), Unavailable: system.Unavailable(), Components: system.Components(), Tools: system.Tools(), Approvals: approval.New(name, system.Actions(), repository, redactor)}, nil
+		return agent.Input{Profile: system.Profile(), Unavailable: system.Unavailable(), Components: system.Components(), Tools: system.Tools().WithRunbooks(runbooks), Approvals: approval.New(name, system.Actions(), repository, redactor)}, nil
 	}}, repository, loop, logger)
 	return repository, scheduler, hub, err
 }

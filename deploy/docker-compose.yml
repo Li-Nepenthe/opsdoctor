@@ -476,11 +476,12 @@ services:
       DOCTOR_ADMIN_PASSWORD: ${DOCTOR_ADMIN_PASSWORD:?请设置初始登录密码}
       JWT_SECRET: ${JWT_SECRET:?请设置 JWT 密钥}
       TARGETS_DIR: /etc/doctor/targets
+      DOCTOR_RUNBOOKS_DIR: /etc/doctor/runbooks
       SHOP_ALERT_TOKEN: ${SHOP_ALERT_TOKEN:?请设置 shop 告警令牌}
       SHOP_MYSQL_RO_DSN: ${SHOP_MYSQL_RO_DSN:?请设置 shop 只读 DSN，容器主机名为 shop-mysql}
       SHOP_REDIS_RO_URL: ${SHOP_REDIS_RO_URL:?请设置 shop 只读 URL，容器主机名为 redis}
-    # 只挂接入配置，不挂仓库、实验场景、恢复记录或 Docker socket。
-    volumes: ["./doctor/targets:/etc/doctor/targets:ro"]
+    # 只挂接入配置和通用手册，不挂仓库、实验场景、恢复记录或 Docker socket。
+    volumes: ["./doctor/targets:/etc/doctor/targets:ro", "../docs/runbooks:/etc/doctor/runbooks:ro"]
     read_only: true
     cap_drop: [ALL]
     ports: ["127.0.0.1:8090:8090"]

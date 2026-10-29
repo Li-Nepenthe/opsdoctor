@@ -25,10 +25,13 @@ import (
 
 // Task 只包含执行所需的最小字段，模型不能改变 ID 或 Target。
 type Task struct {
-	ID        string          // 数据库任务 ID。
-	Target    string          // 创建时已绑定的系统。
-	Input     json.RawMessage // 脱敏后的告警或手动症状。
-	CreatedAt time.Time       // 过时检查依据。
+	FaultStartedAt  time.Time       // 初始故障时间；查询不能默认混入更早的一场实验。
+	EvaluationGroup string          // 空值是普通诊断，E0–E3 是由评测器固定的工具组。
+	ExpectedModel   string          // 评测指定的模型；切换进程后不能悄悄用另一个模型续跑。
+	ID              string          // 数据库任务 ID。
+	Target          string          // 创建时已绑定的系统。
+	Input           json.RawMessage // 脱敏后的告警或手动症状。
+	CreatedAt       time.Time       // 过时检查依据。
 }
 
 // BudgetStatus 同时供调度器、页面和指标读取，金额是百万分之一账户货币单位。
@@ -64,6 +67,7 @@ type Config struct {
 	PerTarget      int                                         // 同系统名额，本阶段固定 1。
 	PendingAge     time.Duration                               // 告警 pending 超过多久不再执行。
 	Resolve        func(string) (agent.Input, error)           // 来自目标目录，不接触标准答案。
+	Prepare        func(Task, *agent.Input) error              // 按任务筛选工具；不接收场景答案。
 	Budget         func(context.Context) (BudgetStatus, error) // 真实账本快照。
 	Published      func(string, agent.Step)                    // 已入库后才推实时通知和指标。
 	ObservedBudget func(BudgetStatus)                          // 把同一份额度状态同步到指标，不额外查库。
@@ -240,6 +244,9 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task) {
 	defer func() { stopRenew(); <-renewed }()
 	go func() { defer close(renewed); scheduler.renew(renewCtx, task.ID) }()
 	input, err := scheduler.config.Resolve(task.Target)
+	if err == nil && scheduler.config.Prepare != nil {
+		err = scheduler.config.Prepare(task, &input)
+	}
 	var result agent.Result
 	if err == nil {
 		input.ID, input.Symptoms, input.Recorder = task.ID, string(task.Input), taskRecorder{scheduler: scheduler, id: task.ID}
@@ -265,6 +272,8 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task) {
 		scheduler.mu.Lock()
 		scheduler.blocked = true
 		scheduler.mu.Unlock()
+	case errors.Is(err, llm.ErrEvaluationBudget):
+		status, reason = BudgetExceeded, err.Error()
 	case err != nil:
 		status, reason = Failed, err.Error()
 	case result.WaitingApproval:

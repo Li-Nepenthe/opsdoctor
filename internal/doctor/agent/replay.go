@@ -22,7 +22,7 @@ func (run *session) restore(ctx context.Context) (bool, error) {
 	var latest *Step
 	finalRounds := 0
 	for _, step := range run.input.History {
-		run.existing[step.Seq] = true
+		run.rememberEvidence(step)
 		if step.Kind == "tool" {
 			run.completed[step.EventKey] = step
 			if step.Counted {
@@ -106,7 +106,18 @@ func (run *session) repairFinal(ctx context.Context) (bool, error) {
 	return true, err
 }
 
-// finalRequest 由程序保存的工具菜单识别整理阶段，不信任模型自称的预算状态。
+// finalInstruction 同时用于发送和恢复识别。E0 本来就只有报告工具，不能仅凭菜单认定预算已用尽。
+const finalInstruction = "查证预算已用尽。请现在单独调用 submit_report，只使用已经保存的证据；不知道的内容写进 unknowns，不再调用查看工具。"
+
+// finalRequest 同时检查菜单和程序保存的整理指令，不信任模型自称的预算状态。
 func finalRequest(request llm.Request) bool {
-	return len(request.Tools) == 1 && request.Tools[0].Function.Name == "submit_report"
+	if len(request.Tools) != 1 || request.Tools[0].Function.Name != "submit_report" {
+		return false
+	}
+	for _, message := range request.Messages {
+		if message.Role == "user" && message.Content == finalInstruction {
+			return true
+		}
+	}
+	return false
 }

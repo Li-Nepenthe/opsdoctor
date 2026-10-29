@@ -10,6 +10,7 @@ package main
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -20,6 +21,9 @@ func TestDoctorMounts(t *testing.T) {
 		want         bool
 	}{
 		{"只读接入目录", "", false}, // 正常配置保留最小文件入口。
+		{"只读手册", "    volumes: ['./doctor/targets:/etc/doctor/targets:ro','../docs/runbooks:/etc/doctor/runbooks:ro']\n", false}, // 阶段 8 的唯一新增只读资料。
+		{"整份文档", "    volumes: ['./doctor/targets:/etc/doctor/targets:ro','../docs:/etc/doctor/runbooks:ro']\n", true},           // 汇报书可能含答案，不能扩大到 docs。
+		{"手册可写", "    volumes: ['./doctor/targets:/etc/doctor/targets:ro','../docs/runbooks:/etc/doctor/runbooks:rw']\n", true},  // 医生不能修改冻结的手册。
 		{"场景挂载", "    volumes: [../eval/scenarios:/answers:ro]\n", true},
 		{"仓库挂载", "    volumes: [..:/repo:ro]\n", true},
 		{"长格式socket", "    volumes: [{type: bind, source: /var/run/docker.sock, target: /socket}]\n", true},
@@ -30,7 +34,7 @@ func TestDoctorMounts(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			// 用例重写相应字段，避免依赖 YAML 重复键的处理方式。
 			base := "services:\n  doctor:\n"
-			if tc.name != "场景挂载" && tc.name != "仓库挂载" && tc.name != "长格式socket" {
+			if !strings.Contains(tc.fields, "volumes:") {
 				base += "    volumes: ['./doctor/targets:/etc/doctor/targets:ro']\n"
 			}
 			if tc.name != "实验凭据" {

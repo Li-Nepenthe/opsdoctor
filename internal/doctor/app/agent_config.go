@@ -24,6 +24,7 @@ import (
 
 // agentSettings 含 API Key，不能作为整个对象写进日志或错误。
 type agentSettings struct {
+	runbooks        string // 通用手册的只读目录，不是场景目录。
 	apiFormat       string // Responses 与 Chat Completions 只在传输适配器里分流。
 	currency        string // CNY 或 USD，账户和页面都显式带单位。
 	diagnosisMicros int64  // 一次诊断上限，和当前账户使用相同币种。
@@ -73,6 +74,7 @@ func loadAgentConfig(reader config.Reader) (agentSettings, error) {
 		return v
 	}
 	value.provider = read("LLM_PROVIDER", "mock")
+	value.runbooks = read("DOCTOR_RUNBOOKS_DIR", "docs/runbooks")
 	value.model = mock.Model
 	value.currency = read("LLM_BUDGET_CURRENCY", "CNY")
 	if value.currency != "CNY" && value.currency != "USD" {

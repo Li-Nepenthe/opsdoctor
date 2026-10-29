@@ -40,6 +40,7 @@ type Notification struct {
 
 // Receipt 说明通知已保存或被忽略，不表示诊断已经执行。
 type Receipt struct {
+	Suppressed       bool   `json:"suppressed"`             // 评测期间只捕获通知，不运行自动诊断。
 	RecoveryFollowup bool   `json:"recovery_followup"`      // 观察期内重新出现的症状，只补证据，不重新执行报告。
 	DiagnosisID      string `json:"diagnosis_id,omitempty"` // 新建或复用的 pending 任务。
 	Created          bool   `json:"created"`                // false 可表示一次重复推送。

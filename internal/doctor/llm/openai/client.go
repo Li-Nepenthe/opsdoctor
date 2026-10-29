@@ -127,7 +127,7 @@ func (client *Client) attempt(ctx context.Context, request llm.Request, raw []by
 		inputBound = min(inputBound, request.InputUpperBound)
 	}
 	reserved := client.config.Prices.ReserveCost(inputBound, int64(request.MaxTokens))
-	id, err := client.ledger.Reserve(ctx, llm.Reservation{CallID: request.CallID, DiagnosisID: request.DiagnosisID, Model: request.Model, Request: raw, MaximumMicros: reserved, DiagnosisLimitMicros: request.DiagnosisLimitMicros, Prices: client.config.Prices})
+	id, err := client.ledger.Reserve(ctx, llm.Reservation{MaximumTokens: inputBound + int64(request.MaxTokens), CallID: request.CallID, DiagnosisID: request.DiagnosisID, Model: request.Model, Request: raw, MaximumMicros: reserved, DiagnosisLimitMicros: request.DiagnosisLimitMicros, Prices: client.config.Prices})
 	if err != nil {
 		return llm.Response{}, false, 0, err
 	}

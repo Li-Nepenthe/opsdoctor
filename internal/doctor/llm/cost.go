@@ -28,6 +28,9 @@ const ErrBudget Error = "全局模型费用上限已用尽或不足以预留本�
 // ErrDiagnosisBudget 与账户额度分开，页面才能解释是本次调查停止，而非所有诊断停用。
 const ErrDiagnosisBudget Error = "本次诊断费用已达上限或不足以预留本次请求"
 
+// ErrEvaluationBudget 只停止这一批评测，不把它误报为供应商余额不足。
+const ErrEvaluationBudget Error = "评测 token 额度已用尽、预留不足或需要人工核对"
+
 // Prices 保存每百万 token 的单价，单位同样是百万分之一账户货币单位。
 type Prices struct {
 	CacheWriteMicros int64 // 缓存写入价；DeepSeek 没有这一档时为零。
@@ -85,6 +88,7 @@ func (prices Prices) ReserveCost(input, output int64) int64 {
 
 // Reservation 在网络发送之前落库，原文已经脱敏，不能包含 Authorization 头。
 type Reservation struct {
+	MaximumTokens        int64           // 每次 HTTP 尝试的输入上界加最大输出，评测批次据此预留。
 	CallID               string          // 对应 Agent 发送前保存的请求步骤，不能由模型指定。
 	DiagnosisID          string          // 归属本次诊断。
 	Model                string          // 请求选择的模型。

@@ -79,6 +79,11 @@ func (*memoryStore) FaultState(context.Context, string) (store.FaultState, error
 	return store.FaultState{}, nil
 }
 
+// EvaluationMode 的身份测试默认不在评测中，专项测试另验证持久化暂停。
+func (*memoryStore) EvaluationMode(context.Context, string) (store.EvaluationMode, error) {
+	return store.EvaluationMode{}, nil
+}
+
 // Manual 在身份测试里只返回固定编号，具体状态转换另由仓储测试验证。
 func (*memoryStore) Manual(context.Context, string, string) (string, error) {
 	return strings.Repeat("a", 32), nil

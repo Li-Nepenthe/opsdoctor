@@ -92,7 +92,7 @@ func TestReplayFinalInterrupted(t *testing.T) {
 	// 第一次中断还剩一次修正；第二次中断已经用尽，不能再请求模型。
 	for _, count := range []int{1, 2} {
 		t.Run(string(rune('0'+count)), func(t *testing.T) {
-			prior := llm.Request{Messages: []llm.Message{{Role: "system", Content: "旧版提示"}}, Tools: []llm.Tool{{Function: llm.ToolDefinition{Name: "submit_report"}}}}
+			prior := llm.Request{Messages: []llm.Message{{Role: "system", Content: "旧版提示"}, {Role: "user", Content: finalInstruction}}, Tools: []llm.Tool{{Function: llm.ToolDefinition{Name: "submit_report"}}}}
 			raw, _ := json.Marshal(prior)
 			var history []Step
 			for i := range count {

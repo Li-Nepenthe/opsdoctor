@@ -48,10 +48,20 @@ func (store *Store) claimLease(ctx context.Context, id, model, prompt, provider 
 	if err = tx.QueryRowContext(ctx, "SELECT id FROM scheduler_guard WHERE id=1 FOR UPDATE").Scan(&guard); err != nil {
 		return false, err
 	}
-	var target, status, currency string
+	var target, status, currency, trigger, expectedModel string
 	var available, cancelled, recent bool
-	if err = tx.QueryRowContext(ctx, "SELECT target,status,COALESCE(lease_until<=UTC_TIMESTAMP(6),TRUE),cancel_requested,currency,COALESCE(lease_updated_at>=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)),FALSE) FROM diagnoses WHERE id=? FOR UPDATE", -store.config.ResumeMaxAge.Microseconds(), id).Scan(&target, &status, &available, &cancelled, &currency, &recent); err != nil {
+	if err = tx.QueryRowContext(ctx, "SELECT target,status,COALESCE(lease_until<=UTC_TIMESTAMP(6),TRUE),cancel_requested,currency,COALESCE(lease_updated_at>=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)),FALSE),`trigger`,eval_expected_model FROM diagnoses WHERE id=? FOR UPDATE", -store.config.ResumeMaxAge.Microseconds(), id).Scan(&target, &status, &available, &cancelled, &currency, &recent, &trigger, &expectedModel); err != nil {
 		return false, err
+	}
+	var evaluating bool
+	if err = tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM evaluation_targets WHERE target=? AND enabled=TRUE)", target).Scan(&evaluating); err != nil {
+		return false, err
+	}
+	if evaluating && trigger != "eval" {
+		return false, nil // 候选查询之后可能刚进入评测模式，领租约时必须再检查一次。
+	}
+	if trigger == "eval" && (!evaluating || expectedModel != model) {
+		return false, fmt.Errorf("评测模式未开启或运行模型与实验配置不一致")
 	}
 	if status != "pending" && currency != store.config.Currency {
 		return false, fmt.Errorf("不能跨币种恢复诊断，请保持原账户或取消后重新发起")
