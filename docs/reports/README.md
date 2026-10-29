@@ -24,3 +24,13 @@
 第一次校时后的[六十次稳定性复核](phase-08-clock-stability.jsonl)仍有跳变，失败保留。后续[校时复验](phase-08-clock-after-sync.json)及[完整十分钟网络复验](phase-08-network-after-sync.jsonl)通过。配对实现的[结果页预览](phase-08-results-preview.png)使用原试跑记录，尚不是正式成绩。
 
 五配置最后检查已通过，见 [lastcheck5 完整结果](phase-08-lastcheck5-results.md)。[阶段 8 汇报书草稿](phase-08-eval.md)和[代码清单](phase-08-code-inventory.md)持续更新。正式矩阵与人工一致率尚未完成，这些文件不表示阶段验收通过。
+
+正式批次已启动：[冻结版本和随机顺序](phase-08-formal-manifest.json)、[已保存结果的当前导出](phase-08-formal-results.md)、[逐项失败分析](phase-08-failure-analysis.md)。当前导出只包含已经执行的槽位，不能把尚未运行的部分当成成功或零费用。
+
+正式页面的[结果表截图](phase-08-formal-preview.jpg)和[评分失败展开截图](phase-08-formal-grade-failure.jpg)取自首二十份诊断。评分失败显示为缺失值，原始错误与已发生费用仍然可见。
+
+正式运行在 S02 第二轮遇到约 918ms 的日期跳变，见[暂停与费用记录](phase-08-formal-clock-interruption.json)。当前导出的结果表有二十四份报告；被取消的最后一条诊断尚未完成结果汇总，其费用已在暂停记录和台账单列，不能漏算。本机与运行医生为 Mock，压测流量暂停，等待用户处理校时。
+
+用户随后处理校时来源并批准分级守卫，见[新规则采样](phase-08-clock-policy-v3.json)与 decisions。原暂停记录是当时的事实，未改写；续跑版本和指定中断的补跑许可另外保存。
+
+- 校时修订免费复验：[网络120次](phase-08-network-after-timesyncd-stop.jsonl)、[网络期间时钟](phase-08-clock-policy-v3-during-network.json)。

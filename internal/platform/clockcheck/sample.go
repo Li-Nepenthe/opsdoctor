@@ -14,9 +14,8 @@ import (
 	"time"
 )
 
-const count = 60                         // 一分钟连续样本；不能只检查一次日期。
-const tolerance = 100 * time.Millisecond // 用户批准的跳变边界，允许实测的几十毫秒小幅校时。
-const limit = 75 * time.Second           // 容器繁忙或采样不完整仍需暂停，不能无限等。
+const count = 60               // 一分钟连续样本；不能只检查一次日期。
+const limit = 75 * time.Second // 容器繁忙或采样不完整仍需暂停，不能无限等。
 
 // reading 同一次 time.Now 同时提供两种读数，避免分开读取引入调度误差。
 type reading struct {
@@ -54,8 +53,13 @@ func Sample(parent context.Context, output io.Writer) error {
 	return nil
 }
 
-// Check 流式读取，任何大于边界的前跳或回拨都立即返回，不等满一分钟。
+// Check 供独立的一分钟检查使用；长跑用同一个 Monitor 跨采样段保留十分钟历史。
 func Check(input io.Reader) error {
+	return NewMonitor(nil).Check(input)
+}
+
+// Check 流式检查样本；日期修正按用户批准的分级规则处理，不等整段结束才报警。
+func (monitor *Monitor) Check(input io.Reader) error {
 	scanner := bufio.NewScanner(input)
 	scanner.Buffer(make([]byte, 256), 256)
 	var previous reading
@@ -76,8 +80,8 @@ func Check(input io.Reader) error {
 			if monotonic < time.Second {
 				return fmt.Errorf("容器时钟第 %d 次采样间隔不足一秒，评测暂停", lines)
 			}
-			if wall < monotonic-tolerance || wall > monotonic+tolerance {
-				return fmt.Errorf("容器时钟第 %d 次日期增量 %s，单调增量 %s，差值超过 100ms；评测暂停，请检查校时", lines, wall, monotonic)
+			if err := monitor.observe(time.Now(), time.Unix(0, current.Wall), wall-monotonic); err != nil {
+				return fmt.Errorf("容器时钟第 %d 次：%w", lines, err)
 			}
 		}
 		previous = current

@@ -19,6 +19,8 @@
 //   - environment.go：核对实际压测参数与本项目容器六 GiB 内存暂停线。
 //   - environment_test.go：检查基线变化、异常内存读数和非法命令的拒绝。
 //   - manifest.go：记录提示、代码、手册和模型版本，拒绝把改动后的运行混入旧批次。
+//   - amendment.go：核对只发生已批准的校时修订，并追加独立版本记录。
+//   - amendment_test.go：验证校时例外仍拒绝提示和其他行为变化。
 //   - doc.go：说明批次、槽位和医生之间的职责。
 //
 // 阅读顺序：RunCLI → prepare → pilot → waitDiagnosis。

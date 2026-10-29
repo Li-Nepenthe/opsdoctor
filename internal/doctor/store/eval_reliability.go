@@ -1,7 +1,7 @@
 // 本文件：区分模型没能开始回答和已经回答却诊断失败的情况。
 //
-// 只有前一种基础设施故障可以补跑一次。判断依据是请求审计，不是报告里的错误
-// 文字；否则一个推理错误也可能被重新命名为网络错误，从统计中消失。
+// 一般只有前一种基础设施故障可以补跑一次。另接受用户明确批准的特定校时
+// 中断；这项许可必须有单独审计。不能只根据报告错误文字把推理失败改名豁免。
 //
 // 主要内容：EvalReliability 读取请求状态；infrastructureFailure 分类；
 // PrepareEvalMakeup 为符合条件的原槽位生成唯一补跑槽位。
@@ -38,6 +38,12 @@ func (store *Store) EvalReliability(ctx context.Context, id string) (bool, error
 	}
 	if err = rows.Err(); err != nil {
 		return false, err
+	}
+	if err = rows.Close(); err != nil {
+		return false, err
+	}
+	if state == "cancelled" && !hasReport {
+		return store.clockMakeupAllowed(ctx, id) // 用户批准的特定校时中断，不扩大一般网络豁免。
 	}
 	return infrastructureFailure(state, hasReport, statuses), nil
 }

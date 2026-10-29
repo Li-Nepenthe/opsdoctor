@@ -26,6 +26,7 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/store"
 	"github.com/Li-Nepenthe/opsdoctor/internal/eval/report"
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/clockcheck"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/mysqlx"
 	"github.com/go-sql-driver/mysql"
@@ -33,6 +34,7 @@ import (
 
 // command 只含公开运行安排；Key、数据库密码和登录令牌不接受命令行传值。
 type command struct {
+	reason, makeupKey                      string // 校时修订的用户授权与原中断编号，不接受自动推断。
 	action, runID, target, model, scenario string
 	cases                                  []string
 	paid                                   bool
@@ -42,6 +44,7 @@ type command struct {
 
 // RunCLI 先解析命令再连接依赖，拼错参数不会触发任何模型任务。
 func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.Writer) error {
+	ctx = context.WithValue(ctx, clockMonitorKey{}, clockcheck.NewMonitor(recordClockEvent))
 	// 校时检查不用数据库、登录令牌或模型 Key，环境故障时也能单独运行。
 	// 只输出秒级时间戳；失败时沿用正式评测的拦截原因。
 	if len(args) > 0 && args[0] == "check-clock" {
@@ -51,13 +54,15 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 		return inspectClock(ctx, output)
 	}
 	// 试跑和配对分别命名；同一个批次不能混用两种运行安排。
-	if len(args) == 0 || !slices.Contains([]string{"prepare", "pilot", "finish", "export", "freeze", "matrix", "run", "calibrate"}, args[0]) {
+	if len(args) == 0 || !slices.Contains([]string{"prepare", "pilot", "finish", "export", "freeze", "matrix", "run", "calibrate", "amend-clock"}, args[0]) {
 		return fmt.Errorf("用法：eval check-clock；或 eval prepare|pilot|finish|export|freeze|matrix|run|calibrate --run 批次 [--model 模型 --scenario 场景 --allow-paid]")
 	}
 	options := command{action: args[0]}
 	flags := flag.NewFlagSet("eval "+args[0], flag.ContinueOnError)
 	flags.SetOutput(output)
 	flags.StringVar(&options.runID, "run", "", "持久化批次编号")
+	flags.StringVar(&options.reason, "reason", "", "用户批准校时调整的具体原因")
+	flags.StringVar(&options.makeupKey, "makeup-key", "", "明确允许补跑的原中断槽位")
 	flags.StringVar(&options.target, "target", "shop", "已经接入的系统")
 	flags.StringVar(&options.model, "model", "mock-script-v1", "明确指定医生模型")
 	flags.StringVar(&options.scenario, "scenario", "", "已经注入并验证的场景")
@@ -113,6 +118,9 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 		}
 	}
 	repository := store.NewConfigured(database, store.Config{Redactor: llm.NewRedactor(secrets...)})
+	if options.action == "amend-clock" {
+		return repository.WithEvalLock(ctx, options.runID, func(locked context.Context) error { return amendClock(locked, options, repository, output) })
+	}
 	if options.action == "export" {
 		run, err := repository.EvalRun(ctx, options.runID)
 		if err != nil {

@@ -17,6 +17,8 @@
 //   - eval_results.go：保存实验槽位、冻结的告警输入和不可覆盖的终态结果。
 //   - eval_results_integration_test.go：验证输入冻结、重复续跑和失败结果不可覆盖。
 //   - eval_reliability.go：依据请求审计区分可靠性失败，只为原槽位安排一次补跑。
+//   - eval_clock_amendment.go：保存用户批准的校时版本变更与指定中断的补跑许可。
+//   - eval_clock_amendment_integration_test.go：证明普通取消不获豁免，批准与旧结果不可改写。
 //   - eval_reliability_test.go：验证网络、格式、预算和取消不能混为同一种失败。
 //   - eval_budget.go：把整批 token 预留、结算和中断保留接到真实费用事务。
 //   - eval_budget_integration_test.go：验证批次 token 与费用原子记账，以及未知用量不因重启消失。

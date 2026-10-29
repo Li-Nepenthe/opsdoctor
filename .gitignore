@@ -13,3 +13,5 @@ coverage.*
 .DS_Store
 # 宿主机的实验恢复记录包含场景答案，既不提交，也不挂载进业务或医生容器。
 .opsdoctor-chaos.json
+# 校时事件先在本机追加，再将审核过的公开数字写入数据台账。
+.opsdoctor-clock-events.jsonl

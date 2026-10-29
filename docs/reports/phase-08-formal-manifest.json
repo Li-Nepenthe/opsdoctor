@@ -1,0 +1,1826 @@
+{
+  "kind": "paired",
+  "orders": [
+    {
+      "scenario": "S01",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S01",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S01",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S02",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S02",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S02",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S03",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S03",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S03",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S04",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S04",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S04",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S05",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S05",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S05",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S06",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S06",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S06",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S07",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S07",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S07",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S08",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S08",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S08",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S09",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S09",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S09",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S10",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S10",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S10",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S11",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S11",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S11",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S12",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S12",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S12",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S13",
+      "iteration": 1,
+      "configurations": [
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S13",
+      "iteration": 2,
+      "configurations": [
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        }
+      ]
+    },
+    {
+      "scenario": "S13",
+      "iteration": 3,
+      "configurations": [
+        {
+          "group": "E3",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E0",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E2",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "gpt-6.1-terra",
+          "account": "phase-07-08-openai",
+          "profile": "primary",
+          "currency": "USD",
+          "provider": "openai"
+        },
+        {
+          "group": "E1",
+          "model": "deepseek-flash",
+          "account": "phase-07-08",
+          "profile": "comparison",
+          "currency": "CNY",
+          "provider": "openai"
+        }
+      ]
+    }
+  ],
+  "versions": {
+    "kind": "pilot",
+    "cases": [
+      "S01",
+      "S02",
+      "S03",
+      "S04",
+      "S05",
+      "S06",
+      "S07",
+      "S08",
+      "S09",
+      "S10",
+      "S11",
+      "S12",
+      "S13"
+    ],
+    "group": "E1",
+    "model": "gpt-6.1-terra",
+    "commit": "5e5d5a184dc5739e4026454516806a6e98ac9bb8",
+    "source_hash": "a5e28511a595a5893cddb71b00df209697620259d29186816a423b35a9851199",
+    "runbooks_hash": "d86e159673bf5351743b10ec737f4b52b7281b1cad525e4c09c17c4897790f54",
+    "prompt_version": "v8.0"
+  },
+  "iterations": 3,
+  "rubric_hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+  "rubric_version": "rubric-v1.1"
+}

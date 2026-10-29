@@ -108,7 +108,14 @@ func pairedPlan(ctx context.Context, options command, repository *store.Store, s
 	}
 	if err == nil {
 		var previous pairedManifest
-		if json.Unmarshal(saved.Config, &previous) != nil || previous.Kind != "paired" || previous.Iterations != options.iterations || previous.RubricHash != value.RubricHash || previous.RubricVersion != value.RubricVersion || !equalJSON(previous.Versions, versions) || saved.Target != options.target || saved.TokenLimit != int64(options.tokens) {
+		if json.Unmarshal(saved.Config, &previous) != nil {
+			return value, fmt.Errorf("冻结配置格式无效")
+		}
+		effective, err := repository.EvalVersions(ctx, options.runID, previous.Versions)
+		if err != nil {
+			return value, err
+		}
+		if previous.Kind != "paired" || previous.Iterations != options.iterations || previous.RubricHash != value.RubricHash || previous.RubricVersion != value.RubricVersion || !equalJSON(effective, versions) || saved.Target != options.target || saved.TokenLimit != int64(options.tokens) {
 			return value, fmt.Errorf("冻结的代码、手册、评分标准或批次配置已变化，请使用新批次全量重跑")
 		}
 		// 保存的五个身份必须恰好各出现一次，顺序可以不同，身份不能变。

@@ -43,6 +43,11 @@ func manifest(ctx context.Context, model string, cases []string) (json.RawMessag
 
 // sourceHash 明确列出代码与部署目录，不遍历 .env、个人笔记或原始验收输出。
 func sourceHash() (string, error) {
+	return sourceHashUsing(nil)
+}
+
+// sourceHashUsing 只供校时变更核验旧快照；正式清单仍使用当前文件的完整哈希。
+func sourceHashUsing(overrides map[string][]byte) (string, error) {
 	digest := sha256.New()
 	for _, root := range []string{"cmd", "internal", "tools", "gen", "api", "deploy", "eval"} {
 		err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, problem error) error {
@@ -61,6 +66,12 @@ func sourceHash() (string, error) {
 			data, err := os.ReadFile(path)
 			if err != nil {
 				return err
+			}
+			if prior, ok := overrides[filepath.ToSlash(path)]; ok {
+				if prior == nil {
+					return nil
+				} // 新增的批准实现不应出现在旧版本哈希里。
+				data = prior
 			}
 			fmt.Fprintf(digest, "%s\x00%d\x00", filepath.ToSlash(path), len(data))
 			_, _ = digest.Write(data)

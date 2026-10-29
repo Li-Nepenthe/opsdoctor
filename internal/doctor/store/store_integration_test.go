@@ -53,6 +53,9 @@ func integrationStore(t *testing.T) (*Store, string) {
 		defer cancel()
 		// 先删子表，再删本次测试的任务，遵守外键关系。
 		// 补跑槽位可能还没关联诊断，不能只依赖删除诊断时的级联清理。
+		if _, err := database.ExecContext(ctx, "DELETE FROM eval_clock_amendments WHERE run_id IN (SELECT id FROM eval_runs WHERE target IN (?,?))", target, target+"-b"); err != nil {
+			t.Error(err)
+		}
 		if _, err := database.ExecContext(ctx, "DELETE FROM eval_results WHERE run_id IN (SELECT id FROM eval_runs WHERE target IN (?,?))", target, target+"-b"); err != nil {
 			t.Error(err)
 		}
