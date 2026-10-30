@@ -1,14 +1,14 @@
 # 阶段 8 代码清单
 
-这是[阶段汇报书](phase-08-eval.md)的明细草稿。文件表以本次 S08 基础设施修正的工作区与 main 差异为准；正式运行结束后继续更新。用户保留的两处修改不纳入本表。
+这是[阶段汇报书](phase-08-eval.md)的文件与符号导航。文件表以本次盲评交付工作区相对 main 的差异为准，行数取生成时的文件；用户保留的两处修改不纳入本表。
 
 ## 文件清单
 
-| 文件 | 提交版本行数 | 增加/删除 | 作用 |
+| 文件 | 生成时行数 | 增加/删除 | 作用 |
 |---|---:|---:|---|
 | [.env.example](../../.env.example) | 173 | +21/−1 | 全部密码都是本机演示假值，不可用于线上；复制为 .env，真实值只存在忽略的文件或环境变量中。 |
 | [.gitignore](../../.gitignore) | 17 | +2/−0 | 本机配置和凭据永远不进入这个公开仓库；示例文件只放演示假值。 |
-| [README.md](../../README.md) | 559 | +63/−0 | OpsDoctor |
+| [README.md](../../README.md) | 583 | +87/−0 | OpsDoctor |
 | [cmd/README.md](../../cmd/README.md) | 34 | +2/−0 | cmd：程序入口 |
 | [cmd/doctor/main.go](../../cmd/doctor/main.go) | 21 | +1/−1 | 本文件：医生服务入口，只负责把启动结果变成进程退出码。 |
 | [cmd/eval/main.go](../../cmd/eval/main.go) | 22 | +22/−0 | eval 是宿主机评测入口；实验配置、任务保存和结果导出在 internal/eval 中实现。 |
@@ -16,49 +16,68 @@
 | [deploy/doctor/targets/shop.profile.md](../../deploy/doctor/targets/shop.profile.md) | 104 | +1/−0 | shop 的系统说明书 |
 | [docs/README.md](../../docs/README.md) | 20 | +1/−0 | docs：项目文档 |
 | [docs/decisions.md](../../docs/decisions.md) | 617 | +161/−0 | 设计决定 |
-| [docs/learn/phase-08-eval.md](../../docs/learn/phase-08-eval.md) | 412 | +412/−0 | 阶段 8 学习材料：怎样检查医生有没有查对 |
-| [docs/notes.md](../../docs/notes.md) | 1627 | +235/−0 | 实测记录 |
-| [docs/reports/README.md](../../docs/reports/README.md) | 53 | +35/−0 | docs/reports：阶段汇报书 |
+| [docs/learn/phase-08-eval.md](../../docs/learn/phase-08-eval.md) | 468 | +468/−0 | 阶段 8 学习材料：怎样检查医生有没有查对 |
+| [docs/notes.md](../../docs/notes.md) | 1667 | +275/−0 | 实测记录 |
+| [docs/reports/README.md](../../docs/reports/README.md) | 77 | +59/−0 | docs/reports：阶段汇报书 |
+| [docs/reports/phase-08-baseline-amendment.json](../../docs/reports/phase-08-baseline-amendment.json) | 75 | +75/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-baseline-checks.json](../../docs/reports/phase-08-baseline-checks.json) | 82 | +82/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-calibration-coverage.json](../../docs/reports/phase-08-calibration-coverage.json) | 22 | +22/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-clock-after-sync.json](../../docs/reports/phase-08-clock-after-sync.json) | 234 | +234/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-clock-amendment.json](../../docs/reports/phase-08-clock-amendment.json) | 55 | +55/−0 | 实测时间、请求状态或采样结果，不含凭据 |
-| [docs/reports/phase-08-clock-events.jsonl](../../docs/reports/phase-08-clock-events.jsonl) | 5 | +5/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-clock-events.jsonl](../../docs/reports/phase-08-clock-events.jsonl) | 6 | +6/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-clock-guard-v2.json](../../docs/reports/phase-08-clock-guard-v2.json) | 7 | +7/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-clock-paired-readings.jsonl](../../docs/reports/phase-08-clock-paired-readings.jsonl) | 61 | +61/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-clock-policy-v3-during-network.json](../../docs/reports/phase-08-clock-policy-v3-during-network.json) | 7 | +7/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-clock-policy-v3.json](../../docs/reports/phase-08-clock-policy-v3.json) | 7 | +7/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-clock-preflight.json](../../docs/reports/phase-08-clock-preflight.json) | 186 | +186/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-clock-s08-preflight.json](../../docs/reports/phase-08-clock-s08-preflight.json) | 253 | +253/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-clock-stability.jsonl](../../docs/reports/phase-08-clock-stability.jsonl) | 60 | +60/−0 | 实测时间、请求状态或采样结果，不含凭据 |
-| [docs/reports/phase-08-code-inventory.md](../../docs/reports/phase-08-code-inventory.md) | 676 | +676/−0 | 阶段 8 代码清单 |
+| [docs/reports/phase-08-code-inventory.md](../../docs/reports/phase-08-code-inventory.md) | 744 | +744/−0 | 阶段 8 代码清单 |
 | [docs/reports/phase-08-deepseek-network.jsonl](../../docs/reports/phase-08-deepseek-network.jsonl) | 121 | +121/−0 | 实测时间、请求状态或采样结果，不含凭据 |
-| [docs/reports/phase-08-eval.md](../../docs/reports/phase-08-eval.md) | 111 | +111/−0 | 阶段 8 汇报书：评测体系（进行中） |
-| [docs/reports/phase-08-failure-analysis.md](../../docs/reports/phase-08-failure-analysis.md) | 149 | +149/−0 | 阶段 8 失败与评分疑点（持续追加） |
+| [docs/reports/phase-08-eval.md](../../docs/reports/phase-08-eval.md) | 107 | +107/−0 | 阶段 8 汇报书：评测体系（等待人工校准） |
+| [docs/reports/phase-08-execution-versions.json](../../docs/reports/phase-08-execution-versions.json) | 1811 | +1811/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-failure-analysis.md](../../docs/reports/phase-08-failure-analysis.md) | 293 | +293/−0 | 阶段 8 失败与评分疑点（持续追加） |
+| [docs/reports/phase-08-final-checks.json](../../docs/reports/phase-08-final-checks.json) | 85 | +85/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-final-numbers.json](../../docs/reports/phase-08-final-numbers.json) | 73 | +73/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-final-runtime.json](../../docs/reports/phase-08-final-runtime.json) | 92 | +92/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-formal-clock-interruption.json](../../docs/reports/phase-08-formal-clock-interruption.json) | 60 | +60/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-formal-grade-failure.jpg](../../docs/reports/phase-08-formal-grade-failure.jpg) | 二进制 | +-/−- | 真实浏览器中的结果页预览 |
 | [docs/reports/phase-08-formal-manifest.json](../../docs/reports/phase-08-formal-manifest.json) | 1826 | +1826/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-formal-preview.jpg](../../docs/reports/phase-08-formal-preview.jpg) | 二进制 | +-/−- | 真实浏览器中的结果页预览 |
-| [docs/reports/phase-08-formal-results.md](../../docs/reports/phase-08-formal-results.md) | 269 | +269/−0 | 评测记录 phase08-formal-20261029 |
+| [docs/reports/phase-08-formal-results.md](../../docs/reports/phase-08-formal-results.md) | 479 | +479/−0 | 评测记录 phase08-formal-20261029 |
+| [docs/reports/phase-08-human-calibration.md](../../docs/reports/phase-08-human-calibration.md) | 5963 | +5963/−0 | 人工校准评分表 |
+| [docs/reports/phase-08-human-scores.md](../../docs/reports/phase-08-human-scores.md) | 30 | +30/−0 | 阶段8：请你填写的二十份评分 |
 | [docs/reports/phase-08-lastcheck3-results.md](../../docs/reports/phase-08-lastcheck3-results.md) | 39 | +39/−0 | > 正式评测前的完整检查，评分接线未通过。五份医生报告和费用均保留，不能纳入正式矩阵。 |
 | [docs/reports/phase-08-lastcheck4-results.md](../../docs/reports/phase-08-lastcheck4-results.md) | 39 | +39/−0 | > 正式评测前检查，评分回复重复了程序规则项，严格校验未通过。报告、评分失败和全部费用原样保留。 |
 | [docs/reports/phase-08-lastcheck5-results.md](../../docs/reports/phase-08-lastcheck5-results.md) | 37 | +37/−0 | 评测记录 phase08-lastcheck5-20261029 |
+| [docs/reports/phase-08-memory-final-mock.json](../../docs/reports/phase-08-memory-final-mock.json) | 216 | +216/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-memory-s03-third.json](../../docs/reports/phase-08-memory-s03-third.json) | 26 | +26/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-memory-s05-second.json](../../docs/reports/phase-08-memory-s05-second.json) | 102 | +102/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-memory-s06-resumed.json](../../docs/reports/phase-08-memory-s06-resumed.json) | 102 | +102/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-memory-s07-first.json](../../docs/reports/phase-08-memory-s07-first.json) | 102 | +102/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-memory-s08-preflight.json](../../docs/reports/phase-08-memory-s08-preflight.json) | 215 | +215/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-memory-s08-third.json](../../docs/reports/phase-08-memory-s08-third.json) | 215 | +215/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-memory-s09-first.json](../../docs/reports/phase-08-memory-s09-first.json) | 215 | +215/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-memory-s09-third-fault.json](../../docs/reports/phase-08-memory-s09-third-fault.json) | 218 | +218/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-memory-s10-third.json](../../docs/reports/phase-08-memory-s10-third.json) | 216 | +216/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-memory-s13-second-fault.json](../../docs/reports/phase-08-memory-s13-second-fault.json) | 216 | +216/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-network-after-sync.jsonl](../../docs/reports/phase-08-network-after-sync.jsonl) | 121 | +121/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-network-after-timesyncd-stop.jsonl](../../docs/reports/phase-08-network-after-timesyncd-stop.jsonl) | 121 | +121/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-network-preflight.jsonl](../../docs/reports/phase-08-network-preflight.jsonl) | 110 | +110/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-network-s08-preflight.jsonl](../../docs/reports/phase-08-network-s08-preflight.jsonl) | 121 | +121/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-pilot-results.md](../../docs/reports/phase-08-pilot-results.md) | 11 | +11/−0 | 评测试跑 phase08-pilot-20261029 |
 | [docs/reports/phase-08-pilot.md](../../docs/reports/phase-08-pilot.md) | 69 | +69/−0 | 阶段 8 第一个审核节点：手册与试跑 |
 | [docs/reports/phase-08-preflight.md](../../docs/reports/phase-08-preflight.md) | 94 | +94/−0 | 阶段 8：正式开跑前检查 |
 | [docs/reports/phase-08-results-preview.png](../../docs/reports/phase-08-results-preview.png) | 二进制 | +-/−- | 真实浏览器中的结果页预览 |
 | [docs/reports/phase-08-s02-resume-observation.json](../../docs/reports/phase-08-s02-resume-observation.json) | 104 | +104/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-s03-baseline-check.json](../../docs/reports/phase-08-s03-baseline-check.json) | 84 | +84/−0 | 实测时间、请求状态或采样结果，不含凭据 |
-| [docs/reports/phase-08-s03-grade-failure.json](../../docs/reports/phase-08-s03-grade-failure.json) | 47 | +47/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-s03-grade-failure.json](../../docs/reports/phase-08-s03-grade-failure.json) | 22 | +22/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-s06-recovery.json](../../docs/reports/phase-08-s06-recovery.json) | 355 | +355/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-s06-second-recovery.json](../../docs/reports/phase-08-s06-second-recovery.json) | 355 | +355/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-s06-third-baseline.json](../../docs/reports/phase-08-s06-third-baseline.json) | 153 | +153/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-s08-baseline-interruption.json](../../docs/reports/phase-08-s08-baseline-interruption.json) | 33 | +33/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-s09-second-recovery.json](../../docs/reports/phase-08-s09-second-recovery.json) | 267 | +267/−0 | 实测时间、请求状态或采样结果，不含凭据 |
+| [docs/reports/phase-08-s10-trace-lookup.json](../../docs/reports/phase-08-s10-trace-lookup.json) | 19 | +19/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/runbooks/README.md](../../docs/runbooks/README.md) | 23 | +23/−0 | 通用排障手册 |
 | [docs/runbooks/cache.md](../../docs/runbooks/cache.md) | 11 | +11/−0 | 缓存排查：比较请求、未命中和回源 |
 | [docs/runbooks/changes-and-safety.md](../../docs/runbooks/changes-and-safety.md) | 11 | +11/−0 | 变更和不可信内容：线索不能直接当命令 |
@@ -68,7 +87,7 @@
 | [docs/runbooks/runtime.md](../../docs/runbooks/runtime.md) | 11 | +11/−0 | 进程和并发排查：增长不一定是泄漏 |
 | [docs/runbooks/time-and-evidence.md](../../docs/runbooks/time-and-evidence.md) | 11 | +11/−0 | 先把时间和证据对齐 |
 | [docs/代码地图.md](../../docs/代码地图.md) | 496 | +90/−1 | OpsDoctor 代码地图 |
-| [docs/数据台账.md](../../docs/数据台账.md) | 564 | +211/−0 | 数据台账 |
+| [docs/数据台账.md](../../docs/数据台账.md) | 706 | +353/−0 | 数据台账 |
 | [eval/scenarios/README.md](../../eval/scenarios/README.md) | 27 | +5/−1 | scenarios：一份文件描述一次实验 |
 | [eval/scenarios/S01.yaml](../../eval/scenarios/S01.yaml) | 24 | +4/−0 | 部署或实验配置，具体差异见汇报书 |
 | [eval/scenarios/S02.yaml](../../eval/scenarios/S02.yaml) | 22 | +3/−0 | 部署或实验配置，具体差异见汇报书 |
@@ -237,12 +256,12 @@
 | [internal/platform/httpx/user_agent_test.go](../../internal/platform/httpx/user_agent_test.go) | 45 | +45/−0 | 本文件：验证客户端文字只作为一个 JSON 日志字段，不获得执行能力。 |
 | [tools/archcheck/doctor.go](../../tools/archcheck/doctor.go) | 102 | +16/−4 | 本文件：检查医生容器能从宿主机拿到什么。 |
 | [tools/archcheck/doctor_test.go](../../tools/archcheck/doctor_test.go) | 76 | +5/−1 | 本文件：证明容器不能通过部署配置拿到故障答案或 Docker 控制权。 |
-| [进度.md](../../进度.md) | 165 | +8/−6 | OpsDoctor 进度看板 |
+| [进度.md](../../进度.md) | 165 | +15/−13 | OpsDoctor 进度看板 |
 | [项目计划书.md](../../项目计划书.md) | 2153 | +28/−3 | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 |
 
 ## 类型与函数导航
 
-初稿来自 commentcheck -list。这里包含改动文件里的既有函数，便于逐行学习。使用入口说明调用所在流程，不声称每个辅助函数都由入口直接调用；关键调用顺序见汇报书第三节。
+符号来自 commentcheck -list。这里包含改动文件里的既有函数，便于逐行学习。使用入口说明调用所在流程，不声称每个辅助函数都由入口直接调用；关键调用顺序见汇报书第三节。
 
 | 包 | 名称 | 位置 | 作用 | 使用入口 |
 |---|---|---|---|---|

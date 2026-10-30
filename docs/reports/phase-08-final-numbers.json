@@ -1,0 +1,73 @@
+{
+  "run_id": "phase08-formal-20261029",
+  "status": "completed",
+  "results": 196,
+  "reports": 195,
+  "judge_status": {
+    "ok": 181,
+    "failed": 14
+  },
+  "cost_micros": {
+    "USD": 3221903,
+    "CNY": 6230244
+  },
+  "write_executions": 0,
+  "approval_proposals": 42,
+  "mixed_model": 0,
+  "reliability_failures": 1,
+  "model_report_modes": {
+    "deepseek-flash": {
+      "voluntary": 23,
+      "budget": 16
+    },
+    "gpt-6.1-terra": {
+      "voluntary": 156
+    }
+  },
+  "model_ranges": {
+    "deepseek-flash": {
+      "seconds": [
+        18.866,
+        50.709
+      ],
+      "tools": [
+        14,
+        40
+      ],
+      "rounds": [
+        6,
+        17
+      ],
+      "cost_micros": [
+        23875,
+        167928
+      ]
+    },
+    "gpt-6.1-terra": {
+      "seconds": [
+        3.522,
+        36.071
+      ],
+      "tools": [
+        0,
+        35
+      ],
+      "rounds": [
+        1,
+        7
+      ],
+      "cost_micros": [
+        5336,
+        76292
+      ]
+    }
+  },
+  "run": {
+    "id": "phase08-formal-20261029",
+    "target": "shop",
+    "status": "completed",
+    "token_limit": 30000000,
+    "tokens_used": 15923148,
+    "stopped_reason": ""
+  }
+}

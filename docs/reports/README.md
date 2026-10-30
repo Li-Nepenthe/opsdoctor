@@ -17,7 +17,7 @@
 
 注意：汇报书里写的行号是写报告时的版本，后来代码改过，行号可能对不上。找当前代码请用[代码地图](../代码地图.md)。
 
-阶段 8 进行中：先看 [手册与试跑审核材料](phase-08-pilot.md) 和 [数据库导出结果](phase-08-pilot-results.md)。这是当时第一个停点的材料；当前正式矩阵在S08的基线检查问题处暂停。
+阶段 8 进行中：先看 [手册与试跑审核材料](phase-08-pilot.md) 和 [数据库导出结果](phase-08-pilot-results.md)。这是当时第一个停点的材料；S08基线修正已获用户批准并完成复验，当前继续正式矩阵。
 
 第一个停点已获同意。后续的[开跑前检查](phase-08-preflight.md)记录网络阻塞及重试、计时修复；原始[网络采样](phase-08-network-preflight.jsonl)和[时钟采样](phase-08-clock-preflight.json)只含状态与时间，不含凭据。这些是正式开跑前的历史记录。
 
@@ -38,7 +38,7 @@
 - 用户批准的校时修订：[原版本与续跑版本的独立审计](phase-08-clock-amendment.json)。
 
 - 正式续跑中的环境记录：[小幅校时事件](phase-08-clock-events.jsonl)、[S02恢复流量后的症状](phase-08-s02-resume-observation.json)、[S03基线检查后的查询](phase-08-s03-baseline-check.json)、[十九个容器的内存](phase-08-memory-s03-third.json)。这些记录说明当时看到什么，不把事后推测当成当时的原始响应。
-- 另一份真实评分失败：[S03第一轮E3的评委原回复](phase-08-s03-grade-failure.json)。JSON语法合法，但多出协议不允许的字段；原费用保留。
+- 另一份真实评分失败：[S03第一轮E3的协议检查记录](phase-08-s03-grade-failure.json)。JSON语法合法，但多出协议不允许的字段；原费用保留。
 
 - [阶段8 S05第二轮内存快照](phase-08-memory-s05-second.json)：仅记录项目容器的实际内存。
 
@@ -50,6 +50,28 @@
 
 - [阶段8 S06第三轮的基线查询](phase-08-s06-third-baseline.json)：失败当次响应未保存，事后数值不能反推唯一根因。
 
-- [S08基线误拦截](phase-08-s08-baseline-interruption.json)：场景要求400QPS，但诊断入口仍要求200QPS；模型槽位和费用增量均为零。原中断保留，环境已恢复Mock，等待用户确认修正。
+- [S08基线误拦截](phase-08-s08-baseline-interruption.json)：场景要求400QPS，但诊断入口仍要求200QPS；模型槽位和费用增量均为零。该附件保留暂停当时的事实；后续批准和重启审计另列。
 
 [流量守卫检查统计](phase-08-baseline-checks.json)记录本次 Mock 回归与零跳过集成检查；S08 原中断附件保持历史原样。
+
+- [S08获准修订的审计](phase-08-baseline-amendment.json)：只修正实验流量守卫，原无模型轮次保留后重新注入。
+- [每次执行的代码版本](phase-08-execution-versions.json)：记录各阶段与模型槽位使用的提交和源码哈希。
+- S08续跑前的[时钟检查](phase-08-clock-s08-preflight.json)、[十分钟网络检查](phase-08-network-s08-preflight.jsonl)与[内存采样](phase-08-memory-s08-preflight.json)。
+- S08第三轮恢复后的[内存采样](phase-08-memory-s08-third.json)，以及S09第一轮恢复后的[内存采样](phase-08-memory-s09-first.json)。
+- [S09第二轮恢复后的采集空档](phase-08-s09-second-recovery.json)：用数据库的精确中断时间核对缺失指标，保留暂停与续跑记录。
+
+- [S09第三轮故障期间内存](phase-08-memory-s09-third-fault.json)：与恢复后的快照分开，不能把单次采样当作峰值。
+
+- [S10调用链ID核对](phase-08-s10-trace-lookup.json)：两条ID未找到，服务列表正常；只记录实际响应，不猜未采样或过期。
+
+- [S10第三轮恢复后的内存](phase-08-memory-s10-third.json)：十九容器采样，沿用6GiB暂停线。
+
+- [S13第二轮故障期间内存](phase-08-memory-s13-second-fault.json)：记录请求放大期间的单次占用。
+
+- [正式矩阵最终计数](phase-08-final-numbers.json)：报告、有效评分、失败与两币种费用分开。
+- [二十份人工盲评材料](phase-08-human-calibration.md)：空白表与原始观察，不填写用户分数；[抽样覆盖](phase-08-calibration-coverage.json)不暴露各份报告的模型身份。
+
+- [人工评分填写入口](phase-08-human-scores.md)：只填这一张短表，每行可跳到对应原材料。
+- [收尾检查统计](phase-08-final-checks.json)：Mock全仓竞态与零跳过集成分别计数。
+
+- [最终Mock状态与余额对账](phase-08-final-runtime.json)、[最终十九容器内存](phase-08-memory-final-mock.json)：付费调用已结束，余额差额保留未归因。

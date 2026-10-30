@@ -1,0 +1,75 @@
+{
+  "observed_utc": "2026-10-30T04:51:27.766296+00:00",
+  "audit": {
+    "reason": "用户批准严格匹配冻结场景流量与逐次版本审计；保留原中断8及零模型轮次，再审计重新注入，提示工具手册评分不变",
+    "created_at": "2026-10-30 04:50:30.428935",
+    "original_trial": {
+      "state": "diagnosing",
+      "run_id": "phase08-formal-20261029",
+      "scenario": "S08",
+      "iteration": 1,
+      "restored_at": null,
+      "cooldown_seconds": 0,
+      "fault_started_at": "2026-10-29T19:05:33.291501Z"
+    },
+    "interruption_id": 8,
+    "original_versions": {
+      "kind": "pilot",
+      "cases": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10",
+        "S11",
+        "S12",
+        "S13"
+      ],
+      "group": "E1",
+      "model": "gpt-6.1-terra",
+      "commit": "ca2ec68e225a1f999a80bbfd38f2f9d4a134de5e",
+      "source_hash": "01f968507a2ead995b68e7f13fb93a4bee5f46d07820379b50d0c577825f0383",
+      "runbooks_hash": "d86e159673bf5351743b10ec737f4b52b7281b1cad525e4c09c17c4897790f54",
+      "prompt_version": "v8.0"
+    },
+    "replacement_versions": {
+      "kind": "pilot",
+      "cases": [
+        "S01",
+        "S02",
+        "S03",
+        "S04",
+        "S05",
+        "S06",
+        "S07",
+        "S08",
+        "S09",
+        "S10",
+        "S11",
+        "S12",
+        "S13"
+      ],
+      "group": "E1",
+      "model": "gpt-6.1-terra",
+      "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+      "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d",
+      "runbooks_hash": "d86e159673bf5351743b10ec737f4b52b7281b1cad525e4c09c17c4897790f54",
+      "prompt_version": "v8.0"
+    }
+  },
+  "current_trial": {
+    "state": "pending",
+    "restored_at": null,
+    "fault_started_at": null
+  },
+  "results": {
+    "s08_results": 0,
+    "total_results": 106
+  },
+  "original_interruption_count": 1
+}

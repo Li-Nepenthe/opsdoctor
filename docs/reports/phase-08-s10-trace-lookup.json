@@ -1,0 +1,19 @@
+{
+  "time_utc": "2026-10-30T06:17:16.063939+00:00",
+  "checks": [
+    {
+      "path": "/api/services",
+      "status": 200,
+      "count": 5
+    },
+    {
+      "path": "/api/traces/bfe6bacbf8b608069be3f60ff05d0735",
+      "status": 404
+    },
+    {
+      "path": "/api/traces/7bf06fcfe27757d0aea31dea488cad19",
+      "status": 404
+    }
+  ],
+  "limitation": "事后只读检查。404只能证明查询时没有找到该ID；不能据此区分未采样、已过保留期限或其他原因。"
+}

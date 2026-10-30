@@ -1,0 +1,215 @@
+{
+  "time_utc": "2026-10-30T04:51:55.324124+00:00",
+  "containers": [
+    {
+      "BlockIO": "8.06MB / 32.8kB",
+      "CPUPerc": "0.10%",
+      "Container": "5465a52aa5cb838a80581778abd62fed90dc12a7f332f28062b4e62cbc652607",
+      "ID": "5465a52aa5cb",
+      "MemPerc": "21.85%",
+      "MemUsage": "13.98MiB / 64MiB",
+      "Name": "opsdoctor-alertmanager-1",
+      "NetIO": "851kB / 602kB",
+      "PIDs": "15"
+    },
+    {
+      "BlockIO": "5.68GB / 815MB",
+      "CPUPerc": "9.06%",
+      "Container": "a71482f79744ef7bf2451e3a3bbf9a7a6f3b64e5986684616e4aa412f2e7d760",
+      "ID": "a71482f79744",
+      "MemPerc": "74.10%",
+      "MemUsage": "189.7MiB / 256MiB",
+      "Name": "opsdoctor-alloy-1",
+      "NetIO": "20.8MB / 3.21GB",
+      "PIDs": "22"
+    },
+    {
+      "BlockIO": "188kB / 0B",
+      "CPUPerc": "0.24%",
+      "Container": "47e44dbcde3fc21febeb39a6da1bc6b76476ced5a02ffc5665f924f270c405a9",
+      "ID": "47e44dbcde3f",
+      "MemPerc": "9.08%",
+      "MemUsage": "23.24MiB / 256MiB",
+      "Name": "opsdoctor-doctor-1",
+      "NetIO": "501kB / 523kB",
+      "PIDs": "23"
+    },
+    {
+      "BlockIO": "177MB / 6.3GB",
+      "CPUPerc": "0.84%",
+      "Container": "9929ce3fce464394f7278ff101df1b6b3b6463b77e828ddd40431a3b93e825aa",
+      "ID": "9929ce3fce46",
+      "MemPerc": "73.96%",
+      "MemUsage": "378.7MiB / 512MiB",
+      "Name": "opsdoctor-doctor-mysql-1",
+      "NetIO": "354MB / 452MB",
+      "PIDs": "46"
+    },
+    {
+      "BlockIO": "2.44TB / 101GB",
+      "CPUPerc": "7.54%",
+      "Container": "a9467666ec61813fd96d6b2b76945ff3278c0eb771f3655743e644436a896e17",
+      "ID": "a9467666ec61",
+      "MemPerc": "56.36%",
+      "MemUsage": "144.3MiB / 256MiB",
+      "Name": "opsdoctor-grafana-1",
+      "NetIO": "1.24MB / 420kB",
+      "PIDs": "185"
+    },
+    {
+      "BlockIO": "7.32MB / 0B",
+      "CPUPerc": "20.80%",
+      "Container": "217ec72ce7e6674debc1108073317f71a2965446291742c5893a7aabc87031fa",
+      "ID": "217ec72ce7e6",
+      "MemPerc": "16.40%",
+      "MemUsage": "21MiB / 128MiB",
+      "Name": "opsdoctor-inventory-service-1",
+      "NetIO": "5.99GB / 5.13GB",
+      "PIDs": "22"
+    },
+    {
+      "BlockIO": "118MB / 0B",
+      "CPUPerc": "0.16%",
+      "Container": "4c4fd9cab7b9ccdc7a7f4344d947dada6c07488d49bdabb1763ecb36ed54d279",
+      "ID": "4c4fd9cab7b9",
+      "MemPerc": "36.20%",
+      "MemUsage": "370.7MiB / 1GiB",
+      "Name": "opsdoctor-jaeger-1",
+      "NetIO": "3.86GB / 28MB",
+      "PIDs": "19"
+    },
+    {
+      "BlockIO": "966MB / 2.17GB",
+      "CPUPerc": "4.62%",
+      "Container": "02e4cc7ec7dc7ba3745a6cdba5fda192e0ef4461080586fa07b2b3650ccbd302",
+      "ID": "02e4cc7ec7dc",
+      "MemPerc": "77.71%",
+      "MemUsage": "795.8MiB / 1GiB",
+      "Name": "opsdoctor-kafka-1",
+      "NetIO": "2.52GB / 2.04GB",
+      "PIDs": "107"
+    },
+    {
+      "BlockIO": "28.3MB / 0B",
+      "CPUPerc": "0.05%",
+      "Container": "72a82f160ddffc8c5f5e912f75ec2030b7be9674c560509ff592b6734991b434",
+      "ID": "72a82f160ddf",
+      "MemPerc": "43.21%",
+      "MemUsage": "27.66MiB / 64MiB",
+      "Name": "opsdoctor-kafka-exporter-1",
+      "NetIO": "44.6MB / 40.5MB",
+      "PIDs": "13"
+    },
+    {
+      "BlockIO": "38.2MB / 0B",
+      "CPUPerc": "10.79%",
+      "Container": "b5d1da06156ae3b252f90605717d068236e9720acf4e75fe29cffca244daa567",
+      "ID": "b5d1da06156a",
+      "MemPerc": "24.90%",
+      "MemUsage": "31.87MiB / 128MiB",
+      "Name": "opsdoctor-loadgen-1",
+      "NetIO": "9.24GB / 3.11GB",
+      "PIDs": "21"
+    },
+    {
+      "BlockIO": "4.79GB / 13.7GB",
+      "CPUPerc": "1.25%",
+      "Container": "5ff02a75906ac3fa744c7d016b96cc99c8bef35750db3b76a3cd14eee17ff852",
+      "ID": "5ff02a75906a",
+      "MemPerc": "85.79%",
+      "MemUsage": "439.2MiB / 512MiB",
+      "Name": "opsdoctor-loki-1",
+      "NetIO": "3.21GB / 23.2MB",
+      "PIDs": "22"
+    },
+    {
+      "BlockIO": "22.7MB / 0B",
+      "CPUPerc": "1.70%",
+      "Container": "08894a9c47b12dd1ad368d4be714a60933ca3317c542bd06742b2cf833192633",
+      "ID": "08894a9c47b1",
+      "MemPerc": "28.61%",
+      "MemUsage": "18.31MiB / 64MiB",
+      "Name": "opsdoctor-mysqld-exporter-1",
+      "NetIO": "339MB / 166MB",
+      "PIDs": "15"
+    },
+    {
+      "BlockIO": "7.2MB / 0B",
+      "CPUPerc": "28.72%",
+      "Container": "350206db07e210f201b6a6f752c4f30e5a28ac1167ba14af2ab98038111713ca",
+      "ID": "350206db07e2",
+      "MemPerc": "9.62%",
+      "MemUsage": "24.64MiB / 256MiB",
+      "Name": "opsdoctor-order-service-1",
+      "NetIO": "8.02GB / 13.6GB",
+      "PIDs": "25"
+    },
+    {
+      "BlockIO": "3.32MB / 0B",
+      "CPUPerc": "7.37%",
+      "Container": "643e9ed4a31c18b1aae8943169563bad7374aacf044ce77903c4ee31721b4d7a",
+      "ID": "643e9ed4a31c",
+      "MemPerc": "11.76%",
+      "MemUsage": "15.06MiB / 128MiB",
+      "Name": "opsdoctor-order-worker-1",
+      "NetIO": "2.03GB / 2.42GB",
+      "PIDs": "18"
+    },
+    {
+      "BlockIO": "336MB / 300MB",
+      "CPUPerc": "2.90%",
+      "Container": "1076db195a88bca08e09e09ec2863ec9015db8cba2355466db38cff9db326ce3",
+      "ID": "1076db195a88",
+      "MemPerc": "20.95%",
+      "MemUsage": "107.3MiB / 512MiB",
+      "Name": "opsdoctor-prometheus-1",
+      "NetIO": "369MB / 39.3MB",
+      "PIDs": "22"
+    },
+    {
+      "BlockIO": "735MB / 32GB",
+      "CPUPerc": "3.11%",
+      "Container": "e426fd04c7271a098061f4464af2e8399d3cda91ee075270ee453215f42bb4e8",
+      "ID": "e426fd04c727",
+      "MemPerc": "50.24%",
+      "MemUsage": "1.256GiB / 2.5GiB",
+      "Name": "opsdoctor-redis-1",
+      "NetIO": "4.64GB / 2.17GB",
+      "PIDs": "6"
+    },
+    {
+      "BlockIO": "14.1MB / 0B",
+      "CPUPerc": "0.00%",
+      "Container": "5d9937d02edaf82420765462cfc11c586ba3a96c5106586cf5cbe45ba9904e7a",
+      "ID": "5d9937d02eda",
+      "MemPerc": "28.09%",
+      "MemUsage": "17.98MiB / 64MiB",
+      "Name": "opsdoctor-redis-exporter-1",
+      "NetIO": "205MB / 80.6MB",
+      "PIDs": "19"
+    },
+    {
+      "BlockIO": "387GB / 187GB",
+      "CPUPerc": "21.98%",
+      "Container": "c1d8cce1330b50c9c990f40341f736a53498b3a936683f14f4bc8529f2700255",
+      "ID": "c1d8cce1330b",
+      "MemPerc": "84.21%",
+      "MemUsage": "1.263GiB / 1.5GiB",
+      "Name": "opsdoctor-shop-mysql-1",
+      "NetIO": "8.56GB / 13.3GB",
+      "PIDs": "62"
+    },
+    {
+      "BlockIO": "29.2MB / 0B",
+      "CPUPerc": "31.40%",
+      "Container": "521254602a7a6a025f67a574591cbff20d28d70f5daa1b4a034b75b2681a1bf7",
+      "ID": "521254602a7a",
+      "MemPerc": "28.09%",
+      "MemUsage": "35.96MiB / 128MiB",
+      "Name": "opsdoctor-toxiproxy-1",
+      "NetIO": "22.8GB / 22.8GB",
+      "PIDs": "26"
+    }
+  ],
+  "total_GiB": 5.1121640625
+}

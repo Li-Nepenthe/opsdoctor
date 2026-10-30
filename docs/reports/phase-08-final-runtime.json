@@ -1,0 +1,92 @@
+{
+  "time_utc": "2026-10-30T08:29:30.673373+00:00",
+  "runtime": {
+    "budget": {
+      "currency": "USD",
+      "spent_micros": 3596408,
+      "limit_micros": 40000000,
+      "blocked": false,
+      "reason": ""
+    },
+    "executions": {
+      "primary": {
+        "model": "mock-script-v1",
+        "provider": "mock",
+        "account": "phase-07-08-openai",
+        "budget": {
+          "currency": "USD",
+          "spent_micros": 3596408,
+          "limit_micros": 40000000,
+          "blocked": false,
+          "reason": ""
+        }
+      }
+    },
+    "model": "mock-script-v1",
+    "provider": "mock"
+  },
+  "targets": [
+    {
+      "name": "shop",
+      "fault": {
+        "open": false,
+        "recovery_until": null
+      },
+      "evaluation": {
+        "enabled": false,
+        "run_id": "phase08-formal-20261029"
+      }
+    }
+  ],
+  "loadgen_settings": {
+    "qps": 200,
+    "hot_sku_id": 0,
+    "product_count": 10000,
+    "workers": 64
+  },
+  "accounts_after_mock": {
+    "phase-07-08": {
+      "currency": "CNY",
+      "spent_micros": 6626689,
+      "latest_created_at_utc": "2026-10-30 08:14:09.224158",
+      "latest_settled_at_utc": "2026-10-30 08:14:13.460123"
+    },
+    "phase-07-08-openai": {
+      "currency": "USD",
+      "spent_micros": 3596408,
+      "latest_created_at_utc": "2026-10-30 08:13:06.888054",
+      "latest_settled_at_utc": "2026-10-30 08:13:16.403033"
+    }
+  },
+  "attempts_after_run_end": 0,
+  "deepseek_balances": [
+    {
+      "time_utc": "2026-10-30T08:16:44.168089+00:00",
+      "balance": {
+        "is_available": true,
+        "balance_infos": [
+          {
+            "currency": "CNY",
+            "total_balance": "0.94",
+            "granted_balance": "0.00",
+            "topped_up_balance": "0.94"
+          }
+        ]
+      }
+    },
+    {
+      "time_utc": "2026-10-30T08:29:30.493858+00:00",
+      "balance": {
+        "is_available": true,
+        "balance_infos": [
+          {
+            "currency": "CNY",
+            "total_balance": "0.74",
+            "granted_balance": "0.00",
+            "topped_up_balance": "0.74"
+          }
+        ]
+      }
+    }
+  ]
+}

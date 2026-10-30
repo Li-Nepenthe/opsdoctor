@@ -1,0 +1,267 @@
+{
+  "observed_utc": "2026-10-30T05:52:55.643069+00:00",
+  "failure_command_utc": "2026-10-30T05:50:57Z",
+  "queries": {
+    "pool-now": [
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "inventory-service:6062",
+          "job": "shop",
+          "service": "inventory-service"
+        },
+        "value": [
+          1793339575.61,
+          "0"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "order-worker:6063",
+          "job": "shop",
+          "service": "order-worker"
+        },
+        "value": [
+          1793339575.61,
+          "0"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "order-service:6061",
+          "job": "shop",
+          "service": "order-service"
+        },
+        "value": [
+          1793339575.61,
+          "0"
+        ]
+      }
+    ],
+    "pool-at-failure": [
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "inventory-service:6062",
+          "job": "shop",
+          "service": "inventory-service"
+        },
+        "value": [
+          1793339457,
+          "0"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "order-worker:6063",
+          "job": "shop",
+          "service": "order-worker"
+        },
+        "value": [
+          1793339457,
+          "0"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "order-service:6061",
+          "job": "shop",
+          "service": "order-service"
+        },
+        "value": [
+          1793339457,
+          "0"
+        ]
+      }
+    ],
+    "up-now": [],
+    "up-at-failure": [],
+    "up-corrected-now": [
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "inventory-service:6062",
+          "job": "shop",
+          "service": "inventory-service"
+        },
+        "value": [
+          1793339820.818,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "order-service:6061",
+          "job": "shop",
+          "service": "order-service"
+        },
+        "value": [
+          1793339820.818,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "loadgen:6070",
+          "job": "shop",
+          "service": "loadgen"
+        },
+        "value": [
+          1793339820.818,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "order-worker:6063",
+          "job": "shop",
+          "service": "order-worker"
+        },
+        "value": [
+          1793339820.818,
+          "1"
+        ]
+      }
+    ],
+    "up-corrected-failure": [
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "inventory-service:6062",
+          "job": "shop",
+          "service": "inventory-service"
+        },
+        "value": [
+          1793339457,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "order-service:6061",
+          "job": "shop",
+          "service": "order-service"
+        },
+        "value": [
+          1793339457,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "loadgen:6070",
+          "job": "shop",
+          "service": "loadgen"
+        },
+        "value": [
+          1793339457,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "order-worker:6063",
+          "job": "shop",
+          "service": "order-worker"
+        },
+        "value": [
+          1793339457,
+          "1"
+        ]
+      }
+    ],
+    "pool-at-interruption": [
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "inventory-service:6062",
+          "job": "shop",
+          "service": "inventory-service"
+        },
+        "value": [
+          1793339450.943,
+          "0"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "order-worker:6063",
+          "job": "shop",
+          "service": "order-worker"
+        },
+        "value": [
+          1793339450.943,
+          "0"
+        ]
+      }
+    ],
+    "up-at-interruption": [
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "inventory-service:6062",
+          "job": "shop",
+          "service": "inventory-service"
+        },
+        "value": [
+          1793339450.943,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "order-service:6061",
+          "job": "shop",
+          "service": "order-service"
+        },
+        "value": [
+          1793339450.943,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "loadgen:6070",
+          "job": "shop",
+          "service": "loadgen"
+        },
+        "value": [
+          1793339450.943,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "order-worker:6063",
+          "job": "shop",
+          "service": "order-worker"
+        },
+        "value": [
+          1793339450.943,
+          "1"
+        ]
+      }
+    ]
+  },
+  "corrected_up_query_utc": "2026-10-30T05:57:00.841288+00:00",
+  "interruption": {
+    "id": 9,
+    "created_at": "2026-10-30T05:50:50.943644Z",
+    "state": "cooling",
+    "session_elapsed_seconds": 2948.334
+  }
+}

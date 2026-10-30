@@ -1,0 +1,1811 @@
+[
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "",
+    "iteration": 1,
+    "operation": "run",
+    "created_at": "2026-10-30 05:02:49.335819",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 1,
+    "operation": "pending",
+    "created_at": "2026-10-30 05:02:49.486892",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 1,
+    "operation": "verifying",
+    "created_at": "2026-10-30 05:03:51.798422",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 1,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 05:04:41.871557",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 1,
+    "operation": "matrix",
+    "created_at": "2026-10-30 05:04:42.022067",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:04:44.785027",
+    "result_key": "phase08-formal-20261029/S08/1/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:05:10.604185",
+    "result_key": "phase08-formal-20261029/S08/1/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:05:32.714726",
+    "result_key": "phase08-formal-20261029/S08/1/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:05:41.466698",
+    "result_key": "phase08-formal-20261029/S08/1/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:06:25.942184",
+    "result_key": "phase08-formal-20261029/S08/1/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 1,
+    "operation": "restoring",
+    "created_at": "2026-10-30 05:06:52.423184",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 1,
+    "operation": "cooling",
+    "created_at": "2026-10-30 05:06:52.503339",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 2,
+    "operation": "pending",
+    "created_at": "2026-10-30 05:13:03.075233",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 2,
+    "operation": "verifying",
+    "created_at": "2026-10-30 05:14:05.480286",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 2,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 05:14:50.653686",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 2,
+    "operation": "matrix",
+    "created_at": "2026-10-30 05:14:50.774431",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:14:53.402558",
+    "result_key": "phase08-formal-20261029/S08/2/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:15:12.236428",
+    "result_key": "phase08-formal-20261029/S08/2/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:15:49.818704",
+    "result_key": "phase08-formal-20261029/S08/2/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:15:57.936765",
+    "result_key": "phase08-formal-20261029/S08/2/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:16:23.955724",
+    "result_key": "phase08-formal-20261029/S08/2/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 2,
+    "operation": "restoring",
+    "created_at": "2026-10-30 05:16:45.590662",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 2,
+    "operation": "cooling",
+    "created_at": "2026-10-30 05:16:45.669963",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 3,
+    "operation": "pending",
+    "created_at": "2026-10-30 05:22:55.482642",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 3,
+    "operation": "verifying",
+    "created_at": "2026-10-30 05:23:58.009149",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 3,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 05:24:48.242862",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 3,
+    "operation": "matrix",
+    "created_at": "2026-10-30 05:24:48.364145",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:24:50.611848",
+    "result_key": "phase08-formal-20261029/S08/3/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:25:12.216406",
+    "result_key": "phase08-formal-20261029/S08/3/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:25:32.083437",
+    "result_key": "phase08-formal-20261029/S08/3/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:25:54.244160",
+    "result_key": "phase08-formal-20261029/S08/3/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:26:03.330664",
+    "result_key": "phase08-formal-20261029/S08/3/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 3,
+    "operation": "restoring",
+    "created_at": "2026-10-30 05:26:38.475063",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S08",
+    "iteration": 3,
+    "operation": "cooling",
+    "created_at": "2026-10-30 05:26:38.569013",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 1,
+    "operation": "pending",
+    "created_at": "2026-10-30 05:33:17.977681",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 1,
+    "operation": "verifying",
+    "created_at": "2026-10-30 05:34:27.860884",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 1,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 05:36:58.010245",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 1,
+    "operation": "matrix",
+    "created_at": "2026-10-30 05:36:58.123721",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:37:00.885810",
+    "result_key": "phase08-formal-20261029/S09/1/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:37:11.071513",
+    "result_key": "phase08-formal-20261029/S09/1/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:37:29.922778",
+    "result_key": "phase08-formal-20261029/S09/1/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:37:50.689014",
+    "result_key": "phase08-formal-20261029/S09/1/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:38:16.039937",
+    "result_key": "phase08-formal-20261029/S09/1/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 1,
+    "operation": "restoring",
+    "created_at": "2026-10-30 05:38:31.020102",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 1,
+    "operation": "cooling",
+    "created_at": "2026-10-30 05:38:37.901675",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "pending",
+    "created_at": "2026-10-30 05:44:47.974159",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "verifying",
+    "created_at": "2026-10-30 05:45:57.749586",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 05:48:32.876284",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "matrix",
+    "created_at": "2026-10-30 05:48:33.040805",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:48:35.858420",
+    "result_key": "phase08-formal-20261029/S09/2/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:48:46.549863",
+    "result_key": "phase08-formal-20261029/S09/2/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:49:31.719512",
+    "result_key": "phase08-formal-20261029/S09/2/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:49:56.921203",
+    "result_key": "phase08-formal-20261029/S09/2/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 05:50:18.765766",
+    "result_key": "phase08-formal-20261029/S09/2/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "restoring",
+    "created_at": "2026-10-30 05:50:42.043086",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "cooling",
+    "created_at": "2026-10-30 05:50:48.465432",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "",
+    "iteration": 1,
+    "operation": "run",
+    "created_at": "2026-10-30 05:58:25.344884",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 2,
+    "operation": "cooling",
+    "created_at": "2026-10-30 05:58:25.490088",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 3,
+    "operation": "pending",
+    "created_at": "2026-10-30 06:00:29.647667",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 3,
+    "operation": "verifying",
+    "created_at": "2026-10-30 06:01:38.578115",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 3,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 06:04:23.733076",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 3,
+    "operation": "matrix",
+    "created_at": "2026-10-30 06:04:23.863075",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:04:26.583896",
+    "result_key": "phase08-formal-20261029/S09/3/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:05:14.080278",
+    "result_key": "phase08-formal-20261029/S09/3/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:05:34.063482",
+    "result_key": "phase08-formal-20261029/S09/3/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:05:56.435544",
+    "result_key": "phase08-formal-20261029/S09/3/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:06:17.041769",
+    "result_key": "phase08-formal-20261029/S09/3/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 3,
+    "operation": "restoring",
+    "created_at": "2026-10-30 06:06:25.041002",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S09",
+    "iteration": 3,
+    "operation": "cooling",
+    "created_at": "2026-10-30 06:06:31.948828",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 1,
+    "operation": "pending",
+    "created_at": "2026-10-30 06:12:37.008796",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 1,
+    "operation": "verifying",
+    "created_at": "2026-10-30 06:13:39.195892",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 1,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 06:14:34.297173",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 1,
+    "operation": "matrix",
+    "created_at": "2026-10-30 06:14:34.407484",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:14:37.090052",
+    "result_key": "phase08-formal-20261029/S10/1/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:15:22.711390",
+    "result_key": "phase08-formal-20261029/S10/1/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:15:57.881929",
+    "result_key": "phase08-formal-20261029/S10/1/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:16:08.754408",
+    "result_key": "phase08-formal-20261029/S10/1/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:16:34.795115",
+    "result_key": "phase08-formal-20261029/S10/1/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 1,
+    "operation": "restoring",
+    "created_at": "2026-10-30 06:17:01.056750",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 1,
+    "operation": "cooling",
+    "created_at": "2026-10-30 06:17:01.133283",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 2,
+    "operation": "pending",
+    "created_at": "2026-10-30 06:23:11.706118",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 2,
+    "operation": "verifying",
+    "created_at": "2026-10-30 06:24:14.027707",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 2,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 06:25:04.089024",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 2,
+    "operation": "matrix",
+    "created_at": "2026-10-30 06:25:04.196812",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:25:06.876682",
+    "result_key": "phase08-formal-20261029/S10/2/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:25:33.117919",
+    "result_key": "phase08-formal-20261029/S10/2/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:26:08.403356",
+    "result_key": "phase08-formal-20261029/S10/2/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:26:17.120773",
+    "result_key": "phase08-formal-20261029/S10/2/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:26:45.657324",
+    "result_key": "phase08-formal-20261029/S10/2/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 2,
+    "operation": "restoring",
+    "created_at": "2026-10-30 06:27:14.801987",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 2,
+    "operation": "cooling",
+    "created_at": "2026-10-30 06:27:14.865857",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 3,
+    "operation": "pending",
+    "created_at": "2026-10-30 06:33:24.433995",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 3,
+    "operation": "verifying",
+    "created_at": "2026-10-30 06:36:02.206023",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 3,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 06:36:52.295914",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 3,
+    "operation": "matrix",
+    "created_at": "2026-10-30 06:36:52.401119",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:36:54.704576",
+    "result_key": "phase08-formal-20261029/S10/3/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:37:05.121439",
+    "result_key": "phase08-formal-20261029/S10/3/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:37:54.133323",
+    "result_key": "phase08-formal-20261029/S10/3/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:38:24.829557",
+    "result_key": "phase08-formal-20261029/S10/3/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:38:51.866327",
+    "result_key": "phase08-formal-20261029/S10/3/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 3,
+    "operation": "restoring",
+    "created_at": "2026-10-30 06:39:28.767124",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S10",
+    "iteration": 3,
+    "operation": "cooling",
+    "created_at": "2026-10-30 06:39:28.847888",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 1,
+    "operation": "pending",
+    "created_at": "2026-10-30 06:45:39.233946",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 1,
+    "operation": "verifying",
+    "created_at": "2026-10-30 06:46:42.678327",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 1,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 06:47:42.868795",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 1,
+    "operation": "matrix",
+    "created_at": "2026-10-30 06:47:42.994297",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:47:45.111470",
+    "result_key": "phase08-formal-20261029/S11/1/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:48:10.276165",
+    "result_key": "phase08-formal-20261029/S11/1/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:48:38.162872",
+    "result_key": "phase08-formal-20261029/S11/1/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:49:26.616494",
+    "result_key": "phase08-formal-20261029/S11/1/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:49:33.618873",
+    "result_key": "phase08-formal-20261029/S11/1/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 1,
+    "operation": "restoring",
+    "created_at": "2026-10-30 06:50:03.060937",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 1,
+    "operation": "cooling",
+    "created_at": "2026-10-30 06:50:03.143666",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 2,
+    "operation": "pending",
+    "created_at": "2026-10-30 06:56:07.821372",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 2,
+    "operation": "verifying",
+    "created_at": "2026-10-30 06:57:11.158090",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 2,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 06:58:11.361252",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 2,
+    "operation": "matrix",
+    "created_at": "2026-10-30 06:58:11.477375",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:58:14.177761",
+    "result_key": "phase08-formal-20261029/S11/2/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:58:40.197710",
+    "result_key": "phase08-formal-20261029/S11/2/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:59:01.724070",
+    "result_key": "phase08-formal-20261029/S11/2/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:59:09.211841",
+    "result_key": "phase08-formal-20261029/S11/2/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 06:59:49.830665",
+    "result_key": "phase08-formal-20261029/S11/2/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 2,
+    "operation": "restoring",
+    "created_at": "2026-10-30 07:00:11.554289",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 2,
+    "operation": "cooling",
+    "created_at": "2026-10-30 07:00:11.634435",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 3,
+    "operation": "pending",
+    "created_at": "2026-10-30 07:06:16.854544",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 3,
+    "operation": "verifying",
+    "created_at": "2026-10-30 07:07:20.420554",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 3,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 07:08:20.627329",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 3,
+    "operation": "matrix",
+    "created_at": "2026-10-30 07:08:20.746404",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:08:22.891650",
+    "result_key": "phase08-formal-20261029/S11/3/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:08:48.143487",
+    "result_key": "phase08-formal-20261029/S11/3/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:09:15.220052",
+    "result_key": "phase08-formal-20261029/S11/3/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:09:41.995836",
+    "result_key": "phase08-formal-20261029/S11/3/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:09:49.257911",
+    "result_key": "phase08-formal-20261029/S11/3/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 3,
+    "operation": "restoring",
+    "created_at": "2026-10-30 07:10:35.681226",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S11",
+    "iteration": 3,
+    "operation": "cooling",
+    "created_at": "2026-10-30 07:10:35.759544",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 1,
+    "operation": "pending",
+    "created_at": "2026-10-30 07:16:41.142242",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 1,
+    "operation": "verifying",
+    "created_at": "2026-10-30 07:17:43.577098",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 1,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 07:18:28.718808",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 1,
+    "operation": "matrix",
+    "created_at": "2026-10-30 07:18:28.914188",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:18:31.307182",
+    "result_key": "phase08-formal-20261029/S12/1/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:18:53.800597",
+    "result_key": "phase08-formal-20261029/S12/1/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:19:22.501541",
+    "result_key": "phase08-formal-20261029/S12/1/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:19:50.711962",
+    "result_key": "phase08-formal-20261029/S12/1/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:20:17.995328",
+    "result_key": "phase08-formal-20261029/S12/1/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 1,
+    "operation": "restoring",
+    "created_at": "2026-10-30 07:20:46.102353",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 1,
+    "operation": "cooling",
+    "created_at": "2026-10-30 07:20:51.174560",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 2,
+    "operation": "pending",
+    "created_at": "2026-10-30 07:26:55.691396",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 2,
+    "operation": "verifying",
+    "created_at": "2026-10-30 07:27:57.987299",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 2,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 07:28:48.085416",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 2,
+    "operation": "matrix",
+    "created_at": "2026-10-30 07:28:48.193788",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:28:51.138028",
+    "result_key": "phase08-formal-20261029/S12/2/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:29:20.156178",
+    "result_key": "phase08-formal-20261029/S12/2/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:29:47.473293",
+    "result_key": "phase08-formal-20261029/S12/2/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:30:12.882143",
+    "result_key": "phase08-formal-20261029/S12/2/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:30:42.749457",
+    "result_key": "phase08-formal-20261029/S12/2/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 2,
+    "operation": "restoring",
+    "created_at": "2026-10-30 07:30:54.160654",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 2,
+    "operation": "cooling",
+    "created_at": "2026-10-30 07:31:00.898130",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 3,
+    "operation": "pending",
+    "created_at": "2026-10-30 07:37:10.403765",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 3,
+    "operation": "verifying",
+    "created_at": "2026-10-30 07:38:13.096498",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 3,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 07:38:58.196386",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 3,
+    "operation": "matrix",
+    "created_at": "2026-10-30 07:38:58.335220",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:39:01.155506",
+    "result_key": "phase08-formal-20261029/S12/3/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:39:29.215470",
+    "result_key": "phase08-formal-20261029/S12/3/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:39:57.345750",
+    "result_key": "phase08-formal-20261029/S12/3/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:40:06.483250",
+    "result_key": "phase08-formal-20261029/S12/3/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:40:35.851043",
+    "result_key": "phase08-formal-20261029/S12/3/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 3,
+    "operation": "restoring",
+    "created_at": "2026-10-30 07:41:01.788153",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S12",
+    "iteration": 3,
+    "operation": "cooling",
+    "created_at": "2026-10-30 07:41:07.392401",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 1,
+    "operation": "pending",
+    "created_at": "2026-10-30 07:47:12.323978",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 1,
+    "operation": "verifying",
+    "created_at": "2026-10-30 07:48:48.509633",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 1,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 07:49:38.633898",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 1,
+    "operation": "matrix",
+    "created_at": "2026-10-30 07:49:38.748314",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:49:41.548117",
+    "result_key": "phase08-formal-20261029/S13/1/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:50:07.517379",
+    "result_key": "phase08-formal-20261029/S13/1/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:50:29.091379",
+    "result_key": "phase08-formal-20261029/S13/1/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:51:04.411474",
+    "result_key": "phase08-formal-20261029/S13/1/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 1,
+    "operation": "slot",
+    "created_at": "2026-10-30 07:51:13.705827",
+    "result_key": "phase08-formal-20261029/S13/1/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 1,
+    "operation": "restoring",
+    "created_at": "2026-10-30 07:51:46.531529",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 1,
+    "operation": "cooling",
+    "created_at": "2026-10-30 07:51:53.356849",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 2,
+    "operation": "pending",
+    "created_at": "2026-10-30 07:57:58.042079",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 2,
+    "operation": "verifying",
+    "created_at": "2026-10-30 07:59:35.249048",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 2,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 08:00:30.363620",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 2,
+    "operation": "matrix",
+    "created_at": "2026-10-30 08:00:30.504946",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 08:00:33.182484",
+    "result_key": "phase08-formal-20261029/S13/2/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 08:01:09.056925",
+    "result_key": "phase08-formal-20261029/S13/2/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 08:01:31.865135",
+    "result_key": "phase08-formal-20261029/S13/2/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 08:02:21.995148",
+    "result_key": "phase08-formal-20261029/S13/2/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 2,
+    "operation": "slot",
+    "created_at": "2026-10-30 08:02:32.175882",
+    "result_key": "phase08-formal-20261029/S13/2/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 2,
+    "operation": "restoring",
+    "created_at": "2026-10-30 08:02:53.188586",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 2,
+    "operation": "cooling",
+    "created_at": "2026-10-30 08:03:00.137844",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 3,
+    "operation": "pending",
+    "created_at": "2026-10-30 08:09:10.548738",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 3,
+    "operation": "verifying",
+    "created_at": "2026-10-30 08:10:44.535002",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 3,
+    "operation": "diagnosing",
+    "created_at": "2026-10-30 08:11:39.723359",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 3,
+    "operation": "matrix",
+    "created_at": "2026-10-30 08:11:39.860834",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 08:11:42.849299",
+    "result_key": "phase08-formal-20261029/S13/3/primary-E3",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 08:12:18.701266",
+    "result_key": "phase08-formal-20261029/S13/3/primary-E0",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 08:12:28.233773",
+    "result_key": "phase08-formal-20261029/S13/3/primary-E2",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 08:12:54.977146",
+    "result_key": "phase08-formal-20261029/S13/3/primary-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 3,
+    "operation": "slot",
+    "created_at": "2026-10-30 08:13:21.667370",
+    "result_key": "phase08-formal-20261029/S13/3/comparison-E1",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 3,
+    "operation": "restoring",
+    "created_at": "2026-10-30 08:14:13.561343",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  },
+  {
+    "commit": "89945fd013af6f6ef4ed51697dce1f3cb1a8b7a9",
+    "scenario": "S13",
+    "iteration": 3,
+    "operation": "cooling",
+    "created_at": "2026-10-30 08:14:20.363377",
+    "result_key": "",
+    "source_hash": "8c926911bbd0c8a71b08e1dddb426c50808cc25ceab80a87d6127ac0354e1a2d"
+  }
+]
