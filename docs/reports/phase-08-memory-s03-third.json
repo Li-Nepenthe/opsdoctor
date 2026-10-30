@@ -1,0 +1,26 @@
+{
+  "time_utc": "2026-10-29T16:43:54.907722+00:00",
+  "containers": 19,
+  "total_GiB": 4.443342,
+  "readings": [
+    "opsdoctor-alertmanager-1 13.35MiB / 64MiB",
+    "opsdoctor-alloy-1 186.6MiB / 256MiB",
+    "opsdoctor-doctor-1 24.96MiB / 256MiB",
+    "opsdoctor-doctor-mysql-1 369.7MiB / 512MiB",
+    "opsdoctor-grafana-1 144.6MiB / 256MiB",
+    "opsdoctor-inventory-service-1 12.7MiB / 128MiB",
+    "opsdoctor-jaeger-1 356.3MiB / 1GiB",
+    "opsdoctor-kafka-1 873.3MiB / 1GiB",
+    "opsdoctor-kafka-exporter-1 23.71MiB / 64MiB",
+    "opsdoctor-loadgen-1 28.95MiB / 128MiB",
+    "opsdoctor-loki-1 412.9MiB / 512MiB",
+    "opsdoctor-mysqld-exporter-1 15.7MiB / 64MiB",
+    "opsdoctor-order-service-1 23.88MiB / 256MiB",
+    "opsdoctor-order-worker-1 24.91MiB / 128MiB",
+    "opsdoctor-prometheus-1 108MiB / 512MiB",
+    "opsdoctor-redis-1 605.2MiB / 2.5GiB",
+    "opsdoctor-redis-exporter-1 17.27MiB / 64MiB",
+    "opsdoctor-shop-mysql-1 1.248GiB / 1.5GiB",
+    "opsdoctor-toxiproxy-1 30MiB / 128MiB"
+  ]
+}

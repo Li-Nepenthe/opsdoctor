@@ -1,0 +1,55 @@
+{
+  "reason": "用户2026-10-29批准分级校时守卫；关闭timesyncd；原S02第二轮E3按基础设施中断保留并补跑一次",
+  "run_id": "phase08-formal-20261029",
+  "created_at": "2026-10-29 15:48:35.805185",
+  "makeup_key": "phase08-formal-20261029/S02/2/primary-E3",
+  "interruption_id": 2,
+  "original_versions": {
+    "kind": "pilot",
+    "cases": [
+      "S01",
+      "S02",
+      "S03",
+      "S04",
+      "S05",
+      "S06",
+      "S07",
+      "S08",
+      "S09",
+      "S10",
+      "S11",
+      "S12",
+      "S13"
+    ],
+    "group": "E1",
+    "model": "gpt-6.1-terra",
+    "commit": "5e5d5a184dc5739e4026454516806a6e98ac9bb8",
+    "source_hash": "a5e28511a595a5893cddb71b00df209697620259d29186816a423b35a9851199",
+    "runbooks_hash": "d86e159673bf5351743b10ec737f4b52b7281b1cad525e4c09c17c4897790f54",
+    "prompt_version": "v8.0"
+  },
+  "replacement_versions": {
+    "kind": "pilot",
+    "cases": [
+      "S01",
+      "S02",
+      "S03",
+      "S04",
+      "S05",
+      "S06",
+      "S07",
+      "S08",
+      "S09",
+      "S10",
+      "S11",
+      "S12",
+      "S13"
+    ],
+    "group": "E1",
+    "model": "gpt-6.1-terra",
+    "commit": "ca2ec68e225a1f999a80bbfd38f2f9d4a134de5e",
+    "source_hash": "01f968507a2ead995b68e7f13fb93a4bee5f46d07820379b50d0c577825f0383",
+    "runbooks_hash": "d86e159673bf5351743b10ec737f4b52b7281b1cad525e4c09c17c4897790f54",
+    "prompt_version": "v8.0"
+  }
+}

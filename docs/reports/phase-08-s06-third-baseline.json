@@ -1,0 +1,153 @@
+{
+  "time_utc": "2026-10-29T18:26:13.024948+00:00",
+  "trial": "S06/3",
+  "queries": {
+    "db_pool_runtime_changed{service=~\"order-service|inventory-service|order-worker\"}": [
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "inventory-service:6062",
+          "job": "shop",
+          "service": "inventory-service"
+        },
+        "value": [
+          1793298373.071,
+          "0"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "order-worker:6063",
+          "job": "shop",
+          "service": "order-worker"
+        },
+        "value": [
+          1793298373.071,
+          "0"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "order-service:6061",
+          "job": "shop",
+          "service": "order-service"
+        },
+        "value": [
+          1793298373.071,
+          "0"
+        ]
+      }
+    ],
+    "up{job=\"shop\"}": [
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "inventory-service:6062",
+          "job": "shop",
+          "service": "inventory-service"
+        },
+        "value": [
+          1793298373.073,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "order-service:6061",
+          "job": "shop",
+          "service": "order-service"
+        },
+        "value": [
+          1793298373.073,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "loadgen:6070",
+          "job": "shop",
+          "service": "loadgen"
+        },
+        "value": [
+          1793298373.073,
+          "1"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "up",
+          "instance": "order-worker:6063",
+          "job": "shop",
+          "service": "order-worker"
+        },
+        "value": [
+          1793298373.073,
+          "1"
+        ]
+      }
+    ],
+    "sum(kafka_consumergroup_lag{consumergroup=\"order-worker\",topic=\"order.created\"})": [
+      {
+        "metric": {},
+        "value": [
+          1793298373.075,
+          "4544"
+        ]
+      }
+    ]
+  },
+  "historical_time_utc": "2026-10-29T18:25:33.795912+00:00",
+  "historical_queries": {
+    "db_pool_runtime_changed{service=~\"order-service|inventory-service|order-worker\"}": [
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "inventory-service:6062",
+          "job": "shop",
+          "service": "inventory-service"
+        },
+        "value": [
+          1793298333.796,
+          "0"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "order-worker:6063",
+          "job": "shop",
+          "service": "order-worker"
+        },
+        "value": [
+          1793298333.796,
+          "0"
+        ]
+      },
+      {
+        "metric": {
+          "__name__": "db_pool_runtime_changed",
+          "instance": "order-service:6061",
+          "job": "shop",
+          "service": "order-service"
+        },
+        "value": [
+          1793298333.796,
+          "0"
+        ]
+      }
+    ],
+    "count(db_pool_runtime_changed{service=~\"order-service|inventory-service|order-worker\"})": [
+      {
+        "metric": {},
+        "value": [
+          1793298333.796,
+          "3"
+        ]
+      }
+    ]
+  }
+}

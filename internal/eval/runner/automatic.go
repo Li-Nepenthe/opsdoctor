@@ -29,6 +29,13 @@ func automatic(parent context.Context, options command, reader config.Reader, re
 	}
 	ctx, stop := guardClock(parent, checkClock)
 	defer stop()
+	// 流量动作可以暂时停流量或换热点，但整个流程都不能换工作集和工作者数。
+	loadContext, stopLoad, err := guardLoad(ctx, func(checkContext context.Context) error { return checkWorkload(checkContext, reader) })
+	if err != nil {
+		return err
+	}
+	defer stopLoad()
+	ctx = loadContext
 	status, err := client.runtime(ctx)
 	if err != nil {
 		return err
@@ -44,6 +51,9 @@ func automatic(parent context.Context, options command, reader config.Reader, re
 	}
 	if !mode.Enabled || mode.RunID != options.runID {
 		return fmt.Errorf("批次没有持有评测模式，请先 freeze")
+	}
+	if err = recordEvaluator(ctx, options, repository, "run", ""); err != nil {
+		return err
 	}
 	if err = repository.SetEvalRunState(ctx, options.runID, "running"); err != nil {
 		return err
@@ -69,6 +79,9 @@ func automatic(parent context.Context, options command, reader config.Reader, re
 				break
 			}
 			fmt.Fprintf(output, "轮次 %s/%d state=%s\n", trial.Scenario, trial.Iteration, trial.State)
+			if err = recordEvaluator(ctx, options, repository, trial.State, ""); err != nil {
+				return err
+			}
 			if err = advanceTrial(ctx, options, trial, reader, repository, client, output); err != nil {
 				cleanup, cancel := context.WithTimeout(context.WithoutCancel(parent), 5*time.Second)
 				if ctx.Err() != nil {

@@ -5,6 +5,9 @@
 // 才不会因为需要保存任务，就顺便把业务库的写权限交给医生。
 //
 // 文件清单：
+//   - eval_execution.go：追加每次评测动作所用的提交号和源码哈希。
+//   - eval_baseline_amendment.go：保留旧版本和原注入时间，原子审计零模型轮次的重启。
+//   - eval_baseline_amendment_integration_test.go：证明重启只能批准一次、不能重做已有模型槽位。
 //   - eval_calibration.go：保存第一次抽中的二十份编号，不填写人的评分。
 //   - eval_listing.go：提供页面的批次列表，复用相同的结果查询。
 //   - eval_trials.go：保存整轮注入、恢复、冷却进度与追加的暂停原因。

@@ -33,8 +33,16 @@ func calibrate(ctx context.Context, repository *store.Store, id string, output i
 	var versions struct {
 		Source string `json:"source_hash"`
 	}
-	if json.Unmarshal(run.Config, &frozen) != nil || json.Unmarshal(frozen.Versions, &versions) != nil {
+	if json.Unmarshal(run.Config, &frozen) != nil {
 		return fmt.Errorf("缺少冻结版本")
+	}
+	// 获准修订只改变基础设施与审计。仍用完整有效哈希约束当前场景，不绕过版本检查。
+	effective, err := repository.EvalVersions(ctx, id, frozen.Versions)
+	if err != nil {
+		return err
+	}
+	if json.Unmarshal(effective, &versions) != nil {
+		return fmt.Errorf("缺少有效版本")
 	}
 	current, err := sourceHash()
 	if err != nil || current != versions.Source {

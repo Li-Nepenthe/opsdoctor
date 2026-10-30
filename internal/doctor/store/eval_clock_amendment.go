@@ -43,7 +43,7 @@ func (store *Store) EvalVersions(ctx context.Context, runID string, original jso
 	var before, after []byte
 	err := store.database.QueryRowContext(ctx, "SELECT original_versions,replacement_versions FROM eval_clock_amendments WHERE run_id=?", runID).Scan(&before, &after)
 	if errors.Is(err, sql.ErrNoRows) {
-		return original, nil
+		return store.baselineVersions(ctx, runID, original)
 	}
 	if err != nil {
 		return nil, err
@@ -51,7 +51,7 @@ func (store *Store) EvalVersions(ctx context.Context, runID string, original jso
 	if !sameJSON(before, original) {
 		return nil, fmt.Errorf("校时批准与原冻结版本不符")
 	}
-	return after, nil
+	return store.baselineVersions(ctx, runID, after)
 }
 
 // clockMakeupAllowed 不把时钟异常推广为所有取消都可重跑；只认明确批准的那一条。

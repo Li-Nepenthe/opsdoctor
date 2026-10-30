@@ -24,11 +24,12 @@ func TestBaseline(t *testing.T) {
 		valid      bool
 	}{
 		// 正确基线允许继续；五十万商品与少工作者都改变了实验条件。
-		{"符合基线", `{"data":{"settings":{"qps":200,"product_count":10000,"workers":64}}}`, true},
-		{"商品数回到默认", `{"data":{"settings":{"qps":200,"product_count":500000,"workers":64}}}`, false},
-		{"工作者变化", `{"data":{"settings":{"qps":200,"product_count":10000,"workers":32}}}`, false},
+		{"符合基线", `{"data":{"settings":{"qps":200,"hot_sku_id":0,"product_count":10000,"workers":64}}}`, true},
+		{"商品数回到默认", `{"data":{"settings":{"qps":200,"hot_sku_id":0,"product_count":500000,"workers":64}}}`, false},
+		{"工作者变化", `{"data":{"settings":{"qps":200,"hot_sku_id":0,"product_count":10000,"workers":32}}}`, false},
 		// 缺字段不应按默认值补齐，否则无法发现旧版本控制接口。
 		{"缺字段", `{"data":{"settings":{"qps":200}}}`, false},
+		{"缺热点不能当零", `{"data":{"settings":{"qps":200,"product_count":10000,"workers":64}}}`, false}, // 新约定要求接口明确给出热点。
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

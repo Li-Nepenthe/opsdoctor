@@ -1,0 +1,102 @@
+{
+  "time_utc": "2026-10-29T18:40:18.799571+00:00",
+  "container_count": 19,
+  "total_gib": 4.477013671875,
+  "containers": [
+    {
+      "name": "opsdoctor-alertmanager-1",
+      "memory": "13.8MiB / 64MiB",
+      "percent": "21.56%"
+    },
+    {
+      "name": "opsdoctor-alloy-1",
+      "memory": "189.8MiB / 256MiB",
+      "percent": "74.13%"
+    },
+    {
+      "name": "opsdoctor-doctor-1",
+      "memory": "34.78MiB / 256MiB",
+      "percent": "13.58%"
+    },
+    {
+      "name": "opsdoctor-doctor-mysql-1",
+      "memory": "377.4MiB / 512MiB",
+      "percent": "73.72%"
+    },
+    {
+      "name": "opsdoctor-grafana-1",
+      "memory": "144.3MiB / 256MiB",
+      "percent": "56.38%"
+    },
+    {
+      "name": "opsdoctor-inventory-service-1",
+      "memory": "17.55MiB / 128MiB",
+      "percent": "13.71%"
+    },
+    {
+      "name": "opsdoctor-jaeger-1",
+      "memory": "360.2MiB / 1GiB",
+      "percent": "35.18%"
+    },
+    {
+      "name": "opsdoctor-kafka-1",
+      "memory": "765MiB / 1GiB",
+      "percent": "74.71%"
+    },
+    {
+      "name": "opsdoctor-kafka-exporter-1",
+      "memory": "22.09MiB / 64MiB",
+      "percent": "34.51%"
+    },
+    {
+      "name": "opsdoctor-loadgen-1",
+      "memory": "31.29MiB / 128MiB",
+      "percent": "24.44%"
+    },
+    {
+      "name": "opsdoctor-loki-1",
+      "memory": "431.5MiB / 512MiB",
+      "percent": "84.28%"
+    },
+    {
+      "name": "opsdoctor-mysqld-exporter-1",
+      "memory": "17.71MiB / 64MiB",
+      "percent": "27.68%"
+    },
+    {
+      "name": "opsdoctor-order-service-1",
+      "memory": "21.45MiB / 256MiB",
+      "percent": "8.38%"
+    },
+    {
+      "name": "opsdoctor-order-worker-1",
+      "memory": "15.63MiB / 128MiB",
+      "percent": "12.21%"
+    },
+    {
+      "name": "opsdoctor-prometheus-1",
+      "memory": "109.2MiB / 512MiB",
+      "percent": "21.33%"
+    },
+    {
+      "name": "opsdoctor-redis-1",
+      "memory": "690.2MiB / 2.5GiB",
+      "percent": "26.96%"
+    },
+    {
+      "name": "opsdoctor-redis-exporter-1",
+      "memory": "18.52MiB / 64MiB",
+      "percent": "28.93%"
+    },
+    {
+      "name": "opsdoctor-shop-mysql-1",
+      "memory": "1.258GiB / 1.5GiB",
+      "percent": "83.84%"
+    },
+    {
+      "name": "opsdoctor-toxiproxy-1",
+      "memory": "35.85MiB / 128MiB",
+      "percent": "28.01%"
+    }
+  ]
+}

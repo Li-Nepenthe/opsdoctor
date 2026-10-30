@@ -1,0 +1,104 @@
+{
+  "verification_note": "原chaos verify按原注入后三分钟截止，续查立即超时；以下是额外只读观测，不覆盖原verify45.108秒成功。",
+  "readings": [
+    {
+      "at_utc": "2026-10-29T15:51:39.411197+00:00",
+      "query": "histogram_quantile(0.99,sum by(le)(rate(http_server_request_duration_seconds_bucket{route=\"/orders\",method=\"GET\"}[1m])))",
+      "value": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793289099.424,
+                "4.961933962264151"
+              ]
+            }
+          ]
+        }
+      },
+      "alerts": [
+        {
+          "labels": {
+            "alertname": "HTTPErrorRateHigh",
+            "service": "order-service",
+            "severity": "warning"
+          },
+          "annotations": {
+            "summary": "服务端错误比例持续超过百分之五"
+          },
+          "state": "pending",
+          "activeAt": "2026-10-29T15:51:22.419683092Z",
+          "value": "2.835570469798658e-01"
+        },
+        {
+          "labels": {
+            "alertname": "OrderListLatencyHigh",
+            "service": "order-service",
+            "severity": "warning"
+          },
+          "annotations": {
+            "summary": "订单列表 P99 超过 200 毫秒"
+          },
+          "state": "pending",
+          "activeAt": "2026-10-29T15:51:22.419683092Z",
+          "value": "4.96014598540146e+00"
+        }
+      ]
+    },
+    {
+      "at_utc": "2026-10-29T15:52:16.878398+00:00",
+      "query": "histogram_quantile(0.99,sum by(le)(rate(http_server_request_duration_seconds_bucket{route=\"/orders\",method=\"GET\"}[1m])))",
+      "value": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793289136.931,
+                "4.948559077809798"
+              ]
+            }
+          ]
+        }
+      },
+      "alerts": [
+        {
+          "labels": {
+            "alertname": "HTTPErrorRateHigh",
+            "service": "order-service",
+            "severity": "warning"
+          },
+          "annotations": {
+            "summary": "服务端错误比例持续超过百分之五"
+          },
+          "state": "pending",
+          "activeAt": "2026-10-29T15:51:22.419683092Z",
+          "value": "3.226132345512713e-01"
+        },
+        {
+          "labels": {
+            "alertname": "OrderListLatencyHigh",
+            "service": "order-service",
+            "severity": "warning"
+          },
+          "annotations": {
+            "summary": "订单列表 P99 超过 200 毫秒"
+          },
+          "state": "firing",
+          "activeAt": "2026-10-29T15:51:22.419683092Z",
+          "value": "4.951739130434783e+00"
+        }
+      ]
+    }
+  ],
+  "later_alert_check": {
+    "at_utc": "2026-10-29T15:53:39.230499+00:00",
+    "HTTPErrorRateHigh": "firing",
+    "OrderListLatencyHigh": "firing"
+  }
+}

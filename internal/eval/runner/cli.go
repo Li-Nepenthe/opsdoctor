@@ -34,6 +34,7 @@ import (
 
 // command 只含公开运行安排；Key、数据库密码和登录令牌不接受命令行传值。
 type command struct {
+	interruption                           int64  // 只用于用户批准的、尚未创建诊断的基线中断重启。
 	reason, makeupKey                      string // 校时修订的用户授权与原中断编号，不接受自动推断。
 	action, runID, target, model, scenario string
 	cases                                  []string
@@ -54,14 +55,15 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 		return inspectClock(ctx, output)
 	}
 	// 试跑和配对分别命名；同一个批次不能混用两种运行安排。
-	if len(args) == 0 || !slices.Contains([]string{"prepare", "pilot", "finish", "export", "freeze", "matrix", "run", "calibrate", "amend-clock"}, args[0]) {
-		return fmt.Errorf("用法：eval check-clock；或 eval prepare|pilot|finish|export|freeze|matrix|run|calibrate --run 批次 [--model 模型 --scenario 场景 --allow-paid]")
+	if len(args) == 0 || !slices.Contains([]string{"prepare", "pilot", "finish", "export", "freeze", "matrix", "run", "calibrate", "amend-clock", "amend-baseline"}, args[0]) {
+		return fmt.Errorf("用法：eval check-clock；或 eval prepare|pilot|finish|export|freeze|matrix|run|calibrate|amend-clock|amend-baseline --run 批次 [--model 模型 --scenario 场景 --allow-paid]")
 	}
 	options := command{action: args[0]}
 	flags := flag.NewFlagSet("eval "+args[0], flag.ContinueOnError)
 	flags.SetOutput(output)
 	flags.StringVar(&options.runID, "run", "", "持久化批次编号")
-	flags.StringVar(&options.reason, "reason", "", "用户批准校时调整的具体原因")
+	flags.Int64Var(&options.interruption, "interruption", 0, "用户批准重启的原中断编号")
+	flags.StringVar(&options.reason, "reason", "", "用户批准基础设施调整的具体原因")
 	flags.StringVar(&options.makeupKey, "makeup-key", "", "明确允许补跑的原中断槽位")
 	flags.StringVar(&options.target, "target", "shop", "已经接入的系统")
 	flags.StringVar(&options.model, "model", "mock-script-v1", "明确指定医生模型")
@@ -140,6 +142,10 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 		return err
 	}
 	switch options.action {
+	case "amend-baseline":
+		return repository.WithEvalLock(ctx, options.runID, func(locked context.Context) error {
+			return amendBaseline(locked, options, reader, repository, client, output)
+		})
 	case "freeze":
 		return repository.WithEvalLock(ctx, options.runID, func(locked context.Context) error {
 			return freezePaired(locked, options, reader, repository, client, output)
@@ -236,9 +242,6 @@ func pilot(ctx context.Context, options command, reader config.Reader, repositor
 	if _, err = memoryBytes(ctx); err != nil {
 		return err
 	}
-	if err = checkBaseline(ctx, reader); err != nil {
-		return err
-	}
 	if err = checkClock(ctx); err != nil {
 		return err
 	}
@@ -247,6 +250,16 @@ func pilot(ctx context.Context, options command, reader config.Reader, repositor
 	if err != nil || record.Scenario.ID != options.scenario {
 		return fmt.Errorf("没有匹配本次场景的恢复记录，请先注入并验证")
 	}
+	want, err := scenarioLoad(options.scenario)
+	if err != nil {
+		return err
+	}
+	loadContext, stopLoad, err := guardLoad(ctx, func(checkContext context.Context) error { return checkLoad(checkContext, reader, want) })
+	if err != nil {
+		return err
+	}
+	defer stopLoad()
+	ctx = loadContext
 	if slot.Key != "" && !slot.FaultStartedAt.Equal(record.Started.UTC().Truncate(time.Microsecond)) {
 		return fmt.Errorf("当前故障已不是原来的那次注入，不能把旧诊断拼进新实验")
 	}

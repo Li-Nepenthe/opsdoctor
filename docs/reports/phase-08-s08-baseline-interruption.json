@@ -1,0 +1,33 @@
+{
+  "interruption": {
+    "id": 8,
+    "state": "diagnosing",
+    "reason": "评测基线要求 10000 商品、200 QPS、64 工作者，实际是 10000、400、64；请先恢复基线",
+    "run_id": "phase08-formal-20261029",
+    "scenario": "S08",
+    "iteration": 1,
+    "created_at_utc": "2026-10-29T19:06:18.389026Z"
+  },
+  "result_slots": {
+    "s08_result_slots": 0
+  },
+  "completed_trials": {
+    "completed_trials": 21
+  },
+  "snapshot_at_utc": "2026-10-29T19:08:29.347449+00:00",
+  "runtime_provider": "mock",
+  "runtime_model": "mock-script-v1",
+  "loadgen_settings": {
+    "qps": 200,
+    "hot_sku_id": 0,
+    "product_count": 10000,
+    "workers": 64
+  },
+  "formal_cost_micros": {
+    "USD": 1739349,
+    "CNY": 2423113
+  },
+  "s08_new_model_cost_micros": 0,
+  "restore_at_utc": "2026-10-29T19:08:29.167795Z",
+  "source_changes_approved": false
+}

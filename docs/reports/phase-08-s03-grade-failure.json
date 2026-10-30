@@ -1,0 +1,22 @@
+{
+  "slot": "phase08-formal-20261029/S03/1/primary-E3",
+  "attempt_id": "9e98326704bfe4ceb422c41fb7830467",
+  "status": "failed",
+  "error": "评分 JSON 格式不合法",
+  "explanation": "arguments是合法JSON，但第三项包含schema未允许的note字段；DisallowUnknownFields拒绝。原返回和费用不改写。",
+  "cost_CNY": 0.015312,
+  "usage": {
+    "total_tokens": 14343,
+    "prompt_tokens": 13853,
+    "completion_tokens": 490,
+    "prompt_tokens_details": {
+      "cached_tokens": 512
+    },
+    "prompt_cache_hit_tokens": 512,
+    "prompt_cache_miss_tokens": 13341
+  },
+  "finish_reasons": [
+    "tool_calls"
+  ],
+  "original_location": "原响应保存在医生数据库；公开附件只给结构检查结论与费用，不复制完整模型文本。"
+}

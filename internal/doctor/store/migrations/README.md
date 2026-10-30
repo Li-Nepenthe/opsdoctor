@@ -46,6 +46,8 @@
 | 0038_eval_interruptions.sql | 每次暂停追加一条原因，后续成功也保留原失败 |
 | 0039_eval_calibration.sql | 固定第一次抽中的二十份报告，重复导出不重新挑选 |
 | 0040_eval_clock_amendments.sql | 独立保存用户批准的校时修订和指定取消任务的一次补跑许可，原冻结清单不改写 |
+| 0041_eval_baseline_amendments.sql | 保存用户批准的流量检查修订、原中断和原轮次，只有尚无模型槽位的轮次可以重新注入 |
+| 0042_eval_execution_audits.sql | 每次运行、轮次阶段和模型槽位开始前追加实际代码版本，不给旧报告回填新版本 |
 
 任务结束与故障恢复是两件事。阶段 6 不再用 active_group 判断故障开放期，而用 alert_groups 保存整组恢复和最近通知时间。旧列保留以兼容已有迁移，后续没有拿它创建第二套去重规则。
 

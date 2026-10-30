@@ -12,9 +12,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"math"
-	"net/http"
 	"os/exec"
 	"strconv"
 	"strings"
@@ -25,38 +23,7 @@ import (
 
 // checkBaseline 只发送无凭据的 GET，不把医生登录令牌带到压测器。
 func checkBaseline(ctx context.Context, reader config.Reader) error {
-	// 读取正在工作的压测器，防止重建后配置悄悄回到五十万商品。
-	base, err := reader.String("LOADGEN_CONTROL_URL", "http://127.0.0.1:6070")
-	if err != nil {
-		return err
-	}
-	request, err := http.NewRequestWithContext(ctx, "GET", strings.TrimRight(base, "/")+"/control", nil)
-	if err != nil {
-		return fmt.Errorf("loadgen 控制地址不合法")
-	}
-	client := &http.Client{Timeout: 5 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
-	response, err := client.Do(request)
-	if err != nil {
-		return fmt.Errorf("无法读取 loadgen 活跃配置")
-	}
-	defer response.Body.Close()
-	var value struct {
-		Data struct {
-			Settings struct {
-				QPS      int `json:"qps"`
-				Products int `json:"product_count"`
-				Workers  int `json:"workers"`
-			} `json:"settings"`
-		} `json:"data"`
-	}
-	if response.StatusCode != 200 || json.NewDecoder(io.LimitReader(response.Body, 65536)).Decode(&value) != nil {
-		return fmt.Errorf("loadgen 没有返回有效配置")
-	}
-	actual := value.Data.Settings
-	if actual.QPS != 200 || actual.Products != 10000 || actual.Workers != 64 {
-		return fmt.Errorf("评测基线要求 10000 商品、200 QPS、64 工作者，实际是 %d、%d、%d；请先恢复基线", actual.Products, actual.QPS, actual.Workers)
-	}
-	return nil
+	return checkLoad(ctx, reader, normalLoad())
 }
 
 // memoryBytes 在试跑和等待中重复检查；不根据容器上限之和猜测实际占用。

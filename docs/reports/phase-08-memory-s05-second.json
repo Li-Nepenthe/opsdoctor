@@ -1,0 +1,102 @@
+{
+  "time_utc": "2026-10-29T17:38:07.261174+00:00",
+  "project_containers": 19,
+  "total_GiB": 4.49851953125,
+  "containers": [
+    {
+      "name": "opsdoctor-alertmanager-1",
+      "memory": "13.51MiB / 64MiB",
+      "GiB": 0.013193359375
+    },
+    {
+      "name": "opsdoctor-alloy-1",
+      "memory": "187MiB / 256MiB",
+      "GiB": 0.1826171875
+    },
+    {
+      "name": "opsdoctor-doctor-1",
+      "memory": "35.32MiB / 256MiB",
+      "GiB": 0.0344921875
+    },
+    {
+      "name": "opsdoctor-doctor-mysql-1",
+      "memory": "373.7MiB / 512MiB",
+      "GiB": 0.36494140625
+    },
+    {
+      "name": "opsdoctor-grafana-1",
+      "memory": "143.7MiB / 256MiB",
+      "GiB": 0.14033203125
+    },
+    {
+      "name": "opsdoctor-inventory-service-1",
+      "memory": "17.9MiB / 128MiB",
+      "GiB": 0.01748046875
+    },
+    {
+      "name": "opsdoctor-jaeger-1",
+      "memory": "370.4MiB / 1GiB",
+      "GiB": 0.36171875
+    },
+    {
+      "name": "opsdoctor-kafka-1",
+      "memory": "858.2MiB / 1GiB",
+      "GiB": 0.8380859375
+    },
+    {
+      "name": "opsdoctor-kafka-exporter-1",
+      "memory": "25.01MiB / 64MiB",
+      "GiB": 0.024423828125
+    },
+    {
+      "name": "opsdoctor-loadgen-1",
+      "memory": "29.23MiB / 128MiB",
+      "GiB": 0.028544921875
+    },
+    {
+      "name": "opsdoctor-loki-1",
+      "memory": "412.7MiB / 512MiB",
+      "GiB": 0.40302734375
+    },
+    {
+      "name": "opsdoctor-mysqld-exporter-1",
+      "memory": "16.8MiB / 64MiB",
+      "GiB": 0.01640625
+    },
+    {
+      "name": "opsdoctor-order-service-1",
+      "memory": "22.98MiB / 256MiB",
+      "GiB": 0.02244140625
+    },
+    {
+      "name": "opsdoctor-order-worker-1",
+      "memory": "27.71MiB / 128MiB",
+      "GiB": 0.027060546875
+    },
+    {
+      "name": "opsdoctor-prometheus-1",
+      "memory": "107.5MiB / 512MiB",
+      "GiB": 0.10498046875
+    },
+    {
+      "name": "opsdoctor-redis-1",
+      "memory": "631.3MiB / 2.5GiB",
+      "GiB": 0.61650390625
+    },
+    {
+      "name": "opsdoctor-redis-exporter-1",
+      "memory": "16.66MiB / 64MiB",
+      "GiB": 0.01626953125
+    },
+    {
+      "name": "opsdoctor-shop-mysql-1",
+      "memory": "1.251GiB / 1.5GiB",
+      "GiB": 1.251
+    },
+    {
+      "name": "opsdoctor-toxiproxy-1",
+      "memory": "35.84MiB / 128MiB",
+      "GiB": 0.035
+    }
+  ]
+}

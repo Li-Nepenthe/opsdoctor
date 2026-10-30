@@ -233,7 +233,17 @@ func matrix(parent context.Context, options command, reader config.Reader, repos
 	if err != nil || record.Scenario.ID != options.scenario {
 		return fmt.Errorf("当前没有匹配的真实故障记录")
 	}
-	if err = checkBaseline(ctx, reader); err != nil {
+	want, err := scenarioLoad(options.scenario)
+	if err != nil {
+		return err
+	}
+	loadContext, stopLoad, err := guardLoad(ctx, func(checkContext context.Context) error { return checkLoad(checkContext, reader, want) })
+	if err != nil {
+		return err
+	}
+	defer stopLoad()
+	ctx = loadContext
+	if err = recordEvaluator(ctx, options, repository, "matrix", ""); err != nil {
 		return err
 	}
 	if _, err = memoryBytes(ctx); err != nil {
@@ -259,8 +269,22 @@ func matrix(parent context.Context, options command, reader config.Reader, repos
 	}
 	for index, slot := range slots {
 		configuration := order.Configurations[index]
-		if err = executeSlot(ctx, options, configuration, slot, record.Scenario, repository, client, grader, output); err != nil {
+		// 付费前再同步核对一次，组间的参数改变不必等下一次周期检查。
+		if err = checkLoad(ctx, reader, want); err != nil {
 			return err
+		}
+		if err = recordEvaluator(ctx, options, repository, "slot", slot.Key); err != nil {
+			return err
+		}
+		if err = executeSlot(ctx, options, configuration, slot, record.Scenario, repository, client, grader, output); err != nil {
+			if ctx.Err() != nil {
+				return context.Cause(ctx)
+			}
+			return err
+		}
+		// 评分失败会留档后返回；若根因是流量守卫取消，整轮仍必须暂停。
+		if ctx.Err() != nil {
+			return context.Cause(ctx)
 		}
 	}
 	fmt.Fprintf(output, "%s 第 %d 轮五配置已记录；请恢复场景并等待 healthy 与故障开放期结束。\n", options.scenario, options.iteration)
