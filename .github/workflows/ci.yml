@@ -296,11 +296,11 @@ jobs:
           assert status['provider'] == 'mock' and status['budget']['spent_micros'] == 0
           print('医生登录、十六项菜单、三种工具、四次通知仅一个任务、Mock报告与SSE补发通过；真实费用0')
           PY
-      - name: 五轮独立全新卷冷启动与真实消费
+      - name: 五轮独立全新卷冷启动、真实消费与日志
         run: |
           go build -o "$RUNNER_TEMP/shopctl" ./cmd/shopctl
           python3 - <<'PY'
-          import json, os, subprocess, time, urllib.request, uuid
+          import json, os, subprocess, time, urllib.parse, urllib.request, uuid
           from pathlib import Path
 
           temporary = Path(os.environ['RUNNER_TEMP'])
@@ -345,7 +345,10 @@ jobs:
                   assert {item['Service'] for item in containers} == expected, state
                   assert all(item['State'] == 'running' and item.get('Health', '') in ['', 'healthy'] for item in containers), state
                   run([binary, 'seed', '--small'])
-                  request = urllib.request.Request('http://127.0.0.1:8081/orders', data=json.dumps({'user_id': 990000003, 'sku_id': 99, 'quantity': 1}).encode(), headers={'Content-Type': 'application/json', 'Idempotency-Key': 'cold-' + uuid.uuid4().hex})
+                  # 强制采样让同一订单跨 HTTP、gRPC、Kafka 的 trace 与日志都能被追踪。
+                  trace_id = uuid.uuid4().hex
+                  record['trace_id'] = trace_id
+                  request = urllib.request.Request('http://127.0.0.1:8081/orders', data=json.dumps({'user_id': 990000003, 'sku_id': 99, 'quantity': 1}).encode(), headers={'Content-Type': 'application/json', 'Idempotency-Key': 'cold-' + uuid.uuid4().hex, 'traceparent': '00-' + trace_id + '-1234567890abcdef-01'})
                   with urllib.request.urlopen(request, timeout=10) as response:
                       order = json.load(response)
                       assert response.status == 201 and order['data']['order_id'] > 0, order
@@ -358,6 +361,27 @@ jobs:
                           break
                       assert time.monotonic() < deadline, check.stdout + check.stderr
                       time.sleep(1)
+                  # 独立项目名必须同时接通 Alloy；只证明消费成功会漏掉旧项目标签的过滤错误。
+                  log_started = time.monotonic()
+                  log_deadline = log_started + 90
+                  required_services = {'order-service', 'inventory-service', 'order-worker'}
+                  log_services = set()
+                  last_log_error = ''
+                  expression = '{service=~"order-service|inventory-service|order-worker"} | json | trace_id="' + trace_id + '"'
+                  query = urllib.parse.urlencode({'query': expression, 'since': '5m', 'limit': 100})
+                  while True:
+                      try:
+                          with urllib.request.urlopen('http://127.0.0.1:3100/loki/api/v1/query_range?' + query, timeout=5) as response:
+                              streams = json.load(response)['data']['result']
+                          log_services = {stream['stream']['service'] for stream in streams}
+                      except Exception as error:
+                          last_log_error = str(error)
+                      record['log_services'] = sorted(log_services)
+                      record['log_check_seconds'] = round(time.monotonic() - log_started, 3)
+                      if required_services <= log_services:
+                          break
+                      assert time.monotonic() < log_deadline, {'trace_id': trace_id, 'log_services': sorted(log_services), 'last_error': last_log_error}
+                      time.sleep(2)
                   record['status'] = 'passed'
                   record['order_id'] = order['data']['order_id']
               finally:
@@ -366,7 +390,7 @@ jobs:
                       output.write(json.dumps(record) + '\n')
                   print('COLD_RESULT ' + json.dumps(record), flush=True)
                   # 成功和失败都保留真实状态/启动日志，失败收集步骤还会把对应项目日志写到 CI 输出。
-                  for suffix, arguments in [('ps', ['ps', '--all']), ('startup', ['logs', '--no-color', '--timestamps', '--tail', '500', 'shop-mysql', 'order-worker', 'kafka'])]:
+                  for suffix, arguments in [('ps', ['ps', '--all']), ('startup', ['logs', '--no-color', '--timestamps', '--tail', '500', 'shop-mysql', 'order-worker', 'kafka', 'alloy', 'loki'])]:
                       with (temporary / (project + '-' + suffix + '.log')).open('w') as output:
                           subprocess.run(command + arguments, env=environment, stdout=output, stderr=subprocess.STDOUT, text=True, check=False)
                   run(command + ['stop'])
@@ -377,11 +401,11 @@ jobs:
         # 每个冷启动项目都要列出；仅看默认项目会漏掉真正失败的那一轮。
         run: |
           docker compose --env-file .env -f deploy/docker-compose.yml ps --all
-          docker compose --env-file .env -f deploy/docker-compose.yml logs --no-color --tail 100 shop-mysql order-worker kafka
+          docker compose --env-file .env -f deploy/docker-compose.yml logs --no-color --tail 100 shop-mysql order-worker kafka alloy loki
           if [ -f "$RUNNER_TEMP/cold-projects.txt" ]; then
             while IFS= read -r project; do
               docker compose --env-file .env -f deploy/docker-compose.yml -p "$project" ps --all
-              docker compose --env-file .env -f deploy/docker-compose.yml -p "$project" logs --no-color --timestamps --tail 500 shop-mysql order-worker kafka
+              docker compose --env-file .env -f deploy/docker-compose.yml -p "$project" logs --no-color --timestamps --tail 500 shop-mysql order-worker kafka alloy loki
             done < "$RUNNER_TEMP/cold-projects.txt"
             cat "$RUNNER_TEMP/cold-results.jsonl"
           fi

@@ -4,7 +4,8 @@ discovery.docker "shop" {
   refresh_interval = "5s"
   filter {
     name = "label"
-    values = ["com.docker.compose.project=opsdoctor"]
+    // Compose 会把最终项目名注入环境；使用 -p 隔离验收时，也只收集这套项目的日志。
+    values = ["com.docker.compose.project=" + sys.env("COMPOSE_PROJECT_NAME")]
   }
 }
 

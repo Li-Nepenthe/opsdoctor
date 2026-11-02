@@ -326,6 +326,8 @@ services:
   alloy:
     image: grafana/alloy:v1.21.2
     command: ["run", "--server.http.listen-addr=0.0.0.0:12345", "--storage.path=/var/lib/alloy", "--disable-reporting", "/etc/alloy/config.alloy"]
+    environment:
+      COMPOSE_PROJECT_NAME: ${COMPOSE_PROJECT_NAME} # 内置值跟随最终 -p/name，日志发现不能写死默认项目名。
     volumes:
       - ./alloy/config.alloy:/etc/alloy/config.alloy:ro
       - /var/run/docker.sock:/var/run/docker.sock:ro
