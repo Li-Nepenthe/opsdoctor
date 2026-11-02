@@ -140,5 +140,15 @@
   "original_defaults": "LLM_PROVIDER=mock; EVAL_COMPARISON_ENABLED=false",
   "git_blob_reproduction": true,
   "known_credential_scan_files": 33,
-  "known_real_credential_matches": 0
+  "known_real_credential_matches": 0,
+  "ci_first_attempt": {
+    "run_id": 41447608555,
+    "commit": "fc7023c462b8ce2ea3f3be361004d87a09886816",
+    "conclusion": "failure",
+    "duration_seconds": 437,
+    "step": "启动固定版本基础设施并等待健康",
+    "observation": "order-worker exited 1; no worker logs in original diagnostics",
+    "root_cause": "unknown",
+    "url": "https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41447608555"
+  }
 }

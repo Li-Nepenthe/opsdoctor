@@ -289,10 +289,11 @@ jobs:
           PY
       - name: 失败时记录容器状态
         if: failure()
-        # CI 只使用 .env.example 的演示凭据；保留初始化日志，才能定位空数据卷启动失败。
+        # 消费者可能在数据库或 Kafka 初始化时退出；只看 MySQL 日志会漏掉真正的错误。
+        # CI 只使用 .env.example 的演示凭据，三个相关服务各保留最后一百行即可核对启动过程。
         run: |
           docker compose --env-file .env -f deploy/docker-compose.yml ps --all
-          docker compose --env-file .env -f deploy/docker-compose.yml logs --no-color --tail 100 shop-mysql
+          docker compose --env-file .env -f deploy/docker-compose.yml logs --no-color --tail 100 shop-mysql order-worker kafka
       - name: 关闭 CI 的临时容器
         if: always()
         # 不删除用户数据：这是 CI runner 的独立项目，并且不使用 down -v。
