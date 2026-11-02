@@ -1,0 +1,327 @@
+{
+  "code": "c246734337e6ae481aa94fd3e8870296658e08f3",
+  "original_container_count": 21,
+  "comparison_fields": [
+    "ID",
+    "Names",
+    "State",
+    "Mounts"
+  ],
+  "original_container_ids_unchanged": true,
+  "original_states_and_mounts_unchanged": true,
+  "original_volume_count": 22,
+  "removed_original_volumes": [],
+  "stage8_volume_preserved": true,
+  "retained_test_projects": {
+    "opsdoctor-cold-cpu010-20261102": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-cpu010-20261102_alertmanager-data",
+        "opsdoctor-cold-cpu010-20261102_alloy-data",
+        "opsdoctor-cold-cpu010-20261102_doctor-mysql-data",
+        "opsdoctor-cold-cpu010-20261102_grafana-data",
+        "opsdoctor-cold-cpu010-20261102_kafka-data",
+        "opsdoctor-cold-cpu010-20261102_loki-data",
+        "opsdoctor-cold-cpu010-20261102_prometheus-data",
+        "opsdoctor-cold-cpu010-20261102_redis-data",
+        "opsdoctor-cold-cpu010-20261102_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-cpu025-20261102": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-cpu025-20261102_alertmanager-data",
+        "opsdoctor-cold-cpu025-20261102_alloy-data",
+        "opsdoctor-cold-cpu025-20261102_doctor-mysql-data",
+        "opsdoctor-cold-cpu025-20261102_grafana-data",
+        "opsdoctor-cold-cpu025-20261102_kafka-data",
+        "opsdoctor-cold-cpu025-20261102_loki-data",
+        "opsdoctor-cold-cpu025-20261102_prometheus-data",
+        "opsdoctor-cold-cpu025-20261102_redis-data",
+        "opsdoctor-cold-cpu025-20261102_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-fixed-final-20261102-1": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-fixed-final-20261102-1_alertmanager-data",
+        "opsdoctor-cold-fixed-final-20261102-1_alloy-data",
+        "opsdoctor-cold-fixed-final-20261102-1_doctor-mysql-data",
+        "opsdoctor-cold-fixed-final-20261102-1_grafana-data",
+        "opsdoctor-cold-fixed-final-20261102-1_kafka-data",
+        "opsdoctor-cold-fixed-final-20261102-1_loki-data",
+        "opsdoctor-cold-fixed-final-20261102-1_prometheus-data",
+        "opsdoctor-cold-fixed-final-20261102-1_redis-data",
+        "opsdoctor-cold-fixed-final-20261102-1_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-fixed-final-20261102-2": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-fixed-final-20261102-2_alertmanager-data",
+        "opsdoctor-cold-fixed-final-20261102-2_alloy-data",
+        "opsdoctor-cold-fixed-final-20261102-2_doctor-mysql-data",
+        "opsdoctor-cold-fixed-final-20261102-2_grafana-data",
+        "opsdoctor-cold-fixed-final-20261102-2_kafka-data",
+        "opsdoctor-cold-fixed-final-20261102-2_loki-data",
+        "opsdoctor-cold-fixed-final-20261102-2_prometheus-data",
+        "opsdoctor-cold-fixed-final-20261102-2_redis-data",
+        "opsdoctor-cold-fixed-final-20261102-2_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-fixed-final-20261102-3": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-fixed-final-20261102-3_alertmanager-data",
+        "opsdoctor-cold-fixed-final-20261102-3_alloy-data",
+        "opsdoctor-cold-fixed-final-20261102-3_doctor-mysql-data",
+        "opsdoctor-cold-fixed-final-20261102-3_grafana-data",
+        "opsdoctor-cold-fixed-final-20261102-3_kafka-data",
+        "opsdoctor-cold-fixed-final-20261102-3_loki-data",
+        "opsdoctor-cold-fixed-final-20261102-3_prometheus-data",
+        "opsdoctor-cold-fixed-final-20261102-3_redis-data",
+        "opsdoctor-cold-fixed-final-20261102-3_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-fixed-final-20261102-4": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-fixed-final-20261102-4_alertmanager-data",
+        "opsdoctor-cold-fixed-final-20261102-4_alloy-data",
+        "opsdoctor-cold-fixed-final-20261102-4_doctor-mysql-data",
+        "opsdoctor-cold-fixed-final-20261102-4_grafana-data",
+        "opsdoctor-cold-fixed-final-20261102-4_kafka-data",
+        "opsdoctor-cold-fixed-final-20261102-4_loki-data",
+        "opsdoctor-cold-fixed-final-20261102-4_prometheus-data",
+        "opsdoctor-cold-fixed-final-20261102-4_redis-data",
+        "opsdoctor-cold-fixed-final-20261102-4_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-fixed-final-20261102-5": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-fixed-final-20261102-5_alertmanager-data",
+        "opsdoctor-cold-fixed-final-20261102-5_alloy-data",
+        "opsdoctor-cold-fixed-final-20261102-5_doctor-mysql-data",
+        "opsdoctor-cold-fixed-final-20261102-5_grafana-data",
+        "opsdoctor-cold-fixed-final-20261102-5_kafka-data",
+        "opsdoctor-cold-fixed-final-20261102-5_loki-data",
+        "opsdoctor-cold-fixed-final-20261102-5_prometheus-data",
+        "opsdoctor-cold-fixed-final-20261102-5_redis-data",
+        "opsdoctor-cold-fixed-final-20261102-5_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-offset500-20261102": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-offset500-20261102_alertmanager-data",
+        "opsdoctor-cold-offset500-20261102_alloy-data",
+        "opsdoctor-cold-offset500-20261102_doctor-mysql-data",
+        "opsdoctor-cold-offset500-20261102_grafana-data",
+        "opsdoctor-cold-offset500-20261102_kafka-data",
+        "opsdoctor-cold-offset500-20261102_loki-data",
+        "opsdoctor-cold-offset500-20261102_prometheus-data",
+        "opsdoctor-cold-offset500-20261102_redis-data",
+        "opsdoctor-cold-offset500-20261102_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-offset500-fixed-20261102": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-offset500-fixed-20261102_alertmanager-data",
+        "opsdoctor-cold-offset500-fixed-20261102_alloy-data",
+        "opsdoctor-cold-offset500-fixed-20261102_doctor-mysql-data",
+        "opsdoctor-cold-offset500-fixed-20261102_grafana-data",
+        "opsdoctor-cold-offset500-fixed-20261102_kafka-data",
+        "opsdoctor-cold-offset500-fixed-20261102_loki-data",
+        "opsdoctor-cold-offset500-fixed-20261102_prometheus-data",
+        "opsdoctor-cold-offset500-fixed-20261102_redis-data",
+        "opsdoctor-cold-offset500-fixed-20261102_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-offset500-fixed-final-20261102": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-offset500-fixed-final-20261102_alertmanager-data",
+        "opsdoctor-cold-offset500-fixed-final-20261102_alloy-data",
+        "opsdoctor-cold-offset500-fixed-final-20261102_doctor-mysql-data",
+        "opsdoctor-cold-offset500-fixed-final-20261102_grafana-data",
+        "opsdoctor-cold-offset500-fixed-final-20261102_kafka-data",
+        "opsdoctor-cold-offset500-fixed-final-20261102_loki-data",
+        "opsdoctor-cold-offset500-fixed-final-20261102_prometheus-data",
+        "opsdoctor-cold-offset500-fixed-final-20261102_redis-data",
+        "opsdoctor-cold-offset500-fixed-final-20261102_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-repro-20261102": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-repro-20261102_alertmanager-data",
+        "opsdoctor-cold-repro-20261102_alloy-data",
+        "opsdoctor-cold-repro-20261102_doctor-mysql-data",
+        "opsdoctor-cold-repro-20261102_grafana-data",
+        "opsdoctor-cold-repro-20261102_kafka-data",
+        "opsdoctor-cold-repro-20261102_loki-data",
+        "opsdoctor-cold-repro-20261102_prometheus-data",
+        "opsdoctor-cold-repro-20261102_redis-data",
+        "opsdoctor-cold-repro-20261102_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-repro-20261102-2": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-repro-20261102-2_alertmanager-data",
+        "opsdoctor-cold-repro-20261102-2_alloy-data",
+        "opsdoctor-cold-repro-20261102-2_doctor-mysql-data",
+        "opsdoctor-cold-repro-20261102-2_grafana-data",
+        "opsdoctor-cold-repro-20261102-2_kafka-data",
+        "opsdoctor-cold-repro-20261102-2_loki-data",
+        "opsdoctor-cold-repro-20261102-2_prometheus-data",
+        "opsdoctor-cold-repro-20261102-2_redis-data",
+        "opsdoctor-cold-repro-20261102-2_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-repro-20261102-3": {
+      "containers": 3,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-repro-20261102-3_kafka-data",
+        "opsdoctor-cold-repro-20261102-3_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-repro-20261102-4": {
+      "containers": 3,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-repro-20261102-4_kafka-data",
+        "opsdoctor-cold-repro-20261102-4_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-repro-20261102-5": {
+      "containers": 3,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-repro-20261102-5_kafka-data",
+        "opsdoctor-cold-repro-20261102-5_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-repro-20261102-6": {
+      "containers": 3,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-repro-20261102-6_kafka-data",
+        "opsdoctor-cold-repro-20261102-6_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-repro-20261102-7": {
+      "containers": 3,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-repro-20261102-7_kafka-data",
+        "opsdoctor-cold-repro-20261102-7_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-cold-repro-20261102-8": {
+      "containers": 3,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-cold-repro-20261102-8_kafka-data",
+        "opsdoctor-cold-repro-20261102-8_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-fresh": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-fresh_alertmanager-data",
+        "opsdoctor-fresh_alloy-data",
+        "opsdoctor-fresh_doctor-mysql-data",
+        "opsdoctor-fresh_grafana-data",
+        "opsdoctor-fresh_kafka-data",
+        "opsdoctor-fresh_loki-data",
+        "opsdoctor-fresh_prometheus-data",
+        "opsdoctor-fresh_redis-data",
+        "opsdoctor-fresh_shop-mysql-data"
+      ]
+    },
+    "opsdoctor-fresh-final": {
+      "containers": 19,
+      "states": [
+        "exited"
+      ],
+      "retained_volumes": [
+        "opsdoctor-fresh-final_alertmanager-data",
+        "opsdoctor-fresh-final_alloy-data",
+        "opsdoctor-fresh-final_doctor-mysql-data",
+        "opsdoctor-fresh-final_grafana-data",
+        "opsdoctor-fresh-final_kafka-data",
+        "opsdoctor-fresh-final_loki-data",
+        "opsdoctor-fresh-final_prometheus-data",
+        "opsdoctor-fresh-final_redis-data",
+        "opsdoctor-fresh-final_shop-mysql-data"
+      ]
+    }
+  },
+  "static_validation_container": {
+    "name": "opsdoctor-alloy-config-validate",
+    "volumes": 0,
+    "state": "exited",
+    "exit_code": 0
+  },
+  "running_after": [
+    "qq-astrbot",
+    "qq-napcat"
+  ],
+  "image_tag_limit": "按README构建复用全局Go镜像标签；旧容器ID/挂载/状态不变，但不声称镜像标签映射不变。",
+  "data_limit": "原数据库未启动或读写，未逐字节校验数据文件；所有测试卷保留，未执行删除或prune。"
+}

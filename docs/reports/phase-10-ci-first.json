@@ -1,0 +1,202 @@
+{
+  "run_id": 41458417476,
+  "url": "https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41458417476",
+  "head": "5806a7ea5020c5b471671b4469e74c074e06ca0f",
+  "conclusion": "success",
+  "created_at": "2026-11-02T14:03:55Z",
+  "updated_at": "2026-11-02T14:17:06Z",
+  "primary_cold_start": {
+    "code": "5806a7ea5020c5b471671b4469e74c074e06ca0f",
+    "exit_code": 0,
+    "seconds": 337.594,
+    "includes": "镜像拉取、构建与默认项目首次启动"
+  },
+  "five_cold_starts": [
+    {
+      "round": 1,
+      "project": "opsdoctor-cold-41458417476-1",
+      "code": "5806a7ea5020c5b471671b4469e74c074e06ca0f",
+      "status": "passed",
+      "healthy_seconds": 28.499,
+      "order_id": 401,
+      "total_seconds": 48.841
+    },
+    {
+      "round": 2,
+      "project": "opsdoctor-cold-41458417476-2",
+      "code": "5806a7ea5020c5b471671b4469e74c074e06ca0f",
+      "status": "passed",
+      "healthy_seconds": 28.386,
+      "order_id": 401,
+      "total_seconds": 48.697
+    },
+    {
+      "round": 3,
+      "project": "opsdoctor-cold-41458417476-3",
+      "code": "5806a7ea5020c5b471671b4469e74c074e06ca0f",
+      "status": "passed",
+      "healthy_seconds": 33.531,
+      "order_id": 401,
+      "total_seconds": 53.847
+    },
+    {
+      "round": 4,
+      "project": "opsdoctor-cold-41458417476-4",
+      "code": "5806a7ea5020c5b471671b4469e74c074e06ca0f",
+      "status": "passed",
+      "healthy_seconds": 28.219,
+      "order_id": 401,
+      "total_seconds": 48.526
+    },
+    {
+      "round": 5,
+      "project": "opsdoctor-cold-41458417476-5",
+      "code": "5806a7ea5020c5b471671b4469e74c074e06ca0f",
+      "status": "passed",
+      "healthy_seconds": 33.527,
+      "order_id": 401,
+      "total_seconds": 53.847
+    }
+  ],
+  "meaning": "原版部署在全新runner和五个独立项目上通过；尚未定位历史CI故障，不冒称已经修复。",
+  "steps": [
+    {
+      "name": "Set up job",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:03:59Z",
+      "completed_at": "2026-11-02T14:04:00Z"
+    },
+    {
+      "name": "Run actions/checkout@v7.0.1",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:04:00Z",
+      "completed_at": "2026-11-02T14:04:01Z"
+    },
+    {
+      "name": "Run actions/setup-go@v7.0.0",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:04:01Z",
+      "completed_at": "2026-11-02T14:04:20Z"
+    },
+    {
+      "name": "检查格式",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:04:20Z",
+      "completed_at": "2026-11-02T14:04:20Z"
+    },
+    {
+      "name": "检查模块文件没有遗漏",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:04:20Z",
+      "completed_at": "2026-11-02T14:04:20Z"
+    },
+    {
+      "name": "Vet",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:04:20Z",
+      "completed_at": "2026-11-02T14:04:28Z"
+    },
+    {
+      "name": "Staticcheck",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:04:28Z",
+      "completed_at": "2026-11-02T14:04:48Z"
+    },
+    {
+      "name": "注释和架构",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:04:48Z",
+      "completed_at": "2026-11-02T14:04:48Z"
+    },
+    {
+      "name": "单元测试与竞态检查（无外部依赖）",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:04:48Z",
+      "completed_at": "2026-11-02T14:05:36Z"
+    },
+    {
+      "name": "检查另一构建版本能编译",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:05:36Z",
+      "completed_at": "2026-11-02T14:05:38Z"
+    },
+    {
+      "name": "启动固定版本基础设施并等待健康",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:05:38Z",
+      "completed_at": "2026-11-02T14:11:17Z"
+    },
+    {
+      "name": "MySQL 和 Redis 集成测试与竞态检查",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:11:17Z",
+      "completed_at": "2026-11-02T14:11:42Z"
+    },
+    {
+      "name": "库存服务与 small 造数冒烟",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:11:42Z",
+      "completed_at": "2026-11-02T14:11:44Z"
+    },
+    {
+      "name": "网络实验与恢复冒烟",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:11:44Z",
+      "completed_at": "2026-11-02T14:11:46Z"
+    },
+    {
+      "name": "订单 HTTP、幂等和消息冒烟",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:11:46Z",
+      "completed_at": "2026-11-02T14:11:57Z"
+    },
+    {
+      "name": "指标、调用链、日志和 Grafana 接线冒烟",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:11:57Z",
+      "completed_at": "2026-11-02T14:12:15Z"
+    },
+    {
+      "name": "医生登录、Mock诊断、SSE与告警去重冒烟",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:12:15Z",
+      "completed_at": "2026-11-02T14:12:23Z"
+    },
+    {
+      "name": "五轮独立全新卷冷启动与真实消费",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:12:23Z",
+      "completed_at": "2026-11-02T14:17:02Z"
+    },
+    {
+      "name": "失败时记录容器状态",
+      "conclusion": "skipped",
+      "started_at": "2026-11-02T14:17:02Z",
+      "completed_at": "2026-11-02T14:17:02Z"
+    },
+    {
+      "name": "关闭 CI 的临时容器",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:17:02Z",
+      "completed_at": "2026-11-02T14:17:02Z"
+    },
+    {
+      "name": "Post Run actions/setup-go@v7.0.0",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:17:02Z",
+      "completed_at": "2026-11-02T14:17:02Z"
+    },
+    {
+      "name": "Post Run actions/checkout@v7.0.1",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:17:02Z",
+      "completed_at": "2026-11-02T14:17:03Z"
+    },
+    {
+      "name": "Complete job",
+      "conclusion": "success",
+      "started_at": "2026-11-02T14:17:03Z",
+      "completed_at": "2026-11-02T14:17:03Z"
+    }
+  ]
+}

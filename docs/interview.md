@@ -528,7 +528,7 @@
 - 用一项具体能力与一项失败说明工程可信度：条件更新防超卖见台账 P1-1；S10 误判见 P8-149、P8-153、P8-157。
 - 最后明确边界：写操作人工审批、阶段 9 未做、交叉评分非人工校准、S12 未暴露。
 
-出处：[README](../README.md)、[架构](architecture.md)、[阶段 8 汇报](reports/phase-08-eval.md)。
+出处：[README](../README.md)、[架构](architecture.md)、[阶段 8 汇报](reports/phase-08-eval.md)。脚本实测见台账 P10-7：首次走查 189.890 秒、再次排练 152.167 秒，原始 [计时与接口证据](reports/phase-10-fresh-demo.json) 一起保留，不把首次较慢记录删掉。
 
 ### 10.2 用十五分钟讲清架构和关键取舍
 
@@ -817,6 +817,33 @@
 
 - 真实凭据只在环境变量，示例给假值；日志、报错、工具输出和提交前扫描都要检查泄露。
 - 结果归档保留真实失败和版本，阶段 8 原始数据库卷不能为了冷启动测试删除。
-- 新用户验证使用显式独立 Compose 项目与新卷，测试前后比对原容器和卷，保留现场便于审查。
+- 新用户验证使用显式独立 Compose 项目与新卷，测试前后比对原容器和卷；还要分别检查日志采集过滤与共用镜像标签，不能只看项目名。
 
-出处：[凭据读取](../internal/platform/config/config.go)、[Compose](../deploy/docker-compose.yml)、[阶段 8 汇报](reports/phase-08-eval.md)、[项目自身排障](troubleshooting.md)。
+出处：[凭据读取](../internal/platform/config/config.go)、[Compose](../deploy/docker-compose.yml)、[阶段 8 汇报](reports/phase-08-eval.md)、[项目自身排障](troubleshooting.md)。实际前后对照见台账 P10-8：原 19 个 OpsDoctor 与 2 个 QQ 容器 ID、挂载和状态不变，原卷删除 0；全局 Go 镜像标签更新，旧容器未重建，不声称原数据逐字节未变。
+
+### 项目9 worker 健康探针只 Ping 数据库，为什么还要真实消息验收？
+
+- Ping 证明数据库可达，不能证明 Kafka 就绪、主题可消费或消费者循环正常。
+- 受控原版实验中 Compose up 返回 0，随后观察发现 worker 因 Kafka 16 退出，台账 P10-10，说明一次健康快照会漏掉启动后的失败。
+- CI 在 healthy 后继续观察、创建真实订单并等待销量追平；修复 `364a889` 默认配置 5/5 新卷真实消费通过，台账 P10-13。
+- 数据库总量核对仍有局部错误互相抵消的局限，不能称为任意生产故障下的消息可靠性证明。
+
+出处：[当前 worker 探针](../internal/shop/app/orderworker/app.go)、[真实消费检查](../.github/workflows/ci.yml)、[阶段 10 汇报](reports/phase-10-showcase.md)、[复现日志](reports/phase-10-startup-root-cause.json)、[修复验收](reports/phase-10-startup-fix-validation.json)。
+
+### 项目10 怎样区分早期未复现、已证缺陷和历史未知？
+
+- 原 `f851460` 的前 10 轮未复现，台账 P10-6；停机遥测超时另记，不能拿早期成功或另一个错误编造根因。
+- 后来放大内部主题分区并限 CPU，实测协调器尚未加载时 Fetch 返回 Kafka 16，上层直接退出，台账 P10-10。
+- `364a889` 精确重试 Fetch 的 14、15、16，最多三次、可取消且复用 Reader；相同条件出现错误后继续消费，默认 5/5 新卷也通过，台账 P10-11、P10-13。
+- 这些证据证明已复现缺陷被修复；原 CI 缺 worker/Kafka 日志，不能证明当时与受控实验完全同根。保留证据边界比把未知补写成确定更可靠。
+
+出处：[原失败 CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41447608555)、[Fetch 恢复](../internal/shop/events/consumer.go)、[根因记录](reports/phase-10-startup-root-cause.json)、[修复对照](reports/phase-10-startup-fix-validation.json)、[阶段 10 汇报](reports/phase-10-showcase.md)。
+
+### 项目11 Compose 项目名不同，就代表完全隔离了吗？
+
+- 独立项目名使容器、网络和命名卷按项目区分，但应用里的硬编码过滤不会自动改变。
+- Alloy 原来写死 `opsdoctor`，独立项目会漏采自己的日志；`c246734` 改为按最终 `COMPOSE_PROJECT_NAME` 过滤。配置与最终新克隆三服务Loki验证均通过，见台账P10-17及[证据](reports/phase-10-log-isolation.json)。
+- 镜像标签在 Docker 中全局共用，构建更新标签不会自动重建原容器，但仍需如实记录这项变化，实测见台账 P10-8。
+- 因此验收要同时核对旧容器与卷、新项目真实消费及观测数据，不能把单一命名约定当作全部隔离证据。
+
+出处：[Compose 环境传入](../deploy/docker-compose.yml)、[Alloy 项目过滤](../deploy/alloy/config.alloy)、[阶段 10 汇报](reports/phase-10-showcase.md)、[原环境对照](reports/phase-10-docker-preservation.json)。

@@ -1,0 +1,54 @@
+{
+  "baseline": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+  "project": "opsdoctor-cold-offset500-20261102",
+  "parameters": {
+    "fresh_volumes": true,
+    "services": 19,
+    "provider": "mock",
+    "loadgen_qps": 0,
+    "kafka_cpu": 0.25,
+    "kafka_offsets_topic_num_partitions": 500,
+    "business_order_created_partitions": 3
+  },
+  "amplification_limit": "Kafka默认内部主题50分区放大到500且限CPU，非原CI默认条件；用于复现真实冷初始化错误路径。",
+  "compose_up_exit_code": 0,
+  "up_plus_observation_seconds": 124.4117838,
+  "observation_seconds": 20,
+  "states_before_stop": {
+    "order-worker": {
+      "name": "/opsdoctor-cold-offset500-20261102-order-worker-1",
+      "state": "exited",
+      "exit_code": 1,
+      "oom_killed": false,
+      "error": ""
+    },
+    "kafka": {
+      "name": "/opsdoctor-cold-offset500-20261102-kafka-1",
+      "state": "running",
+      "exit_code": 0,
+      "oom_killed": false,
+      "error": ""
+    },
+    "shop-mysql": {
+      "name": "/opsdoctor-cold-offset500-20261102-shop-mysql-1",
+      "state": "running",
+      "exit_code": 0,
+      "oom_killed": false,
+      "error": ""
+    }
+  },
+  "log_excerpts": [
+    "order-worker-1  | 2026-11-02T14:21:05.152600246Z {\"time\":\"2026-11-02T14:21:05.152337834Z\",\"level\":\"INFO\",\"msg\":\"订单消费者配置已加载\",\"service\":\"order-worker\",\"version\":\"20261026.1\",\"admin_addr\":\":6063\",\"group\":\"order-worker\",\"message_timeout\":\"10s\"}",
+    "order-worker-1  | 2026-11-02T14:21:05.152643047Z {\"time\":\"2026-11-02T14:21:05.152452039Z\",\"level\":\"INFO\",\"msg\":\"订单消费者已启动\",\"service\":\"order-worker\"}",
+    "order-worker-1  | 2026-11-02T14:21:15.256336951Z {\"time\":\"2026-11-02T14:21:15.25610454Z\",\"level\":\"INFO\",\"msg\":\"消费循环与管理入口已结束，准备关闭 Kafka 和数据库连接\",\"service\":\"order-worker\"}",
+    "order-worker-1  | 2026-11-02T14:21:15.256822374Z 订单消费者退出： 读取订单消息：[16] Not Coordinator For Group: the broker returns this error code if it receives an offset fetch or commit request for a group that it is not a coordinator for",
+    "kafka-1         | 2026-11-02T14:21:27.151381221Z [2026-11-02 14:21:27,151] INFO [GroupCoordinator id=1] Finished loading of metadata from __consumer_offsets-139 with epoch 0 in 0ms where 0ms was spent in the scheduler. Loaded 0 records which total to 0 bytes. (org.apache.kafka.coordinator.common.runtime.CoordinatorRuntime)"
+  ],
+  "raw_log_sha256": "d07d6aa55d550f229aa86746188b2d492d419a807883da4bdc70ee1f41da8130",
+  "raw_log_local": "TEMP/opsdoctor-phase10/offset500-worker-kafka-mysql.log",
+  "code_path": "internal/shop/events/consumer.go:77-84；kafka-go v0.4.51 reader.go Reader.run/FetchMessage、consumergroup.go Next/run",
+  "finding": "原消费者把FetchMessage的暂态协调器错误16立即返回，终止进程；此时同一个kafka.Reader后台仍会继续入组。Kafka稍后完成内部协调元数据加载，但进程已退出。不是MySQL错误、主题准备超时或OOM。",
+  "historical_ci_limit": "CI41447608555未保留worker或Kafka日志；无法直接证明当时就是错误16，不把受控复现追写为原CI确证根因。",
+  "fix_status": "受控条件中复现的缺陷已由364a889修复；相同放大配置恢复并消费成功，另有默认配置五轮通过。历史CI具体错误因缺日志仍不能证实。",
+  "fix_validation": "phase-10-startup-fix-validation.json"
+}

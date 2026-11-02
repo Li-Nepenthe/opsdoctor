@@ -1,0 +1,57 @@
+{
+  "scope": "最终修复源码本机工作区，保留但不提交用户两文件修改；干净分支另由CI验证",
+  "provider": "mock",
+  "cgo_enabled": true,
+  "checks": [
+    {
+      "exit_code": 0,
+      "check": "format",
+      "seconds": 0.0854021
+    },
+    {
+      "exit_code": 0,
+      "check": "vet",
+      "seconds": 1.5723974
+    },
+    {
+      "exit_code": 0,
+      "check": "staticcheck",
+      "seconds": 1.6444009
+    },
+    {
+      "exit_code": 0,
+      "check": "commentcheck",
+      "seconds": 0.1636412
+    },
+    {
+      "exit_code": 0,
+      "check": "archcheck",
+      "seconds": 0.3000871
+    },
+    {
+      "exit_code": 0,
+      "check": "race",
+      "seconds": 27.8873664
+    }
+  ],
+  "race": {
+    "passed": 906,
+    "top_level_passed": 272,
+    "skipped": 56,
+    "failed": 0
+  },
+  "commentcheck_files": 426,
+  "external_integration": "本地此次未注入TEST变量，外部测试跳过不计通过；专用库与完整接线由CI执行",
+  "protected_user_files_sha256": {
+    "docs/learn/phase-00-foundation.md": "DC0D4D5288D5D140E800F7E412680A1F0AB3AD0188026ECC1906FFD730EC306A",
+    "internal/shop/app/inventoryservice/app.go": "72265F52B1FA90182D0EA44BBA08936E913D3963CDF6B7FEA20854E164AAB1A5"
+  },
+  "source_files_sha256": {
+    "internal/shop/events/consumer.go": "753ef0047449bb8c1061107d91b96e24b8a5d9bd9602482bc1f26668deb36c12",
+    "internal/shop/events/consumer_test.go": "b800ea64696b435c1efa1926792fbea43c5e30c10707758de28c77baaf4678c0",
+    "internal/shop/events/consumer_fetch_test.go": "a6bcf091b7a51e38b1f1c5f587c1a756475cf23228f77cdf7337cb49507fb4d6",
+    "internal/shop/events/doc.go": "8e06a9d473aa8778d5a39de3693df06cbf59178ba73c95f44c28db7085ed76ea",
+    "internal/eval/report/markdown.go": "7da019463905c5123b798fd9fc457a1c8004a05d5285c2203e0774351837935f"
+  },
+  "code_commit": "364a889445711924f68c6f565afa3f40ca9b1173"
+}

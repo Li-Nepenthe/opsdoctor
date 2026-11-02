@@ -14,6 +14,46 @@
 
 清理时扫描 cmd、internal、tools 中 TODO/FIXME 和阶段占位，未发现待补的 TODO/FIXME。库存配置和 alertsink 的旧注释仍把已完成的能力写成未来阶段，按当前职责更新；shopctl 阅读顺序补上现有 check。alertsink 代码保留，因为阶段 3 学习材料和命令文档仍引用它，不能当作无用代码删除。冻结的医生提示、工具、手册、评分与场景不改。
 
+首轮本地检查：格式、vet、staticcheck、commentcheck（425 文件）、archcheck 全过；Mock race 264 顶层、895 含子例通过，56 个外部依赖测试跳过，0 失败。这轮在保留用户两处修改的工作区执行；干净分支另由 CI 和新克隆验证。未把跳过算成集成通过。更新 eval/report 的导出抬头时只改美元说明，评分与统计算法未变。
+
+冷启动基线直接 `git archive f851460` 到本机临时目录，构建不含用户修改；临时镜像标签使用 opsdoctor-phase10 命名空间。全新项目串行启动，完整十轮参数与原日志哈希见 [复现记录](reports/phase-10-startup-reproduction.json)，原日志保留在 TEMP/opsdoctor-phase10。十轮启动均未复现原失败；其中六轮最小环境没启动 Jaeger，有五轮在主动 stop 之后遥测导出超时、worker 以 1 收尾，这些失败完整保留，不能称整个生命周期都健康。两个全栈放大试验分别限制 Kafka 为 0.25/0.10 CPU，后者临时使用 wait 300s 和 Kafka health timeout 60s，与默认 CI 不同，不当成默认部署的验收。复核发现多轮日志长度恰好相同，逐一以容器 ID、project 标签、启动时间和 SHA-256 核对，确认来源不同；重新按精确容器名取日志。
+
+CI 加入默认首次 up（含拉取/构建）的计时，并在原完整冒烟后 stop 默认项目，串行五个全新项目、每轮观察二十秒、small 造数、HTTP 下单和销量追平，成功失败均保存日志。原因是 worker 的健康接口只 Ping MySQL，单看 healthy 不足以说明 Kafka 真能消费。没有添加重启策略或延长业务启动超时。GitHub 连接器运行查询只支持 PR 事件，本次 push 使用 gh 读取。
+
+初次推送前，文件相对链接 4439 条、缺失 0，当前文档页内锚点 54 条、缺失 0，28 个自有文件与 18 项已知凭据扫描匹配 0。最初扫描把 EVAL_TOKEN_BUDGET 的公开数字误当令牌，改为凭据名称后缀识别后重新通过；没有输出密钥值。暂存检查发现简历 Markdown 的双空格换行会触发行尾空白检查，改为普通空行后才提交。进行中成果提交 5806a7e 推送阶段分支，CI41458417476 已启动；验收未提前勾选。
+
+全新远端克隆从 git clone 开始用单调时钟计时，源提交 5806a7e，目录 TEMP/opsdoctor-phase10/opsdoctor-fresh；显式 COMPOSE_PROJECT_NAME=opsdoctor-fresh、Mock、关闭模型对比并移除两家 Key，QPS=0、100 商品、64 工作者。测试前再次保存 docker ps -a 与 volume ls，原项目仍停止，QQ 两容器运行。按 README 构建启动、执行 005/006/007 精确授权、small 造数，135.823 秒后商品 stock.status=ok、医生 ready。本机镜像/模块缓存保留，没有清空 Docker；后续 CI 全新 runner 补充首次启动证据。
+
+使用 computer-use 技能的浏览器能力在本机页面登录公开演示账号，确认 Mock 横幅，手动发起诊断，展开真实 service_topology 和 list_firing_alerts 结果，看到报告、证据引用和十个保存步骤。第一次 Playwright role 定位 summary 无匹配，刷新状态后用页面实际 AX 控件展开成功。第一次走查含浏览器文档初始化和接口复核，观察总计 189.890 秒，保留这次耗时，随后按已经验证的步骤再次计时排练三分钟脚本。引用阶段 8 C15 存档报告和 S10 失败分析，没有重新调用模型。截图见 [Mock 页面](reports/phase-10-mock-demo.png)。接口补查首次任务为 succeeded、mock-script-v1、2 轮模型、2 份查看结果、10 个步骤，token 与费用为 0；Last-Event-ID=1 的 SSE 依次补发 2–10。
+
+再次排练重新退出并登录公开演示账号，创建第二个 Mock 手动任务，查看同样的报告、告警工具实际结果与十个持久化步骤；随后在浏览器打开冻结 C15、S10 失败分析与 README 权限边界，读到未做人工校准、S12 未暴露和阶段 9 推迟的原文。第二次单调计时 152.167 秒，整个 git clone 至完成演示 502.941 秒（包括首次走查和再次排练），均如实记录在 [计时证据](reports/phase-10-fresh-demo.json)。演示后独立真实下单成功，shopctl check 得 ordered_quantity=401、sold_quantity=401、gap=0，仍说明总量相同不能证明逐笔完全正确。
+
+用 stop 停回 fresh 后，前后清单比较证实原十九个 OpsDoctor 加两个 QQ 容器的 ID、挂载、状态均未改变，原卷删除零，fresh 十九容器停止、九卷保留。第一版比较还包含 docker ps 的 Image 显示名，因此断言失败；查明新克隆构建沿用 Compose 的五个全局 Go 镜像标签，Docker 把旧容器显示为原镜像 ID，容器本身没重建。尝试给旧 loadgen 镜像 ID 恢复标签时报 No such image，停止这项尝试，没有删除任何镜像或卷；保留新的演示镜像独立标签。不把“项目名隔离容器/卷”写成“隔离镜像标签”，README 已补说明。[对照](reports/phase-10-docker-preservation.json)保留这些真实显示变化，验证范围只是容器标识、状态、挂载和卷名，没有启动原数据库去做数据文件校验。控制接口首次选错扁平字段显示空列，未据此声称运行配置已复核。
+
+首次阶段分支 CI41458417476 全部成功，[原始计时摘录](reports/phase-10-ci-first.json)：全新 ubuntu-24.04 runner 默认首次 up 含拉取/构建为 337.594 秒；随后五独立全新卷项目均 passed，healthy 为 28.499/28.386/33.531/28.219/33.527 秒；含二十秒观察、造数、下单和追平而不含 stop 的总耗时为 48.841/48.697/53.847/48.526/53.847 秒。这些仍是未修复行为的原版成功，不能替代“先定位根因，再修复后五次”的验收。Docker 再次交给冷启动排查代理，临时把 Kafka 的消费组内部主题分区数从默认五十放大到五百、限制 0.25 CPU，继续寻找真实错误，不把猜测当原 CI 根因。
+
+受控放大真正捕获退出：f851460 原代码的 worker 于 14:21:05.152 UTC 启动，14:21:15.256 因 `读取订单消息：[16] Not Coordinator For Group` 退出 1；MySQL、Kafka 仍在运行，三者 OOMKilled=false。Kafka 在 14:21:27.151 才完成内部协调元数据加载。Compose up 本身返回 0，加二十秒观察才发现 worker 已退出，不能用最初的健康灯替代稳定消费。完整日志在 TEMP/opsdoctor-phase10/offset500-worker-kafka-mysql.log，摘录、状态和 SHA-256 见 [根因证据](reports/phase-10-startup-root-cause.json)，台账 P10-10。这证明受控条件中的协调器初始化缺陷；原 CI41447608555 没有 worker/Kafka 日志，不能倒填成原 CI 已确证错误16。
+
+随后阅读 kafka-go v0.4.51：Reader.run 在三次入组失败后把错误送给 FetchMessage，但后台仍继续调用 ConsumerGroup.Next 恢复；我们的 Consumer.Run 原来立即返回并由 app 关闭 Reader，才让暂态状态变成进程退出。没有修改 Kafka 启动等待、添加容器 restart 或换客户端。修复拆为 Consumer.fetchMessage、recoverableCoordinatorError、waitFetchRetry，保持处理和提交顺序原样，只在还没取得消息的边界识别协议错误 14/15/16。最多额外三次，退避 250ms、500ms、1s，可取消；成功取得一条消息后下一条从零计数。不能给 Fetch 整体套短时限：协调器恢复后，没有订单本来就应等待。鉴权、未知错误、消息解析、销量事务和提交失败仍立即结束，不能越过一条未确认的消息去取下一条。
+
+开发时先加恢复/永久错误/预算/重置/取消测试，随后按独立审查建议补“恢复后空闲读取没有额外 deadline”和“处理或提交即使返回同一个错误16也只取一条”两项，最终新增八个顶层测试。staticcheck 曾指出新增错误字符串以英文大写 Kafka 开头，改成中文开头后通过。首轮修复镜像在此文案变更前已完成同条件恢复，但没有冒充最终源版本；之后以最终四文件重新构建 fixed-final 并重跑。最终受控对照日志有 retry1/250ms，Kafka 随后完成加载、消费组稳定，同一 worker 消费并提交订单401，源投影清单逐字匹配后来提交364a889；五轮默认新卷验收继续执行，全部原过程会随验证JSON保留。
+
+最终 Go 源码本地全检查通过：commentcheck426文件；Mock race272顶层/906含子例、56依赖跳过、0失败，完整统计和五个相关源文件哈希见 [checks](reports/phase-10-checks.json)。与提交364a889的Git实际字节逐项核对完全一致。两处用户修改仍原哈希、未暂存。独立代理只读审查重试分类、同Reader、计数重置、空闲、取消和处理/提交边界，通过；独立定向race也通过。凭据与链接扫描后只提交events四文件，修复推送为364a889，CI41463487800开始运行。没有合并main，没有修改冻结的提示、工具、手册、场景或评分。
+
+最终修复对照完成：[验证JSON](reports/phase-10-startup-fix-validation.json)包含文案调整前的首轮、最终四文件镜像和五个默认项目。最终500分区/0.25CPU实验在14:35:44 UTC记录错误16后的retry1/250ms；14:35:56协调元数据加载，14:35:59组稳定，14:36:06同一worker处理并提交订单401；健康84.703秒，含观察和真实消费106.889秒。两次限速lab在主动stop后Kafka退出137、OOM=false，停止前仍running，真实保留而不写成正常优雅停机。
+
+默认配置五个独立全新卷项目 `opsdoctor-cold-fixed-final-20261102-1` 至 `-5` 连续通过，每轮19服务、二十秒观察、新订单401仅一条processed日志、总量401/401/gap0。健康耗时30.389/28.944/28.649/29.919/31.007秒，完整51.212/49.515/49.209/50.465/51.576秒；worker停止均0，Kafka停止143/OOM=false。全部仅stop保留，P10-11–P10-13分别记录同条件对照、全仓检查、默认五轮。
+
+在交回Docker前又发现部署隔离遗漏：Alloy Docker发现过滤写死 `com.docker.compose.project=opsdoctor`，因此此前cold/fresh的日志采集不能证明采到了自身业务日志，可能发现的是原项目。已把这个证据范围写进P10-13，不用启动成功或消费成功代替Loki链路成功。决定让Compose把实际项目名传入Alloy，配置通过sys.env读取；Docker与Grafana官方文档分别确认Compose会暴露最终COMPOSE_PROJECT_NAME以及Alloy的环境读取方法。默认opsdoctor的过滤语义保持一致，不改医生工具、日志适配器、提示、手册、评分或场景；最终独立新克隆将加实际trace跨三服务日志验证。
+
+Alloy 配置实测：只读渲染默认名得到opsdoctor、自定义-p得到对应项目名；固定grafana/alloy:v1.21.2执行validate退出0，静态验证容器保留、没有数据卷。CI的五轮订单增加唯一sampled01 traceparent，消费追平后有限等Loki收到三个业务服务的同trace日志，失败收集也增加Alloy/Loki。提交c246734推送；前一消费者修复CI41463487800全绿，而新日志增强CI41466035640另跑，不把旧成功倒写为日志链路通过。
+
+最终从远端再git clone c246734，首次fresh卷仍保留，因此项目名改为opsdoctor-fresh-final，命令和Mock/small流程相同。观察到启动准备与接口成功的时点151.539秒；Alloy实际环境变量为opsdoctor-fresh-final。真实HTTP下单带唯一trace，2.017秒后Loki查到订单、库存、消费者三条同trace日志，随后销量401/401、gap0。只查询当前隔离项目，不启动原环境。[最终日志证据](reports/phase-10-log-isolation.json)单列，不混成延迟基准。
+
+最终页面从退出、登录开始，确认空列表属于新医生库，创建一个Mock手动任务，展开两份查看结果并看报告；浏览器打开阶段8 C15、S10失败分析和权限说明，不重跑真实模型。页面演示102.415秒，git clone到全部演示结束304.934秒（5分4.934秒），[最终计时](reports/phase-10-fresh-final.json)。API复核succeeded、mock-script-v1、2轮、10步骤、输入输出token与费用均0，SSE从1补发2–10。[最终截图](reports/phase-10-mock-demo-final.png)保留；未覆盖首次较慢的189.890秒或早期502.941秒总时长。
+
+最终仅stop测试环境，再次全量对照原始清单：原19个OpsDoctor及QQ两容器的ID/状态/挂载均不变，原卷删除0，阶段8原医生卷仍在。20个隔离测试项目、138个测试卷全部保留且未运行；另有exited0的无卷静态配置验证容器。运行中仅QQ两容器。[精确清单](reports/phase-10-resource-final.json)供用户以后在Docker Desktop按项目标签手动清理；本次没有执行down -v、volume rm、system prune，也没有改写原数据。
+
 <a id="phase-05"></a>
 
 ### Linux CI 40296137783 与阶段收尾
@@ -1700,3 +1740,5 @@ DeepSeek用完调查轮数，首次收尾提交多了root_cause.confidence_note�
 提交前又用Git索引中的实际字节复制评分材料并离线复算通过。首次发现只读摘录工作区为CRLF而Git将保存LF，先按仓库属性统一为LF，再生成结果哈希；不把本机换行差异留给下一台机器。已知真实凭据扫描33份本轮文件，匹配0，两处用户修改未暂存。
 
 11月2日首次归档提交fc7023c的CI41447608555在7分17秒后失败。格式、静态、架构、Mock race与另一构建版本编译均通过；空环境启动时order-worker退出1，其余依赖健康。现有诊断只输出MySQL最后100行，没有worker或Kafka日志，根因不能确认。原失败日志保存于本机opsdoctor-phase08-cross/ci-41447608555-full.txt，GitHub原运行保留。随后仅扩大CI失败诊断，收集MySQL、worker和Kafka各最后100行再复验；不改业务启动逻辑、评分或真实结果。
+
+收尾将整仓Markdown页内锚点也纳入检查，发现阶段5、8学习材料仍链接已迁走的README章节，改到operations对应同名章节；未改学习正文或冻结材料。完成运行代码c246734的CI41466035640全绿，首次269.488秒，五独立新卷均通过消费与三服务日志；旧364a889的CI也全绿且未测隔离Loki的范围另存。报告、学习、台账、进度与文件清单统一按最终事实收尾；学习验收保持未勾，阶段9推迟。本轮最终归档的凭据、大小写、文件与锚点检查见phase-10-release-audit.json，提交推送后只等待文档归档HEAD的CI，不再改代码或开始新阶段。

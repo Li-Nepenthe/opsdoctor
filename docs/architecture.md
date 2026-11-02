@@ -65,6 +65,8 @@ order-worker 消费消息后，在同一事务中插入 `processed_events` 并�
 
 指标由 Prometheus 定时采集；Jaeger 接收 OpenTelemetry 的调用链；slog 输出的 JSON 日志由 Alloy 收集到 Loki。HTTP、gRPC、SQL、Redis 和消息处理围绕请求建立 span；Kafka 的上下文通过消息头手动注入与提取。日志携带 trace ID，方便将不同服务的同一请求串起来。见 [观测基础设施](../internal/platform/telemetry/doc.go)、[Kafka 传播](../internal/platform/telemetry/kafka.go)。
 
+Alloy 按 Docker 的 Compose 项目标签发现容器，随后只保留配置允许的 Go 服务。阶段 10 发现这里原先写死 `opsdoctor`，独立项目会漏采自己的日志；`c246734` 改为由 [Compose](../deploy/docker-compose.yml) 向 [采集配置](../deploy/alloy/config.alloy) 传入实际 `COMPOSE_PROJECT_NAME`。最终新克隆已查到同一订单跨三服务的日志，配置验证和实际采集均通过（台账 P10-15、P10-17；[日志证据](reports/phase-10-log-isolation.json)）。
+
 告警描述症状，例如延迟、错误或积压，不在告警名里提前给出“缺索引”等答案。实际规则见 [Prometheus 规则说明](../deploy/prometheus/rules/README.md)。监控接口健康只说明接线的一部分；还要检查 exporter 是否能登录中间件，以及真实 trace 和日志能否查到。阶段 3 曾用这类端到端检查发现 gRPC DNS TXT 查询等待，见 [阶段 3 汇报](reports/phase-03-observability.md) 和台账 P3-18 至 P3-26。
 
 医生的数据源接口把“查什么”和“后端怎样表达”分开。[source](../internal/doctor/source/source.go) 定义统一类型，工具只依赖这些接口，具体适配器处理 Prometheus、Jaeger、Loki、MySQL、Redis 与 pprof 的格式。
@@ -156,6 +158,24 @@ flowchart LR
 **DeepSeek 评委与 Claude 交叉评分的一致率**为全量机制 17/20（85%）、去掉 E0 为 12/15（80%），分别见台账 P8-199、P8-201。证据判定中，DeepSeek 评委比 Claude 多给 11 项、少给 4 项，见 P8-202。未做人工校准；两个模型可能有共同偏差。评分尺度不一致和评分失败都不能被一致率掩盖。[完整交叉评分](reports/phase-08-cross-scoring.md) 保留了逐份理由。
 
 S12 的攻击文字没有被医生实际读到，见台账 P8-178、P8-204。当前防注入只有权限、审批与隔离测试作证据，不能把未暴露条件下的零写执行说成实际抗攻击验证通过。
+
+## 阶段 10 的部署证据
+
+部署验收测的是新环境能否运行与消息能否真正消费，和阶段 8 的诊断效果是两类证据。以下均为 Mock，没有重新调用真实模型或评分。前期走查版本为 `5806a7e`，原版复现为 `f851460`，消费者修复为 `364a889`；日志采集项目名修复 `c246734` 的最终新克隆、Mock演示和三服务日志验证见 P10-15–P10-17。
+
+| 观察 | 实测与出处 | 能得出的结论与限制 |
+|---|---|---|
+| 原版早期独立新卷复现 | `f851460` 前 10/10 轮未复现冷启动退出；最小环境 5/6 轮在主动 stop 后遥测收尾退出 1，台账 P10-6、[逐轮记录](reports/phase-10-startup-reproduction.json) | 后者未启动 Jaeger，属于停机 traces export timeout，不能混成启动失败；后续受控放大才复现协调器错误 |
+| 全新远端克隆与演示 | clone 到完成演示 502.941 秒，首次就绪 135.823 秒；首次走查 189.890 秒，再次脚本排练 152.167 秒，台账 P10-7、[接口与计时](reports/phase-10-fresh-demo.json) | 本机在目标时间内跑通 Mock 流程，首次较慢记录保留；镜像、模块与构建缓存存在，没有清空全部 Docker |
+| 原环境保护 | 原 19 个 OpsDoctor 与 2 个 QQ 容器的 ID、挂载和状态不变，原卷删除 0；fresh 的 19 个容器 stop、9 个卷保留，台账 P10-8、[前后对照](reports/phase-10-docker-preservation.json) | 没有重建原容器或访问原数据库；默认 Go 镜像的全局标签确实更新，项目名不隔离镜像标签，也没有逐字节校验原数据 |
+| 新 runner 的 CI | [CI 41458417476](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41458417476) 全通过；首次拉取、构建与启动 337.594 秒，后续 5/5 独立新卷通过健康及真实消息消费，台账 P10-9、[步骤与计时](reports/phase-10-ci-first.json) | 补充本机镜像缓存限制；后续轮复用 runner 镜像但数据卷全新。成功轮没有修复前后因果对照，不能称为“修复后五次通过” |
+| 受控条件下复现 | `f851460` 在 Kafka 内部分区 500、0.25 CPU 的放大配置中启动后因错误 16 退出 1，Kafka 随后才完成协调元数据加载；Compose up 仍返回 0，台账 P10-10、[根因日志](reports/phase-10-startup-root-cause.json) | 上层把暂态 Fetch 错误当成致命错误，同一 Reader 后台入组尚在继续；这次不是 MySQL 或 OOM，参数也不同于原 CI |
+| 相同条件修复对照 | `364a889` 同样放大配置中出现错误 16，retry 1 / 250ms 后同一 worker 成功消费；健康 84.703 秒、完整验收 106.889 秒，台账 P10-11、[对照记录](reports/phase-10-startup-fix-validation.json) | 证明已复现的缺陷由受限恢复修复，未靠容器重启、改健康等待或修改 Kafka 正式配置 |
+| 修复后默认配置 | `364a889` 连续 5/5 独立新卷全栈健康并真实消费，台账 P10-13、[五轮记录](reports/phase-10-startup-fix-validation.json)；完整本地检查见 P10-12 | 只证明此次默认配置与消息链路验收；这些轮没有验证独立项目的 Loki，日志采集另修另测 |
+
+消费者现在只对尚未取得消息时的 Kafka 14、15、16 协调器状态最多重取三次，退避可取消，始终复用原 Reader；正常空闲 Fetch 不加短 deadline，消息解析、SQL 与提交位点失败仍直接返回。见 [Fetch 边界与说明](../internal/shop/events/consumer.go)、[恢复与非重试边界测试](../internal/shop/events/consumer_fetch_test.go)。
+
+worker 当前管理健康探针只调用数据库 Ping，不能证明 Kafka 已连通、主题可消费或消费者仍在工作；台账 P10-10 的“up 返回成功后 worker 退出”实测说明了这个缺口。因此 CI 在健康后继续观察，再造数、创建真实订单并核对销量追平，见 [实际消费检查](../.github/workflows/ci.yml)。已复现的缺陷有前后对照，历史 [CI 41447608555](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41447608555) 因缺少 worker/Kafka 日志仍无法证明与本次完全同根（台账 P8-207）。两者分别保留，不能把受控实验追写成历史 CI 的确证错误。
 
 ## 当前取舍
 

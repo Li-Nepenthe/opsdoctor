@@ -1,0 +1,48 @@
+{
+  "started_utc": "2026-11-02T14:04:47.977895+00:00",
+  "source": "https://github.com/Li-Nepenthe/opsdoctor.git",
+  "branch": "phase-10-showcase",
+  "project": "opsdoctor-fresh",
+  "ready_seconds": 135.8229299999948,
+  "ready_utc": "2026-11-02T14:07:03.801085+00:00",
+  "first_demo_observed_seconds": 189.89,
+  "first_demo_note": "首次走查含浏览器初始化、一次定位器失败及接口复核，保留原记录；再按已验证步骤计时排练三分钟脚本。",
+  "demo2_seconds": 152.16680169999017,
+  "clone_to_demo_seconds": 502.94126870000036,
+  "completed_utc": "2026-11-02T14:13:10.920082+00:00",
+  "cache_limit": "本机保留镜像和Go模块/构建缓存；没有清空Docker。CI全新runner首次up计时另记。",
+  "proof": {
+    "project": "opsdoctor-fresh",
+    "code": "5806a7ea5020c5b471671b4469e74c074e06ca0f",
+    "diagnosis_id": "a0a82ed48c90448b638207324730d0e0",
+    "status": "succeeded",
+    "model": "mock-script-v1",
+    "rounds": 2,
+    "last_seq": 10,
+    "cost_micros": 0,
+    "tools": [
+      "service_topology",
+      "list_firing_alerts",
+      "submit_report"
+    ],
+    "sse_replayed_ids": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "provider": "mock",
+    "budget_spent_micros": 0
+  },
+  "business_check": {
+    "ordered_quantity": 401,
+    "sold_quantity": 401,
+    "gap": 0
+  },
+  "stopped_and_volumes_preserved": true
+}

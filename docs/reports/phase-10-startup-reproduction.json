@@ -1,0 +1,443 @@
+{
+  "statement": "原版10轮未复现；不证明已修复。所有项目使用全新数据卷，结束仅stop，数据卷和容器保留。首轮包含构建，其他轮复用镜像。本机保留镜像缓存，未清空Docker。",
+  "baseline_archive": "TEMP/opsdoctor-phase10/baseline.zip",
+  "baseline_source": "TEMP/opsdoctor-phase10/baseline",
+  "compose": "TEMP/opsdoctor-phase10/baseline/deploy/docker-compose.yml",
+  "env_source": ".env.example",
+  "env_file": "TEMP/opsdoctor-phase10/cold.env",
+  "image_override": "TEMP/opsdoctor-phase10/baseline-images.yml",
+  "frozen_overrides": {
+    "LLM_PROVIDER": "mock",
+    "LOADGEN_QPS": "0",
+    "EVAL_COMPARISON_ENABLED": "false",
+    "LOADGEN_PRODUCT_COUNT": "100"
+  },
+  "runs": [
+    {
+      "round": 1,
+      "project": "opsdoctor-cold-repro-20261102",
+      "source": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "scope": "full-19-services",
+      "exit_code": 0,
+      "elapsed_seconds": 96.8604771,
+      "includes_build": true,
+      "post_healthy_observation_seconds": 0,
+      "kafka_cpu_limit": null,
+      "time_log": "TEMP/opsdoctor-phase10/repro-time.txt",
+      "start_log": "TEMP/opsdoctor-phase10/repro-start.log",
+      "worker_kafka_log": "TEMP/opsdoctor-phase10/repro-worker-kafka.log",
+      "stop_log": "TEMP/opsdoctor-phase10/repro-stop.log",
+      "worker_after_stop": {
+        "worker_exit_code": 0,
+        "worker_status": "exited"
+      },
+      "compose_wait_timeout_seconds": 240,
+      "source_log_sha256": {
+        "repro-time.txt": "01d949bee27c942cbbade4eabce238106264cc5154b83f1fefa33281d9545dfe",
+        "repro-start.log": "9fb60d644432c8aa2ebddee5ca6e6fa5d0b2d7e56494bb297b86b9b0050843d2",
+        "repro-worker-kafka.log": "f2d5da605b039a1fc4fb0bb828dcf1b1f988afaa3b6b73a1e5464b1c66b222c3",
+        "repro-stop.log": "e5641e5eaf60e5289075a09c8ba653a9d5043a3491b9e334bdc035bc5e7adee7"
+      }
+    },
+    {
+      "round": 2,
+      "project": "opsdoctor-cold-repro-20261102-2",
+      "source": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "scope": "full-19-services",
+      "exit_code": 0,
+      "elapsed_seconds": 28.4695459,
+      "includes_build": false,
+      "post_healthy_observation_seconds": 0,
+      "kafka_cpu_limit": null,
+      "time_log": "TEMP/opsdoctor-phase10/repro2-time.txt",
+      "start_log": "TEMP/opsdoctor-phase10/repro2-start.log",
+      "worker_kafka_log": "TEMP/opsdoctor-phase10/repro2-worker-kafka.log",
+      "stop_log": "TEMP/opsdoctor-phase10/repro2-stop.log",
+      "worker_after_stop": {
+        "worker_exit_code": 0,
+        "worker_status": "exited"
+      },
+      "compose_wait_timeout_seconds": 240,
+      "source_log_sha256": {
+        "repro2-time.txt": "bbb308407e4bd32add713d5522ef948e575b86c6d108d7e066d3e4f5ea305c00",
+        "repro2-start.log": "c5d2cee1d24b0b1d385394305f0f2e4233ffe0b4c6fcb62b0c17cb8136853494",
+        "repro2-worker-kafka.log": "7eb6fdcd1b69ca36cfe63b3976fb318ef689c75d94d8e20cc00019ee12637881",
+        "repro2-stop.log": "3898523b3c441c3a2bbc71febe504ea1e3c234fdd8caed61744c5d208a51cb7a"
+      }
+    },
+    {
+      "round": 3,
+      "project": "opsdoctor-cold-repro-20261102-3",
+      "source": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "scope": "order-worker+shop-mysql+kafka",
+      "exit_code": 0,
+      "elapsed_seconds": 16.8293261,
+      "includes_build": false,
+      "post_healthy_observation_seconds": 0,
+      "kafka_cpu_limit": null,
+      "time_log": "TEMP/opsdoctor-phase10/repro3-time.txt",
+      "start_log": "TEMP/opsdoctor-phase10/repro3-start.log",
+      "worker_kafka_log": "TEMP/opsdoctor-phase10/repro3-worker-kafka.log",
+      "stop_log": "TEMP/opsdoctor-phase10/repro3-stop.log",
+      "worker_after_stop": {
+        "worker_exit_code": 1,
+        "worker_status": "exited"
+      },
+      "compose_wait_timeout_seconds": 120,
+      "source_log_sha256": {
+        "repro3-time.txt": "2a16c90dc202bdbc29aa918d09ba61b517121d777a6fb2d8aba99a21298590dd",
+        "repro3-start.log": "0c9db35edeb26042ad31150f3663e51733570ddf8ceb74087eb26e89dcfc3b22",
+        "repro3-worker-kafka.log": "7ff91e39e1f5247fbc4176ca561e50e296ef8d8743cc678553f6047557999dc5",
+        "repro3-stop.log": "6271d1a03350681eac627637b440c89f6e490be0bd716b3b85d09bc261593c0a"
+      }
+    },
+    {
+      "round": 4,
+      "project": "opsdoctor-cold-repro-20261102-4",
+      "source": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "scope": "order-worker+shop-mysql+kafka",
+      "exit_code": 0,
+      "elapsed_seconds": 16.3407299,
+      "includes_build": false,
+      "post_healthy_observation_seconds": 0,
+      "kafka_cpu_limit": null,
+      "time_log": "TEMP/opsdoctor-phase10/repro4-time.txt",
+      "start_log": "TEMP/opsdoctor-phase10/repro4-start.log",
+      "worker_kafka_log": "TEMP/opsdoctor-phase10/repro4-worker-kafka.log",
+      "stop_log": "TEMP/opsdoctor-phase10/repro4-stop.log",
+      "worker_after_stop": {
+        "worker_exit_code": 1,
+        "worker_status": "exited"
+      },
+      "compose_wait_timeout_seconds": 120,
+      "source_log_sha256": {
+        "repro4-time.txt": "34cd995867875e1894035d97e902a0f7cc3668da2503279534118a2328f3ca98",
+        "repro4-start.log": "42089e189f3dbc158f987809d0cde87cf80060dd7a3fb34589a263d5abb172a3",
+        "repro4-worker-kafka.log": "f01db100dcc0fa35758f28ea03bcb2afa2834a8a9d24e99388a064014bb2d7e2",
+        "repro4-stop.log": "80823d5606bcd3ae39ec0933a2d36ea291e3e452b580c32f3a0b3d7eaa2081fe"
+      }
+    },
+    {
+      "round": 5,
+      "project": "opsdoctor-cold-repro-20261102-5",
+      "source": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "scope": "order-worker+shop-mysql+kafka",
+      "exit_code": 0,
+      "elapsed_seconds": 16.8152794,
+      "includes_build": false,
+      "post_healthy_observation_seconds": 0,
+      "kafka_cpu_limit": null,
+      "time_log": "TEMP/opsdoctor-phase10/repro5-time.txt",
+      "start_log": "TEMP/opsdoctor-phase10/repro5-start.log",
+      "worker_kafka_log": "TEMP/opsdoctor-phase10/repro5-worker-kafka.log",
+      "stop_log": "TEMP/opsdoctor-phase10/repro5-stop.log",
+      "worker_after_stop": {
+        "worker_exit_code": 1,
+        "worker_status": "exited"
+      },
+      "compose_wait_timeout_seconds": 120,
+      "source_log_sha256": {
+        "repro5-time.txt": "a61b0e210b0a5fae8397bca17cf709158b2521c854296f27dbd5b23290fce162",
+        "repro5-start.log": "b7fad685dae3e7e4c2e0542e913a51cfb0c942f0a2af40e061662c010902476c",
+        "repro5-worker-kafka.log": "d8644e61fd291c9f8311a66e4f3516d299423def1d723aab35d99d78e2706def",
+        "repro5-stop.log": "d7d133542ee13e0f8ee591cfde5284d03228d811636dae998342e35328aa192e"
+      }
+    },
+    {
+      "round": 6,
+      "project": "opsdoctor-cold-repro-20261102-6",
+      "source": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "scope": "order-worker+shop-mysql+kafka",
+      "exit_code": 0,
+      "elapsed_seconds": 16.8752026,
+      "includes_build": false,
+      "post_healthy_observation_seconds": 0,
+      "kafka_cpu_limit": null,
+      "time_log": "TEMP/opsdoctor-phase10/repro6-time.txt",
+      "start_log": "TEMP/opsdoctor-phase10/repro6-start.log",
+      "worker_kafka_log": "TEMP/opsdoctor-phase10/repro6-worker-kafka.log",
+      "stop_log": "TEMP/opsdoctor-phase10/repro6-stop.log",
+      "worker_after_stop": {
+        "worker_exit_code": 1,
+        "worker_status": "exited"
+      },
+      "compose_wait_timeout_seconds": 120,
+      "source_log_sha256": {
+        "repro6-time.txt": "e3c92abb4585220e5d89f0cfb59d98f3aca937a15eb13a98efd24740f1a8794c",
+        "repro6-start.log": "7cacfdc95500082bc1a1fd691dd150006d057344b22b2c9313c99f528d27d419",
+        "repro6-worker-kafka.log": "b5cf7a1b6471f991962bc067330189392ab87d5a5fb7d35d545c46d2653b0389",
+        "repro6-stop.log": "7c68515e9ced173899182f8366d5469a16ab9815dececf7c470d9798c0f12e1c"
+      }
+    },
+    {
+      "round": 7,
+      "project": "opsdoctor-cold-repro-20261102-7",
+      "source": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "scope": "order-worker+shop-mysql+kafka",
+      "exit_code": 0,
+      "elapsed_seconds": 16.8290048,
+      "includes_build": false,
+      "post_healthy_observation_seconds": 0,
+      "kafka_cpu_limit": null,
+      "time_log": "TEMP/opsdoctor-phase10/repro7-time.txt",
+      "start_log": "TEMP/opsdoctor-phase10/repro7-start.log",
+      "worker_kafka_log": "TEMP/opsdoctor-phase10/repro7-worker-kafka.log",
+      "stop_log": "TEMP/opsdoctor-phase10/repro7-stop.log",
+      "worker_after_stop": {
+        "worker_exit_code": 0,
+        "worker_status": "exited"
+      },
+      "compose_wait_timeout_seconds": 120,
+      "source_log_sha256": {
+        "repro7-time.txt": "1e39f7eed74d49a61a0ce96286aa9919e6f042900665c60ab809c0931b8318db",
+        "repro7-start.log": "6adf3046b03a9bef63105158bcc4ddfbb8036bf3fbdb7a7f15b7125578347b58",
+        "repro7-worker-kafka.log": "b803cbcbd389ef761bb56ccbadc1adee6e4c420ad631a679ed4bd4da2d2c54fb",
+        "repro7-stop.log": "ef7f04631df0f9ff0551e2dec0600fbdce862371d2996587369944a574ef5704"
+      }
+    },
+    {
+      "round": 8,
+      "project": "opsdoctor-cold-repro-20261102-8",
+      "source": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "scope": "order-worker+shop-mysql+kafka",
+      "exit_code": 0,
+      "elapsed_seconds": 16.3403319,
+      "includes_build": false,
+      "post_healthy_observation_seconds": 0,
+      "kafka_cpu_limit": null,
+      "time_log": "TEMP/opsdoctor-phase10/repro8-time.txt",
+      "start_log": "TEMP/opsdoctor-phase10/repro8-start.log",
+      "worker_kafka_log": "TEMP/opsdoctor-phase10/repro8-worker-kafka.log",
+      "stop_log": "TEMP/opsdoctor-phase10/repro8-stop.log",
+      "worker_after_stop": {
+        "worker_exit_code": 1,
+        "worker_status": "exited"
+      },
+      "compose_wait_timeout_seconds": 120,
+      "source_log_sha256": {
+        "repro8-time.txt": "113e4af2f43f915c50cc5fa3f032c6c87ee67b7308b2066200aa6ef5bff33a1d",
+        "repro8-start.log": "c3d83d8a8ce56e6d8ad28e2af630963201c19d8f619020d6be619743f95078a9",
+        "repro8-worker-kafka.log": "c7491c5229aef37a79433f6621f619dbf770724da8832593dae220f497c433e8",
+        "repro8-stop.log": "f884514e24dfd1c36c3359d964c453ca7d2d66183eff8079aa6f9ad649c7ce51"
+      }
+    },
+    {
+      "round": 9,
+      "project": "opsdoctor-cold-cpu025-20261102",
+      "source": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "scope": "full-19-services",
+      "exit_code": 0,
+      "elapsed_seconds": 87.4745881,
+      "includes_build": false,
+      "post_healthy_observation_seconds": 20,
+      "kafka_cpu_limit": 0.25,
+      "health_timeout_override_seconds": null,
+      "time_log": "TEMP/opsdoctor-phase10/cpu025-time.txt",
+      "start_log": "TEMP/opsdoctor-phase10/cpu025-start.log",
+      "worker_kafka_log": "TEMP/opsdoctor-phase10/cpu025-worker-kafka.log",
+      "stop_log": "TEMP/opsdoctor-phase10/cpu025-stop.log",
+      "worker_after_stop": {
+        "worker_exit_code": 0,
+        "worker_status": "exited"
+      },
+      "compose_wait_timeout_seconds": 240,
+      "source_log_sha256": {
+        "cpu025-time.txt": "7cd002a630e0d81344570a6f4107a8ed9560b25f5f21aba70fcc3300f34563af",
+        "cpu025-start.log": "da389f05d6fdec3a0c0ac614d01fb4cd1abbc16fa348055a68af048cd0852b9d",
+        "cpu025-worker-kafka.log": "dbcf852533117330d829fd470c9f4261261be027f8332e220a7a2bb068301e5c",
+        "cpu025-stop.log": "e282f918a538732c4fa75fc73608db84dba2c2498b179a9dcf704ea3b8ed6b9e"
+      }
+    },
+    {
+      "round": 10,
+      "project": "opsdoctor-cold-cpu010-20261102",
+      "source": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "scope": "full-19-services",
+      "exit_code": 0,
+      "elapsed_seconds": 137.3538044,
+      "includes_build": false,
+      "post_healthy_observation_seconds": 20,
+      "kafka_cpu_limit": 0.1,
+      "health_timeout_override_seconds": 60,
+      "time_log": "TEMP/opsdoctor-phase10/cpu010-time.txt",
+      "start_log": "TEMP/opsdoctor-phase10/cpu010-start.log",
+      "worker_kafka_log": "TEMP/opsdoctor-phase10/cpu010-worker-kafka.log",
+      "stop_log": "TEMP/opsdoctor-phase10/cpu010-stop.log",
+      "worker_after_stop": {
+        "worker_exit_code": 0,
+        "worker_status": "exited"
+      },
+      "compose_wait_timeout_seconds": 300,
+      "source_log_sha256": {
+        "cpu010-time.txt": "4e3f2247e5e0e1f85eff61013c2240dba00aecc83bd106fe6b09ba5b9a20da96",
+        "cpu010-start.log": "c7b89fe0f6af137a06a488cfa7270542c688c4111e5f6696b09edd4cc726656a",
+        "cpu010-worker-kafka.log": "2d8cfb0da1693341e43471f28f057395009b0564f04d15d7ca56fd536492e8be",
+        "cpu010-stop.log": "fb0221e39c96f057b486bd27d32fe2958a3df32b3419ca1ab91e1472b3392e04"
+      }
+    }
+  ],
+  "limitation": "第3–8轮最小环境没有启动Jaeger；第3/4/5/6/8轮在stop信号后出现遥测导出超时与worker退出1，第7轮退出0。up退出码0仅表示当时启动/健康通过，不能代表全生命周期无错误，也不替代修复后的正式五轮验收。CPU限速两轮的测试override不等同原CI环境。",
+  "log_ownership_verification": [
+    {
+      "round": 2,
+      "project": "opsdoctor-cold-repro-20261102-2",
+      "worker": {
+        "id": "5808e42f7dc0a854c6754d23379aca224046718203f99841269e9201097d4d80",
+        "name": "/opsdoctor-cold-repro-20261102-2-order-worker-1",
+        "project": "opsdoctor-cold-repro-20261102-2",
+        "created": "2026-11-02T13:52:21.61007928Z",
+        "state": "exited"
+      },
+      "kafka": {
+        "id": "efc5bbd88aa45bbba795e0109e690a6f50ca838a88d8c6b102090852a4164f34",
+        "name": "/opsdoctor-cold-repro-20261102-2-kafka-1",
+        "project": "opsdoctor-cold-repro-20261102-2",
+        "created": "2026-11-02T13:52:21.441071935Z",
+        "state": "exited"
+      },
+      "old_log_bytes": 324555,
+      "old_log_sha256": "7EB6FDCD1B69CA36CFE63B3976FB318EF689C75D94D8E20CC00019EE12637881",
+      "verified_start": "2026-11-02T13:52:32.713812830Z",
+      "verified_worker_log": "TEMP/opsdoctor-phase10/repro2-verified-worker.log",
+      "verified_kafka_log": "TEMP/opsdoctor-phase10/repro2-verified-kafka.log"
+    },
+    {
+      "round": 3,
+      "project": "opsdoctor-cold-repro-20261102-3",
+      "worker": {
+        "id": "f0fb4f4a6997d901f0a34e0488630534f7fcaec9616b47a5451cb66d78645756",
+        "name": "/opsdoctor-cold-repro-20261102-3-order-worker-1",
+        "project": "opsdoctor-cold-repro-20261102-3",
+        "created": "2026-11-02T13:53:05.239454353Z",
+        "state": "exited"
+      },
+      "kafka": {
+        "id": "78ce85e37a1f17b7727ff356e4cd915ac7c4e88b139dd36b18a8e5b1c1d307ae",
+        "name": "/opsdoctor-cold-repro-20261102-3-kafka-1",
+        "project": "opsdoctor-cold-repro-20261102-3",
+        "created": "2026-11-02T13:53:05.177058229Z",
+        "state": "exited"
+      },
+      "old_log_bytes": 324555,
+      "old_log_sha256": "7FF91E39E1F5247FBC4176CA561E50E296EF8D8743CC678553F6047557999DC5",
+      "verified_start": "2026-11-02T13:53:16.396730473Z",
+      "verified_worker_log": "TEMP/opsdoctor-phase10/repro3-verified-worker.log",
+      "verified_kafka_log": "TEMP/opsdoctor-phase10/repro3-verified-kafka.log"
+    },
+    {
+      "round": 4,
+      "project": "opsdoctor-cold-repro-20261102-4",
+      "worker": {
+        "id": "7e0542f5d04f64410e4b5c14654f50fa789eccb440c93a91b16caeda459ee23d",
+        "name": "/opsdoctor-cold-repro-20261102-4-order-worker-1",
+        "project": "opsdoctor-cold-repro-20261102-4",
+        "created": "2026-11-02T13:53:30.820484709Z",
+        "state": "exited"
+      },
+      "kafka": {
+        "id": "ad142add2bfe46ac7ef4a7830f9906fe6d4a34e75ac8e4436f7c642fc5b93c32",
+        "name": "/opsdoctor-cold-repro-20261102-4-kafka-1",
+        "project": "opsdoctor-cold-repro-20261102-4",
+        "created": "2026-11-02T13:53:30.758714108Z",
+        "state": "exited"
+      },
+      "old_log_bytes": 324555,
+      "old_log_sha256": "F01DB100DCC0FA35758F28EA03BCB2AFA2834A8A9D24E99388A064014BB2D7E2",
+      "verified_start": "2026-11-02T13:53:41.515021445Z",
+      "verified_worker_log": "TEMP/opsdoctor-phase10/repro4-verified-worker.log",
+      "verified_kafka_log": "TEMP/opsdoctor-phase10/repro4-verified-kafka.log"
+    },
+    {
+      "round": 5,
+      "project": "opsdoctor-cold-repro-20261102-5",
+      "worker": {
+        "id": "71f79595b375aee76a5289edb9edddcc75063b65e0bc2d9680490457f9dad792",
+        "name": "/opsdoctor-cold-repro-20261102-5-order-worker-1",
+        "project": "opsdoctor-cold-repro-20261102-5",
+        "created": "2026-11-02T13:53:56.204698208Z",
+        "state": "exited"
+      },
+      "kafka": {
+        "id": "16a17b3b3f4f9d0af88b0ba75d7e91b9bf9102faca0a9260c3334dccdb59f9ca",
+        "name": "/opsdoctor-cold-repro-20261102-5-kafka-1",
+        "project": "opsdoctor-cold-repro-20261102-5",
+        "created": "2026-11-02T13:53:56.136072014Z",
+        "state": "exited"
+      },
+      "old_log_bytes": 324555,
+      "old_log_sha256": "D8644E61FD291C9F8311A66E4F3516D299423DEF1D723AAB35D99D78E2706DEF",
+      "verified_start": "2026-11-02T13:54:07.365012132Z",
+      "verified_worker_log": "TEMP/opsdoctor-phase10/repro5-verified-worker.log",
+      "verified_kafka_log": "TEMP/opsdoctor-phase10/repro5-verified-kafka.log"
+    },
+    {
+      "round": 6,
+      "project": "opsdoctor-cold-repro-20261102-6",
+      "worker": {
+        "id": "541f5e4eeb4b5f0f42a7830e2999f74e7a153120468896553ec92decc480332a",
+        "name": "/opsdoctor-cold-repro-20261102-6-order-worker-1",
+        "project": "opsdoctor-cold-repro-20261102-6",
+        "created": "2026-11-02T13:54:21.778790228Z",
+        "state": "exited"
+      },
+      "kafka": {
+        "id": "4b03bef5d702d097939c09a23883781651fbcc8faf5ca9e152307c92ea424ad9",
+        "name": "/opsdoctor-cold-repro-20261102-6-kafka-1",
+        "project": "opsdoctor-cold-repro-20261102-6",
+        "created": "2026-11-02T13:54:21.710496996Z",
+        "state": "exited"
+      },
+      "old_log_bytes": 324555,
+      "old_log_sha256": "B5CF7A1B6471F991962BC067330189392AB87D5A5FB7D35D545C46D2653B0389",
+      "verified_start": "2026-11-02T13:54:32.958950818Z",
+      "verified_worker_log": "TEMP/opsdoctor-phase10/repro6-verified-worker.log",
+      "verified_kafka_log": "TEMP/opsdoctor-phase10/repro6-verified-kafka.log"
+    },
+    {
+      "round": 7,
+      "project": "opsdoctor-cold-repro-20261102-7",
+      "worker": {
+        "id": "8764ef3870a212ec3cbd38a0c580f724508bf1336425cd9c93cf6ff97b886422",
+        "name": "/opsdoctor-cold-repro-20261102-7-order-worker-1",
+        "project": "opsdoctor-cold-repro-20261102-7",
+        "created": "2026-11-02T13:54:47.458697321Z",
+        "state": "exited"
+      },
+      "kafka": {
+        "id": "bc822f444b706c1fadffb067b6cf01a8d148b73bbd3f833351a0aaf63d6fab26",
+        "name": "/opsdoctor-cold-repro-20261102-7-kafka-1",
+        "project": "opsdoctor-cold-repro-20261102-7",
+        "created": "2026-11-02T13:54:47.394804531Z",
+        "state": "exited"
+      },
+      "old_log_bytes": 324555,
+      "old_log_sha256": "B803CBCBD389EF761BB56CCBADC1ADEE6E4C420AD631A679ED4BD4DA2D2C54FB",
+      "verified_start": "2026-11-02T13:54:58.648472910Z",
+      "verified_worker_log": "TEMP/opsdoctor-phase10/repro7-verified-worker.log",
+      "verified_kafka_log": "TEMP/opsdoctor-phase10/repro7-verified-kafka.log"
+    },
+    {
+      "round": 8,
+      "project": "opsdoctor-cold-repro-20261102-8",
+      "worker": {
+        "id": "da7f9435d0bfa4e486e6dfc7735c7e0fa7d205a3ed439ca6028dcc41e418f03c",
+        "name": "/opsdoctor-cold-repro-20261102-8-order-worker-1",
+        "project": "opsdoctor-cold-repro-20261102-8",
+        "created": "2026-11-02T13:55:07.142594659Z",
+        "state": "exited"
+      },
+      "kafka": {
+        "id": "bc85c634c5d3f937388fcea243b17a179b46a03640c03a3638a83015c89b5640",
+        "name": "/opsdoctor-cold-repro-20261102-8-kafka-1",
+        "project": "opsdoctor-cold-repro-20261102-8",
+        "created": "2026-11-02T13:55:07.074224028Z",
+        "state": "exited"
+      },
+      "old_log_bytes": 324555,
+      "old_log_sha256": "C7491C5229AEF37A79433F6621F619DBF770724DA8832593DAE220F497C433E8",
+      "verified_start": "2026-11-02T13:55:17.810866989Z",
+      "verified_worker_log": "TEMP/opsdoctor-phase10/repro8-verified-worker.log",
+      "verified_kafka_log": "TEMP/opsdoctor-phase10/repro8-verified-kafka.log"
+    }
+  ]
+}

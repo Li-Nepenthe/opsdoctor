@@ -1,0 +1,37 @@
+{
+  "status": "passed",
+  "runtime_code_commit": "c246734337e6ae481aa94fd3e8870296658e08f3",
+  "code_ci_url": "https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41466035640",
+  "markdown_files": 107,
+  "relative_targets_checked": 4625,
+  "missing_targets": [],
+  "wrong_case_targets": [],
+  "interview_questions": 101,
+  "answer_points_per_question": [
+    3,
+    4
+  ],
+  "protected_user_files_sha256": {
+    "docs/learn/phase-00-foundation.md": "DC0D4D5288D5D140E800F7E412680A1F0AB3AD0188026ECC1906FFD730EC306A",
+    "internal/shop/app/inventoryservice/app.go": "72265F52B1FA90182D0EA44BBA08936E913D3963CDF6B7FEA20854E164AAB1A5"
+  },
+  "protected_user_files_staged": false,
+  "frozen_paths_unchanged_from_main": [
+    "internal/doctor",
+    "docs/runbooks",
+    "internal/eval/scoring",
+    "internal/eval/judge",
+    "eval/scenarios"
+  ],
+  "go_checks": "phase-10-checks.json",
+  "notes": "检查路径精确大小写、普通链接/图片/reference定义；忽略代码围栏与inline示例。原用户两文件可读但排除提交，Go检查与干净CI分别证明。",
+  "credentials": {
+    "task_files": 53,
+    "known_real_secret_names": 18,
+    "matches": 0,
+    "scope": "相对main全部自有变化；文本扫描及两张新增截图目视检查，不输出密钥值"
+  },
+  "markdown_anchors_checked": 145,
+  "missing_anchors": [],
+  "git_diff_check_passed": true
+}

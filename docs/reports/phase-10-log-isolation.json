@@ -1,0 +1,17 @@
+{
+  "code": "c246734337e6ae481aa94fd3e8870296658e08f3",
+  "project": "opsdoctor-fresh-final",
+  "trace_id": "4992bb2a0e564e118eb1828e668aea47",
+  "order_id": 401,
+  "log_services": [
+    "inventory-service",
+    "order-service",
+    "order-worker"
+  ],
+  "log_entries": 3,
+  "query_seconds": 2.017319500009762,
+  "alloy_project_environment": "opsdoctor-fresh-final",
+  "config_validation_image": "grafana/alloy:v1.21.2",
+  "config_validation_exit_code": 0,
+  "earlier_limitation": "前面5806a7e/364a889的独立项目启动与消费不代表日志采集通过；本次按实际项目名重新验证。"
+}

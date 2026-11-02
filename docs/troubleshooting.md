@@ -17,6 +17,26 @@ bash 使用同样的 Docker 命令。向别人提供日志前先检查是否含�
 
 本项目验收保留所有卷，使用 `stop` 停回测试环境。不要用删除卷或清理整个 Docker 的方式修复问题，尤其不能删除原 `opsdoctor` 的 doctor-mysql 卷：其中保存阶段 8 原始数据。也不要操作 `qq-astrbot`、`qq-napcat`。测试项目的卷是否删除由用户之后决定。
 
+### 验收后保留了什么，之后怎样由用户删除
+
+前后对照确认原 19 个 OpsDoctor 容器与 2 个 QQ 容器的 ID、挂载和状态不变，原卷删除 0；`opsdoctor-fresh` 的 19 个容器已 stop，9 个卷仍保留，见台账 P10-8 与 [完整对照](reports/phase-10-docker-preservation.json)。默认构建更新了全局 Go 镜像标签，旧容器没有因此重建；Compose 项目名只隔离项目资源，不隔离共用镜像标签。
+
+如果用户以后确认不再需要测试数据，可自行按以下步骤清理。本节是供用户使用的人工操作说明，代理不执行删除。
+
+1. 先确定要弃用的**完整项目名**，例如 `opsdoctor-fresh`、`opsdoctor-fresh-final`；其他 `opsdoctor-cold-*` 名称只作为候选，必须逐个对照 [原版逐轮记录](reports/phase-10-startup-reproduction.json)、[根因复现](reports/phase-10-startup-root-cause.json) 与 [修复验收](reports/phase-10-startup-fix-validation.json) 的完整 `project` 字段。需要的测试结果或数据先按自己的备份流程导出，不能按 `opsdoctor` 前缀批量删除。
+2. 在 Docker Desktop 的 Containers 视图中按该精确 Compose 项目筛选，展开后核对容器名称、项目标签与挂载。确认选中的是已停止的测试项目，再由用户手动删除这一个项目的容器。
+3. 在 Volumes 视图逐个核对该项目的卷名和使用关系。若界面难以分辨，先运行下方只读命令核对项目标签；只删除这个确切测试项目所属且已无容器使用的卷。
+4. 原项目 `opsdoctor`、卷 `opsdoctor_doctor-mysql-data` 及 `qq-astrbot`、`qq-napcat` 均排除。每处理完一个测试项目重新列一次容器与卷，再决定是否处理下一项目。
+
+此外，静态配置验证使用了独立容器 `opsdoctor-alloy-config-validate`。它没有数据卷，用户可以单独核对名称、退出状态与挂载后手动删除这个容器，不需要删除任何卷；不要因名字以 `opsdoctor` 开头就连带选择原项目。
+
+```powershell
+docker ps -a --filter 'label=com.docker.compose.project=opsdoctor-fresh'
+docker volume ls --filter 'label=com.docker.compose.project=opsdoctor-fresh'
+```
+
+bash 使用相同的只读命令。测试项目名相似时，以精确项目标签和实际挂载为准，不凭列表里的相邻位置选择。
+
 ## 启动失败先看哪个证据
 
 | 现象 | 先看什么 | 根据证据处理 |
@@ -28,9 +48,23 @@ bash 使用同样的 Docker 命令。向别人提供日志前先检查是否含�
 | 容器 running 但 unhealthy | 该服务 healthcheck、管理端口日志、依赖健康 | running 只代表进程存在；逐项确认真正依赖，不能只增加等待时间 |
 | Docker API 连接失败 | Docker Desktop 状态、当前 Docker context、命令权限 | 先恢复 Docker 引擎访问。引擎不可达时，应用日志也不足以解释业务根因 |
 
-阶段 8 的 [CI 41447608555](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41447608555) 曾出现空环境 worker 退出，当时只保留 MySQL 日志，无法确认根因。历史失败保留在台账 P8-207。阶段 10 对照实验与最终修复以 [notes](notes.md) 中的原始日志和本阶段汇报为准；下面给出阅读顺序，避免把历史未确认原因当成已知事实。
+阶段 8 的 [CI 41447608555](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41447608555) 曾出现空环境 worker 退出，当时只保留 MySQL 日志，无法确认当时的具体错误，历史失败保留在台账 P8-207。阶段 10 用原版 `f851460` 与独立新卷先做了 10 轮，均未复现启动退出；最小环境 5/6 轮在主动 stop 后因未启动 Jaeger 的 traces export timeout 退出 1，属于另一个停机现象，见台账 P10-6 与 [早期复现记录](reports/phase-10-startup-reproduction.json)。
+
+随后用 Kafka 内部分区 500、CPU 0.25 的临时放大条件复现了真实启动缺陷：worker 的 Fetch 收到 Kafka 错误 16 就退出，此时同一 Reader 后台仍在入组，Kafka 之后才完成内部协调元数据加载。MySQL 和 Kafka 仍运行，没有 OOM；Compose up 返回 0，后续观察才捕获 worker 退出，见台账 P10-10 与 [根因日志](reports/phase-10-startup-root-cause.json)。参数不同于原 CI，不能据此证明原 CI 当时也一定是错误 16。
+
+修复 `364a889` 只在取到消息之前对协调器错误 14、15、16 最多重取三次，复用原 Reader，退避可取消，不给无订单时的正常 Fetch 添加短 deadline。消息解析、SQL、提交位点及永久鉴权错误不重试。同一放大条件下，最终版出现错误 16 后记录 retry 1 / 250ms，随后同一 worker 成功提交新订单；默认配置也连续 5/5 全新卷真实消费通过，见台账 P10-11、P10-13 和 [前后对照](reports/phase-10-startup-fix-validation.json)。这证明了已复现缺陷的修复，历史 CI 的具体错误仍按未知保留。
+
+修复前 `5806a7e` 的 [CI 41458417476](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41458417476) 也曾全通过，首次含镜像拉取、构建和启动 337.594 秒，随后 5/5 独立新卷真实消费成功，见台账 P10-9、[CI 记录](reports/phase-10-ci-first.json)。它是保留的旧成功轮，不拿来替代修复 `364a889` 的对照证据。
 
 启动链路先读 [Compose](../deploy/docker-compose.yml) 中 Kafka 的健康条件，再读 [order-worker 组装](../internal/shop/app/orderworker/app.go) 中数据库迁移、主题确保与消费者创建的顺序。Kafka 接受端口连接、能够返回元数据、主题已经可消费，是不同的就绪条件。定位时要保留 Kafka 与 worker 的同一时间窗口日志，不能只凭最终 unhealthy 结论推断。
+
+worker 的健康探针目前只 Ping 数据库，不能证明 Kafka 连接或消息消费。台账 P10-10 的 up 成功后退出已有直接证据，因此健康后还要观察并用真实订单核对消费者是否推进销量；CI 已增加检查，见 [工作流](../.github/workflows/ci.yml)。不要仅根据容器 healthy 就排除消费者问题。
+
+## README 时间目标的实测范围
+
+`5806a7e` 从远端 git clone 开始，到完成 Mock 演示共 502.941 秒，首次就绪 135.823 秒。首次走查包含浏览器初始化、一次定位器失败与接口复核，用了 189.890 秒；再次按已验证脚本排练为 152.167 秒。两次记录一起保留，见台账 P10-7 与 [计时原始证据](reports/phase-10-fresh-demo.json)。
+
+本机镜像、Go 模块与构建缓存存在，未清空全部 Docker，因此首次下载时间另由台账 P10-9 的 CI 新 runner 补充。网络、机器与缓存不同会影响时间；Mock 演示只证明流程跑通，不证明模型诊断准确率。
 
 ## 首次空库没有商品，或只读工具报表不存在
 
@@ -61,6 +95,14 @@ bash 使用同样的 Docker 命令。向别人提供日志前先检查是否含�
 Grafana 的 Jaeger 数据源健康失败时看具体 HTTP 路径。项目固定版本存在经过验证的兼容性例外，不能随意把镜像换成最新版；阶段 3 的失败与修复见台账 P3-9、P3-11 及 [决策记录](decisions.md)。
 
 gRPC 首次调用或闲置后长时间等待，但 A 记录能正常解析，仍可能卡在额外 DNS TXT 服务配置查询。当前代码明确关闭本项目不使用的服务配置读取；排查既要看库存客户端，也要看 OTLP 底层 gRPC。见 [阶段 3 学习材料](learn/phase-03-observability.md) 的真实过程与台账 P3-18 至 P3-23。
+
+## 独立项目有业务日志，Loki 却查不到
+
+先区分应用没有输出、Alloy 没发现容器、过滤规则丢弃与 Loki 写入失败。阶段 10 发现 Alloy 的 Docker 项目过滤原先写死 `opsdoctor`：即使用 `-p` 隔离了容器和卷，采集器仍不会选择新项目。
+
+`c246734` 改为将最终 `COMPOSE_PROJECT_NAME` 注入 Alloy，由 [采集配置](../deploy/alloy/config.alloy) 按实际项目标签发现容器。配置验证与最终新克隆的实际采集已通过：唯一订单trace覆盖订单、库存和消费者三个服务，见台账P10-17及[证据](reports/phase-10-log-isolation.json)。排查时既看 `compose logs`，也要按同一 trace ID 查询 Loki 中订单、库存和消费者的真实日志，不能只看 Alloy 进程正常。
+
+项目名也不隔离全局镜像标签。构建可能更新共用标签，但已创建容器仍指向原镜像 ID；原环境保护要分别核对容器身份、挂载、状态和标签变化，见台账 P10-8。不要把“项目名不同”直接当作日志过滤和镜像都已经隔离的证明。
 
 ## 下单返回待核对，或订单与销量不相等
 
@@ -97,3 +139,5 @@ Redis 因 `noeviction` 达到容量拒绝写入时，下单幂等选择拒绝业
 评分协议失败、机制判断错、证据没有拿到是不同问题。正式批次的评分失败保留在台账 P8-191；证据给分尺度分歧保留在 P8-202。不要删失败、改冻结标准或只公布较好分母。交叉评分是模型间复核，未做人工校准；S12 也没有真实暴露攻击文字。
 
 美元按项目用量账本计，即每次请求实际 token 用量乘以 2026-10-29 核对过的官方单价，分档结算，未知请求保留预留。平台账单因 Key 与其他用途共用，无法单独核对；美元与人民币不能相加。DeepSeek 余额差仍未归因，见台账 P8-197。任何排查需要真实模型调用或花钱时先停下取得用户同意。当前展示与检查保持 Mock。
+
+最终代码c246734的独立新克隆共304.934秒完成演示，页面脚本102.415秒，原较慢记录继续保留（P10-15）。本机最终保留20个测试项目、138个测试卷，均已停回；精确名称和卷的对应关系见[最终资源清单](reports/phase-10-resource-final.json)（P10-16）。人工清理前按上文逐项核对项目标签；清单之外的原opsdoctor及QQ资源不要选择。

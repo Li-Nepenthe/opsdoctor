@@ -1,0 +1,71 @@
+{
+  "started_utc": "2026-11-02T14:53:04.923689+00:00",
+  "project": "opsdoctor-fresh-final",
+  "branch": "phase-10-showcase",
+  "source": "https://github.com/Li-Nepenthe/opsdoctor.git",
+  "ready_observed_seconds": 151.539,
+  "log_isolation_checked": {
+    "code": "c246734337e6ae481aa94fd3e8870296658e08f3",
+    "project": "opsdoctor-fresh-final",
+    "trace_id": "4992bb2a0e564e118eb1828e668aea47",
+    "order_id": 401,
+    "log_services": [
+      "inventory-service",
+      "order-service",
+      "order-worker"
+    ],
+    "log_entries": 3,
+    "query_seconds": 2.017319500009762,
+    "alloy_project_environment": "opsdoctor-fresh-final",
+    "config_validation_image": "grafana/alloy:v1.21.2",
+    "config_validation_exit_code": 0,
+    "earlier_limitation": "前面5806a7e/364a889的独立项目启动与消费不代表日志采集通过；本次按实际项目名重新验证。"
+  },
+  "demo_start_utc": "2026-11-02T14:56:27.442538+00:00",
+  "demo_seconds": 102.41532709999592,
+  "clone_to_demo_seconds": 304.933718699991,
+  "completed_utc": "2026-11-02T14:58:09.858092+00:00",
+  "code": "c246734337e6ae481aa94fd3e8870296658e08f3",
+  "api_proof": {
+    "diagnosis_id": "70edb664abded3375140218ad4be7a5d",
+    "status": "succeeded",
+    "model": "mock-script-v1",
+    "rounds": 2,
+    "last_seq": 10,
+    "cost_micros": 0,
+    "sse_replayed_ids": [
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "provider": "mock",
+    "budget_spent_micros": 0,
+    "tokens_in": 0,
+    "tokens_out": 0
+  },
+  "cache_limit": "本机保留Docker镜像与Go模块/构建缓存；全新CI runner首次拉取构建时间另列。",
+  "project_name_variation": "README示例名opsdoctor-fresh已用于首轮且卷保留；本次用独立后缀opsdoctor-fresh-final确保全新卷，命令流程相同。",
+  "sales_check": {
+    "ordered_quantity": 401,
+    "sold_quantity": 401,
+    "gap": 0
+  },
+  "containers_stopped": 19,
+  "retained_volumes": [
+    "opsdoctor-fresh-final_alertmanager-data",
+    "opsdoctor-fresh-final_alloy-data",
+    "opsdoctor-fresh-final_doctor-mysql-data",
+    "opsdoctor-fresh-final_grafana-data",
+    "opsdoctor-fresh-final_kafka-data",
+    "opsdoctor-fresh-final_loki-data",
+    "opsdoctor-fresh-final_prometheus-data",
+    "opsdoctor-fresh-final_redis-data",
+    "opsdoctor-fresh-final_shop-mysql-data"
+  ]
+}

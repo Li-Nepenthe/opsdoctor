@@ -15,11 +15,11 @@
 | 阶段 6：Agent 与实时页面 | [phase-06-agent](phase-06-agent.md) |
 | 阶段 7：审批、恢复与安全 | [phase-07-reliability](phase-07-reliability.md)（[代码清单](phase-07-code-inventory.md)） |
 | 阶段 8：评测 | [phase-08-eval](phase-08-eval.md)（已由 Claude 验收并合并；学习验收留给用户） |
-| 阶段 10：收尾展示 | [phase-10-showcase](phase-10-showcase.md)（进行中；阶段 9 推迟） |
+| 阶段 10：收尾展示 | [phase-10-showcase](phase-10-showcase.md)（工程交付完成，等 Claude 验收；阶段 9 推迟） |
 
 注意：汇报书里写的行号是写报告时的版本，后来代码改过，行号可能对不上。找当前代码请用[代码地图](../代码地图.md)。
 
-阶段 8 的历史过程：先看 [手册与试跑审核材料](phase-08-pilot.md) 和 [数据库导出结果](phase-08-pilot-results.md)。这是当时第一个停点的材料；S08基线修正已获用户批准并完成复验，正式矩阵已完成，11月2日完成交叉评分，等待Claude验收。
+阶段 8 的历史过程：先看 [手册与试跑审核材料](phase-08-pilot.md) 和 [数据库导出结果](phase-08-pilot-results.md)。这是当时第一个停点的材料；S08基线修正已获用户批准并完成复验，正式矩阵已完成，11月2日完成交叉评分。用户于2026-11-02确认Claude已验收并合并main（f851460），学习验收仍留给用户。
 
 第一个停点已获同意。后续的[开跑前检查](phase-08-preflight.md)记录网络阻塞及重试、计时修复；原始[网络采样](phase-08-network-preflight.jsonl)和[时钟采样](phase-08-clock-preflight.json)只含状态与时间，不含凭据。这些是正式开跑前的历史记录。
 

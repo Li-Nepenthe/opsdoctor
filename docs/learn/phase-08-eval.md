@@ -25,7 +25,7 @@ flowchart LR
 
 ## 2. 怎么跑起来、看什么
 
-先看 [README 的阶段 8 一节](../../README.md#阶段-8正式评测与交叉评分)，按原方法把 `.env` 配置注入当前终端。不要把密码和 Key 写进命令参数。学习时保持 `LLM_PROVIDER=mock`，下面的检查与导出不需要调用模型。
+先看 [运维文档的阶段 8 一节](../operations.md#阶段-8正式评测与交叉评分)，按原方法把 `.env` 配置注入当前终端。不要把密码和 Key 写进命令参数。学习时保持 `LLM_PROVIDER=mock`，下面的检查与导出不需要调用模型。
 
 ```powershell
 go run ./cmd/eval check-clock

@@ -1,0 +1,679 @@
+{
+  "date": "2026-11-02",
+  "purpose": "记录真实消费组冷初始化错误16修复后的本机对照与五轮默认配置验收；不把历史CI的未知根因补写成已证事实",
+  "baseline_failure_evidence": "phase-10-startup-root-cause.json",
+  "historical_ci_limitation": "CI 41447608555 未保留 worker/Kafka 日志，无法直接证明其与本次放大实验同根。放大实验增加内部消费组主题分区与CPU限制，正式Compose未改这些参数。",
+  "source_commit": "364a889445711924f68c6f565afa3f40ca9b1173",
+  "build_projection": {
+    "changes": [
+      {
+        "sha256": "753EF0047449BB8C1061107D91B96E24B8A5D9BD9602482BC1F26668DEB36C12",
+        "path": "internal/shop/events/consumer.go"
+      },
+      {
+        "sha256": "B800EA64696B435C1EFA1926792FBEA43C5E30C10707758DE28C77BAAF4678C0",
+        "path": "internal/shop/events/consumer_test.go"
+      },
+      {
+        "sha256": "A6BCF091B7A51E38B1F1C5F587C1A756475CF23228F77CDF7337CB49507FB4D6",
+        "path": "internal/shop/events/consumer_fetch_test.go"
+      },
+      {
+        "sha256": "8E06A9D473AA8778D5A39DE3693DF06CBF59178BA73C95F44C28DB7085ED76EA",
+        "path": "internal/shop/events/doc.go"
+      }
+    ],
+    "base": "f85146005d64025ab026ed22e1f2aa2065f89d07"
+  },
+  "projection_excludes_user_uncommitted_files": [
+    "docs/learn/phase-00-foundation.md",
+    "internal/shop/app/inventoryservice/app.go"
+  ],
+  "model_mode": {
+    "LLM_PROVIDER": "mock",
+    "EVAL_COMPARISON_ENABLED": false,
+    "LOADGEN_QPS": 0,
+    "paid_model_calls": 0
+  },
+  "environment": "Windows本机Docker Desktop；测试前原opsdoctor和其他本项目测试套均已停止；镜像缓存保留，不能当作删光镜像的验收",
+  "method": [
+    "所有项目名独立且使用全新数据卷，逐套启动、验收、stop，未同时运行两套",
+    "每轮完整19服务健康后至少观察20秒，再small造数、真实HTTP下单并核对销量追平",
+    "total_seconds包含up、20秒观察、small造数、订单与销量核对，不包含最后stop；healthy_seconds只到compose --wait返回",
+    "所有测试容器和卷保留；未执行down -v、volume rm或prune，未操作qq-astrbot/qq-napcat",
+    "销量总量一致本身可能抵消遗漏与重复；另核对新订单401仅有一条processed日志，消费幂等与提交顺序由单测和既有集成验收另外证明"
+  ],
+  "prototype_validation": {
+    "project": "opsdoctor-cold-offset500-fixed-20261102",
+    "status": "passed",
+    "base": "f851460",
+    "image": "opsdoctor-phase10/order-worker:fixed",
+    "offset_partitions": 500,
+    "kafka_cpus": 0.25,
+    "up_exit": 0,
+    "healthy_seconds": 104.3852822,
+    "order_id": 401,
+    "total_seconds": 126.3840492,
+    "sales_check": {
+      "ordered_quantity": 401,
+      "sold_quantity": 401,
+      "gap": 0
+    },
+    "new_order_processed_log_count": 1,
+    "source": "f851460 加修复初稿；最终静态检查仅将预算耗尽错误前缀改为中文，并补边界测试",
+    "worker_source_commit": null,
+    "worker_events": [
+      {
+        "time": "2026-11-02T14:30:55.966021311Z",
+        "msg": "订单消费者已启动",
+        "service": "order-worker"
+      },
+      {
+        "time": "2026-11-02T14:31:06.170283921Z",
+        "msg": "Kafka 消费组协调器暂未就绪，等待原读取器恢复",
+        "service": "order-worker",
+        "retry": 1,
+        "backoff": "250ms",
+        "kafka_error_code": 16
+      },
+      {
+        "time": "2026-11-02T14:31:28.262941348Z",
+        "msg": "订单消息已处理并提交位点",
+        "service": "order-worker",
+        "order_id": 401,
+        "result": "processed"
+      }
+    ],
+    "kafka_coordinator_log_excerpts": [
+      "kafka-1         | 2026-11-02T14:31:19.561680779Z [2026-11-02 14:31:19,561] INFO [GroupCoordinator id=1] Finished loading of metadata from __consumer_offsets-139 with epoch 0 in 0ms where 0ms was spent in the scheduler. Loaded 0 records which total to 0 bytes. (org.apache.kafka.coordinator.common.runtime.CoordinatorRuntime)",
+      "kafka-1         | 2026-11-02T14:31:21.766089017Z [2026-11-02 14:31:21,765] INFO [GroupCoordinator id=1 topic=__consumer_offsets partition=139] Stabilized group order-worker generation 1 with 1 members. (org.apache.kafka.coordinator.group.GroupMetadataManager)"
+    ],
+    "before_stop_states": {
+      "order-worker": {
+        "name": "/opsdoctor-cold-offset500-fixed-20261102-order-worker-1",
+        "state": "running",
+        "exit_code": 0,
+        "oom_killed": false
+      },
+      "kafka": {
+        "name": "/opsdoctor-cold-offset500-fixed-20261102-kafka-1",
+        "state": "running",
+        "exit_code": 0,
+        "oom_killed": false
+      },
+      "shop-mysql": {
+        "name": "/opsdoctor-cold-offset500-fixed-20261102-shop-mysql-1",
+        "state": "running",
+        "exit_code": 0,
+        "oom_killed": false
+      }
+    },
+    "after_stop_states": {
+      "order-worker": {
+        "state": "exited",
+        "exit_code": 0,
+        "oom_killed": false
+      },
+      "kafka": {
+        "state": "exited",
+        "exit_code": 137,
+        "oom_killed": false
+      },
+      "shop-mysql": {
+        "state": "exited",
+        "exit_code": 0,
+        "oom_killed": false
+      }
+    },
+    "raw_file_sha256": {
+      "start.log": "872a2829d2dc0848b6436d5dd27afce7628ff205dae18b9c9ff37acfc71b1dc7",
+      "worker-kafka-mysql.log": "12a06ca3aaa3d2a20250cd48915a4f25af773cecc47eb2a48168d47d942f2c2e",
+      "seed.log": "a726248bb338af5c493e0637909f7247ccd1bf3b442d77b8c5b975004b3f15f1",
+      "check.log": "b608a5d09ab04f40843a2332252146dce95949a52b64857e9ecf01f850529b1d",
+      "ps.log": "59d58af9a0b48bb2e791107153c3fcd8a5fd9ea88e44875d9b1786b027c9e14d",
+      "stop.log": "b16bc0a96e8afc558261a9e75fcc258c1ef75d7c97ec9748328f0f471de64529"
+    },
+    "raw_file_location": "$TEMP/opsdoctor-phase10/offset500-fixed-*"
+  },
+  "final_stress_validation": {
+    "project": "opsdoctor-cold-offset500-fixed-final-20261102",
+    "status": "passed",
+    "base": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+    "fix_manifest": "fix-manifest-final.json",
+    "worker_image": "opsdoctor-phase10/order-worker:fixed-final",
+    "worker_image_id": "sha256:98e37cf696ce3321ae482e99d248cfe4a8b0d127f886a889f295cca18631bced",
+    "stress": true,
+    "offset_partitions": 500,
+    "kafka_cpus": 0.25,
+    "observation_seconds": 20,
+    "up_exit": 0,
+    "healthy_seconds": 84.7033539,
+    "running_services": 19,
+    "order_id": 401,
+    "total_seconds": 106.8890938,
+    "sales_check": {
+      "ordered_quantity": 401,
+      "sold_quantity": 401,
+      "gap": 0
+    },
+    "new_order_processed_log_count": 1,
+    "source": "f851460 加四个 events 文件的干净投影；四个 SHA-256 均与最终修复提交逐字匹配",
+    "worker_source_commit": "364a889445711924f68c6f565afa3f40ca9b1173",
+    "worker_events": [
+      {
+        "time": "2026-11-02T14:35:34.14882231Z",
+        "msg": "订单消费者已启动",
+        "service": "order-worker"
+      },
+      {
+        "time": "2026-11-02T14:35:44.249683443Z",
+        "msg": "Kafka 消费组协调器暂未就绪，等待原读取器恢复",
+        "service": "order-worker",
+        "retry": 1,
+        "backoff": "250ms",
+        "kafka_error_code": 16
+      },
+      {
+        "time": "2026-11-02T14:36:06.747592817Z",
+        "msg": "订单消息已处理并提交位点",
+        "service": "order-worker",
+        "order_id": 401,
+        "result": "processed"
+      }
+    ],
+    "kafka_coordinator_log_excerpts": [
+      "kafka-1         | 2026-11-02T14:35:56.843234307Z [2026-11-02 14:35:56,843] INFO [GroupCoordinator id=1] Finished loading of metadata from __consumer_offsets-139 with epoch 0 in 1ms where 1ms was spent in the scheduler. Loaded 0 records which total to 0 bytes. (org.apache.kafka.coordinator.common.runtime.CoordinatorRuntime)",
+      "kafka-1         | 2026-11-02T14:35:59.360954097Z [2026-11-02 14:35:59,360] INFO [GroupCoordinator id=1 topic=__consumer_offsets partition=139] Stabilized group order-worker generation 1 with 1 members. (org.apache.kafka.coordinator.group.GroupMetadataManager)"
+    ],
+    "before_stop_states": {
+      "order-worker": {
+        "name": "/opsdoctor-cold-offset500-fixed-final-20261102-order-worker-1",
+        "state": "running",
+        "exit_code": 0,
+        "oom_killed": false
+      },
+      "kafka": {
+        "name": "/opsdoctor-cold-offset500-fixed-final-20261102-kafka-1",
+        "state": "running",
+        "exit_code": 0,
+        "oom_killed": false
+      },
+      "shop-mysql": {
+        "name": "/opsdoctor-cold-offset500-fixed-final-20261102-shop-mysql-1",
+        "state": "running",
+        "exit_code": 0,
+        "oom_killed": false
+      }
+    },
+    "after_stop_states": {
+      "order-worker": {
+        "state": "exited",
+        "exit_code": 0,
+        "oom_killed": false
+      },
+      "kafka": {
+        "state": "exited",
+        "exit_code": 137,
+        "oom_killed": false
+      },
+      "shop-mysql": {
+        "state": "exited",
+        "exit_code": 0,
+        "oom_killed": false
+      }
+    },
+    "raw_file_sha256": {
+      "start.log": "80b5425f65cfce82ed2e72de90d667df62a77a4995daf51642582edb992b7b55",
+      "worker-kafka-mysql.log": "c76f2176f981288847408c7ff63db455e78352da4638559874e9b01a1e34f282",
+      "seed.log": "1a613bd6046761180f334481e537e515bdd228c6866bc135e21d15f4b14ecd84",
+      "check.log": "b608a5d09ab04f40843a2332252146dce95949a52b64857e9ecf01f850529b1d",
+      "ps.log": "b0f447814be73a96f7a0c5e57dc9b933919efd6d06fef6471ff44a5eeb8b4062",
+      "stop.log": "f42d6223323f40e3f644d7a7f182a10ace2fb8b776f9c761596bd399f2dab9d4"
+    },
+    "raw_file_location": "$TEMP/opsdoctor-phase10/offset500-fixed-final-*"
+  },
+  "final_default_validations": [
+    {
+      "project": "opsdoctor-cold-fixed-final-20261102-1",
+      "status": "passed",
+      "base": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "fix_manifest": "fix-manifest-final.json",
+      "worker_image": "opsdoctor-phase10/order-worker:fixed-final",
+      "worker_image_id": "sha256:98e37cf696ce3321ae482e99d248cfe4a8b0d127f886a889f295cca18631bced",
+      "stress": false,
+      "offset_partitions": 50,
+      "kafka_cpus": null,
+      "observation_seconds": 20,
+      "up_exit": 0,
+      "healthy_seconds": 30.3892469,
+      "running_services": 19,
+      "order_id": 401,
+      "total_seconds": 51.2116546,
+      "sales_check": {
+        "ordered_quantity": 401,
+        "sold_quantity": 401,
+        "gap": 0
+      },
+      "new_order_processed_log_count": 1,
+      "source": "f851460 加四个 events 文件的干净投影；四个 SHA-256 均与最终修复提交逐字匹配",
+      "worker_source_commit": "364a889445711924f68c6f565afa3f40ca9b1173",
+      "worker_events": [
+        {
+          "time": "2026-11-02T14:37:18.687342414Z",
+          "msg": "订单消费者已启动",
+          "service": "order-worker"
+        },
+        {
+          "time": "2026-11-02T14:37:56.508322428Z",
+          "msg": "订单消息已处理并提交位点",
+          "service": "order-worker",
+          "order_id": 401,
+          "result": "processed"
+        }
+      ],
+      "kafka_coordinator_log_excerpts": [
+        "kafka-1         | 2026-11-02T14:37:23.701581354Z [2026-11-02 14:37:23,701] INFO [GroupCoordinator id=1 topic=__consumer_offsets partition=39] Stabilized group order-worker generation 1 with 1 members. (org.apache.kafka.coordinator.group.GroupMetadataManager)"
+      ],
+      "before_stop_states": {
+        "order-worker": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-1-order-worker-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "kafka": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-1-kafka-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "shop-mysql": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-1-shop-mysql-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        }
+      },
+      "after_stop_states": {
+        "order-worker": {
+          "state": "exited",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "kafka": {
+          "state": "exited",
+          "exit_code": 143,
+          "oom_killed": false
+        },
+        "shop-mysql": {
+          "state": "exited",
+          "exit_code": 0,
+          "oom_killed": false
+        }
+      },
+      "raw_file_sha256": {
+        "start.log": "74c320afce7c417901d877ae6e19add56af9a8932e6a805c45460cacef8479e4",
+        "worker-kafka-mysql.log": "76fe4247fe708d7be02876adc8039573e60b8ebced1ca9afe815c5855289892d",
+        "seed.log": "37d2697a88cc687672cd437b8a07121907ac0f30ffe271e1661a976542330a6d",
+        "check.log": "b608a5d09ab04f40843a2332252146dce95949a52b64857e9ecf01f850529b1d",
+        "ps.log": "903471d569601c448761f0fa3a8bcda117aa0ab48b462957c10147dbafc8b887",
+        "stop.log": "f761e682c54580e0fe6e14c72b3d03ba6cfea4e7cd19b74cc1387dbb80fe685c"
+      },
+      "raw_file_location": "$TEMP/opsdoctor-phase10/fixed-final-default-1-*"
+    },
+    {
+      "project": "opsdoctor-cold-fixed-final-20261102-2",
+      "status": "passed",
+      "base": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "fix_manifest": "fix-manifest-final.json",
+      "worker_image": "opsdoctor-phase10/order-worker:fixed-final",
+      "worker_image_id": "sha256:98e37cf696ce3321ae482e99d248cfe4a8b0d127f886a889f295cca18631bced",
+      "stress": false,
+      "offset_partitions": 50,
+      "kafka_cpus": null,
+      "observation_seconds": 20,
+      "up_exit": 0,
+      "healthy_seconds": 28.9444439,
+      "running_services": 19,
+      "order_id": 401,
+      "total_seconds": 49.5149658,
+      "sales_check": {
+        "ordered_quantity": 401,
+        "sold_quantity": 401,
+        "gap": 0
+      },
+      "new_order_processed_log_count": 1,
+      "source": "f851460 加四个 events 文件的干净投影；四个 SHA-256 均与最终修复提交逐字匹配",
+      "worker_source_commit": "364a889445711924f68c6f565afa3f40ca9b1173",
+      "worker_events": [
+        {
+          "time": "2026-11-02T14:38:12.811802547Z",
+          "msg": "订单消费者已启动",
+          "service": "order-worker"
+        },
+        {
+          "time": "2026-11-02T14:38:50.284299353Z",
+          "msg": "订单消息已处理并提交位点",
+          "service": "order-worker",
+          "order_id": 401,
+          "result": "processed"
+        }
+      ],
+      "kafka_coordinator_log_excerpts": [
+        "kafka-1         | 2026-11-02T14:38:17.823607800Z [2026-11-02 14:38:17,823] INFO [GroupCoordinator id=1 topic=__consumer_offsets partition=39] Stabilized group order-worker generation 1 with 1 members. (org.apache.kafka.coordinator.group.GroupMetadataManager)"
+      ],
+      "before_stop_states": {
+        "order-worker": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-2-order-worker-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "kafka": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-2-kafka-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "shop-mysql": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-2-shop-mysql-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        }
+      },
+      "after_stop_states": {
+        "order-worker": {
+          "state": "exited",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "kafka": {
+          "state": "exited",
+          "exit_code": 143,
+          "oom_killed": false
+        },
+        "shop-mysql": {
+          "state": "exited",
+          "exit_code": 0,
+          "oom_killed": false
+        }
+      },
+      "raw_file_sha256": {
+        "start.log": "aad5ef090fd9fab88ec6e0e66b35540130c8d2d5e4fb6d41fa8d733997716c9c",
+        "worker-kafka-mysql.log": "cc319637fc4331765c5333aa540995264e57b665e7721941292512afb2456a36",
+        "seed.log": "8bb3df2deb6c1f51cc16a52521c67c1d24066521c7650966c45758d03835cbfb",
+        "check.log": "b608a5d09ab04f40843a2332252146dce95949a52b64857e9ecf01f850529b1d",
+        "ps.log": "531604431d478b902c4b8a76556cb7d5671e818572588a86092d10f0c33f403c",
+        "stop.log": "fb7f16aa812b6ba4edeb83bd819c1f3b53ac7ea2120c6207b6570955c812536e"
+      },
+      "raw_file_location": "$TEMP/opsdoctor-phase10/fixed-final-default-2-*"
+    },
+    {
+      "project": "opsdoctor-cold-fixed-final-20261102-3",
+      "status": "passed",
+      "base": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "fix_manifest": "fix-manifest-final.json",
+      "worker_image": "opsdoctor-phase10/order-worker:fixed-final",
+      "worker_image_id": "sha256:98e37cf696ce3321ae482e99d248cfe4a8b0d127f886a889f295cca18631bced",
+      "stress": false,
+      "offset_partitions": 50,
+      "kafka_cpus": null,
+      "observation_seconds": 20,
+      "up_exit": 0,
+      "healthy_seconds": 28.6487968,
+      "running_services": 19,
+      "order_id": 401,
+      "total_seconds": 49.2090352,
+      "sales_check": {
+        "ordered_quantity": 401,
+        "sold_quantity": 401,
+        "gap": 0
+      },
+      "new_order_processed_log_count": 1,
+      "source": "f851460 加四个 events 文件的干净投影；四个 SHA-256 均与最终修复提交逐字匹配",
+      "worker_source_commit": "364a889445711924f68c6f565afa3f40ca9b1173",
+      "worker_events": [
+        {
+          "time": "2026-11-02T14:39:06.344501652Z",
+          "msg": "订单消费者已启动",
+          "service": "order-worker"
+        },
+        {
+          "time": "2026-11-02T14:39:43.833527541Z",
+          "msg": "订单消息已处理并提交位点",
+          "service": "order-worker",
+          "order_id": 401,
+          "result": "processed"
+        }
+      ],
+      "kafka_coordinator_log_excerpts": [
+        "kafka-1         | 2026-11-02T14:39:11.356939051Z [2026-11-02 14:39:11,356] INFO [GroupCoordinator id=1 topic=__consumer_offsets partition=39] Stabilized group order-worker generation 1 with 1 members. (org.apache.kafka.coordinator.group.GroupMetadataManager)"
+      ],
+      "before_stop_states": {
+        "order-worker": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-3-order-worker-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "kafka": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-3-kafka-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "shop-mysql": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-3-shop-mysql-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        }
+      },
+      "after_stop_states": {
+        "order-worker": {
+          "state": "exited",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "kafka": {
+          "state": "exited",
+          "exit_code": 143,
+          "oom_killed": false
+        },
+        "shop-mysql": {
+          "state": "exited",
+          "exit_code": 0,
+          "oom_killed": false
+        }
+      },
+      "raw_file_sha256": {
+        "start.log": "bdaefe21d04e3bb789ecef08a4f820afffe726b364aaf4a4f5c911bbb124e69d",
+        "worker-kafka-mysql.log": "75d53a36231f024c3e07621cbf6ef780ac41e61d9a9f3d7107d7e912755032d1",
+        "seed.log": "8bb3df2deb6c1f51cc16a52521c67c1d24066521c7650966c45758d03835cbfb",
+        "check.log": "b608a5d09ab04f40843a2332252146dce95949a52b64857e9ecf01f850529b1d",
+        "ps.log": "40102c59425124149cf174132182721a0a170287b7229655892d3c0171d1e36a",
+        "stop.log": "4ccd1522dd7e1bee0ba20a0249df9e7b914274065211fbd228edcb1359ba8a60"
+      },
+      "raw_file_location": "$TEMP/opsdoctor-phase10/fixed-final-default-3-*"
+    },
+    {
+      "project": "opsdoctor-cold-fixed-final-20261102-4",
+      "status": "passed",
+      "base": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "fix_manifest": "fix-manifest-final.json",
+      "worker_image": "opsdoctor-phase10/order-worker:fixed-final",
+      "worker_image_id": "sha256:98e37cf696ce3321ae482e99d248cfe4a8b0d127f886a889f295cca18631bced",
+      "stress": false,
+      "offset_partitions": 50,
+      "kafka_cpus": null,
+      "observation_seconds": 20,
+      "up_exit": 0,
+      "healthy_seconds": 29.9188935,
+      "running_services": 19,
+      "order_id": 401,
+      "total_seconds": 50.4645502,
+      "sales_check": {
+        "ordered_quantity": 401,
+        "sold_quantity": 401,
+        "gap": 0
+      },
+      "new_order_processed_log_count": 1,
+      "source": "f851460 加四个 events 文件的干净投影；四个 SHA-256 均与最终修复提交逐字匹配",
+      "worker_source_commit": "364a889445711924f68c6f565afa3f40ca9b1173",
+      "worker_events": [
+        {
+          "time": "2026-11-02T14:40:04.968596513Z",
+          "msg": "订单消费者已启动",
+          "service": "order-worker"
+        },
+        {
+          "time": "2026-11-02T14:40:42.594654673Z",
+          "msg": "订单消息已处理并提交位点",
+          "service": "order-worker",
+          "order_id": 401,
+          "result": "processed"
+        }
+      ],
+      "kafka_coordinator_log_excerpts": [
+        "kafka-1         | 2026-11-02T14:40:09.978888189Z [2026-11-02 14:40:09,978] INFO [GroupCoordinator id=1 topic=__consumer_offsets partition=39] Stabilized group order-worker generation 1 with 1 members. (org.apache.kafka.coordinator.group.GroupMetadataManager)"
+      ],
+      "before_stop_states": {
+        "order-worker": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-4-order-worker-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "kafka": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-4-kafka-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "shop-mysql": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-4-shop-mysql-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        }
+      },
+      "after_stop_states": {
+        "order-worker": {
+          "state": "exited",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "kafka": {
+          "state": "exited",
+          "exit_code": 143,
+          "oom_killed": false
+        },
+        "shop-mysql": {
+          "state": "exited",
+          "exit_code": 0,
+          "oom_killed": false
+        }
+      },
+      "raw_file_sha256": {
+        "start.log": "b5352af4a57eff48093d19ec02f70fe8f4fb28d4ed7f8d50ac726a2de9634d00",
+        "worker-kafka-mysql.log": "322f6a2447e8d3445a10b468d4b7b72d1b0a40e10dccbd753139beb4b3b9fac7",
+        "seed.log": "8bb3df2deb6c1f51cc16a52521c67c1d24066521c7650966c45758d03835cbfb",
+        "check.log": "b608a5d09ab04f40843a2332252146dce95949a52b64857e9ecf01f850529b1d",
+        "ps.log": "c373711bf5638d28902fc40d8bc415b6e9cd4436cff9bf60b97261718311dbc3",
+        "stop.log": "04ee59a730067f43caf9e7e3b421641e4faf6af4a216d28ad260f4e9397ce605"
+      },
+      "raw_file_location": "$TEMP/opsdoctor-phase10/fixed-final-default-4-*"
+    },
+    {
+      "project": "opsdoctor-cold-fixed-final-20261102-5",
+      "status": "passed",
+      "base": "f85146005d64025ab026ed22e1f2aa2065f89d07",
+      "fix_manifest": "fix-manifest-final.json",
+      "worker_image": "opsdoctor-phase10/order-worker:fixed-final",
+      "worker_image_id": "sha256:98e37cf696ce3321ae482e99d248cfe4a8b0d127f886a889f295cca18631bced",
+      "stress": false,
+      "offset_partitions": 50,
+      "kafka_cpus": null,
+      "observation_seconds": 20,
+      "up_exit": 0,
+      "healthy_seconds": 31.0068741,
+      "running_services": 19,
+      "order_id": 401,
+      "total_seconds": 51.5764564,
+      "sales_check": {
+        "ordered_quantity": 401,
+        "sold_quantity": 401,
+        "gap": 0
+      },
+      "new_order_processed_log_count": 1,
+      "source": "f851460 加四个 events 文件的干净投影；四个 SHA-256 均与最终修复提交逐字匹配",
+      "worker_source_commit": "364a889445711924f68c6f565afa3f40ca9b1173",
+      "worker_events": [
+        {
+          "time": "2026-11-02T14:41:01.433976131Z",
+          "msg": "订单消费者已启动",
+          "service": "order-worker"
+        },
+        {
+          "time": "2026-11-02T14:41:38.485382983Z",
+          "msg": "订单消息已处理并提交位点",
+          "service": "order-worker",
+          "order_id": 401,
+          "result": "processed"
+        }
+      ],
+      "kafka_coordinator_log_excerpts": [
+        "kafka-1         | 2026-11-02T14:41:06.446853261Z [2026-11-02 14:41:06,446] INFO [GroupCoordinator id=1 topic=__consumer_offsets partition=39] Stabilized group order-worker generation 1 with 1 members. (org.apache.kafka.coordinator.group.GroupMetadataManager)"
+      ],
+      "before_stop_states": {
+        "order-worker": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-5-order-worker-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "kafka": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-5-kafka-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "shop-mysql": {
+          "name": "/opsdoctor-cold-fixed-final-20261102-5-shop-mysql-1",
+          "state": "running",
+          "exit_code": 0,
+          "oom_killed": false
+        }
+      },
+      "after_stop_states": {
+        "order-worker": {
+          "state": "exited",
+          "exit_code": 0,
+          "oom_killed": false
+        },
+        "kafka": {
+          "state": "exited",
+          "exit_code": 143,
+          "oom_killed": false
+        },
+        "shop-mysql": {
+          "state": "exited",
+          "exit_code": 0,
+          "oom_killed": false
+        }
+      },
+      "raw_file_sha256": {
+        "start.log": "8d3051b5fc8327846ed3c3309777673530c71c171a9c58af4c9b51985f9a6ab8",
+        "worker-kafka-mysql.log": "944a269e8fbbc8a7011807667855054416eacb2227b7a7159291bf4f35eedb3a",
+        "seed.log": "e263d42a7affadd7a6270ea8e9677576fc1ca8198b598c05fbc13791d162727f",
+        "check.log": "b608a5d09ab04f40843a2332252146dce95949a52b64857e9ecf01f850529b1d",
+        "ps.log": "76f6ff0981a9044b6001b56711cf7973cc8b9b858222f781661f73d8be93af88",
+        "stop.log": "b02419ce08f23acd584b0a3364efc53696472f940c03e340e74f3e9759f68a43"
+      },
+      "raw_file_location": "$TEMP/opsdoctor-phase10/fixed-final-default-5-*"
+    }
+  ],
+  "acceptance_script_sha256": "779150560984afd301c27561f3337546a9ac4a59e9f88d376bf1cce2346ccdf2",
+  "retention_note": "CPU限速放大实验若Kafka在stop默认宽限内未退出，after_stop_states会如实保留137；该值不是启动OOM，启动状态以before_stop_states为准。测试数据卷没有删除。"
+}
