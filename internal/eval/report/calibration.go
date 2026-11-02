@@ -1,10 +1,10 @@
-// 本文件：抽取二十份不同层次的报告，生成人填写的盲评材料。
+// 本文件：抽取二十份不同层次的报告，生成独立评分者填写的盲评材料。
 //
 // 抽样会看场景、实验组和模型，防止只抽到容易的一类。展示时去掉模型品牌、
 // 实验组和评委分数，只留下原报告、实际观察和参考材料。
 //
 // 主要内容：SelectCalibration 先打乱候选再覆盖各层；Blind 输出空白评分表；
-// Agreement 只比较调用者明确提供的人类分数，不生成这些分数。
+// Agreement 只比较调用者明确提供的独立分数，不生成这些分数。
 // 阅读建议：实际抽样编号另存数据库，重新导出仍是相同二十份。
 
 package report
@@ -92,11 +92,11 @@ func Blind(output io.Writer, values []BlindCase) error {
 	if len(values) != 20 {
 		return fmt.Errorf("盲评表必须有二十份真实报告")
 	}
-	fmt.Fprintln(output, "# 人工校准评分表\n\n请本人填写，不需要参考评委分数。机制填写 correct / partial / incorrect：关键因果完整且无相反结论、只说对部分、主因错误或只有症状复述。证据按每项实际观察判断，填达成的项目编号；不要把计划查询算作查到了。\n\n| 编号 | 机制（本人填） | 已达成证据编号（本人填） | 不相关写建议（本人填） | 理由 / 评委可能判断错的地方（本人填） |\n|---|---|---|---|---|")
+	fmt.Fprintln(output, "# 独立盲评评分表\n\n请独立评分者填写，不需要参考另一位评委的分数。机制填写 correct / partial / incorrect：关键因果完整且无相反结论、只说对部分、主因错误或只有症状复述。证据按每项实际观察判断，填达成的项目编号；不要把计划查询算作查到了。\n\n| 编号 | 机制（评分者填） | 已达成证据编号（评分者填） | 不相关写建议（评分者填） | 理由 / 评委可能判断错的地方（评分者填） |\n|---|---|---|---|---|")
 	for index := range values {
 		fmt.Fprintf(output, "| C%02d | | | | |\n", index+1)
 	}
-	// 不输出候选的模型、组或评委分数；JSON 只包含人做判断所需的原材料。
+	// 不输出候选的模型、组或评委分数；JSON 只包含独立判断所需的原材料。
 	for index, value := range values {
 		raw, err := json.MarshalIndent(value, "", "  ")
 		if err != nil {
@@ -113,10 +113,10 @@ func Blind(output io.Writer, values []BlindCase) error {
 	return nil
 }
 
-// Agreement 缺一份人类分数都返回错误，不用评委分数补空白。
+// Agreement 缺一份独立分数都返回错误，不用评委分数补空白。
 func Agreement(human, judge []string) (int, float64, error) {
 	if len(human) != 20 || len(judge) != 20 {
-		return 0, 0, fmt.Errorf("需要二十份人工分数与原评分")
+		return 0, 0, fmt.Errorf("需要二十份独立分数与原评分")
 	}
 	matches := 0
 	valid := map[string]bool{"correct": true, "partial": true, "incorrect": true}

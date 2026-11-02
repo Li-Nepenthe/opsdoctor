@@ -5,7 +5,7 @@
 //
 // 主要内容：Component 精确比较；Evidence 执行规则；Coverage 计算覆盖率；
 // fullScan、missingIndex 读取 MySQL 表格而不是在整段对话里搜索关键词。
-// 阅读建议：规则返回步骤号，人工校准时可以回到那一步复核。
+// 阅读建议：规则返回步骤号，独立盲评时可以回到那一步复核。
 
 package scoring
 

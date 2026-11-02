@@ -2,6 +2,8 @@
 
 这是[阶段汇报书](phase-08-eval.md)的文件与符号导航。文件表以本次盲评交付工作区相对 main 的差异为准，行数取生成时的文件；用户保留的两处修改不纳入本表。
 
+> 此清单记录2026-10-30交付时的代码与行数；11月2日新增交叉评分附件，并把导出文案改为独立盲评。冻结提示、工具和评分标准未改，正式结果仍按原执行版本追溯。
+
 ## 文件清单
 
 | 文件 | 生成时行数 | 增加/删除 | 作用 |
@@ -34,7 +36,7 @@
 | [docs/reports/phase-08-clock-stability.jsonl](../../docs/reports/phase-08-clock-stability.jsonl) | 60 | +60/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-code-inventory.md](../../docs/reports/phase-08-code-inventory.md) | 744 | +744/−0 | 阶段 8 代码清单 |
 | [docs/reports/phase-08-deepseek-network.jsonl](../../docs/reports/phase-08-deepseek-network.jsonl) | 121 | +121/−0 | 实测时间、请求状态或采样结果，不含凭据 |
-| [docs/reports/phase-08-eval.md](../../docs/reports/phase-08-eval.md) | 107 | +107/−0 | 阶段 8 汇报书：评测体系（等待人工校准） |
+| [docs/reports/phase-08-eval.md](../../docs/reports/phase-08-eval.md) | 107 | +107/−0 | 阶段 8 汇报书：评测体系（等待独立复核） |
 | [docs/reports/phase-08-execution-versions.json](../../docs/reports/phase-08-execution-versions.json) | 1811 | +1811/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-failure-analysis.md](../../docs/reports/phase-08-failure-analysis.md) | 293 | +293/−0 | 阶段 8 失败与评分疑点（持续追加） |
 | [docs/reports/phase-08-final-checks.json](../../docs/reports/phase-08-final-checks.json) | 85 | +85/−0 | 实测时间、请求状态或采样结果，不含凭据 |
@@ -45,7 +47,7 @@
 | [docs/reports/phase-08-formal-manifest.json](../../docs/reports/phase-08-formal-manifest.json) | 1826 | +1826/−0 | 实测时间、请求状态或采样结果，不含凭据 |
 | [docs/reports/phase-08-formal-preview.jpg](../../docs/reports/phase-08-formal-preview.jpg) | 二进制 | +-/−- | 真实浏览器中的结果页预览 |
 | [docs/reports/phase-08-formal-results.md](../../docs/reports/phase-08-formal-results.md) | 479 | +479/−0 | 评测记录 phase08-formal-20261029 |
-| [docs/reports/phase-08-human-calibration.md](../../docs/reports/phase-08-human-calibration.md) | 5963 | +5963/−0 | 人工校准评分表 |
+| [docs/reports/phase-08-human-calibration.md](../../docs/reports/phase-08-human-calibration.md) | 5963 | +5963/−0 | 独立复核评分表 |
 | [docs/reports/phase-08-human-scores.md](../../docs/reports/phase-08-human-scores.md) | 30 | +30/−0 | 阶段8：请你填写的二十份评分 |
 | [docs/reports/phase-08-lastcheck3-results.md](../../docs/reports/phase-08-lastcheck3-results.md) | 39 | +39/−0 | > 正式评测前的完整检查，评分接线未通过。五份医生报告和费用均保留，不能纳入正式矩阵。 |
 | [docs/reports/phase-08-lastcheck4-results.md](../../docs/reports/phase-08-lastcheck4-results.md) | 39 | +39/−0 | > 正式评测前检查，评分回复重复了程序规则项，严格校验未通过。报告、评分失败和全部费用原样保留。 |
@@ -153,7 +155,7 @@
 | [internal/doctor/store/eval_baseline_amendment_integration_test.go](../../internal/doctor/store/eval_baseline_amendment_integration_test.go) | 130 | +130/−0 | 本文件：在专用医生库验证基线中断的重启边界，不运行真实模型。 |
 | [internal/doctor/store/eval_budget.go](../../internal/doctor/store/eval_budget.go) | 117 | +117/−0 | 本文件：在模型费用记账的同一个事务里限制整批评测的 token 消耗。 |
 | [internal/doctor/store/eval_budget_integration_test.go](../../internal/doctor/store/eval_budget_integration_test.go) | 72 | +72/−0 | 本文件：证明整批 token 上限和供应商费用账户在同一事务里生效。 |
-| [internal/doctor/store/eval_calibration.go](../../internal/doctor/store/eval_calibration.go) | 52 | +52/−0 | 本文件：固定人工校准抽中的二十份报告，不替用户填写分数。 |
+| [internal/doctor/store/eval_calibration.go](../../internal/doctor/store/eval_calibration.go) | 52 | +52/−0 | 本文件：固定独立复核抽中的二十份报告，不替用户填写分数。 |
 | [internal/doctor/store/eval_clock_amendment.go](../../internal/doctor/store/eval_clock_amendment.go) | 62 | +62/−0 | 本文件：保存用户批准的校时规则变更及一次中断补跑，不重写原冻结清单。 |
 | [internal/doctor/store/eval_clock_amendment_integration_test.go](../../internal/doctor/store/eval_clock_amendment_integration_test.go) | 88 | +88/−0 | 本文件：用专用医生库证明校时补跑只适用于明确批准的原取消任务。 |
 | [internal/doctor/store/eval_execution.go](../../internal/doctor/store/eval_execution.go) | 33 | +33/−0 | 本文件：在评测动作开始前保存执行器版本，续跑也留下自己的记录。 |
@@ -531,7 +533,7 @@
 | internal/eval/report (report) | Blind | [internal/eval/report/calibration.go:91](../../internal/eval/report/calibration.go) | Blind 只生成空表 | runner 的 export / calibrate；评分后的汇总与导出 |
 | internal/eval/report (report) | Markdown | [internal/eval/report/markdown.go:21](../../internal/eval/report/markdown.go) | Markdown 不在导出时重新评分，相同数据库快照应当生成相同的表格 | runner 的 export / calibrate；评分后的汇总与导出 |
 | internal/eval/report (report) | cell | [internal/eval/report/markdown.go:70](../../internal/eval/report/markdown.go) | cell 只整理表格分隔符，不改报告的数据库原文 | runner 的 export / calibrate；评分后的汇总与导出 |
-| internal/eval/report (report) | gradingRows | [internal/eval/report/markdown.go:75](../../internal/eval/report/markdown.go) | gradingRows 保留每份机制理由、评分失败和错误说明，人工校准之后再补“评分有误”的分析 | runner 的 export / calibrate；评分后的汇总与导出 |
+| internal/eval/report (report) | gradingRows | [internal/eval/report/markdown.go:75](../../internal/eval/report/markdown.go) | gradingRows 保留每份机制理由、评分失败和错误说明，独立复核之后再补“评分有误”的分析 | runner 的 export / calibrate；评分后的汇总与导出 |
 | internal/eval/report (report) | measurement | [internal/eval/report/statistics.go:22](../../internal/eval/report/statistics.go) | measurement 的样本数随有效观测增长，未知时长和未知评分不塞进均值 | runner 的 export / calibrate；评分后的汇总与导出 |
 | internal/eval/report (report) | *measurement.add | [internal/eval/report/statistics.go:28](../../internal/eval/report/statistics.go) | add 接收一项已经确认存在的观测，第一项同时初始化上下界 | runner 的 export / calibrate；评分后的汇总与导出 |
 | internal/eval/report (report) | measurement.text | [internal/eval/report/statistics.go:40](../../internal/eval/report/statistics.go) | text 同时展示平均值、波动范围和 n，避免把一份有效报告说成三次结果 | runner 的 export / calibrate；评分后的汇总与导出 |

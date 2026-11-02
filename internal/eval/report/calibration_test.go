@@ -1,4 +1,4 @@
-// 本文件：检查盲评抽样覆盖不同来源，且绝不替人补分。
+// 本文件：检查盲评抽样覆盖不同来源，且绝不替评分者补分。
 //
 // 主要内容：TestCalibrationSelection 检查二十个不同编号和分层；
 // TestBlindAndAgreement 检查评分空白、原材料保留以及缺分拒绝。
@@ -50,7 +50,7 @@ func TestCalibrationSelection(t *testing.T) {
 	}
 }
 
-// TestBlindAndAgreement 检查原样保留恶意文本但不能让它跳出代码块，人的分数保持空白。
+// TestBlindAndAgreement 检查原样保留恶意文本但不能让它跳出代码块，评分者的分数保持空白。
 func TestBlindAndAgreement(t *testing.T) {
 	// 围栏伪造应仍显示在数据内，不能变成新的 Markdown 段落。
 	values := make([]BlindCase, 20)
@@ -69,7 +69,7 @@ func TestBlindAndAgreement(t *testing.T) {
 		judge[index] = "correct"
 	}
 	if _, _, err := Agreement(human, judge); err == nil {
-		t.Fatal("用空白人工分数算一致率")
+		t.Fatal("用空白独立分数算一致率")
 	}
 	for index := range human {
 		human[index] = "correct"

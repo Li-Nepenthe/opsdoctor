@@ -17,13 +17,13 @@
 
 注意：汇报书里写的行号是写报告时的版本，后来代码改过，行号可能对不上。找当前代码请用[代码地图](../代码地图.md)。
 
-阶段 8 进行中：先看 [手册与试跑审核材料](phase-08-pilot.md) 和 [数据库导出结果](phase-08-pilot-results.md)。这是当时第一个停点的材料；S08基线修正已获用户批准并完成复验，当前继续正式矩阵。
+阶段 8 的历史过程：先看 [手册与试跑审核材料](phase-08-pilot.md) 和 [数据库导出结果](phase-08-pilot-results.md)。这是当时第一个停点的材料；S08基线修正已获用户批准并完成复验，正式矩阵已完成，11月2日完成交叉评分，等待Claude验收。
 
 第一个停点已获同意。后续的[开跑前检查](phase-08-preflight.md)记录网络阻塞及重试、计时修复；原始[网络采样](phase-08-network-preflight.jsonl)和[时钟采样](phase-08-clock-preflight.json)只含状态与时间，不含凭据。这些是正式开跑前的历史记录。
 
 第一次校时后的[六十次稳定性复核](phase-08-clock-stability.jsonl)仍有跳变，失败保留。后续[校时复验](phase-08-clock-after-sync.json)及[完整十分钟网络复验](phase-08-network-after-sync.jsonl)通过。配对实现的[结果页预览](phase-08-results-preview.png)使用原试跑记录，尚不是正式成绩。
 
-五配置最后检查已通过，见 [lastcheck5 完整结果](phase-08-lastcheck5-results.md)。[阶段 8 汇报书草稿](phase-08-eval.md)和[代码清单](phase-08-code-inventory.md)持续更新。正式矩阵与人工一致率尚未完成，这些文件不表示阶段验收通过。
+五配置最后检查已通过，见 [lastcheck5 完整结果](phase-08-lastcheck5-results.md)。[阶段 8 汇报书](phase-08-eval.md)和[代码清单](phase-08-code-inventory.md)持续更新。这几份是当时的检查材料。当前正式矩阵已完成，用户决定的[交叉评分](phase-08-cross-scoring.md)也已归档，按修订门槛完成工程验收。
 
 正式批次已启动：[冻结版本和随机顺序](phase-08-formal-manifest.json)、[已保存结果的当前导出](phase-08-formal-results.md)、[逐项失败分析](phase-08-failure-analysis.md)。当前导出只包含已经执行的槽位，不能把尚未运行的部分当成成功或零费用。
 
@@ -69,9 +69,12 @@
 - [S13第二轮故障期间内存](phase-08-memory-s13-second-fault.json)：记录请求放大期间的单次占用。
 
 - [正式矩阵最终计数](phase-08-final-numbers.json)：报告、有效评分、失败与两币种费用分开。
-- [二十份人工盲评材料](phase-08-human-calibration.md)：空白表与原始观察，不填写用户分数；[抽样覆盖](phase-08-calibration-coverage.json)不暴露各份报告的模型身份。
+- [二十份固定盲评原材料](phase-08-human-calibration.md)：空白表与原始观察，不填写用户分数；[抽样覆盖](phase-08-calibration-coverage.json)不暴露各份报告的模型身份。
 
-- [人工评分填写入口](phase-08-human-scores.md)：只填这一张短表，每行可跳到对应原材料。
+- [用户评分空表](phase-08-human-scores.md)：用户未填，作为历史保留；当前采用[Claude独立评分](phase-08-claude-scores.md)。
 - [收尾检查统计](phase-08-final-checks.json)：Mock全仓竞态与零跳过集成分别计数。
 
 - [最终Mock状态与余额对账](phase-08-final-runtime.json)、[最终十九容器内存](phase-08-memory-final-mock.json)：付费调用已结束，余额差额保留未归因。
+
+- [DeepSeek评委与Claude交叉评分的一致率](phase-08-cross-scoring.md)：矩阵、去掉E0的结果、全部证据和写建议对照；附[只读摘录](phase-08-cross-scoring-source.json)、[计算结果](phase-08-cross-scoring.json)和[离线脚本](phase-08-cross-scoring.py)。
+- [11月2日收尾检查](phase-08-cross-scoring-checks.json)：Mock全仓竞态、十二项配置的零跳过集成、原账户和用户修改保护。
