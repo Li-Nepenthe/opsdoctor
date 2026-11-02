@@ -8,6 +8,8 @@
 //   - NewReader：配置 order-worker 消费组和手动提交。
 //   - Consumer、NewConsumer：连接读取器与消息处理函数。
 //   - Run：收到停止信号后不再取新消息，完成手上这条消息再返回。
+//   - fetchMessage：只对消费组协调器暂未就绪的错误有界重取，沿用仍在后台恢复的读取器。
+//   - waitFetchRetry：让重取退避能被停机信号立即打断。
 //   - process：严格解析事件，处理成功后才提交位点。
 //   - decodeMessage：在业务事务前检查消息结构、字段和订单 key。
 //
@@ -40,8 +42,11 @@ type MessageReader interface {
 
 // 拉取限额控制等待与内存，不改变提交位点的时机。
 const (
-	consumeMaxBytes = 1 << 20                // 正常事件只有几个字段，一 MiB 足以容纳一批消息。
-	consumeMaxWait  = 500 * time.Millisecond // 低流量下最多等半秒，不为凑批长时间等待。
+	consumeMaxBytes            = 1 << 20                // 正常事件只有几个字段，一 MiB 足以容纳一批消息。
+	consumeMaxWait             = 500 * time.Millisecond // 低流量下最多等半秒，不为凑批长时间等待。
+	coordinatorMaxRetries      = 3                      // kafka-go 先尝试三次入组；上层只再接收三次结果，持续失败仍要报错。
+	coordinatorRetryBackoff    = 250 * time.Millisecond // 避免读取器快速报错时形成忙循环，不与库的入组定时器抢跑。
+	coordinatorRetryMaxBackoff = time.Second            // 退避依次为 250ms、500ms、1s，停机不必等完这段时间。
 )
 
 // Consumer 不拥有 reader 的关闭权，app 等 Run 返回后统一关闭连接。
@@ -74,7 +79,7 @@ func (consumer *Consumer) Run(ctx context.Context) error {
 		if ctx.Err() != nil {
 			return nil
 		}
-		message, err := consumer.reader.FetchMessage(ctx)
+		message, err := consumer.fetchMessage(ctx)
 		if err != nil {
 			if ctx.Err() != nil {
 				return nil
@@ -91,6 +96,51 @@ func (consumer *Consumer) Run(ctx context.Context) error {
 			// 不跳过坏消息。进程退出后由运维检查，重启仍从未提交的位置继续。
 			return err
 		}
+	}
+}
+
+// fetchMessage 的重试只发生在尚未取得消息时，不会越过处理失败或尚未确认位点的消息。
+//
+// kafka-go 内部三次入组失败后会把错误交给 FetchMessage，但同一 Reader 的后台入组仍在继续。
+// 新数据卷初始化 __consumer_offsets 时，协调器的元数据可能还没加载完；14、15、16 都是这类可恢复状态。
+// 每次成功取到消息后，本次预算自然结束；下一条消息从零计数。这里只限制连续错误的次数，
+// 不给 FetchMessage 整体加短 deadline：协调器恢复后没有订单，是正常等待，不能因此退出。
+func (consumer *Consumer) fetchMessage(ctx context.Context) (kafka.Message, error) {
+	delay := coordinatorRetryBackoff
+	for retries := 0; ; retries++ {
+		message, err := consumer.reader.FetchMessage(ctx)
+		if err == nil || ctx.Err() != nil || !recoverableCoordinatorError(err) {
+			return message, err
+		}
+		if retries >= coordinatorMaxRetries {
+			return kafka.Message{}, fmt.Errorf("等待 Kafka 消费组协调器恢复的重试预算耗尽：%w", err)
+		}
+		// 错误已限定为 Kafka 固定协议错误，不输出连接串、消息正文或账号信息。
+		consumer.logger.Warn("Kafka 消费组协调器暂未就绪，等待原读取器恢复", "retry", retries+1, "backoff", delay.String(), "error", err)
+		if waitErr := waitFetchRetry(ctx, delay); waitErr != nil {
+			return kafka.Message{}, errors.Join(waitErr, err)
+		}
+		delay *= 2
+		if delay > coordinatorRetryMaxBackoff {
+			delay = coordinatorRetryMaxBackoff
+		}
+	}
+}
+
+// recoverableCoordinatorError 只放行真实冷启动中同类的协调器状态，不把鉴权或协议配置错误当成抖动。
+func recoverableCoordinatorError(err error) bool {
+	return errors.Is(err, kafka.GroupLoadInProgress) || errors.Is(err, kafka.GroupCoordinatorNotAvailable) || errors.Is(err, kafka.NotCoordinatorForGroup)
+}
+
+// waitFetchRetry 使用可取消的定时器；直接 time.Sleep 会让退出信号白等剩余退避时间。
+func waitFetchRetry(ctx context.Context, delay time.Duration) error {
+	timer := time.NewTimer(delay)
+	defer timer.Stop()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-timer.C:
+		return nil
 	}
 }
 

@@ -27,6 +27,7 @@
 //   - consumer.go：消费消息：先处理，后提交位点。
 //   - topic.go：启动时创建或检查 order.created 主题（3 个分区）。
 //   - consumer_test.go：测试提交顺序、重复消息，以及收到停止信号时手上的消息仍会处理完。
+//   - consumer_fetch_test.go：验证协调器暂态错误恢复、连续错误预算和可取消退避。
 //
 // 阅读顺序：model.go → publisher.go → consumer.go。重点看 consumer.go 的 process。
 package events

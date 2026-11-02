@@ -110,7 +110,7 @@ func testMessage(t *testing.T) kafka.Message {
 }
 
 // testConsumer 把日志送到 Discard，让预期失败不会混进测试输出。
-func testConsumer(t *testing.T, reader *fakeReader, handle func(context.Context, OrderCreated) error) *Consumer {
+func testConsumer(t *testing.T, reader MessageReader, handle func(context.Context, OrderCreated) error) *Consumer {
 	t.Helper()
 	t.Setenv("OTEL_EXPORTER_OTLP_ENDPOINT", "")
 	runtime, err := telemetry.New(t.Context(), "consumer-test")
