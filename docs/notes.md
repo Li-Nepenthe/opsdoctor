@@ -1,5 +1,19 @@
 # 实测记录
 
+<a id="phase-10"></a>
+
+## 2026-11-02：阶段 10 开始与费用口径
+
+用户明确确认阶段 8 已由 Claude 验收、合并 main（f851460），授权先做阶段 10，阶段 9 推迟不是取消。初始工作区是 phase-08-eval，只有两处用户修改；切回 main 后创建 phase-10-showcase。保留文件 SHA-256：docs/learn/phase-00-foundation.md 为 DC0D4D5288D5D140E800F7E412680A1F0AB3AD0188026ECC1906FFD730EC306A；internal/shop/app/inventoryservice/app.go 为 72265F52B1FA90182D0EA44BBA08936E913D3963CDF6B7FEA20854E164AAB1A5，提交时排除。
+
+首次普通沙箱 git switch 与 Docker 只读命令被权限限制拒绝；使用用户已授权范围的提权调用后成功。只读快照显示原 OpsDoctor 十九个容器均 Created/Exited，只有 qq-astrbot 与 qq-napcat 运行。原医生 MySQL 的挂载卷是 opsdoctor_doctor-mysql-data；保留所有原容器和卷，测试前清单存于本机 TEMP/opsdoctor-phase10/docker-before.jsonl 与 volumes-before.jsonl。
+
+用户追加说明：OpenAI 平台只能按 Key 查看花费，该 Key 还用于其他任务，本项目无法单独核对平台账单。用户认可项目用量账本，不再去平台核对。这替代本阶段原指令中“用户提供了平台实际扣费就记入台账”的说法。美元统一写“按项目用量账本计”（每次请求的实际 token 用量 × 2026-10-29 核对过的官方单价，分档结算，未知请求保留预留），并注明“平台账单因 Key 与其他用途共用，无法单独核对”。不称为实际扣费或已核对账单。台账相关历史美元条目的备注已追加新口径，旧运行记录、金额和请求不改；DeepSeek 的 ¥0.769756 差额继续未归因，不与美元相加。本阶段全程 Mock，未调用付费模型。
+
+展示表按 `python -X utf8 docs/reports/phase-10-eval-summary.py` 只读统计原 Markdown 导出，没有运行 eval 或评分。第一次临时脚本把报告表误认成十四列，断言拒绝；改为实际十三列后，又发现 S02 第二轮 E3 的原取消槽位和 `/makeup` 补跑必须分别关联，不能用原槽位的“未评分”覆盖补跑。保留原取消，按导出中的“一次补跑”状态关联 `/makeup` 后，五组各 39 份，评分失败总数与原 14 份完全一致，所有评分档位计数加总校验通过。新增台账 P10-1–P10-5 和 JSON，不改阶段 8 任何报告结论或分数。
+
+清理时扫描 cmd、internal、tools 中 TODO/FIXME 和阶段占位，未发现待补的 TODO/FIXME。库存配置和 alertsink 的旧注释仍把已完成的能力写成未来阶段，按当前职责更新；shopctl 阅读顺序补上现有 check。alertsink 代码保留，因为阶段 3 学习材料和命令文档仍引用它，不能当作无用代码删除。冻结的医生提示、工具、手册、评分与场景不改。
+
 <a id="phase-05"></a>
 
 ### Linux CI 40296137783 与阶段收尾

@@ -1,0 +1,57 @@
+{
+  "source": "phase-08-formal-results.md",
+  "source_sha256_lf": "a2a652027c463991ad7009b18ff918b0b85a7c09055bfbe4799e73ab40aa5af8",
+  "method": "只读逐报告表，按原槽位关联原评分，获准补跑保留 /makeup；原可靠性取消不计报告分母，评分失败单列缺失，不填零、不重评。",
+  "rows": [
+    {
+      "model": "gpt-6.1-terra",
+      "group": "E0",
+      "reports": 39,
+      "component_matches": 0,
+      "mechanism_correct": 0,
+      "mechanism_partial": 3,
+      "mechanism_incorrect": 35,
+      "judge_failed": 1
+    },
+    {
+      "model": "gpt-6.1-terra",
+      "group": "E1",
+      "reports": 39,
+      "component_matches": 36,
+      "mechanism_correct": 25,
+      "mechanism_partial": 9,
+      "mechanism_incorrect": 1,
+      "judge_failed": 4
+    },
+    {
+      "model": "gpt-6.1-terra",
+      "group": "E2",
+      "reports": 39,
+      "component_matches": 36,
+      "mechanism_correct": 26,
+      "mechanism_partial": 9,
+      "mechanism_incorrect": 0,
+      "judge_failed": 4
+    },
+    {
+      "model": "gpt-6.1-terra",
+      "group": "E3",
+      "reports": 39,
+      "component_matches": 36,
+      "mechanism_correct": 23,
+      "mechanism_partial": 12,
+      "mechanism_incorrect": 0,
+      "judge_failed": 4
+    },
+    {
+      "model": "deepseek-flash",
+      "group": "E1",
+      "reports": 39,
+      "component_matches": 31,
+      "mechanism_correct": 28,
+      "mechanism_partial": 8,
+      "mechanism_incorrect": 2,
+      "judge_failed": 1
+    }
+  ]
+}

@@ -19,5 +19,6 @@
 //   - check.go：check 命令。
 //   - check_test.go：测试总量不相等时会报告失败，而不是误报通过。
 //
-// 阅读顺序：app.go → stock_client.go → stock_client_test.go。check.go 留到阶段 2 再读。
+// 阅读顺序：app.go → stock_client.go → stock_client_test.go → check.go。
+// 先掌握单次库存调用，再读异步消息消费后的总量核对，会更容易理解一致性缺口。
 package shopctl

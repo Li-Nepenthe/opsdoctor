@@ -13,7 +13,7 @@ permissions:
 jobs:
   quality:
     runs-on: ubuntu-24.04
-    timeout-minutes: 30 # 阶段 3 多了十个容器，给首次镜像下载和真实管道冒烟留出时间。
+    timeout-minutes: 30 # 包含首次镜像下载、真实管道冒烟和串行五轮全新卷冷启动。
     env:
       LLM_PROVIDER: "mock" # 单元测试、集成和冒烟都不能触发付费诊断。
       LOADGEN_QPS: "0" # 空库准备期间不发送业务流量，后面单独运行有时长的冒烟压测。
@@ -54,7 +54,16 @@ jobs:
       - name: 启动固定版本基础设施并等待健康
         run: |
           cp .env.example .env
-          docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240
+          python3 - <<'PY'
+          import json, os, subprocess, sys, time
+          from pathlib import Path
+          started = time.monotonic()
+          result = subprocess.run(['docker', 'compose', '--env-file', '.env', '-f', 'deploy/docker-compose.yml', 'up', '-d', '--build', '--wait', '--wait-timeout', '240'])
+          record = {'code': os.environ['GITHUB_SHA'], 'exit_code': result.returncode, 'seconds': round(time.monotonic() - started, 3), 'includes': '镜像拉取、构建与默认项目首次启动'}
+          (Path(os.environ['RUNNER_TEMP']) / 'primary-cold-result.json').write_text(json.dumps(record))
+          print('PRIMARY_COLD_RESULT ' + json.dumps(record, ensure_ascii=False), flush=True)
+          sys.exit(result.returncode)
+          PY
           # 空库初始化时尚无业务表；服务健康说明迁移已完成，此时才授予精确的表级权限。
           docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/005_chaos_user.sh
           docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql bash /docker-entrypoint-initdb.d/006_doctor_readonly.sh
@@ -287,14 +296,102 @@ jobs:
           assert status['provider'] == 'mock' and status['budget']['spent_micros'] == 0
           print('医生登录、十六项菜单、三种工具、四次通知仅一个任务、Mock报告与SSE补发通过；真实费用0')
           PY
+      - name: 五轮独立全新卷冷启动与真实消费
+        run: |
+          go build -o "$RUNNER_TEMP/shopctl" ./cmd/shopctl
+          python3 - <<'PY'
+          import json, os, subprocess, time, urllib.request, uuid
+          from pathlib import Path
+
+          temporary = Path(os.environ['RUNNER_TEMP'])
+          values = dict(line.split('=', 1) for line in Path('.env').read_text().splitlines() if '=' in line and not line.startswith('#'))
+          environment = os.environ.copy()
+          # 只注入宿主机小工具需要的连接；不打印环境或渲染后的 Compose，避免以后换成真实凭据时泄露。
+          environment.update({name: values[name] for name in ['MYSQL_DSN', 'INVENTORY_GRPC_TARGET']})
+          environment.update(LLM_PROVIDER='mock', EVAL_COMPARISON_ENABLED='false', LOADGEN_QPS='0', LOADGEN_PRODUCT_COUNT='100')
+          compose = ['docker', 'compose', '--env-file', '.env', '-f', 'deploy/docker-compose.yml']
+          binary = str(temporary / 'shopctl')
+          projects = temporary / 'cold-projects.txt'
+          results = temporary / 'cold-results.jsonl'
+          projects.write_text('')
+          results.write_text('')
+
+          def run(arguments, **kwargs):
+              return subprocess.run(arguments, env=environment, check=True, text=True, **kwargs)
+
+          # 本机映射端口相同；先把正常冒烟项目停住，再逐套启动，任何时刻只运行一套。
+          # stop 保留容器和数据卷，也保留失败现场，不能用删卷来把一次失败变成下一次成功。
+          run(compose + ['stop'])
+          for repetition in range(1, 6):
+              project = 'opsdoctor-cold-' + os.environ['GITHUB_RUN_ID'] + '-' + str(repetition)
+              with projects.open('a') as output:
+                  output.write(project + '\n')
+              command = compose + ['-p', project]
+              started = time.monotonic()
+              record = {'round': repetition, 'project': project, 'code': os.environ['GITHUB_SHA'], 'status': 'failed'}
+              try:
+                  run(command + ['up', '-d', '--wait', '--wait-timeout', '240'])
+                  record['healthy_seconds'] = round(time.monotonic() - started, 3)
+                  # worker 的健康端点只验证 MySQL；多观察二十秒，覆盖消费组前三次入组尝试的窗口。
+                  time.sleep(20)
+                  state = run(command + ['ps', '--all', '--format', 'json'], capture_output=True).stdout
+                  # Compose 版本之间有 JSON 数组与逐行 JSON 两种格式，都转换成同一张容器表。
+                  try:
+                      decoded = json.loads(state)
+                      containers = decoded if isinstance(decoded, list) else [decoded]
+                  except json.JSONDecodeError:
+                      containers = [json.loads(line) for line in state.splitlines() if line.strip()]
+                  expected = set(run(command + ['config', '--services'], capture_output=True).stdout.splitlines())
+                  assert {item['Service'] for item in containers} == expected, state
+                  assert all(item['State'] == 'running' and item.get('Health', '') in ['', 'healthy'] for item in containers), state
+                  run([binary, 'seed', '--small'])
+                  request = urllib.request.Request('http://127.0.0.1:8081/orders', data=json.dumps({'user_id': 990000003, 'sku_id': 99, 'quantity': 1}).encode(), headers={'Content-Type': 'application/json', 'Idempotency-Key': 'cold-' + uuid.uuid4().hex})
+                  with urllib.request.urlopen(request, timeout=10) as response:
+                      order = json.load(response)
+                      assert response.status == 201 and order['data']['order_id'] > 0, order
+                  # 查询真实数据库总量；Kafka 只是能列主题、worker 只是能 Ping 数据库都不足以通过。
+                  deadline = time.monotonic() + 30
+                  while True:
+                      check = subprocess.run([binary, 'check'], env=environment, capture_output=True, text=True)
+                      if check.returncode == 0:
+                          print(check.stdout, flush=True)
+                          break
+                      assert time.monotonic() < deadline, check.stdout + check.stderr
+                      time.sleep(1)
+                  record['status'] = 'passed'
+                  record['order_id'] = order['data']['order_id']
+              finally:
+                  record['total_seconds'] = round(time.monotonic() - started, 3)
+                  with results.open('a') as output:
+                      output.write(json.dumps(record) + '\n')
+                  print('COLD_RESULT ' + json.dumps(record), flush=True)
+                  # 成功和失败都保留真实状态/启动日志，失败收集步骤还会把对应项目日志写到 CI 输出。
+                  for suffix, arguments in [('ps', ['ps', '--all']), ('startup', ['logs', '--no-color', '--timestamps', '--tail', '500', 'shop-mysql', 'order-worker', 'kafka'])]:
+                      with (temporary / (project + '-' + suffix + '.log')).open('w') as output:
+                          subprocess.run(command + arguments, env=environment, stdout=output, stderr=subprocess.STDOUT, text=True, check=False)
+                  run(command + ['stop'])
+          PY
       - name: 失败时记录容器状态
         if: failure()
         # 消费者可能在数据库或 Kafka 初始化时退出；只看 MySQL 日志会漏掉真正的错误。
-        # CI 只使用 .env.example 的演示凭据，三个相关服务各保留最后一百行即可核对启动过程。
+        # 每个冷启动项目都要列出；仅看默认项目会漏掉真正失败的那一轮。
         run: |
           docker compose --env-file .env -f deploy/docker-compose.yml ps --all
           docker compose --env-file .env -f deploy/docker-compose.yml logs --no-color --tail 100 shop-mysql order-worker kafka
+          if [ -f "$RUNNER_TEMP/cold-projects.txt" ]; then
+            while IFS= read -r project; do
+              docker compose --env-file .env -f deploy/docker-compose.yml -p "$project" ps --all
+              docker compose --env-file .env -f deploy/docker-compose.yml -p "$project" logs --no-color --timestamps --tail 500 shop-mysql order-worker kafka
+            done < "$RUNNER_TEMP/cold-projects.txt"
+            cat "$RUNNER_TEMP/cold-results.jsonl"
+          fi
       - name: 关闭 CI 的临时容器
         if: always()
-        # 不删除用户数据：这是 CI runner 的独立项目，并且不使用 down -v。
-        run: docker compose --env-file .env -f deploy/docker-compose.yml down
+        # 只停止本次 CI 项目，保留全部卷与容器，runner 销毁时由 GitHub 回收。
+        run: |
+          docker compose --env-file .env -f deploy/docker-compose.yml stop
+          if [ -f "$RUNNER_TEMP/cold-projects.txt" ]; then
+            while IFS= read -r project; do
+              docker compose --env-file .env -f deploy/docker-compose.yml -p "$project" stop
+            done < "$RUNNER_TEMP/cold-projects.txt"
+          fi

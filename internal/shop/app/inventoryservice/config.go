@@ -23,7 +23,7 @@ const (
 	shutdownTimeout = 10 * time.Second // 小型靶场给在途请求十秒，之后强制取消。
 )
 
-// Config 只保存该服务实际使用的变量。不预读阶段 2/3 尚未实现的能力。
+// Config 保存库存进程的数据库和监听地址；指标、调用链与运维入口由各自的组装函数读取配置。
 type Config struct {
 	Database     mysqlx.Config // MYSQL_DSN 与 DB_*；含密码，禁止输出整个 Config。
 	GRPCAddress  string        // GRPC_ADDR，默认 :9001；Compose 仅映射到 127.0.0.1。

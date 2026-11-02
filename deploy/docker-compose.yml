@@ -1,4 +1,4 @@
-# 阶段 4 共 18 个容器；内存设上限，宿主机端口只映射到本机。
+# 靶场、医生与监控组件共用一套部署；内存设上限，宿主机端口只映射到本机。
 name: opsdoctor
 x-logging: &bounded-logging
   driver: json-file
