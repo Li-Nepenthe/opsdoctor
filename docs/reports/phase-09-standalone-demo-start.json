@@ -1,0 +1,6 @@
+{
+  "measured_at_utc": "2026-11-03T05:53:40.7331866Z",
+  "exit_code": 0,
+  "elapsed_seconds": 53.5626436,
+  "scope": "既有固定3.1.0 Demo停止后恢复，使用同一Collector配置、容器和索引；不包含拉取或构建"
+}

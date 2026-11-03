@@ -148,11 +148,11 @@ func TestGeneralizationBoundaries(t *testing.T) {
 			t.Fatal("接受旧账户或任意新账户")
 		}
 	}
-	allowed := "opsdoctor/doctor-mysql\nopsdoctor-phase09-doctor/doctor\nopsdoctor-otel-demo/ad\nqqbot/astrbot"
+	allowed := "opsdoctor/doctor-mysql\nopsdoctor-phase09-doctor/doctor\nopsdoctor-phase09-doctor/doctor-mysql\nopsdoctor-otel-demo/ad\nqqbot/astrbot"
 	if err = checkDemoIsolation(allowed); err != nil {
 		t.Fatal(err)
 	}
-	for _, extra := range []string{"opsdoctor/order-service", "opsdoctor/loadgen", "opsdoctor/grafana", "opsdoctor/doctor", "opsdoctor-cold-repro-20261102/shop-mysql"} {
+	for _, extra := range []string{"opsdoctor/order-service", "opsdoctor/loadgen", "opsdoctor/grafana", "opsdoctor/doctor", "opsdoctor-cold-repro-20261102/shop-mysql", "opsdoctor-phase09-doctor/shop-mysql", "opsdoctor-phase09-doctor/loadgen", "opsdoctor-phase09-doctor-copy/doctor-mysql", "opsdoctor-other/doctor-mysql"} {
 		if checkDemoIsolation(allowed+"\n"+extra) == nil {
 			t.Fatal("两套系统同时运行仍被接受", extra)
 		}

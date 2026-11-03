@@ -24,6 +24,14 @@ flowchart LR
 
 先按[第二系统部署说明](../../deploy/opentelemetry/README.md)检查资源、取得固定源码并配置环境。不要同时启动两套靶场；切换时停止对应业务和观测组件，保留医生及医生数据库。部署文件中的 `stop` 会保留容器与数据。
 
+医生现在可以单独部署，只启动医生和它自己的 MySQL。通用步骤见[医生部署说明](../../deploy/doctor/README.md)，自己的系统怎样写配置见[接入指南](../onboarding.md)。阶段 9 的实际入口以通用双服务文件为基础，加一份只覆盖本阶段身份、预算和评测端口的配置；已经准备好私有 `.env.phase09-doctor` 和所选目标目录时，使用：
+
+```text
+docker compose --env-file .env.phase09-doctor -p opsdoctor-phase09-doctor -f deploy/doctor/compose.yaml -f deploy/opentelemetry/doctor.phase09.yaml up -d --build --wait --wait-timeout 240
+```
+
+两份 `-f` 的顺序有意义：先定义通用服务，再覆盖本阶段差异；后面的文件不能单独启动。它使用新网络和新 `doctor-state` 卷，不连接原医生库。宿主评测器也必须把 `DOCTOR_MYSQL_DSN` 指向新库的回环端口 `3309`；容器内医生使用本项目的 `doctor-mysql:3306`。
+
 这里先做不产生模型费用的观察。下面命令均从仓库根目录执行；`doctorctl` 还需要已经配置 `DOCTOR_URL` 和通过登录取得的 `DOCTOR_TOKEN`，登录方法沿用[运行说明](../operations.md)。令牌只放在环境变量里。
 
 ```text
@@ -31,7 +39,7 @@ go run ./cmd/doctorctl target list
 go run ./cmd/doctorctl tool list --target otel-demo
 ```
 
-你应该看到 shop 与 otel-demo 同时登记。otel-demo 会列出已配置数据源对应的工具，不应出现 MySQL 元数据、Redis 直查或 goroutine 堆栈工具。两个系统被登记，并不意味着两套靶场都必须同时运行。
+本次独立实例的目标只有 otel-demo，列出 8 个只读工具；不应出现 MySQL 元数据、Redis 直查或 goroutine 堆栈工具（P9-25、P9-26）。同一医生同时登记 shop 与 otel-demo 的早先实测仍保留在 P9-8、P9-9。工具菜单来自本次挂载的目标目录，不能把旧实例的菜单当作新实例的预期。
 
 在 Demo 正常产生流量时查询日志：
 
@@ -41,7 +49,7 @@ go run ./cmd/doctorctl tool run --target otel-demo search_logs --args '{"service
 
 你应该看到统一的日志条目，含 `time_ns`、`service`、`line`。实际条数由该时段的数据决定；如果没有日志，先检查服务名、时间和后端，不要把本书的预期当作实测结果。
 
-对照 shop 时，在 shop 运行、Demo 停止的时段使用同样的参数结构：
+下面是早先双系统对照使用的同类调用；只有配置中已登记 shop，且 shop 运行、Demo 停止时才适用。本次只挂 otel-demo 的独立实例不会自动拥有 shop：
 
 ```text
 go run ./cmd/doctorctl tool run --target shop search_logs --args '{"service":"order-service","lookback_seconds":300,"limit":3}'
@@ -156,6 +164,20 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 
 修正只在新适配器中给级别 term 添加 `case_insensitive`，服务和 trace 继续精确匹配。补了大小写与不同级别的 Mock 回归，再用实际 OpenSearch 和新 Mock 医生验证：Go 集成带 INFO 返回 10 条，医生返回 5 条，见 P9-21、P9-23。全仓重验另存 P9-22，原检查没有覆盖。这是把第二实现补齐到原接口约定，尚未发生诊断评测，也没有修改冻结提示、工具、手册或评分。
 
+### 3.7 把医生自己的部署与 shop 演示分开
+
+用户随后要求“医生可单独部署”。先核对真实启动配置，发现 Go 程序只要求医生自身的库、登录与 JWT；系统凭据由目标 YAML 引用，并没有 shop 必填。原完整演示的 Compose 却逐项列出 `SHOP_` 变量，还默认挂载全部目标。因此，这次补的是部署入口，没有为此改 Go 的工具或 Agent。
+
+把公共的两个服务写入 [deploy/doctor/compose.yaml](../../deploy/doctor/compose.yaml)，阶段 9 原专用文件改为[薄覆盖](../../deploy/opentelemetry/doctor.phase09.yaml)。基础文件定义 MySQL、医生镜像、挂载与健康检查，薄覆盖只补固定容器名、本阶段两个预算账户和宿主 `3309` 端口。这避免复制两套相同服务配置后各自修改，也让新系统接入不必先填 shop 的整套账号。
+
+两类环境文件分别处理两个问题。`.env.phase09-doctor` 供 Compose 填写医生自己的配置和路径；`DOCTOR_TARGET_ENV_FILE` 指定的 `.env.phase09-targets` 把目标 YAML 引用的凭据交给医生进程。Compose 的 `environment` 优先于容器 `env_file`，所以前者只列医生与模型的通用变量，不再逐项展开 `SHOP_` 等系统变量。Git 忽略和 Docker 构建排除也分别核对，避免嵌套私有 env 被 `COPY . .` 带进构建上下文。
+
+实测前重新检查资源（P9-24），把 otel-demo 的 YAML 和 profile 精确复制到仓库外单独目录，并核对旧库阶段 9 生成请求与美元支出均为 0，才切换到新状态卷（P9-27）。新库不迁移阶段 8 或旧诊断数据；原库只 stop，容器和卷保留。这个零支出前提很关键，不能把更换数据库当成费用预算重新开始。
+
+在已有本机源码和镜像的条件下，从准备私有文件、验证配置、构建到健康为 33.696456 秒，到登录和菜单为 33.8045 秒；医生进程中没有 `SHOP_` 环境变量，目标只有 otel-demo（P9-25）。恢复 Demo 后，菜单为 8 个只读工具，frontend 加 INFO 和关键词的日志查询返回 5 条；`query_metrics` 查询 `up` 虽然返回 `status=ok`，但序列数是 0（P9-26）。它证明该查询完成，不能写成已取得非空指标，更不能据此判定全部业务健康。
+
+独立部署后的全仓检查单独留在 P9-28。收尾时再次 stop Demo，仅新医生与新库保留运行，原项目和历史数据保持原状（P9-27）。这段回放记录的是部署、登录、菜单和只读查询；没有跑整轮 Mock 注入与评分，也没有付费诊断。采集修复仍等 Claude 审核，泛化评测继续暂停。
+
 ## 4. 阅读顺序
 
 1. 从 [doctor 入口](../../cmd/doctor/main.go)和[组装包](../../internal/doctor/app/doc.go)了解谁创建医生，再看 [接入目录加载](../../internal/doctor/target/catalog.go)。重点找同一个医生怎样为各个系统分别建立依赖。
@@ -164,7 +186,8 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 4. 读 [OpenSearch 配置](../../internal/doctor/source/opensearch/config.go)与[响应整理](../../internal/doctor/source/opensearch/response.go)。重点看固定索引、`.keyword`、点键和时间精度。
 5. 读[共同契约测试](../../internal/doctor/source/log_contract_test.go)，再读[产品边界测试](../../internal/doctor/source/opensearch/client_test.go)和[接入隔离测试](../../internal/doctor/target/opensearch_test.go)。分清共同承诺与产品细节。
 6. 从 [eval 入口](../../cmd/eval/main.go)进入[泛化命令](../../internal/eval/runner/generalization.go)，接着看[外部场景控制](../../internal/eval/runner/generalization_scenario.go)与[轮次推进](../../internal/eval/runner/generalization_run.go)。只跟一次“注入前保存 → 验证 → 诊断 → 恢复”。
-7. 最后对照[场景来源](../../eval/scenarios/otel-demo/README.md)、[本阶段原始记录](../notes.md#phase-09)、[日志修复专项报告](../reports/phase-09-logging-fix.md)与[台账](../数据台账.md)。把“代码支持”“真实跑过”“效果如何”分开讲。
+7. 对照[通用独立部署](../../deploy/doctor/compose.yaml)与[阶段 9 薄覆盖](../../deploy/opentelemetry/doctor.phase09.yaml)，再读[自己的系统接入指南](../onboarding.md)，找出目标目录、凭据与医生数据库各自的边界。
+8. 最后对照[场景来源](../../eval/scenarios/otel-demo/README.md)、[本阶段原始记录](../notes.md#phase-09)、[日志修复专项报告](../reports/phase-09-logging-fix.md)与[台账](../数据台账.md)。把“代码支持”“真实跑过”“效果如何”分开讲。
 
 ## 5. 关键设计与 WHY
 
@@ -260,6 +283,14 @@ E1 和 E2 的区别仍然只是是否提供通用手册检索。不能发现某�
 
 这里也要区分两种计数：`dropped_items` 是采集器对失败请求的报告，逐服务查询是索引中已有文档的观察。前者不是去重后的缺失文档清单，后者也没有所有服务生成日志的完整分母。因此首十分钟结果只能支持该固定窗口内的验证结论，不能扩大成永久保证或端到端零丢失。
 
+### 5.8 为什么独立医生不应该要求 shop 的变量
+
+医生自身的配置回答“任务存哪里、谁能登录、使用什么模型”。目标配置回答“这套系统的证据在哪里、使用哪个独立只读账号”。只有选中了 shop 的 YAML，才需要它引用的凭据；诊断另一个系统时仍要求 `SHOP_`，会让演示环境变成部署依赖。
+
+因此通用 Compose 只固定医生自身变量，把任意系统凭据通过外部 `env_file` 交给目标加载器。加载器仍会检查每份 YAML 声明的变量，缺少就拒绝启动，并没有用“可独立部署”放宽账号边界。更换目标文件后需先停止医生再用同一配置启动，才会重新加载；已经加载的多个系统之间切换 target 则不用重启。
+
+新医生库保存的是另一套运行状态与账本。地址、项目和卷分开，能避免把试验写入阶段 8 原始库；它不会自动继承旧账。P9-27 先核对旧阶段 9 支出为零，再切换到新库，并保留旧账证据，才没有把部署隔离变成预算重置。
+
 ## 6. 本阶段用到的 Go 写法
 
 本阶段没有首次引入新的 Go 语法。接口的隐式实现、结构体与标签、map、context、defer 和表格驱动测试在前面阶段已经使用，这里是把它们用于第二实现和外部实验。
@@ -297,6 +328,7 @@ E1 和 E2 的区别仍然只是是否提供通用手册检索。不能发现某�
 ## 8. 常见误区
 
 - **注册了两个系统，就要同时启动两套靶场。** 注册是医生保存两份独立依赖，运行策略仍是一次只开一套靶场。
+- **独立医生也必须准备 shop 的所有密码。** 只需准备选中目标实际引用的凭据；当前只选 Demo 的部署实测中没有 `SHOP_` 变量。
 - **有同一个接口，就能连接任何日志产品。** 每个新后端仍需要具体适配器、字段配置和真实接入验证。
 - **`resource.service.name.keyword` 一定是原 JSON 的嵌套路径。** `.keyword` 是映射子字段，原日志还可能保留带点号的键。
 - **后端 HTTP 成功就代表取得完整日志。** OpenSearch 可能部分分片失败或查询超时；适配器要把这些情况明确返回。
@@ -317,6 +349,7 @@ E1 和 E2 的区别仍然只是是否提供通用手册检索。不能发现某�
 7. 查询中的 `.keyword` 为什么不能原样拿去读取 `_source`？
 8. 如果注入后程序退出，为什么不能直接重新打开开关再诊断？
 9. 为什么真实日志查询成功以后，还要检查 Collector？首十分钟的丢弃报告为零证明了什么？
+10. 为什么医生可以不改 Go 代码就摆脱 shop 的部署依赖？更换新库前为什么还要核对旧账？
 
 <details>
 <summary>参考答案要点</summary>
@@ -330,6 +363,7 @@ E1 和 E2 的区别仍然只是是否提供通用手册检索。不能发现某�
 7. `.keyword` 是索引中的精确匹配子字段；原始 JSON 可能只有 text 原字段。读取时还要兼容 `service.name` 是完整键的情况。
 8. 上一次写入可能已经成功，重新注入会丢失原开始时间并混入旧证据。应核对保存的完整原配置、本轮预期配置、恢复证明与数据库轮次状态，无法确认就停止。
 9. 查询成功只证明已有数据可读，采集器仍可能拒收某类新日志。本次固定窗口内没有最终丢弃或 mapping 错误报告，17/17 个预期 OTLP 日志源有新记录；image-provider 官方未启用日志，email 包含合成样本，同窗仍有 Jaeger 重试。这支持本次配置修复的窗口验证，不能推出端到端零丢失或医生准确率。
+10. Go 启动配置本来就将医生自身与目标凭据分开，限制来自原完整演示 Compose 的必填变量和默认挂载。新的通用双服务 Compose 加目标目录、外部凭据文件即可独立部署。新库不自动继承旧账，必须保留并核对旧支出；本次阶段 9 原支出为零，不能推广为随时换库就能重新取得预算。
 
 </details>
 
@@ -351,3 +385,4 @@ E1 和 E2 的区别仍然只是是否提供通用手册检索。不能发现某�
 | 契约测试 | 让不同实现接受同一组接口行为要求的测试 |
 | targeting | 上游配置里根据请求属性选择变体的条件；它只属于评测控制一侧 |
 | 降级接入 | 缺少某种数据源时，明确减少可用工具，而不是假装仍有完整证据 |
+| Compose 覆盖文件 | 在先加载的服务定义上补充部署差异，本阶段用薄覆盖复用通用医生双服务配置 |

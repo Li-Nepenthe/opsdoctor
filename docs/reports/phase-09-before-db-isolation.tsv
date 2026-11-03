@@ -1,0 +1,13 @@
+attempts_since_phase09_preflight
+0
+account	currency	spent_micros
+global	CNY	4829000
+phase-07-08	CNY	6626689
+phase-07-08-openai	USD	3596408
+phase-09-openai	USD	0
+run_id	slots	graded
+phase08-formal-20261029	196	195
+phase08-lastcheck3-20261029	5	5
+phase08-lastcheck4-20261029	5	5
+phase08-lastcheck5-20261029	5	5
+phase08-pilot-20261029	3	0

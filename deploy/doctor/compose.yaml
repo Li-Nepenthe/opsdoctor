@@ -1,0 +1,119 @@
+# 医生可以独立部署；本文件只创建医生与医生数据库，不包含任何被诊断系统。
+# 从仓库根目录传 --env-file deploy/doctor/.env.standalone，停止时用 stop 保留数据。
+name: opsdoctor-standalone
+
+x-bounded-logging: &bounded-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+
+services:
+  doctor-mysql:
+    image: mysql:8.4.13
+    # app.loadConfig要求医生自己的库和账号均为doctor；这些不是靶场凭据。
+    environment:
+      MYSQL_DATABASE: doctor
+      MYSQL_USER: doctor
+      MYSQL_PASSWORD: ${DOCTOR_MYSQL_PASSWORD:?请设置医生数据库密码}
+      MYSQL_ROOT_PASSWORD: ${DOCTOR_MYSQL_ROOT_PASSWORD:?请设置医生数据库root密码}
+    volumes:
+      # 不声明external或固定name，由当前Compose项目创建新的专用卷。
+      - doctor-state:/var/lib/mysql
+    command: ["--innodb-buffer-pool-size=67108864", "--max-connections=30", "--performance-schema=OFF"]
+    mem_limit: 512m
+    logging: *bounded-logging
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD-SHELL", 'MYSQL_PWD="$$MYSQL_PASSWORD" mysql -h127.0.0.1 -udoctor -Ddoctor --silent --skip-column-names -e "SELECT 1" >/dev/null']
+      interval: 5s
+      timeout: 3s
+      retries: 24
+      start_period: 30s
+
+  doctor:
+    build:
+      context: ../..
+      dockerfile: deploy/docker/go.Dockerfile
+      args:
+        CMD_NAME: doctor
+        APP_VERSION: phase09-20261102.3
+    image: opsdoctor/doctor:phase09-20261102.3
+    # 系统凭据的变量名由target YAML决定；不在environment逐条列出，以免空值覆盖env_file。
+    env_file:
+      - ${DOCTOR_TARGET_ENV_FILE:?请设置被诊断系统的凭据env文件路径}
+    environment:
+      GIN_MODE: release
+      DOCTOR_ADDR: :8090
+      DOCTOR_MYSQL_DSN: "doctor:${DOCTOR_MYSQL_PASSWORD:?请设置医生数据库密码}@tcp(doctor-mysql:3306)/doctor?parseTime=true"
+      DOCTOR_ADMIN_EMAIL: ${DOCTOR_ADMIN_EMAIL:?请设置初始登录邮箱}
+      DOCTOR_ADMIN_PASSWORD: ${DOCTOR_ADMIN_PASSWORD:?请设置初始登录密码}
+      JWT_SECRET: ${JWT_SECRET:?请设置JWT密钥}
+      TARGETS_DIR: /etc/doctor/targets
+      DOCTOR_RUNBOOKS_DIR: /etc/doctor/runbooks
+      DOCTOR_COOKIE_SECURE: ${DOCTOR_COOKIE_SECURE:-false}
+      DOCTOR_LEASE_TTL: ${DOCTOR_LEASE_TTL:-30s}
+      DOCTOR_RESUME_MAX_AGE: ${DOCTOR_RESUME_MAX_AGE:-2m}
+      DOCTOR_MAX_CONCURRENT: ${DOCTOR_MAX_CONCURRENT:-2}
+      DOCTOR_MAX_CONCURRENT_PER_TARGET: ${DOCTOR_MAX_CONCURRENT_PER_TARGET:-1}
+      DOCTOR_ALERT_PENDING_MAX_AGE: ${DOCTOR_ALERT_PENDING_MAX_AGE:-5m}
+      DOCTOR_ALERT_SILENCE_TIMEOUT: ${DOCTOR_ALERT_SILENCE_TIMEOUT:-15m}
+      # 默认Mock不会调用真实模型；切换真实模式仍须按用户授权与预算执行。
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_API_FORMAT: ${LLM_API_FORMAT:-responses}
+      LLM_MODEL: ${LLM_MODEL:-gpt-6.1-terra}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-60s}
+      LLM_INPUT_PRICE_PER_MTOKEN: ${LLM_INPUT_PRICE_PER_MTOKEN:-1}
+      LLM_OUTPUT_PRICE_PER_MTOKEN: ${LLM_OUTPUT_PRICE_PER_MTOKEN:-5}
+      LLM_CACHE_HIT_PRICE_PER_MTOKEN: ${LLM_CACHE_HIT_PRICE_PER_MTOKEN:-0.05}
+      LLM_CACHE_WRITE_PRICE_PER_MTOKEN: ${LLM_CACHE_WRITE_PRICE_PER_MTOKEN:-1.25}
+      LLM_BUDGET_ACCOUNT: ${LLM_BUDGET_ACCOUNT:-standalone}
+      LLM_BUDGET_CURRENCY: ${LLM_BUDGET_CURRENCY:-USD}
+      LLM_TOTAL_BUDGET: ${LLM_TOTAL_BUDGET:-10}
+      LLM_DIAGNOSIS_BUDGET: ${LLM_DIAGNOSIS_BUDGET:-0.30}
+      EVAL_COMPARISON_ENABLED: ${EVAL_COMPARISON_ENABLED:-false}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      EVAL_COMPARISON_BASE_URL: ${EVAL_COMPARISON_BASE_URL:-https://api.deepseek.com}
+      EVAL_COMPARISON_MODEL: ${EVAL_COMPARISON_MODEL:-deepseek-flash}
+      EVAL_COMPARISON_ACCOUNT: ${EVAL_COMPARISON_ACCOUNT:-standalone-deepseek}
+      EVAL_COMPARISON_TOTAL_CNY: ${EVAL_COMPARISON_TOTAL_CNY:-10}
+      EVAL_COMPARISON_DIAGNOSIS_CNY: ${EVAL_COMPARISON_DIAGNOSIS_CNY:-0.30}
+      EVAL_COMPARISON_INPUT_PRICE: ${EVAL_COMPARISON_INPUT_PRICE:-2}
+      EVAL_COMPARISON_CACHE_HIT_PRICE: ${EVAL_COMPARISON_CACHE_HIT_PRICE:-0.04}
+      EVAL_COMPARISON_OUTPUT_PRICE: ${EVAL_COMPARISON_OUTPUT_PRICE:-8}
+      EVAL_DEEPSEEK_HOLIDAYS: ${EVAL_DEEPSEEK_HOLIDAYS:-none}
+    volumes:
+      # 必须显式选目标目录；不默认加载仓库内shop等所有系统。
+      - type: bind
+        source: ${DOCTOR_TARGETS_DIR:?请设置只包含所需系统的target目录}
+        target: /etc/doctor/targets
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${DOCTOR_RUNBOOKS_PATH:-../../docs/runbooks}
+        target: /etc/doctor/runbooks
+        read_only: true
+        bind:
+          create_host_path: false
+    # Docker Desktop提供该宿主别名；Linux通过host-gateway解析到宿主网关。
+    extra_hosts: ["host.docker.internal:host-gateway"]
+    read_only: true
+    cap_drop: [ALL]
+    ports: ["${DOCTOR_BIND_ADDR:-127.0.0.1}:${DOCTOR_HTTP_PORT:-8090}:8090"]
+    depends_on:
+      doctor-mysql:
+        condition: service_healthy
+    mem_limit: 256m
+    logging: *bounded-logging
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "3", "-O", "/dev/null", "http://127.0.0.1:8090/health/ready"]
+      interval: 5s
+      timeout: 4s
+      retries: 24
+
+volumes:
+  doctor-state:

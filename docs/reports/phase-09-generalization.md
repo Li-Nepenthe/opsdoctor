@@ -8,11 +8,11 @@
 
 ### 1. 一句话总结
 
-医生已同时登记 shop 与 OpenTelemetry Demo，用同一个日志接口查询 Loki 和 OpenSearch；陌生系统的付费诊断评测仍停在采集修复审核之前。
+医生已验证同实例登记两个系统，也已补齐只运行医生与状态库的独立部署；陌生系统的付费诊断评测仍停在采集修复审核之前。
 
 ### 2. 做了什么
 
-接入固定版本 OpenTelemetry Demo，给它独立的 Compose 项目、端口和系统说明书，与 shop 共用一个持续运行的医生。新增 OpenSearch 日志适配器，将原来的结构化查询翻译为只读 `_search`，并让它与 Loki 运行同一张契约测试表。评测器增加独立的外部系统入口，保存官方开关快照、实验顺序、版本与账户，复用原诊断、评分和导出设施。免费验证已经覆盖真实日志查询、同一医生轮流查询两个后端，以及 Codex 实际发起的 MCP 只读调用。真实诊断尚未运行，现有采集缺陷、原失败和费用边界全部保留。
+接入固定版本 OpenTelemetry Demo，新增 OpenSearch 日志适配器，与 Loki 运行同一张契约测试表。先验证同一医生轮流查询两后端、真实 MCP 调用，再按用户追加要求拆出通用双服务部署：目标目录和凭据文件外置，只选 Demo 时完全不需要 shop 变量。评测器增加独立的外部系统入口，复用原评分设施。当前已验证独立部署和真实只读查询，真实诊断尚未运行；采集历史缺口、原失败和费用边界全部保留。
 
 ### 3. 计划完成情况
 
@@ -24,6 +24,7 @@
 | 从上游选择 5–8 个故障开关并标注答案 | 已完成 | 选取 OT01–OT05，官方文档与固定 3.1.0 源码链接写入[场景目录](../../eval/scenarios/otel-demo/README.md)。尚未注入。 |
 | 不调参运行 E1、E2 | 未做 | 按用户最新要求等待 Claude 审核采集修复；未用 Mock 彩排代替真实评测。 |
 | 外部结果单列；如作通用改进则两靶场重跑 | 未做 | 尚无外部真实诊断结果。提示 v8.0、手册 v1.1、rubric-v1.1 和工具保持原版本；未作通用诊断改进。 |
+| 用户追加：医生单独部署、接入自己的系统说明 | 部署与只读查询完成；真实诊断待做 | P9-24–P9-29：[通用双服务](../../deploy/doctor/compose.yaml)、[接入指南](../onboarding.md)。独立新状态库与旧数据隔离，正式 Demo 诊断须继续等 Claude 审核。 |
 
 ## 二、新引入的技术与依赖
 
@@ -72,6 +73,7 @@
 | `eval/scenarios/otel-demo/` | OT01–OT05、标准答案出处、症状及健康判断 |
 | `.env.example`、`deploy/docker-compose.yml`、项目计划书及相关 README/文档 | 新变量、接入范围、限制、学习材料和本阶段证据入口 |
 | `.github/workflows/ci.yml`、`.gitattributes` | Mock 冒烟核对双系统菜单与降级；按字节保留带指纹的原始采样证据 |
+| `deploy/doctor/{compose.yaml,standalone.env.example,README.md}`、`docs/onboarding.md`、`.dockerignore` | 只运行医生与状态库；目标凭据外置、接入指南，以及任意层级私有.env文件的构建排除 |
 
 本轮执行 `git diff --cached --stat main -- internal/doctor/tools internal/doctor/agent` 输出为空，命令与结果附在上述 stat 中。上层工具定义、提示和 Agent 循环均未修改。
 
@@ -127,6 +129,8 @@
 
 MCP 验证追加的是现有 `mcp_audit` 表中的真实调用记录，见 P9-10；不把新增审计行写成表结构变更。
 
+独立部署新增的是专用状态卷，使用现有迁移初始化新医生库，没有新增迁移或业务表设计。切换前原阶段 9 支出与生成请求均为零，旧阶段 8 数据没有导入或修改；保留原数据库卷并停止原数据库，见 P9-27。当前独立页面不读取旧库，不能把界面里没有阶段 8 记录解释为删除了它们。
+
 ### 5. 接口变更
 
 没有新增医生 HTTP 路由、gRPC 方法或 Agent 工具。`LogSource.Search(context.Context, LogQuery)` 及 `search_logs` 参数不变。新增宿主 CLI `eval generalization freeze|run|export|finish|restore`，官方开关的读取/修改接口仅在宿主评测器使用，不提供给医生。
@@ -146,6 +150,8 @@ Demo 独立回环端口：商店 18000、开关管理 18080、流量页面 18089
 | target 的 `opensearch.username_env/password_env` | 可选只读凭据的变量名 | 当前 Demo 未配置，保留两项成对和系统前缀校验 |
 | `LLM_BUDGET_ACCOUNT/CURRENCY/TOTAL_BUDGET` | 专用医生固定新美元账户 | `phase-09-openai` / USD / 10；默认模式仍 Mock |
 | `EVAL_COMPARISON_ACCOUNT/TOTAL_CNY` | 第二执行身份及评委的独立人民币额度 | `phase-09-deepseek` / 10；默认关闭真实对比 |
+| `DOCTOR_TARGETS_DIR/DOCTOR_TARGET_ENV_FILE` | 通用部署的目标目录和外部系统凭据文件 | 显式指定，只挂所选目标；不在Compose写死SHOP变量 |
+| `DOCTOR_HTTP_PORT/BIND_ADDR` | 独立医生宿主端口与监听地址 | 8090 / 127.0.0.1 |
 
 阶段 9 的账户及上限使用现有变量配置，没有更改阶段 7、8 账户。美元统一称“按项目用量账本计”；Key 与其他用途共用，平台账单无法单独核对。授权额度、供应商余额和已经发生的费用分别记录，不能互相替代。
 
@@ -153,7 +159,9 @@ Demo 独立回环端口：商店 18000、开关管理 18080、流量页面 18089
 
 新增[隔离覆盖配置](../../deploy/opentelemetry/compose.phase09.yaml)、[专用医生](../../deploy/opentelemetry/doctor.phase09.yaml)、[版本文件](../../deploy/opentelemetry/versions.env)、[临时 Loki 对照采集器](../../deploy/opentelemetry/loki-verify.phase09.yaml)及[Collector 候选补丁](../../deploy/opentelemetry/otelcol-config-extras.phase09.yaml)。上游源码位于仓库外临时克隆，按固定提交加载 `compose.yaml`、`compose.full.yaml`、`compose.observability.yaml` 和 `compose.extras.yaml`；OpenSearch 来自 observability 层。
 
-专用医生只读挂载 targets 与通用手册，复用原 doctor-mysql 网络；原医生容器保持停止，避免两个调度器。切换靶场时医生实例保持运行。所有停止均保留容器和数据；历史测试资源、原医生数据卷与 QQ 项目未清理。
+专用医生最初复用原 doctor-mysql，完成 P9-9 的同实例后端对照。用户追加独立部署后，改为[通用双服务](../../deploy/doctor/compose.yaml)加阶段 9 薄覆盖，创建新网络和状态卷，只加载 Demo 的外部接入目录。原医生与原数据库均停止并保留，阶段 8 原卷未挂给新实例。切换已登记目标不需重启；软件升级及接入文件修改的重新加载另作记录。
+
+P9-25 的配置准备、构建至健康为 33.696456 秒，至登录和菜单为 33.8045 秒；源码和镜像已存在，不当作全新下载或完整接入工时。真实联调时仅新 pair 与 Demo 共 30 容器，目标仅 Demo、8 工具、无 SHOP 环境变量，日志查询 5 条；`up` 虽成功却是零序列。另读保留的 span 计数得到非空指标，见 P9-26、P9-29。两份原始结果分别保留，不将空结果当成成功取证。
 
 Collector 补丁在原 `transform/sanitize_logs` 中保留 scope 规则，再重命名日志属性的 `http.` 前缀。原索引和容器身份保留；[上游配置差异](phase-09-upstream-config.diff)、[目标命名空间预检](phase-09-http-rename-precondition.json)和[独立规则复核](phase-09-http-rule-review.json)均已归档。
 
@@ -191,7 +199,9 @@ P9-15 的[字段对照](phase-09-log-field-comparison.json)确认医生五个字
 
 收尾发现冻结工具接受大写 INFO，而实际 frontend 使用小写 info。原精确 term 翻译漏查；新适配器仅对级别启用 `case_insensitive`，服务/trace不变。同一固定窗口实查从 0 到 1896 条、真实 Go 集成带 INFO 返回 10 条、新 Mock 医生返回 5 条，见 P9-21、P9-23。这个口径是 frontend 的 INFO 总量，不是 P9-14 的 HTTP method 计数。原 uppercase 夹具和未带级别的集成都没有覆盖差异；新增回归后重新完成全部检查，P9-22 为 race292 顶层/985含子例通过、47/57跳过、失败0，见[独立检查统计](phase-09-level-checks.json)。
 
-初版提交 4596540 的[CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41583884321)已经通过，详见[逐步骤结果](phase-09-ci-first.json)和 P9-20；它先于级别兼容补丁，后续补丁须再由提交后的 CI 验证，不能用旧的绿色结果替代。
+初版提交 4596540 的[CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41583884321)已经通过，详见[逐步骤结果](phase-09-ci-first.json)和 P9-20。后续级别补丁提交2396d3e的[CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41585632149)也通过，见P9-30和[逐步骤结果](phase-09-ci-level.json)。新增独立部署CI步骤仍须由后续提交验证，不能用旧绿色结果替代。
+
+独立部署增加了精确的新数据库隔离白名单和 Mock CI 启动检查。代码变更后全仓再次重验，P9-28 的[检查结果](phase-09-standalone-checks.json)为 race292 顶层/985含子例通过、47/57跳过、失败0；不覆盖前两轮检查。真实独立部署、数据源及资源证据见 P9-25–P9-29。
 
 Collector 修复的固定窗口观察及字段验证已经完成，范围和例外见 P9-14、P9-15 及[专项报告](phase-09-logging-fix.md)。这个窗口没有最终 drop 或 mapper 错误，仍单列 Jaeger traces 的重试；不能将日志检查结论扩大为整个 Collector 没有错误。
 
@@ -205,8 +215,9 @@ Collector 修复的固定窗口观察及字段验证已经完成，范围和例�
 | 记录接入耗时和卡点 | 部分完成，未通过完整验收 | 启动失败/修正计时见 P9-4、P9-5；Collector 缺口见 P9-11、P9-13。完整接入过程仍进行中，不把并行开发墙钟冒充纯接入耗时 |
 | 同格式 `search_logs` 分别查询 shop/Loki 与 Demo/OpenSearch | 通过 | P9-9：同一医生实例分别返回 2、5 条；[两份真实 CLI 证据](phase-09-doctorctl-loki.json)、[OpenSearch 证据](phase-09-doctorctl-opensearch.json) |
 | 新增适配器未修改 tools、agent | 本审核停点通过 | [完整 stat 与冻结目录空输出](phase-09-diff-stat.txt)；用户两处修改未暂存 |
+| 追加独立部署与接入说明 | 部署、指南和只读联调通过；真实诊断未完成 | P9-25–P9-29；只有Mock启动与真实数据查询，仍待Claude审核后做付费诊断 |
 
-采集修复的专项固定窗口检查已通过，结果与适用边界见 P9-14、P9-15；Claude 审核尚未完成。阶段 9 整体仍未验收，学习验收未勾选。当前新增台账 **P9-1–P9-23**，包括资源、接入、采集、检查、推送审计，以及初版 CI、后发现的级别差异、补丁重验与最新 Mock 部署。这些条目不构成泛化诊断成绩。
+采集修复的专项固定窗口检查已通过，结果与适用边界见 P9-14、P9-15；Claude 审核尚未完成。阶段 9 整体仍未验收，学习验收未勾选。当前新增台账 **P9-1–P9-30**，包含原接入、采集、检查，以及追加独立部署的资源、分段计时、实际查询、数据隔离与版本重验。这些条目不构成泛化诊断成绩。
 
 ## 六、偏离计划之处
 
@@ -226,7 +237,7 @@ Loki 对照最初返回空结果，原 Alloy 缺少创建时项目环境项。�
 4. **真实评测与失败分析尚无数据。** OT01–OT05 的定义已经完成，但故障注入、恢复、评分和跨靶场准确率差异仍需在阶段 9 内完成。不通过针对场景修改提示、工具或手册来补分；需要通用改进时先按用户规则讨论版本和双靶场重跑费用。
 5. **MCP 验证范围。** P9-10 是 Codex 经 PowerShell 实现 HTTP 传输，实际列工具并调用一次 `service_topology`；不是桌面原生 MCP 配置，也不是完整自主排障。它补充了 P7-8 的官方 Go SDK 验证，不能扩大成所有外部 Agent 客户端均已测试。
 6. **旧学习材料交接给 Claude。** 阶段 0–8 学习材料保持未修改。若补说明，请在阶段 5 的接口/降级部分补 OpenSearch 作为后续实现的入口，在阶段 7 的 MCP 部分区分 Go SDK 与本阶段 Codex HTTP 调用，在阶段 8 的评测部分注明外部系统使用独立批次与币种账户；同时把旧称 `mcp_audits` 对照实际表名 `mcp_audit`。这些是交接建议，本阶段没有替 Claude 修改旧学习正文。
-7. **停在采集审核。** Demo 已仅用 stop 停止，医生继续 Mock、comparison 关闭，原 doctor-mysql 可用，最新快照见 P9-23。本阶段生成请求为 0；人民币账户已配置独立名称和上限，当前尚未实例化。专用医生因级别兼容软件补丁从 .1 升级 .2，原医生容器未动；升级不是为了切换目标，P9-9的早先同实例对照不变。完整接入耗时和最终阶段检查仍待付费评测后完成；用户保留的两处修改不还原、不暂存、不提交。
+7. **停在采集审核。** 现在只保留独立医生与新状态库运行，Demo已stop，Mock且comparison关闭；原医生库及阶段8卷保留并停止，见P9-27。本阶段生成请求为0；CNY账户仍待真实启用时实例化。专用软件依次因级别补丁和独立部署升级到.3，P9-9早先同实例对照保留。接入计时按P9-25/26分段，不冒充完整工时。用户两处修改不还原、不暂存、不提交。
 
 ## 八、注释自查结论
 

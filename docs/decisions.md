@@ -676,3 +676,9 @@ amend-baseline 先确认原故障已恢复且开放期关闭，再把原轮次�
 上游main快照e6754e07e275834b16515c55d0a909b86778ecc6尚无http修复。#3297是source/source.address text/object冲突，#3321通过scope属性重命名处理otelcol.signal冲突，是本次采集层重命名的先例，不声称上游已有http补丁。本次在既有sanitize_logs保留原两条scope语句，只增加一条log context下的http.前缀到http_前缀重命名；源码及镜像仍固定Demo3.1.0与Collector0.159.0。真实mapping预检确认目标命名空间未占用，原索引无需重建，原UUID继续使用。
 
 取舍：既有attributes.http已是text，单独改未来的scalar http不能使旧索引接受http.request.method；把HTTP点字段统一移到新前缀能沿用旧索引、保留所有值，也不扩大采集范围。规则只用于固定Demo的接入，不针对OT01–OT05；正文、服务、级别、时间和trace ID不改，医生五字段配置仍需实查对照。历史缺失日志不补写，初始及最终before快照分别保留。官方image-provider未接OTLP日志，按实际数据源缺失单列，不把容器stdout等同于已入OpenSearch。
+
+## 2026-11-02：阶段9追加医生独立部署
+
+用户要求只运行doctor和doctor-mysql、不写死shop专用环境变量，并用这种方式完成后续Demo诊断。通用Compose放在既有deploy/doctor下：只提供自身数据库、身份与模型参数，目标目录和目标凭据env_file由调用者选择。原shop入口不变，独立状态卷不挂阶段8原卷。通用入口默认Mock，阶段9薄覆盖固定预算与宿主评测端口；不改doctor/tools或doctor/agent。
+
+真实准备至健康、菜单、只读查询按不同边界计时，见台账P9-25–P9-29。初查up为零序列，保留原件，再对真实span计数器读取非空保留数据，不用status=ok代替有效证据。换新状态库前旧阶段9账本与生成请求均零，旧库仅stop保留；后续费用只从新实例继续，不能重复开启旧实例重置预算。采集修复Claude审核门槛不变，独立部署通过不代替正式诊断评测。

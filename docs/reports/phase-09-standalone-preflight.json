@@ -1,0 +1,40 @@
+{
+  "measured_at_utc": "2026-11-03T05:47:36.6990246Z",
+  "purpose": "阶段9新增只部署医生交付；新建医生DB卷前资源复核",
+  "host_memory_total_bytes": 33396543488,
+  "host_memory_free_bytes": 13512744960,
+  "host_disks": [
+    {
+      "DeviceID": "C:",
+      "Size": 496381161472,
+      "FreeSpace": 324225376256
+    },
+    {
+      "DeviceID": "D:",
+      "Size": 1503256375296,
+      "FreeSpace": 738294591488
+    },
+    {
+      "DeviceID": "F:",
+      "Size": 2000363188224,
+      "FreeSpace": 1678026366976
+    }
+  ],
+  "docker_memory_limit_bytes": 16294768640,
+  "wsl_memory": [
+    "              total        used        free      shared  buff/cache   available",
+    "Mem:    16294768640  1210302464  3840294912    28114944 11244171264 14804926464",
+    "Swap:    4294967296      356352  4294610944"
+  ],
+  "docker_disk": [
+    "Filesystem           1-blocks       Used Available Use% Mounted on",
+    "/dev/sdd             1081101176832 123627941888 902480879616  12% /mnt/docker-desktop-disk"
+  ],
+  "running_containers": [
+    "opsdoctor-phase09-doctor",
+    "opsdoctor-doctor-mysql-1"
+  ],
+  "original_doctor_volume_present": true,
+  "resource_settings_changed": false,
+  "explicit_cleanup_deletions": 0
+}

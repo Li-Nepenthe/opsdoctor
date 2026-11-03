@@ -39,10 +39,11 @@ func checkDemoIsolation(labels string) error {
 		if !strings.HasPrefix(project, "opsdoctor") || project == "opsdoctor-otel-demo" {
 			continue
 		}
-		if project == "opsdoctor" && service == "doctor-mysql" || project == "opsdoctor-phase09-doctor" && service == "doctor" {
+		// 独立部署只增加这一个项目的医生和医生库，不能顺带放行同名前缀的靶场或测试服务。
+		if project == "opsdoctor" && service == "doctor-mysql" || project == "opsdoctor-phase09-doctor" && (service == "doctor" || service == "doctor-mysql") {
 			continue
 		}
-		return fmt.Errorf("发现另一套靶场或遗留测试容器仍运行：%s；只允许 Demo、阶段 9 专用医生和原 doctor-mysql", label)
+		return fmt.Errorf("发现另一套靶场或遗留测试容器仍运行：%s；只允许 Demo、阶段 9 专用医生与医生库，以及原 doctor-mysql", label)
 	}
 	return nil
 }

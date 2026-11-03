@@ -2,13 +2,13 @@
   "status": "passed",
   "base_commit": "231ee487eab16e16c84f1964caea75deb989f82c",
   "branch": "phase-09-generalization",
-  "markdown_files": 113,
-  "relative_targets_checked": 4945,
-  "markdown_fragments_checked": 158,
+  "markdown_files": 114,
+  "relative_targets_checked": 5013,
+  "markdown_fragments_checked": 160,
   "missing_targets": [],
   "wrong_case_targets": [],
   "missing_anchors": [],
-  "own_files_scanned": 126,
+  "own_files_scanned": 141,
   "known_credential_matches": [],
   "credential_pattern_matches": [],
   "protected_user_files_sha256": {
@@ -24,5 +24,5 @@
     "internal/eval/scoring"
   ],
   "old_learning_materials_unchanged_except_preserved_user_edit": true,
-  "notes": "Read-only scan of tracked and untracked repository Markdown, exact path case and GitHub-style heading/HTML anchors; fenced and inline code examples excluded. Credential values are never printed. Local full Go checks: phase-09-checks.json; latest level compatibility recheck: phase-09-level-checks.json."
+  "notes": "Read-only scan of tracked and untracked repository Markdown, exact path case and GitHub-style heading/HTML anchors; fenced and inline code examples excluded. Credential values are never printed. Local full Go checks: phase-09-checks.json; latest independent deployment recheck: phase-09-standalone-checks.json."
 }

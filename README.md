@@ -37,7 +37,7 @@ flowchart TD
     E[eval 注入 → 五配置配对 → 评分 → 恢复] --> C
 ```
 
-业务服务采用接口层 → 业务层 → 数据层；医生通过数据源接口接入观测系统。阶段 9 的专用医生同时登记 shop 与 otel-demo，两套靶场串行运行，切换靶场不需要切换医生配置。医生不导入靶场、注入器或标准答案，也不持有 Docker 权限。[两条核心流程与代码入口](docs/architecture.md)说明边界如何落到代码。
+业务服务采用接口层 → 业务层 → 数据层；医生通过数据源接口接入观测系统。同一医生已验证同时登记 shop 与 otel-demo，靶场串行运行、切换已登记目标无需重启（P9-8、P9-9）。新增独立部署可以只选择 Demo（P9-25、P9-26）。医生不导入靶场、注入器或标准答案，也不持有 Docker 权限。[两条核心流程与代码入口](docs/architecture.md)说明边界如何落到代码。
 
 ## 快速开始
 
@@ -112,6 +112,12 @@ curl --fail http://127.0.0.1:8090/health/ready
 演示后运行 `docker compose --env-file .env -f deploy/docker-compose.yml stop`，保留容器和数据卷。再次启动仍使用相同项目名。完整造数、真实故障、集成测试、授权账号、protobuf 生成和各阶段运行说明均已整体移到[运维文档](docs/operations.md)，其中历史付费命令需要新的明确授权。
 
 最终新用户实测：`c246734` 从远端克隆到完成演示 **5分4.934秒**，页面脚本 **102.415秒**（P10-15）；本机保留镜像/Go缓存，新runner首次pull/build/up为 **269.488秒**，增强[CI41466035640](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41466035640)五个独立新卷的消费与三服务日志均通过（P10-14、P10-17）。首轮较慢的8分22.941秒和原失败均保留（P10-7）。已修复受控复现的协调器初始化退出，默认五轮复验通过（P10-10–P10-13）；原CI缺worker/Kafka日志，不能证明当时完全同根。原容器与卷保护及全局镜像标签变化见P10-8、P10-16。
+
+## 只部署医生
+
+不需要 shop 时，使用[独立部署入口](deploy/doctor/README.md)：只启动 doctor 和 doctor-mysql，在环境文件中指定自己的接入目录和凭据文件，Compose 不要求任何 shop 专用变量。字段模板、只读账号、Alertmanager、CLI 与 MCP 验证见[接入你自己的系统](docs/onboarding.md)。
+
+本机真实验证中，独立双服务从准备配置到健康 **33.696456 秒**（已有源码与镜像，P9-25）；仅医生、新状态库和 Demo 运行时，日志查询返回真实记录，随后另查到非空指标（P9-26、P9-29）。这验证部署和只读接线，**尚未完成陌生系统诊断评测**。原 shop 演示仍使用上面的入口，两个部署各用自己的状态库；不要将阶段 8 原卷挂给独立项目。
 
 ## 三分钟演示
 
@@ -206,6 +212,7 @@ S12 的攻击文字没有被医生实际读到；**防注入目前只有权限�
 
 ## 已知限制
 
+- 独立医生部署已在本机 Docker Desktop 上接入固定 Demo，验证范围为 Mock 启动与实际只读查询（P9-25、P9-26、P9-29）；生产环境和真实泛化诊断尚未验收。私有配置与原演示状态库分开，接入步骤见[指南](docs/onboarding.md)。
 - 支持 **Prometheus、Jaeger、Loki、OpenSearch**，以及 MySQL、Redis 和 Go pprof。Loki 与 OpenSearch 实现同一个日志接口，单个系统只能选择一个日志后端；真实 Demo 日志查询见 P9-3 和[字段证据](docs/reports/phase-09-opensearch-schema.json)。仍不支持 PostgreSQL 直查、SkyWalking 和非 Go 服务的运行时分析。
 - **尚未完成泛化评测**。Demo 的日志映射修复已完成固定窗口验证，仍等 Claude 审核后才付费；历史日志缺口保留，零最终丢弃报告也不证明端到端无静默丢失。缺少 PostgreSQL、Valkey 直查与 pprof 的工具按接入配置降级；支持查询不等于已验证陌生系统的诊断效果。
 - 每个场景只跑少量重复。S10 暴露了把连接池排队后果当成根因的问题；评分协议失败、评委尺度差异和 S12 暴露缺口均保留，详见[失败分析](docs/reports/phase-08-failure-analysis.md)。

@@ -1,0 +1,33 @@
+{
+  "measured_at_utc": "2026-11-03T05:59:37.400294+00:00",
+  "scope": "Followup of empty up. Only the fixed Demo Prometheus temporarily restarted; query retained real span-counter data over 1h. No models or diagnosis.",
+  "arguments": {
+    "query": "sum(traces_span_metrics_calls_total)",
+    "lookback_seconds": 3600
+  },
+  "result": {
+    "tool": "query_metrics",
+    "status": "ok",
+    "summary": "1 条序列；展示最后值及范围内极值，limited 表示未取得全部数据",
+    "data": {
+      "series": [
+        {
+          "labels": {},
+          "points": 124,
+          "last": "8633",
+          "min": 0,
+          "max": 98472
+        }
+      ],
+      "limited": false
+    },
+    "truncated": false,
+    "original_bytes": 89,
+    "bytes": 299,
+    "duration_ms": 3
+  },
+  "series_count": 1,
+  "sample_counts": [
+    124
+  ]
+}

@@ -7,7 +7,7 @@
 | [versions.env](versions.env) | 把上游默认的镜像版本固定为 3.1.0；只含公开版本号 |
 | [compose.phase09.yaml](compose.phase09.yaml) | 为所有容器和网络加专用名称，替换全部宿主机端口 |
 | [otelcol-config-extras.phase09.yaml](otelcol-config-extras.phase09.yaml) | 固定版 Collector 的日志属性改名，避免 `http` 文本与 `http.` 对象路径争用同一映射 |
-| [doctor.phase09.yaml](doctor.phase09.yaml) | 专用医生容器，复用原医生数据库网络，固定阶段 9 两个预算账户 |
+| [doctor.phase09.yaml](doctor.phase09.yaml) | 在通用双服务 Compose 上覆盖阶段 9 的容器名、预算和宿主评测端口 |
 | [loki-verify.phase09.yaml](loki-verify.phase09.yaml) | 原 Alloy 缺少项目环境项时使用的独立对照采集器，验证后 stop |
 
 上游固定为 [3.1.0](https://github.com/open-telemetry/opentelemetry-demo/releases/tag/3.1.0)，提交 `dedc0178918e260823323b8d95005a8cb924b007`。上游 `.env` 仍使用 `DEMO_VERSION=latest` 和 `IMAGE_VERSION=3.0.0`，因此命令需要在它之后加载本目录的版本文件。
@@ -84,21 +84,36 @@ docker exec opsdoctor-otel-demo-otel-collector /otelcol-contrib validate --confi
 
 ## 医生和评测之间的分工
 
-阶段 9 使用独立的 `opsdoctor-phase09-doctor` 项目运行一个医生，容器名也为 `opsdoctor-phase09-doctor`。原 `opsdoctor-doctor-1` 保持停止，避免两个调度器同时领取任务；原 `opsdoctor-doctor-mysql-1` 只执行启动，数据卷继续为 `opsdoctor_doctor-mysql-data`。医生的两个接入配置在同一次启动中全部加载，切换靶场时只启动或停止对应靶场，医生持续运行。
+阶段 9 现在使用[通用独立医生 Compose](../doctor/compose.yaml)作基础，再加载本目录的薄覆盖。薄覆盖只补本阶段的身份、预算和评测端口，不能单独作为完整 Compose 启动。项目名为 `opsdoctor-phase09-doctor`，医生与新库的容器分别为 `opsdoctor-phase09-doctor`、`opsdoctor-phase09-doctor-mysql`；网络和新卷 `opsdoctor-phase09-doctor_doctor-state` 都属于这个项目。它不再复用原项目网络或 `opsdoctor_doctor-mysql-data`，旧诊断和阶段 8 数据不迁移。
 
-先准备 `.env` 中的独立 `OTEL_DEMO_ALERT_TOKEN`。首次验证保持 Mock：PowerShell 先设置 `$env:LLM_PROVIDER='mock'`、`$env:EVAL_COMPARISON_ENABLED='false'`；bash 在命令前加 `LLM_PROVIDER=mock EVAL_COMPARISON_ENABLED=false`。再执行：
+先按[医生部署说明](../doctor/README.md)准备医生自身配置和目标凭据两份私有文件。本阶段命名为仓库根目录的 `.env.phase09-doctor` 与 `.env.phase09-targets`，原 `.env` 不覆盖。前者以[通用假值示例](../doctor/standalone.env.example)为格式，填写医生自己的新库密码、登录、JWT 和路径；后者只填接入 YAML 引用的系统凭据。本次只加载 otel-demo，`DOCTOR_TARGETS_DIR` 指向仓库外单独目录，精确复制 [otel-demo.yaml](../doctor/targets/otel-demo.yaml) 和 [otel-demo.profile.md](../doctor/targets/otel-demo.profile.md) 两个文件，`DOCTOR_TARGET_ENV_FILE` 指向私有凭据文件的绝对路径，其中提供独立的 `OTEL_DEMO_ALERT_TOKEN`，不要求任何 `SHOP_` 变量。接入自己的系统时见[完整接入指南](../../docs/onboarding.md)。
+
+命令行 `--env-file` 供 Compose 插值，容器 `env_file` 则把目标凭据传给医生；自身和模型参数由 Compose 的 `environment` 设置，优先于容器 `env_file`。因此两类变量分开存放。仓库的 Git 与 Docker 忽略规则均排除了本阶段的 `.env.*`，不把秘密复制到构建上下文。自选其他文件名或目录时，也必须分别核对这两种排除规则。
+
+首次验证保持 Mock：PowerShell 先设置 `$env:LLM_PROVIDER='mock'`、`$env:EVAL_COMPARISON_ENABLED='false'`；bash 先执行 `export LLM_PROVIDER=mock EVAL_COMPARISON_ENABLED=false`。以下命令从仓库根目录执行，在两个 shell 中相同：
 
 ```text
-docker start opsdoctor-doctor-mysql-1
-docker compose --env-file .env -p opsdoctor-phase09-doctor -f deploy/opentelemetry/doctor.phase09.yaml up -d --build --wait --wait-timeout 240
+docker compose --env-file .env.phase09-doctor -p opsdoctor-phase09-doctor -f deploy/doctor/compose.yaml -f deploy/opentelemetry/doctor.phase09.yaml config --quiet
+docker compose --env-file .env.phase09-doctor -p opsdoctor-phase09-doctor -f deploy/doctor/compose.yaml -f deploy/opentelemetry/doctor.phase09.yaml up -d --build --wait --wait-timeout 240
+docker compose --env-file .env.phase09-doctor -p opsdoctor-phase09-doctor -f deploy/doctor/compose.yaml -f deploy/opentelemetry/doctor.phase09.yaml ps
 ```
 
-医生的页面继续使用 `http://127.0.0.1:8090`。专用 Compose 固定 `phase-09-openai`（USD）和 `phase-09-deepseek`（CNY），总上限各为 10，不沿用阶段 7、8 的账户；真实模型只在用户已授权的运行中显式启用。
+医生页面默认仍为 `http://127.0.0.1:8090`。通用基础文件不发布数据库端口；阶段 9 薄覆盖额外发布 `127.0.0.1:3309`，只供宿主评测器访问新医生库。医生容器自身仍连本项目的 `doctor-mysql:3306`。**宿主评测器的 `DOCTOR_MYSQL_DSN` 必须使用新库的 doctor 账号，指向 `127.0.0.1:3309` 的 doctor 库**，不能沿用阶段 8 的旧库 DSN。MySQL 官方入口只创建医生库和账号，医生自己执行表迁移，不挂原演示的测试库初始化脚本。
 
-当前专用镜像为 `phase09-20261102.2`，补齐 OpenSearch 日志级别的大小写兼容。工具仍传大写 INFO，适配器可查询实际小写 info，不改工具定义；实测与软件升级记录见台账 P9-21–P9-23。P9-9 的同一医生轮流查询两个后端发生在这次软件升级之前；日常切换靶场仍无需重启医生。
+薄覆盖固定 `phase-09-openai`（USD）和 `phase-09-deepseek`（CNY），总上限各为 10。切换前已核对旧库阶段 9 生成请求为 0、美元支出为 0，再启用新状态卷；这次没有借换库重置已经发生的费用（P9-27）。Mock 和 comparison 关闭时，人民币账户仍未实例化，不能把配置值当作已有账本。美元继续按项目用量账本计，Key 与其他用途共用，平台账单无法单独核对。
+
+当前独立医生镜像为 `phase09-20261102.3`，包含 P9-21 的级别大小写补丁。工具仍传大写 INFO，OpenSearch 可以匹配实际小写 info；服务和 trace 仍精确匹配。早先同一医生注册两个系统并查询两个日志后端的事实保留在 P9-8、P9-9；本次独立实例按追加要求只选择 otel-demo，不能把旧双系统菜单当作新实例的菜单。
+
+实际独立部署从准备私有配置、配置验证、构建到健康为 33.696456 秒，到登录和菜单为 33.8045 秒，医生内 `SHOP_` 环境变量为 0（P9-25）。这是已有本机源码与镜像条件下的计时，不含开发、Demo 恢复或诊断。恢复 Demo 后，仅新双服务与 Demo 运行，目标仅 otel-demo、菜单 8 个只读工具；`query_metrics` 的 `up` 查询为 `status=ok`，但返回 0 条序列，不能写成非空指标验证。`search_logs` 按 frontend、INFO 和关键词返回 5 条（P9-26），原件见[独立查询记录](../../docs/reports/phase-09-standalone-queries.json)。这次没有运行整轮注入、Mock 诊断和评分，更没有付费诊断。
+
+原医生容器保持停止；原 doctor-mysql 在新双服务健康并完成旧账核对后仅执行 `stop`，卷和原数据保留。复验结束也已停止 Demo，当前仅保留新医生与新库运行，资源核对见 P9-27。需要停止新医生时，继续使用同一组配置并保留数据：
+
+```text
+docker compose --env-file .env.phase09-doctor -p opsdoctor-phase09-doctor -f deploy/doctor/compose.yaml -f deploy/opentelemetry/doctor.phase09.yaml stop
+```
 
 医生根文件系统只读，单独的内存 `/tmp` 用于免费网络预检程序。预检仅查询两家模型列表，使用医生容器中的 Go HTTP 网络路径，不调用生成接口；程序和记录放在本机临时目录，Key 只从环境读取。
 
 医生只读取接入配置和[系统说明书](../doctor/targets/otel-demo.profile.md)，按固定地址查 Prometheus、Jaeger 和 OpenSearch。它不持有 Demo 的开关接口、场景文件或 Docker socket。PostgreSQL、Valkey 直查与 pprof 按数据源缺失降级。
 
-评测器在宿主机读取[独立场景目录](../../eval/scenarios/otel-demo/README.md)，通过官方开关接口注入和恢复。它保存原始开关配置，恢复后读回确认；新的批次编号与两个预算账户都和阶段 8 分开。提示、工具、通用手册及评分保持阶段 8 冻结版本。正式运行命令和实测结果在阶段 9 汇报中归档。
+评测器在宿主机读取[独立场景目录](../../eval/scenarios/otel-demo/README.md)，通过官方开关接口注入和恢复。它保存原始开关配置，恢复后读回确认；新的批次编号与两个预算账户都和阶段 8 分开。提示、工具、通用手册及评分保持阶段 8 冻结版本。独立部署及隔离适配的检查另见台账 P9-24–P9-28。当前仍等 Claude 审核采集修复，付费保持暂停；正式诊断和结果尚未发生，不能把这些部署与只读查询写成泛化成绩。

@@ -39,7 +39,9 @@ flowchart TD
 
 图里的箭头表示数据流或调用，不表示跨越所有权限。Toxiproxy 位于订单到库存、库存到 MySQL、订单到 Redis 的链路中；它由宿主机注入器控制，医生没有这项权限。实际监听与映射以 [shop Compose](../deploy/docker-compose.yml)和[Demo 部署配置](../deploy/opentelemetry/README.md)为准，宿主机端口只绑定回环地址。两套靶场一次只运行一套。
 
-阶段 9 使用专用医生容器 `opsdoctor-phase09-doctor`，同一次启动加载 shop 与 otel-demo 两份接入配置。原 doctor 容器保留并停止，避免两个调度器同时领任务；专用医生连接原 doctor-mysql，继续保留 `opsdoctor_doctor-mysql-data` 中的历史数据。第二系统有独立的数据源与工具集，切换运行中的靶场不需要重启医生。[已登记目标证据](reports/phase-09-targets.json)与台账 P9-8 证明接入菜单已装配，不代表两个靶场同时运行。otel-demo 的 PostgreSQL、Valkey 直查与 pprof 没有接入，相应工具不注册。
+阶段 9 先在同一专用医生中加载 shop 与 otel-demo 两份配置，完成不重启的后端切换，见 P9-8、P9-9。用户随后追加独立部署：通用[双服务 Compose](../deploy/doctor/compose.yaml)只运行医生及其状态库，不列 shop 专用变量；按外部目录选择目标、通过外部 env_file 注入该目标引用的凭据。本次独立实例只选 Demo，实测与隔离资源见 P9-25–P9-27。原 doctor 与原 doctor-mysql 均保留并停止，阶段 8 卷未挂入新实例。
+
+切换已登记目标不需要重启医生，修改接入目录内容则要重新启动医生加载。otel-demo 的 PostgreSQL、Valkey 直查与 pprof 没有接入，相应工具不注册。[接入指南](onboarding.md)解释配置、只读账号与验证；本阶段只有部署和数据源查询证据，付费诊断仍等采集修复审核。
 
 ## 代码怎样分工
 
