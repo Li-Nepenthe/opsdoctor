@@ -1,0 +1,219 @@
+{
+  "started_at_utc": "2026-11-03T05:41:19.255111Z",
+  "finished_at_utc": "2026-11-03T05:41:48.511885Z",
+  "commit": "4596540c67da43e2d6c74f497c4cdd99b1ae086f",
+  "branch": "phase-09-generalization",
+  "source_working_tree": "4596540 + 本次severity大小写兼容未提交差异；不包含用户两处修改的提交。",
+  "source_working_tree_status_before": "M .env.example\n M deploy/opentelemetry/doctor.phase09.yaml\n M docs/learn/phase-00-foundation.md\n M internal/doctor/source/log_contract_test.go\n M internal/doctor/source/opensearch/client.go\n M internal/doctor/source/opensearch/client_test.go\n M internal/doctor/source/opensearch/integration_test.go\n M internal/shop/app/inventoryservice/app.go\n?? docs/reports/phase-09-ci-first.json\n?? docs/reports/phase-09-database-after-level-fix.tsv\n?? docs/reports/phase-09-doctor-level-case.json\n?? docs/reports/phase-09-level-case-query.json\n?? docs/reports/phase-09-opensearch-level-test.log\n?? docs/reports/phase-09-runtime-after-level-fix.json",
+  "source_diff_files": [
+    ".env.example",
+    "internal/doctor/source/log_contract_test.go",
+    "internal/doctor/source/opensearch/client.go",
+    "internal/doctor/source/opensearch/client_test.go",
+    "internal/doctor/source/opensearch/integration_test.go"
+  ],
+  "source_diff_sha256": "221190fd96221e51dae11cccdf4ab31e70a682bbe23d8ccbbf8d47dbccf078cc",
+  "source_diff_log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\source-diff.patch",
+  "source_file_hashes_before": {
+    ".env.example": "f3d30274757b1c99294b8e3031a69a71d6bff4a10454298aceb3fc21c5b9f3f4",
+    "internal/doctor/source/log_contract_test.go": "117cb08546de7978341f9013875060380e2c930ba6a3be732eb73894c4ace443",
+    "internal/doctor/source/opensearch/client.go": "046d3fdc1979b2a33cf745d2b96c847b1d754ca438827d9b47fc2a14a63d8844",
+    "internal/doctor/source/opensearch/client_test.go": "a8abf600e01c2fb53c413111b18673019868ef819114fc02b3228b9d30a1ad16",
+    "internal/doctor/source/opensearch/integration_test.go": "a73ddf93e67242df62464367b3bfdb3720107a9897d8a3083d9298c2e08eb52f"
+  },
+  "source_file_hashes_after": {
+    ".env.example": "f3d30274757b1c99294b8e3031a69a71d6bff4a10454298aceb3fc21c5b9f3f4",
+    "internal/doctor/source/log_contract_test.go": "117cb08546de7978341f9013875060380e2c930ba6a3be732eb73894c4ace443",
+    "internal/doctor/source/opensearch/client.go": "046d3fdc1979b2a33cf745d2b96c847b1d754ca438827d9b47fc2a14a63d8844",
+    "internal/doctor/source/opensearch/client_test.go": "a8abf600e01c2fb53c413111b18673019868ef819114fc02b3228b9d30a1ad16",
+    "internal/doctor/source/opensearch/integration_test.go": "a73ddf93e67242df62464367b3bfdb3720107a9897d8a3083d9298c2e08eb52f"
+  },
+  "source_files_unchanged_during_checks": true,
+  "toolchain": {
+    "CC": "gcc",
+    "CGO_ENABLED": "1",
+    "GOARCH": "amd64",
+    "GOCACHE": "D:\\Code\\GoCache",
+    "GOOS": "windows",
+    "GOPATH": "C:\\Users\\Nepenthe\\go",
+    "GOVERSION": "go1.27.1",
+    "staticcheck_version": "staticcheck.exe 2026.2.2 (0.8.2)"
+  },
+  "environment": {
+    "LLM_PROVIDER": "mock",
+    "EVAL_COMPARISON_ENABLED": "false",
+    "CGO_ENABLED": "1",
+    "TEST_env_count": 0,
+    "model_api_keys_present": false,
+    "cleared_environment_variable_names": [
+      "OPENAI_API_KEY"
+    ],
+    "global_environment_modified": false
+  },
+  "checks": [
+    {
+      "check": "format",
+      "command": "gofmt -l cmd gen internal tools",
+      "started_at_utc": "2026-11-03T05:41:19.647951Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\format.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 0.049907,
+      "finished_at_utc": "2026-11-03T05:41:19.697922Z",
+      "unformatted_files": [],
+      "passed": true,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "vet",
+      "command": "go vet ./...",
+      "started_at_utc": "2026-11-03T05:41:19.698145Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\vet.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 0.722268,
+      "finished_at_utc": "2026-11-03T05:41:20.420465Z",
+      "passed": true,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "staticcheck",
+      "command": "C:\\Users\\Nepenthe\\go\\bin\\staticcheck.exe ./...",
+      "started_at_utc": "2026-11-03T05:41:20.420714Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\staticcheck.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 1.349942,
+      "finished_at_utc": "2026-11-03T05:41:21.770695Z",
+      "passed": true,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "commentcheck",
+      "command": "go run ./tools/commentcheck ./...",
+      "started_at_utc": "2026-11-03T05:41:21.770902Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\commentcheck.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 0.138069,
+      "finished_at_utc": "2026-11-03T05:41:21.909020Z",
+      "file_count": 441,
+      "passed": true,
+      "sha256": "d01a26d4f304f19a41a18c9ff07b6f957261c348dd708d54f6a0a49453b45dfe"
+    },
+    {
+      "check": "archcheck",
+      "command": "go run ./tools/archcheck ./...",
+      "started_at_utc": "2026-11-03T05:41:21.914120Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\archcheck.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 0.168272,
+      "finished_at_utc": "2026-11-03T05:41:22.082446Z",
+      "passed": true,
+      "sha256": "34aadc8dfe47f2765c8a270910975bdf72dc1050a3398036d6ed7e0edc0657e0"
+    },
+    {
+      "check": "race",
+      "command": "go test -race ./... -count=1 -timeout=180s -json",
+      "started_at_utc": "2026-11-03T05:41:22.086964Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\race.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 26.40138,
+      "finished_at_utc": "2026-11-03T05:41:48.488230Z",
+      "passed": true,
+      "sha256": "d078375e1b0b31ccfce1d8f7cde12ad385666795e382ebe3e4874ceca703f1b6"
+    }
+  ],
+  "test_statistics": {
+    "top_level_pass": 292,
+    "including_subtests_pass": 985,
+    "top_level_skip": 47,
+    "including_subtests_skip": 57,
+    "top_level_fail": 0,
+    "including_subtests_fail": 0,
+    "packages_pass": 58,
+    "packages_skip": 16,
+    "packages_fail": 0,
+    "packages_total": 74
+  },
+  "failed_tests": [],
+  "non_json_race_lines": [],
+  "protected_files": [
+    {
+      "path": "docs/learn/phase-00-foundation.md",
+      "expected": "dc0d4d5288d5d140e800f7e412680a1f0ab3ad0188026ecc1906ffd730ec306a",
+      "before": "dc0d4d5288d5d140e800f7e412680a1f0ab3ad0188026ecc1906ffd730ec306a",
+      "after": "dc0d4d5288d5d140e800f7e412680a1f0ab3ad0188026ecc1906ffd730ec306a",
+      "unchanged": true
+    },
+    {
+      "path": "internal/shop/app/inventoryservice/app.go",
+      "expected": "72265f52b1fa90182d0ea44bba08936e913d3963cdf6b7fea20854e164aab1a5",
+      "before": "72265f52b1fa90182d0ea44bba08936e913d3963cdf6b7fea20854e164aab1a5",
+      "after": "72265f52b1fa90182d0ea44bba08936e913d3963cdf6b7fea20854e164aab1a5",
+      "unchanged": true
+    }
+  ],
+  "protected_files_unchanged": true,
+  "original_checks_artifact": {
+    "path": "docs/reports/phase-09-checks.json",
+    "sha256_before": "59e151ba5f80d803d9be00083ecf8ec703ff2f68f657a148f820944ca5847814",
+    "sha256_after": "59e151ba5f80d803d9be00083ecf8ec703ff2f68f657a148f820944ca5847814",
+    "preserved": true
+  },
+  "original_logs_preserved": true,
+  "log_digests": [
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\vet.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\staticcheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\commentcheck.log",
+      "sha256": "d01a26d4f304f19a41a18c9ff07b6f957261c348dd708d54f6a0a49453b45dfe"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\archcheck.log",
+      "sha256": "34aadc8dfe47f2765c8a270910975bdf72dc1050a3398036d6ed7e0edc0657e0"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-level\\20261103T054119Z\\race.log",
+      "sha256": "d078375e1b0b31ccfce1d8f7cde12ad385666795e382ebe3e4874ceca703f1b6"
+    }
+  ],
+  "notes": [
+    "Only gofmt -l was executed; no user or source file was formatted.",
+    "TEST_* and model API key variables were cleared only in child processes; Mock mode and comparison=false were explicit.",
+    "Original toolchain and original GOCACHE were reused; no ACL, system setting, container, or Docker operation was performed.",
+    "External integration tests were intentionally skipped without TEST_*; skipped tests are not counted as passed.",
+    "No generation-model requests were executed; this artifact is independent of the original phase-09-checks.json."
+  ],
+  "all_checks_passed": true
+}

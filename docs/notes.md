@@ -1768,3 +1768,7 @@ DeepSeek用完调查轮数，首次收尾提交多了root_cause.confidence_note�
 Loki对照时原Alloy没有创建时COMPOSE_PROJECT_NAME环境项，初次工具查询0条。自动审查拒绝了停止原Alloy并替代职责的动作（操作未执行），理由是原容器保护要求；采用其建议的安全方案新增独立采集器，不改变原Alloy配置。实查Loki返回2条。验证完成后，先停止新增采集器，再结合P9-1初始运行数0和本轮临时启动时间证据，仅stop本轮临时启动的7个shop容器，恢复未运行状态，审查通过。原doctor容器未启动或重建，doctor-mysql保持可用。随后Demo恢复，同一医生实例查询OpenSearch返回5条，未切换医生配置或重启医生。
 
 Codex以实际HTTP MCP客户端执行initialize、读取真实16工具菜单，再独立发出tools/call(service_topology,{})并读取4086字节结果；mcp_audit新增37f697ee04caa8684b849119b4fcf09a、shop/service_topology/ok。该调用由Codex发起，不是Go SDK测试客户端，也不是Codex桌面原生MCP插件配置；仅证明一次真实Agent只读协议调用。文档中旧称mcp_audits应以实际表名mcp_audit为准。本阶段生成模型请求仍为0。
+
+固定首十分钟与后续扩展观察已经完成，计数和服务例外分别写P9-14、P9-18，未覆写窗口。初版4596540已推送且CI通过（P9-20），但收尾将冻结工具的级别枚举与真实样本对照后发现另一个适配器缺口：工具只收大写INFO，frontend实际写小写info，先前uppercase契约夹具与未带level的集成都漏掉了它。同P9-14窗口旧term查0，case_insensitive查1896；这不是1884条method记录的同一口径（P9-21）。只给新OpenSearch适配器级别term增加忽略大小写，不改冻结工具、提示、手册或rubric。新增7项Mock回归，真实Go集成带INFO返回10，新Mock医生返回5，全仓复验292顶层/985含子例通过（P9-21–P9-23）。
+
+为部署这个软件补丁，仅将新项目医生更新为phase09-20261102.2；原opsdoctor-doctor未启动或重建，原DB保持可用。真实查询时仅启动新OpenSearch，随后又stop；最终Demo28容器全部停止，保留索引/卷，专用医生Mock且comparison关闭。原21容器ID/挂载名、20测试项目/138测试卷保留，生成请求仍0，原阶段8数据与费用未变。P9-9同实例切换后端的历史证据保留；软件升级不等于为切换目标重启。仍等待Claude审核采集修复，付费实验尚未开始。

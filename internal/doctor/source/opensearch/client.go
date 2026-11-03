@@ -70,12 +70,13 @@ func (client *Client) Search(ctx context.Context, query source.LogQuery) ([]sour
 	return entries(raw, query, client.config.Fields)
 }
 
-// expression 固定查询结构，服务、级别、请求标识用精确匹配，关键词只占一个 JSON 值。
+// expression 固定查询结构；服务和请求标识精确匹配，级别忽略大小写，关键词只占一个 JSON 值。
 func expression(query source.LogQuery, fields Fields) map[string]any {
 	filters := []any{map[string]any{"term": map[string]string{fields.Service: query.Service}},
 		map[string]any{"range": map[string]any{fields.Timestamp: map[string]string{"gte": query.Start.UTC().Format(time.RFC3339Nano), "lte": query.End.UTC().Format(time.RFC3339Nano), "format": "strict_date_optional_time_nanos"}}}}
 	if query.Level != "" {
-		filters = append(filters, map[string]any{"term": map[string]string{fields.Level: query.Level}})
+		// 工具统一接受大写级别，采集端却可能写入 info；只放宽级别的大小写，不扩大服务或 trace 范围。
+		filters = append(filters, map[string]any{"term": map[string]any{fields.Level: map[string]any{"value": query.Level, "case_insensitive": true}}})
 	}
 	if query.TraceID != "" {
 		filters = append(filters, map[string]any{"term": map[string]string{fields.TraceID: query.TraceID}})

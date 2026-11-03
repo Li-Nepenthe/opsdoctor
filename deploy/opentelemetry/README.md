@@ -95,6 +95,8 @@ docker compose --env-file .env -p opsdoctor-phase09-doctor -f deploy/opentelemet
 
 医生的页面继续使用 `http://127.0.0.1:8090`。专用 Compose 固定 `phase-09-openai`（USD）和 `phase-09-deepseek`（CNY），总上限各为 10，不沿用阶段 7、8 的账户；真实模型只在用户已授权的运行中显式启用。
 
+当前专用镜像为 `phase09-20261102.2`，补齐 OpenSearch 日志级别的大小写兼容。工具仍传大写 INFO，适配器可查询实际小写 info，不改工具定义；实测与软件升级记录见台账 P9-21–P9-23。P9-9 的同一医生轮流查询两个后端发生在这次软件升级之前；日常切换靶场仍无需重启医生。
+
 医生根文件系统只读，单独的内存 `/tmp` 用于免费网络预检程序。预检仅查询两家模型列表，使用医生容器中的 Go HTTP 网络路径，不调用生成接口；程序和记录放在本机临时目录，Key 只从环境读取。
 
 医生只读取接入配置和[系统说明书](../doctor/targets/otel-demo.profile.md)，按固定地址查 Prometheus、Jaeger 和 OpenSearch。它不持有 Demo 的开关接口、场景文件或 Docker socket。PostgreSQL、Valkey 直查与 pprof 按数据源缺失降级。

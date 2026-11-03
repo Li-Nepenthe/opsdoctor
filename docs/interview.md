@@ -548,7 +548,7 @@
 ### 9.4 同一次 search_logs 调用，两个后端收到什么，为什么不让 AI 写查询？
 
 - 调用者只给服务、级别、关键词、trace、时间和条数。Loki 收到固定形状的 LogQL；时间与上限放到 query_range 参数。
-- OpenSearch 收到固定索引 `_search` 的 JSON：服务、级别和 trace 用 term，时间用 range，正文关键词用 match_phrase，并按时间倒序。
+- OpenSearch 收到固定索引 `_search` 的 JSON：服务和 trace 用精确 term，级别的完整值忽略大小写，时间用 range，正文关键词用 match_phrase，并按时间倒序。
 - 字符串交给转义或 JSON 编码器，只作为值。AI 不获得任意索引、字段、后端地址和查询结构的选择权，边界由代码兑现。
 - 两种产品的文本分析语义仍有细节差异；共用接口不等于任意中文、标点或短语都逐字产生相同命中。
 

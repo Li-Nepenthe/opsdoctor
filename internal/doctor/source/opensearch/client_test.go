@@ -4,7 +4,7 @@
 // 部分分片失败、重定向和超大响应。所有账号与响应都是测试夹具。
 //
 // 主要内容：TestConfigBoundary 验证部署配置；TestResponseBoundary 检查异常响应；
-// TestReadOnlyBoundary 证明只读路径和账号不会跟随跳转。
+// TestReadOnlyBoundary 证明只读路径和账号不会跟随跳转；TestLevelCaseInsensitive 验证真实级别大小写差异。
 
 package opensearch
 
@@ -140,6 +140,80 @@ func TestReadOnlyBoundary(t *testing.T) {
 			}
 			if err != nil && strings.Contains(err.Error(), "fake-password") {
 				t.Fatal("错误回显了后端正文或凭据")
+			}
+		})
+	}
+}
+
+// TestLevelCaseInsensitive 模拟后端按 term 规则过滤，防止大写工具参数漏掉 frontend 的小写 info。
+func TestLevelCaseInsensitive(t *testing.T) {
+	for _, testcase := range []struct {
+		name, queryLevel, storedLevel string // 输入沿用工具枚举，存储值模拟不同 SDK 的实际写法。
+		want                          int    // 不同级别仍须过滤，不能为解决大小写而移除级别条件。
+	}{
+		{"frontend小写info", "INFO", "info", 1},
+		{"大写info", "INFO", "INFO", 1},
+		{"混合大小写info", "INFO", "Info", 1},
+		{"小写debug", "DEBUG", "debug", 1},
+		{"小写warn", "WARN", "warn", 1},
+		{"小写error", "ERROR", "error", 1},
+		{"不同级别不匹配", "INFO", "warn", 0},
+	} {
+		t.Run(testcase.name, func(t *testing.T) {
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var request struct {
+					Query struct {
+						Bool struct {
+							Filter []struct {
+								Term map[string]json.RawMessage `json:"term"` // range 条件没有 term，直接略过。
+							} `json:"filter"`
+						} `json:"bool"`
+					} `json:"query"`
+				}
+				if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
+					t.Error(err)
+					http.Error(w, "invalid test query", http.StatusBadRequest)
+					return
+				}
+				var level struct {
+					Value           string `json:"value"`            // term 的完整对象写法。
+					CaseInsensitive bool   `json:"case_insensitive"` // 省略时模拟后端默认的大小写敏感行为。
+				}
+				for _, filter := range request.Query.Bool.Filter {
+					if raw, ok := filter.Term[testConfig("").Fields.Level]; ok {
+						// 后端也接受简写字符串，但它不会自动忽略大小写；旧实现因此返回空命中。
+						if err := json.Unmarshal(raw, &level.Value); err != nil {
+							if err := json.Unmarshal(raw, &level); err != nil {
+								t.Error(err)
+							}
+						}
+					}
+				}
+				hits := []any{}
+				if level.Value == testcase.storedLevel || level.CaseInsensitive && strings.EqualFold(level.Value, testcase.storedLevel) {
+					hits = append(hits, map[string]any{"_source": map[string]any{
+						"resource": map[string]string{"service.name": "frontend"}, "severity": map[string]string{"text": testcase.storedLevel},
+						"body": "API request completed", "observedTimestamp": "1970-01-01T00:00:01Z",
+					}})
+				}
+				if err := json.NewEncoder(w).Encode(map[string]any{"hits": map[string]any{"hits": hits}}); err != nil {
+					t.Error(err)
+				}
+			}))
+			defer server.Close()
+			client, err := New(testConfig(server.URL))
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer client.Close()
+			query := testQuery()
+			query.Service, query.Level = "frontend", testcase.queryLevel
+			rows, err := client.Search(t.Context(), query)
+			if err != nil || len(rows) != testcase.want {
+				t.Fatalf("级别%s查询存储值%s：结果=%+v 错误=%v，期望%d条", query.Level, testcase.storedLevel, rows, err, testcase.want)
+			}
+			if len(rows) > 0 && rows[0].Line != "API request completed" {
+				t.Fatalf("未保留真实日志正文：%+v", rows)
 			}
 		})
 	}

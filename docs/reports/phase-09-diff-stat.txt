@@ -2,7 +2,7 @@ Phase 9 review checkpoint, based on main 231ee48
 User-preserved files are not staged. This stat excludes this evidence file itself.
 
 $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-width=120 main -- . :(exclude)docs/reports/phase-09-diff-stat.txt
- .env.example                                               |   14 +
+ .env.example                                               |   16 +
  .gitattributes                                             |    3 +
  .github/workflows/ci.yml                                   |    6 +-
  README.md                                                  |   28 +-
@@ -11,24 +11,25 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  deploy/doctor/targets/README.md                            |    4 +
  deploy/doctor/targets/otel-demo.profile.md                 |   98 ++
  deploy/doctor/targets/otel-demo.yaml                       |   20 +
- deploy/opentelemetry/README.md                             |  102 ++
+ deploy/opentelemetry/README.md                             |  104 ++
  deploy/opentelemetry/compose.phase09.yaml                  |  101 ++
  deploy/opentelemetry/doctor.phase09.yaml                   |   85 ++
  deploy/opentelemetry/loki-verify.phase09.yaml              |   25 +
  deploy/opentelemetry/otelcol-config-extras.phase09.yaml    |   20 +
  deploy/opentelemetry/versions.env                          |    5 +
- docs/architecture.md                                       |   32 +-
+ docs/architecture.md                                       |   34 +-
  docs/decisions.md                                          |   16 +
  docs/interview.md                                          |   65 +-
  docs/learn/README.md                                       |    3 +-
- docs/learn/phase-09-generalization.md                      |  347 ++++++
+ docs/learn/phase-09-generalization.md                      |  353 +++++++
  docs/mcp.md                                                |    4 +-
- docs/notes.md                                              |   26 +
+ docs/notes.md                                              |   30 +
  docs/reports/README.md                                     |    3 +-
  docs/reports/phase-09-baseline-initial.json                |   32 +
  docs/reports/phase-09-baseline-two-minute.json             |   72 ++
  docs/reports/phase-09-baseline-verified.json               |   32 +
  docs/reports/phase-09-checks.json                          |  149 +++
+ docs/reports/phase-09-ci-first.json                        |  160 +++
  docs/reports/phase-09-clock-before-network.jsonl           |   61 ++
  docs/reports/phase-09-clock-preflight.json                 |   10 +
  docs/reports/phase-09-codex-mcp-audit.tsv                  |    3 +
@@ -37,6 +38,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-collector-after-fix-continuation.log |  395 +++++++
  docs/reports/phase-09-collector-after-fix.log              | 1733 ++++++++++++++++++++++++++++++
  docs/reports/phase-09-collector-final-before-fix.log       | 5334 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ docs/reports/phase-09-database-after-level-fix.tsv         |   20 +
  docs/reports/phase-09-database-checkpoint.tsv              |   20 +
  docs/reports/phase-09-database-final-before-review.tsv     |   20 +
  docs/reports/phase-09-deepseek-balance-before.json         |   14 +
@@ -44,14 +46,17 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-demo-startup-first.log               |  133 +++
  docs/reports/phase-09-demo-startup-fixed.json              |    5 +
  docs/reports/phase-09-demo-startup-fixed.log               |  194 ++++
+ docs/reports/phase-09-doctor-level-case.json               |    1 +
  docs/reports/phase-09-doctorctl-loki.json                  |    1 +
  docs/reports/phase-09-doctorctl-opensearch.json            |    1 +
  docs/reports/phase-09-email-log-sample.json                |    1 +
  docs/reports/phase-09-evidence-byte-check.json             |   26 +
- docs/reports/phase-09-generalization.md                    |  239 +++++
+ docs/reports/phase-09-generalization.md                    |  245 +++++
  docs/reports/phase-09-http-rename-precondition.json        |   13 +
  docs/reports/phase-09-http-renamed-samples.json            |    1 +
  docs/reports/phase-09-http-rule-review.json                |  154 +++
+ docs/reports/phase-09-level-case-query.json                |  152 +++
+ docs/reports/phase-09-level-checks.json                    |  219 ++++
  docs/reports/phase-09-log-config-validation.json           |    9 +
  docs/reports/phase-09-log-field-comparison.json            |   79 ++
  docs/reports/phase-09-log-fix-after.json                   |  344 ++++++
@@ -63,22 +68,24 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-log-impact-initial.json              |  471 +++++++++
  docs/reports/phase-09-log-pipeline-limitation.json         |   77 ++
  docs/reports/phase-09-log-producer-expectations.json       |   92 ++
- docs/reports/phase-09-logging-fix.md                       |  164 +++
+ docs/reports/phase-09-logging-fix.md                       |  172 +++
  docs/reports/phase-09-network-preflight-summary.json       |   24 +
  docs/reports/phase-09-network-preflight.jsonl              |  241 +++++
  docs/reports/phase-09-opensearch-after-test.log            |    6 +
  docs/reports/phase-09-opensearch-indices-after.json        |    1 +
+ docs/reports/phase-09-opensearch-level-test.log            |    7 +
  docs/reports/phase-09-opensearch-mapping-after.json        |    1 +
  docs/reports/phase-09-opensearch-schema.json               |   59 ++
  docs/reports/phase-09-preflight.json                       |   59 ++
  docs/reports/phase-09-release-audit.json                   |   28 +
+ docs/reports/phase-09-runtime-after-level-fix.json         |  196 ++++
  docs/reports/phase-09-runtime-before-review.json           |  196 ++++
  docs/reports/phase-09-targets.json                         |  637 +++++++++++
  docs/reports/phase-09-upstream-config.diff                 |   58 +
  docs/resume-draft.md                                       |    3 +
  docs/troubleshooting.md                                    |   34 +-
  docs/代码地图.md                                           |   15 +
- docs/数据台账.md                                           |   26 +
+ docs/数据台账.md                                           |   30 +
  eval/scenarios/otel-demo/OT01.yaml                         |   20 +
  eval/scenarios/otel-demo/OT02.yaml                         |   21 +
  eval/scenarios/otel-demo/OT03.yaml                         |   21 +
@@ -88,11 +95,11 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  internal/doctor/source/README.md                           |    1 +
  internal/doctor/source/doc.go                              |    1 +
  internal/doctor/source/log_contract_test.go                |  191 ++++
- internal/doctor/source/opensearch/client.go                |  124 +++
- internal/doctor/source/opensearch/client_test.go           |  168 +++
+ internal/doctor/source/opensearch/client.go                |  125 +++
+ internal/doctor/source/opensearch/client_test.go           |  242 +++++
  internal/doctor/source/opensearch/config.go                |   62 ++
  internal/doctor/source/opensearch/doc.go                   |   19 +
- internal/doctor/source/opensearch/integration_test.go      |   52 +
+ internal/doctor/source/opensearch/integration_test.go      |   61 ++
  internal/doctor/source/opensearch/response.go              |  116 ++
  internal/doctor/source/source.go                           |    4 +-
  internal/doctor/store/doc.go                               |    1 +
@@ -119,8 +126,8 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  internal/eval/runner/manifest.go                           |    2 +-
  internal/eval/runner/paired.go                             |    3 +
  进度.md                                                    |   24 +-
- 项目计划书.md                                              |    8 +
- 118 files changed, 16467 insertions(+), 51 deletions(-)
+ 项目计划书.md                                              |    9 +
+ 125 files changed, 17341 insertions(+), 51 deletions(-)
 
 $ git diff --cached --stat main -- internal/doctor/tools internal/doctor/agent
 (empty output; no tools/agent files changed)

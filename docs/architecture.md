@@ -80,7 +80,7 @@ Alloy 按 Docker 的 Compose 项目标签发现容器，随后只保留配置允
 | 条件或边界 | Loki | OpenSearch |
 |---|---|---|
 | 查询表达 | 转义字符串后生成固定 LogQL | `json.Marshal` 编码固定查询 DSL，关键词只作为 JSON 值 |
-| 服务、级别、trace | 服务标签与 JSON 字段筛选 | 配置字段上的 term 精确匹配 |
+| 服务、级别、trace | 服务标签与 JSON 字段筛选 | 配置字段上的 term；服务/trace 精确匹配，级别完整值忽略大小写 |
 | 关键词、时间、顺序与上限 | 文本筛选，query_range 参数限定时间、倒序和数量 | match_phrase、range、sort 与 size |
 | 访问范围 | 固定 Loki 根地址的查询入口 | 固定根地址、指定索引的 `_search`，不跟随重定向 |
 | 返回结构 | 日志流转为统一条目 | hits 与 `_source` 转为同一条目，兼容点键与 keyword 子字段 |
@@ -88,6 +88,8 @@ Alloy 按 Docker 的 Compose 项目标签发现容器，随后只保留配置允
 OpenSearch 直接使用标准库 `net/http`，没有引入产品客户端库。字段由[接入配置](../deploy/doctor/targets/otel-demo.yaml)提供，实际索引与映射保存在[字段证据](reports/phase-09-opensearch-schema.json)。[共用契约测试](../internal/doctor/source/log_contract_test.go)的同一张行为表分别运行两个实现，覆盖服务、级别、关键词、特殊字符、trace、时间、上限、空结果、组合条件与取消，10 项 × 2 个实现全部通过（P9-6；[检查记录](reports/phase-09-checks.json)）。产品测试另检查分片失败、字段缺失、凭据与响应边界；真实集成读取见台账 P9-3。
 
 上述承诺不等于任意文本的检索语义完全相同：Loki 子串筛选与 OpenSearch 分词短语匹配仍受各自产品语义影响。本次 Demo 禁用了 OpenSearch 安全插件，未验证生产账号授权；启用安全插件时应配置只读账号。仍不支持 PostgreSQL 直查、SkyWalking 和非 Go 服务的运行时分析。
+
+级别大小写也属于适配器职责：工具规定大写 INFO，而 Demo frontend 实际写小写 info。新实现只对级别使用 `case_insensitive`，实际同窗查询和部署后的 Mock 医生复验见 P9-21、P9-23；服务和 trace 的条件仍精确匹配。冻结的工具定义没有改变。
 
 Demo 的 Collector 经 OTLP 接收日志并写入 OpenSearch，曾因 `attributes.http` 的 text/object 映射冲突拒收部分记录。固定版本的采集配置将日志属性键的 `http.` 前缀改成 `http_`，保留旧索引和原 scope 处理，不改变医生的五个映射字段。修复前报告计数、最小上游差异与固定十分钟观察见[专项报告](reports/phase-09-logging-fix.md)及台账 P9-13–P9-15。窗口内未报告最终日志丢弃，17/17 个预期 OTLP 源有日志；image-provider 官方未启用日志，Jaeger traces 仍有重试。结论限于本窗口，不能证明端到端无静默丢失；Claude 审核通过前不开始付费诊断。
 

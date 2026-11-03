@@ -140,6 +140,7 @@ Demo 独立回环端口：商店 18000、开关管理 18080、流量页面 18089
 | `OTEL_DEMO_ALERT_TOKEN` | 第二系统独立告警令牌，真实值仅环境注入 | 无生产默认；`.env.example` 只放演示假值 |
 | `TEST_OPENSEARCH_URL/INDEX/FIELDS` | 显式开启真实查询；FIELDS 为实际五字段 JSON | 空，未设置 URL 时跳过 |
 | `TEST_OPENSEARCH_SERVICE/KEYWORD` | 已存在日志的服务与关键词 | 空，启用时必填 |
+| `TEST_OPENSEARCH_LEVEL` | 可选大写级别，验证真实源大小写差异 | 空；P9-21显式填 INFO |
 | `TEST_OPENSEARCH_USERNAME/PASSWORD` | 安全插件开启时的只读账号 | 空，填写时必须成对 |
 | target 的 `opensearch.url/index/fields` | 固定后端、指定索引和字段名 | [otel-demo.yaml](../../deploy/doctor/targets/otel-demo.yaml)使用 `otel-logs-*` 及实测字段；与 `loki` 互斥 |
 | target 的 `opensearch.username_env/password_env` | 可选只读凭据的变量名 | 当前 Demo 未配置，保留两项成对和系统前缀校验 |
@@ -171,6 +172,7 @@ P9-15 的[字段对照](phase-09-log-field-comparison.json)确认医生五个字
 | `TestLogSourceContract` | [log_contract_test.go](../../internal/doctor/source/log_contract_test.go) | 同表分别验证 Loki/OpenSearch 的服务、级别、关键词、特殊字符、trace ID、时间、上限、空结果、组合条件和超时 |
 | `TestConfigBoundary`、`TestResponseBoundary` | [client_test.go](../../internal/doctor/source/opensearch/client_test.go) | 索引/字段/凭据边界；嵌套与点键、缺字段、时间、结构化正文及异常响应 |
 | `TestReadOnlyBoundary`、`TestKeywordJSONValues` | [client_test.go](../../internal/doctor/source/opensearch/client_test.go) | 固定搜索路径、只读账号、拒绝跳转、有界读取；关键词始终是 JSON 值 |
+| `TestLevelCaseInsensitive` | [client_test.go](../../internal/doctor/source/opensearch/client_test.go) | 大写接口条件匹配来源小写或混合大小写；不同级别仍不命中，服务/trace条件不放宽 |
 | `TestIntegrationSearchLogs` | [integration_test.go](../../internal/doctor/source/opensearch/integration_test.go) | 显式配置时对真实索引按服务及关键词查询 |
 | `TestLogBackendConfig`、`TestLogBackendIsolation` | [opensearch_test.go](../../internal/doctor/target/opensearch_test.go) | 日志后端互斥、映射完整、同接口绑定不同系统 |
 | `TestOpenSearchCredentialIsolation`、`TestOpenSearchCredentialsWiring` | [opensearch_test.go](../../internal/doctor/target/opensearch_test.go) | 环境变量及实际账号隔离，装配不触发探测 |
@@ -187,6 +189,10 @@ P9-15 的[字段对照](phase-09-log-field-comparison.json)确认医生五个字
 
 真实 OpenSearch 集成另行显式开启，P9-3 记录按服务返回 3 条、增加关键词返回 1 条；不把全仓轮次中跳过的集成算作通过。同一医生的真实 CLI 后端对照见 P9-9。新场景的健康查询实查见 P9-7，付费网络及时钟预检见 P9-12。
 
+收尾发现冻结工具接受大写 INFO，而实际 frontend 使用小写 info。原精确 term 翻译漏查；新适配器仅对级别启用 `case_insensitive`，服务/trace不变。同一固定窗口实查从 0 到 1896 条、真实 Go 集成带 INFO 返回 10 条、新 Mock 医生返回 5 条，见 P9-21、P9-23。这个口径是 frontend 的 INFO 总量，不是 P9-14 的 HTTP method 计数。原 uppercase 夹具和未带级别的集成都没有覆盖差异；新增回归后重新完成全部检查，P9-22 为 race292 顶层/985含子例通过、47/57跳过、失败0，见[独立检查统计](phase-09-level-checks.json)。
+
+初版提交 4596540 的[CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41583884321)已经通过，详见[逐步骤结果](phase-09-ci-first.json)和 P9-20；它先于级别兼容补丁，后续补丁须再由提交后的 CI 验证，不能用旧的绿色结果替代。
+
 Collector 修复的固定窗口观察及字段验证已经完成，范围和例外见 P9-14、P9-15 及[专项报告](phase-09-logging-fix.md)。这个窗口没有最终 drop 或 mapper 错误，仍单列 Jaeger traces 的重试；不能将日志检查结论扩大为整个 Collector 没有错误。
 
 尚未完成：Claude 对采集修复的审核、官方故障开关注入与恢复的真实整轮、Terra 小规模试跑、DeepSeek 评分及 E1/E2 正式批次。当前审核停点的[凭据、链接与冻结范围检查](phase-09-release-audit.json)单独归档，提交后的 CI 另行记录；不将本次检查当作全阶段验收。
@@ -200,7 +206,7 @@ Collector 修复的固定窗口观察及字段验证已经完成，范围和例�
 | 同格式 `search_logs` 分别查询 shop/Loki 与 Demo/OpenSearch | 通过 | P9-9：同一医生实例分别返回 2、5 条；[两份真实 CLI 证据](phase-09-doctorctl-loki.json)、[OpenSearch 证据](phase-09-doctorctl-opensearch.json) |
 | 新增适配器未修改 tools、agent | 本审核停点通过 | [完整 stat 与冻结目录空输出](phase-09-diff-stat.txt)；用户两处修改未暂存 |
 
-采集修复的专项固定窗口检查已通过，结果与适用边界见 P9-14、P9-15；Claude 审核尚未完成。阶段 9 整体仍未验收，学习验收未勾选。当前新增台账 **P9-1–P9-19**，依次记录资源与余额、真实适配器、启动卡点、全仓检查、基线、工具降级、双后端、MCP、缺口、网络、before/after、字段、修复后复验、停点资源、扩展观察及推送审计。这些条目不构成泛化诊断成绩。
+采集修复的专项固定窗口检查已通过，结果与适用边界见 P9-14、P9-15；Claude 审核尚未完成。阶段 9 整体仍未验收，学习验收未勾选。当前新增台账 **P9-1–P9-23**，包括资源、接入、采集、检查、推送审计，以及初版 CI、后发现的级别差异、补丁重验与最新 Mock 部署。这些条目不构成泛化诊断成绩。
 
 ## 六、偏离计划之处
 
@@ -220,7 +226,7 @@ Loki 对照最初返回空结果，原 Alloy 缺少创建时项目环境项。�
 4. **真实评测与失败分析尚无数据。** OT01–OT05 的定义已经完成，但故障注入、恢复、评分和跨靶场准确率差异仍需在阶段 9 内完成。不通过针对场景修改提示、工具或手册来补分；需要通用改进时先按用户规则讨论版本和双靶场重跑费用。
 5. **MCP 验证范围。** P9-10 是 Codex 经 PowerShell 实现 HTTP 传输，实际列工具并调用一次 `service_topology`；不是桌面原生 MCP 配置，也不是完整自主排障。它补充了 P7-8 的官方 Go SDK 验证，不能扩大成所有外部 Agent 客户端均已测试。
 6. **旧学习材料交接给 Claude。** 阶段 0–8 学习材料保持未修改。若补说明，请在阶段 5 的接口/降级部分补 OpenSearch 作为后续实现的入口，在阶段 7 的 MCP 部分区分 Go SDK 与本阶段 Codex HTTP 调用，在阶段 8 的评测部分注明外部系统使用独立批次与币种账户；同时把旧称 `mcp_audits` 对照实际表名 `mcp_audit`。这些是交接建议，本阶段没有替 Claude 修改旧学习正文。
-7. **停在采集审核。** Demo 已仅用 stop 停止，医生继续 Mock、comparison 关闭，原 doctor-mysql 可用，见 P9-17。本阶段生成请求为 0；人民币账户已配置独立名称和上限，当前尚未实例化。完整接入耗时和最终阶段检查仍待付费评测后完成；用户保留的 `docs/learn/phase-00-foundation.md`、`internal/shop/app/inventoryservice/app.go` 不还原、不暂存、不提交。
+7. **停在采集审核。** Demo 已仅用 stop 停止，医生继续 Mock、comparison 关闭，原 doctor-mysql 可用，最新快照见 P9-23。本阶段生成请求为 0；人民币账户已配置独立名称和上限，当前尚未实例化。专用医生因级别兼容软件补丁从 .1 升级 .2，原医生容器未动；升级不是为了切换目标，P9-9的早先同实例对照不变。完整接入耗时和最终阶段检查仍待付费评测后完成；用户保留的两处修改不还原、不暂存、不提交。
 
 ## 八、注释自查结论
 

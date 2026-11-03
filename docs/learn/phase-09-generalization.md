@@ -150,6 +150,12 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 
 本节只回放实际发生的核对与实现，不编造一次未运行的完整 Mock 彩排。用户已经明确取消了这种彩排，单元测试和 CI 继续使用 Mock。
 
+### 3.6 查询成功以后还要核对字段的实际取值
+
+收尾时把冻结工具的级别枚举与真实样本对照，才发现工具只接受大写 INFO，frontend 却写小写 info。原契约夹具使用大写，早先真实集成只查服务和关键词，所以都没有覆盖这个差异。同一个固定窗口，旧的精确 INFO 查询为 0，忽略大小写后为 1896 条（P9-21）。这与 HTTP method 的计数是不同口径。
+
+修正只在新适配器中给级别 term 添加 `case_insensitive`，服务和 trace 继续精确匹配。补了大小写与不同级别的 Mock 回归，再用实际 OpenSearch 和新 Mock 医生验证：Go 集成带 INFO 返回 10 条，医生返回 5 条，见 P9-21、P9-23。全仓重验另存 P9-22，原检查没有覆盖。这是把第二实现补齐到原接口约定，尚未发生诊断评测，也没有修改冻结提示、工具、手册或评分。
+
 ## 4. 阅读顺序
 
 1. 从 [doctor 入口](../../cmd/doctor/main.go)和[组装包](../../internal/doctor/app/doc.go)了解谁创建医生，再看 [接入目录加载](../../internal/doctor/target/catalog.go)。重点找同一个医生怎样为各个系统分别建立依赖。
@@ -193,7 +199,7 @@ OpenSearch 则向配置中的 `/otel-logs-*/_search` 发送 JSON，下面的条�
           "lte": "2026-11-03T04:05:00Z",
           "format": "strict_date_optional_time_nanos"
         }}},
-        {"term": {"severity.text.keyword": "WARN"}},
+        {"term": {"severity.text.keyword": {"value": "WARN", "case_insensitive": true}}},
         {"term": {"traceId.keyword": "0123456789abcdef"}}
       ],
       "must": [{"match_phrase": {"body": "connection"}}]
@@ -203,7 +209,7 @@ OpenSearch 则向配置中的 `/otel-logs-*/_search` 发送 JSON，下面的条�
 }
 ```
 
-`term` 表示精确匹配，`range` 表示时间区间，`match_phrase` 表示正文短语匹配。这些结构由代码固定；关键词只占一个值。即使值里有看起来像查询语法的文字，JSON 编码器也只会把它编码成文字。
+`term` 匹配字段的完整值；服务和 trace 保持精确匹配，日志级别另加 `case_insensitive`，让工具规定的大写 INFO 能匹配来源中的小写 info。`range` 表示时间区间，`match_phrase` 表示正文短语匹配。这些结构由代码固定；关键词只占一个值。即使值里有看起来像查询语法的文字，JSON 编码器也只会把它编码成文字。
 
 | 共同的部分 | Loki 的具体做法 | OpenSearch 的具体做法 |
 |---|---|---|

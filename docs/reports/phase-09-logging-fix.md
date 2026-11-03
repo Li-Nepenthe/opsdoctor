@@ -157,6 +157,14 @@ email 的普通访问不一定触发业务日志。本次通过受控本地合�
 
 见[扩展观察汇总](phase-09-log-fix-observation.json)与[逐次原始采样](phase-09-log-fix-samples.jsonl)。为避免重复保存首窗口，扩展日志仅归档[原始续段](phase-09-collector-after-fix-continuation.log)；将首窗日志的原始字节与续段按序拼接，可复原扩展日志并核对汇总中的 SHA-256。Git 对这两种原始证据禁用换行转换，[暂存对象字节检查](phase-09-evidence-byte-check.json)已确认与原始指纹一致（P9-19）。扩展验证沿用上一节全部局限。
 
+### 6.4 收尾发现的级别大小写漏查
+
+收尾复查又发现一个独立的查询问题：冻结的 `search_logs` 工具只接受 `DEBUG`、`INFO`、`WARN`、`ERROR`，真实 frontend 的 `severity.text` 却使用小写 `info`。新 OpenSearch 适配器原来把级别直接翻译为精确 `term`，日志虽已入库，带大写级别查询仍会漏查。在 P9-14 同一个固定窗口内，仅改变级别查询的大小写参数，大写 `INFO` 精确匹配为 0 条，忽略大小写后为 1896 条，真实样本确为 `info`（P9-21，[只读同窗对照](phase-09-level-case-query.json)）。1896 是 frontend 的级别匹配总命中，1884 是前述含改名 method 字段的记录数；筛选条件不同，不能当作新增采集量或日志损失差额。
+
+补丁只修改新 OpenSearch 适配器的级别 `term`，使用 `{ "value": "INFO", "case_insensitive": true }` 形式；服务名和 Trace ID 继续精确匹配。该参数见 [OpenSearch 官方 term 文档](https://docs.opensearch.org/latest/query-dsl/term/term/)。这是实现既有接口时对来源级别大小写的兼容修正，不属于前面的 Collector 配置补丁；字段、索引、原 Collector 差异和首窗口统计均未改变。它也不是在场景诊断失败后修改提示、工具、手册或 rubric；本阶段尚无付费诊断失败案例或评分数据。
+
+修正后的[真实适配器集成](phase-09-opensearch-level-test.log)加入 `INFO` 条件仍返回 10 条（P9-21）；[新 Mock 医生的实际工具调用](phase-09-doctor-level-case.json)返回 5 条，状态为 `ok`（P9-23）。专用医生从 `phase09-20261102.1` 更新到 `phase09-20261102.2` 是部署软件补丁，[更新后的运行快照](phase-09-runtime-after-level-fix.json)单独留档。P9-9 当时在同一医生实例内对照 shop/Loki 与 otel-demo/OpenSearch 的历史事实仍有效；这次软件更新不能写成“为切换目标而重启医生”。
+
 ## 7. 审核交付与下一步门槛
 
 请 Claude 结合本报告、[配置文件](../../deploy/opentelemetry/otelcol-config-extras.phase09.yaml)、[上游差异](phase-09-upstream-config.diff)、两份 before、最终 after 原始日志和 mapping 对照，检查改名范围、目标命名空间前提、计数口径与服务例外。连续验证不合格时继续停在采集修复，不开启付费评测。

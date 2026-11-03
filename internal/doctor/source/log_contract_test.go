@@ -146,7 +146,7 @@ func contractRequest(t *testing.T, request *http.Request, backend string, query 
 	fields := contractFields()
 	filters := []any{map[string]any{"term": map[string]any{fields.Service: query.Service}}, map[string]any{"range": map[string]any{fields.Timestamp: map[string]any{"gte": query.Start.UTC().Format(time.RFC3339Nano), "lte": query.End.UTC().Format(time.RFC3339Nano), "format": "strict_date_optional_time_nanos"}}}}
 	if query.Level != "" {
-		filters = append(filters, map[string]any{"term": map[string]any{fields.Level: query.Level}})
+		filters = append(filters, map[string]any{"term": map[string]any{fields.Level: map[string]any{"value": query.Level, "case_insensitive": true}}})
 	}
 	if query.TraceID != "" {
 		filters = append(filters, map[string]any{"term": map[string]any{fields.TraceID: query.TraceID}})

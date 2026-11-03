@@ -1,0 +1,196 @@
+{
+  "measured_at_utc": "2026-11-03T05:41:13.097972+00:00",
+  "running_containers": [
+    {
+      "name": "opsdoctor-phase09-doctor",
+      "id": "5bf17918c0138d46f88d1677c4f7104c2c7609bdc14cc72f3274215e600ce78e",
+      "image": "opsdoctor/doctor:phase09-20261102.2"
+    },
+    {
+      "name": "opsdoctor-doctor-mysql-1",
+      "id": "4a5ef6544bb1e8a0e8b37c0f1b8973ab67981c1f44ecbc345748b3ecf0a7b55a",
+      "image": "mysql:8.4.13"
+    }
+  ],
+  "demo_containers": 28,
+  "demo_running": 0,
+  "original_containers": [
+    {
+      "name": "opsdoctor-loadgen-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-order-service-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-alertmanager-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-kafka-exporter-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-order-worker-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-inventory-service-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-mysqld-exporter-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-doctor-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-alloy-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-redis-exporter-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-shop-mysql-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-kafka-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-doctor-mysql-1",
+      "same_id_and_mount_names": true,
+      "current_state": "running"
+    },
+    {
+      "name": "opsdoctor-prometheus-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-jaeger-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-redis-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-loki-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-grafana-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-toxiproxy-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "qq-astrbot",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "qq-napcat",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    }
+  ],
+  "all_original_ids_and_mount_names_match_phase10_baseline": true,
+  "removed_original_volume_names": [],
+  "retained_phase10_projects": 20,
+  "retained_phase10_test_volumes": 138,
+  "missing_phase10_test_volumes": [],
+  "original_doctor_volume_present": true,
+  "qq_containers": [
+    {
+      "name": "qq-astrbot",
+      "id": "5d46d63526c93f165c097f1aa1c25669eceeef8b8248c74b3c348d22bdd29104",
+      "state": "exited"
+    },
+    {
+      "name": "qq-napcat",
+      "id": "20050fcdf5b5d81e642f9d4d2a5370684d062d0d056e393041a2ddd797844f4d",
+      "state": "exited"
+    }
+  ],
+  "available_doctor_and_database": [
+    {
+      "name": "opsdoctor-phase09-doctor",
+      "id": "5bf17918c0138d46f88d1677c4f7104c2c7609bdc14cc72f3274215e600ce78e",
+      "image": "opsdoctor/doctor:phase09-20261102.2",
+      "started_at": "2026-11-03T05:40:36.142381295Z",
+      "status": "running",
+      "safe_configuration": {
+        "LLM_TOTAL_BUDGET": "10",
+        "LLM_BUDGET_ACCOUNT": "phase-09-openai",
+        "EVAL_COMPARISON_TOTAL_CNY": "10",
+        "EVAL_COMPARISON_ACCOUNT": "phase-09-deepseek",
+        "LLM_PROVIDER": "mock",
+        "EVAL_COMPARISON_ENABLED": "false"
+      },
+      "mounts": [
+        {
+          "name": null,
+          "destination": "/etc/doctor/runbooks",
+          "type": "bind"
+        },
+        {
+          "name": null,
+          "destination": "/etc/doctor/targets",
+          "type": "bind"
+        }
+      ]
+    },
+    {
+      "name": "opsdoctor-doctor-mysql-1",
+      "id": "4a5ef6544bb1e8a0e8b37c0f1b8973ab67981c1f44ecbc345748b3ecf0a7b55a",
+      "image": "mysql:8.4.13",
+      "started_at": "2026-11-03T04:38:08.3030466Z",
+      "status": "running",
+      "safe_configuration": {},
+      "mounts": [
+        {
+          "name": null,
+          "destination": "/docker-entrypoint-initdb.d",
+          "type": "bind"
+        },
+        {
+          "name": "opsdoctor_doctor-mysql-data",
+          "destination": "/var/lib/mysql",
+          "type": "volume"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "Only the new Demo project was stopped after verification; containers, indexes and volumes retained.",
+    "Original container IDs and mount names compare against stage10 retained baseline; runtime state is listed separately, not claimed unchanged.",
+    "No data byte-for-byte comparison or historical registry tag claim."
+  ]
+}

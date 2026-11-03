@@ -49,4 +49,13 @@ func TestIntegrationSearchLogs(t *testing.T) {
 		t.Fatalf("按服务和关键词没有取得日志，条数=%d，错误=%v", len(rows), err)
 	}
 	t.Logf("按服务和关键词查询返回 %d 条日志", len(rows))
+	// 显式提供级别时再验证统一接口的大写输入；真实源可能保留小写 severity.text。
+	if level := os.Getenv("TEST_OPENSEARCH_LEVEL"); level != "" {
+		query.Level = level
+		rows, err = client.Search(t.Context(), query)
+		if err != nil || len(rows) == 0 {
+			t.Fatalf("按服务、关键词和级别没有取得日志，条数=%d，错误=%v", len(rows), err)
+		}
+		t.Logf("增加级别 %s 后返回 %d 条日志", level, len(rows))
+	}
 }

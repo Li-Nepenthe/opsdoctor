@@ -7,8 +7,8 @@ services:
       dockerfile: deploy/docker/go.Dockerfile
       args:
         CMD_NAME: doctor
-        APP_VERSION: phase09-20261102.1
-    image: opsdoctor/doctor:phase09-20261102.1
+        APP_VERSION: phase09-20261102.2
+    image: opsdoctor/doctor:phase09-20261102.2
     environment:
       GIN_MODE: release
       DOCTOR_ADDR: :8090

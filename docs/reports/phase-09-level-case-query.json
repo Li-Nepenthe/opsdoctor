@@ -1,0 +1,152 @@
+{
+  "measured_at_utc": "2026-11-03T05:38:36.067488+00:00",
+  "opensearch_version": "3.7.0",
+  "window": "Same immutable first fixed after window as P9-14",
+  "scope": "Read-only counterfactual of old exact INFO translation versus case-insensitive INFO; no collection configuration, prompt, tools or data modified.",
+  "checks": [
+    {
+      "case_insensitive": false,
+      "query": {
+        "size": 2,
+        "track_total_hits": true,
+        "_source": [
+          "resource.service.name",
+          "severity.text",
+          "body",
+          "observedTimestamp"
+        ],
+        "query": {
+          "bool": {
+            "filter": [
+              {
+                "term": {
+                  "resource.service.name.keyword": "frontend"
+                }
+              },
+              {
+                "range": {
+                  "observedTimestamp": {
+                    "gte": "2026-11-03T05:04:46.894786114Z",
+                    "lt": "2026-11-03T05:14:47.000000000Z"
+                  }
+                }
+              },
+              {
+                "term": {
+                  "severity.text.keyword": "INFO"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "response": {
+        "took": 68,
+        "timed_out": false,
+        "_shards": {
+          "total": 1,
+          "successful": 1,
+          "skipped": 0,
+          "failed": 0
+        },
+        "hits": {
+          "total": {
+            "value": 0,
+            "relation": "eq"
+          },
+          "max_score": null,
+          "hits": []
+        }
+      }
+    },
+    {
+      "case_insensitive": true,
+      "query": {
+        "size": 2,
+        "track_total_hits": true,
+        "_source": [
+          "resource.service.name",
+          "severity.text",
+          "body",
+          "observedTimestamp"
+        ],
+        "query": {
+          "bool": {
+            "filter": [
+              {
+                "term": {
+                  "resource.service.name.keyword": "frontend"
+                }
+              },
+              {
+                "range": {
+                  "observedTimestamp": {
+                    "gte": "2026-11-03T05:04:46.894786114Z",
+                    "lt": "2026-11-03T05:14:47.000000000Z"
+                  }
+                }
+              },
+              {
+                "term": {
+                  "severity.text.keyword": {
+                    "value": "INFO",
+                    "case_insensitive": true
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+      "response": {
+        "took": 26,
+        "timed_out": false,
+        "_shards": {
+          "total": 1,
+          "successful": 1,
+          "skipped": 0,
+          "failed": 0
+        },
+        "hits": {
+          "total": {
+            "value": 1896,
+            "relation": "eq"
+          },
+          "max_score": 0.0,
+          "hits": [
+            {
+              "_index": "otel-logs-2026-11-03",
+              "_id": "W77Tn6EB4_TCW2LzgHFH",
+              "_score": 0.0,
+              "_source": {
+                "severity": {
+                  "text": "info"
+                },
+                "resource": {
+                  "service.name": "frontend"
+                },
+                "body": "API request completed",
+                "observedTimestamp": "2026-11-03T05:13:20.710457025Z"
+              }
+            },
+            {
+              "_index": "otel-logs-2026-11-03",
+              "_id": "XL7Tn6EB4_TCW2LzgHFH",
+              "_score": 0.0,
+              "_source": {
+                "severity": {
+                  "text": "info"
+                },
+                "resource": {
+                  "service.name": "frontend"
+                },
+                "body": "API request completed",
+                "observedTimestamp": "2026-11-03T05:13:20.710490126Z"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
