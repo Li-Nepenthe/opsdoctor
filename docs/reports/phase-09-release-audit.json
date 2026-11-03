@@ -3,12 +3,12 @@
   "base_commit": "231ee487eab16e16c84f1964caea75deb989f82c",
   "branch": "phase-09-generalization",
   "markdown_files": 122,
-  "relative_targets_checked": 5258,
+  "relative_targets_checked": 5267,
   "markdown_fragments_checked": 161,
   "missing_targets": [],
   "wrong_case_targets": [],
   "missing_anchors": [],
-  "own_files_scanned": 278,
+  "own_files_scanned": 282,
   "known_credential_matches": [],
   "credential_pattern_matches": [],
   "protected_user_files_sha256": {
@@ -25,5 +25,5 @@
     "internal/eval/scoring"
   ],
   "old_learning_materials_unchanged_except_preserved_user_edit": true,
-  "notes": "Read-only scan of tracked and untracked repository Markdown, exact path case and GitHub-style heading/HTML anchors; fenced and inline code examples excluded. Credential values are never printed. Latest full Mock source checks: phase-09-preformal-verified-checks.json; earlier independent deployment and all old evidence retained."
+  "notes": "Read-only scan of tracked and untracked repository Markdown, exact path case and GitHub-style heading/HTML anchors; fenced and inline code examples excluded. Credential values are never printed. Latest full Mock source checks: phase-09-baseline-wait-checks.json; earlier independent deployment and all old evidence retained."
 }

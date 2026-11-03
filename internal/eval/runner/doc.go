@@ -8,6 +8,8 @@
 //   - generalization.go：为第二系统建立独立批次、账户边界和冻结顺序。
 //   - generalization_scenario.go：加载官方故障定义，通过有界 HTTP 修改开关并核对指标。
 //   - generalization_run.go：保存每轮完整恢复文件，推进外部系统注入、诊断、恢复与冷却。
+//   - generalization_baseline.go：同轮健康条件全部通过才继续，独占保存每次基线等待证据。
+//   - generalization_baseline_test.go：用假依赖检查健康重试、查询错误、配置阻断和证据保留。
 //   - generalization_environment.go：按 Docker 实际上限检查外部实验内存，不套用 shop 的暂停线。
 //   - generalization_collection.go：独占保存每份诊断的Collector日志窗口，异常先落摘要再停止评分。
 //   - generalization_collection_test.go：用模拟Docker输出验证最终丢弃、映射错误、窗口与续跑证据。

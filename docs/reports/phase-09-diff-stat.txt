@@ -22,10 +22,10 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  deploy/opentelemetry/otelcol-config-extras.phase09.yaml             |    20 +
  deploy/opentelemetry/versions.env                                   |     5 +
  docs/architecture.md                                                |    46 +-
- docs/decisions.md                                                   |    48 +
+ docs/decisions.md                                                   |    54 +
  docs/interview.md                                                   |    78 +-
  docs/learn/README.md                                                |     3 +-
- docs/learn/phase-09-generalization.md                               |   558 +
+ docs/learn/phase-09-generalization.md                               |   566 +
  docs/mcp.md                                                         |     4 +-
  docs/notes.md                                                       |    50 +
  docs/onboarding.md                                                  |   321 +
@@ -36,6 +36,8 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-baseline-initial.json                         |    32 +
  docs/reports/phase-09-baseline-two-minute.json                      |    72 +
  docs/reports/phase-09-baseline-verified.json                        |    32 +
+ docs/reports/phase-09-baseline-wait-amendment.json                  |    56 +
+ docs/reports/phase-09-baseline-wait-checks.json                     |   373 +
  docs/reports/phase-09-before-db-isolation.tsv                       |    13 +
  docs/reports/phase-09-checkout-background-error-spans.json          |    15 +
  docs/reports/phase-09-checks.json                                   |   149 +
@@ -90,7 +92,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-eventstream-controlled-20261103T072744Z.jsonl |    29 +
  docs/reports/phase-09-eventstream-coverage.json                     |  1364 ++
  docs/reports/phase-09-evidence-byte-check.json                      |    26 +
- docs/reports/phase-09-generalization.md                             |   347 +
+ docs/reports/phase-09-generalization.md                             |   353 +
  docs/reports/phase-09-historical-baseline-mask-comparison.json      |  1252 ++
  docs/reports/phase-09-historical-baseline-replay.json               | 74046 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  docs/reports/phase-09-historical-baseline-replay.md                 |    78 +
@@ -222,8 +224,8 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-zero-cost-before-pilot.json                   |    33 +
  docs/resume-draft.md                                                |    14 +-
  docs/troubleshooting.md                                             |    34 +-
- docs/代码地图.md                                                    |    20 +
- docs/数据台账.md                                                    |    99 +
+ docs/代码地图.md                                                    |    22 +
+ docs/数据台账.md                                                    |   100 +
  eval/scenarios/otel-demo/OT01.yaml                                  |    20 +
  eval/scenarios/otel-demo/OT02.yaml                                  |    21 +
  eval/scenarios/otel-demo/OT03.yaml                                  |    21 +
@@ -263,13 +265,15 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  internal/eval/report/summary_test.go                                |    49 +
  internal/eval/runner/cli.go                                         |     6 +-
  internal/eval/runner/clock.go                                       |     2 +-
- internal/eval/runner/doc.go                                         |    10 +
+ internal/eval/runner/doc.go                                         |    12 +
  internal/eval/runner/generalization.go                              |   284 +
+ internal/eval/runner/generalization_baseline.go                     |   207 +
+ internal/eval/runner/generalization_baseline_test.go                |   225 +
  internal/eval/runner/generalization_collection.go                   |   510 +
  internal/eval/runner/generalization_collection_test.go              |   477 +
  internal/eval/runner/generalization_environment.go                  |   111 +
  internal/eval/runner/generalization_grading_test.go                 |   212 +
- internal/eval/runner/generalization_run.go                          |   575 +
+ internal/eval/runner/generalization_run.go                          |   547 +
  internal/eval/runner/generalization_scenario.go                     |   268 +
  internal/eval/runner/generalization_test.go                         |   274 +
  internal/eval/runner/generalization_timing.go                       |   147 +
@@ -278,8 +282,8 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  internal/eval/runner/manifest.go                                    |     2 +-
  internal/eval/runner/paired.go                                      |    14 +
  进度.md                                                             |    31 +-
- 项目计划书.md                                                       |    15 +
- 277 files changed, 135264 insertions(+), 114 deletions(-)
+ 项目计划书.md                                                       |    17 +
+ 281 files changed, 136124 insertions(+), 114 deletions(-)
 
 $ git diff --cached --stat main -- internal/doctor/tools internal/doctor/agent
 (empty output; no tools/agent files changed)

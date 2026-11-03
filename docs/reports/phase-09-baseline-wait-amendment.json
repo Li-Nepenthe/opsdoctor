@@ -1,0 +1,56 @@
+{
+  "checked_at_utc": "2026-11-03T16:52:45.553278+00:00",
+  "base_commit": "c46bc044fdd8b36d9d236b5a1ccf4cff1b0f0ba0",
+  "scope": "Only baseline health waiting, independent observation evidence and Mock tests; no predicates/scenarios/diagnosis/grading changes.",
+  "health_observation_limit_seconds": 300,
+  "poll_interval_seconds": 5,
+  "require_all_selected_scenarios_in_same_round": true,
+  "original_order": [
+    "memory",
+    "frozen_flags",
+    "health",
+    "fault_open_check"
+  ],
+  "query_error_policy": "immediate stop; no next query or round",
+  "identity_note": "freeze evidence scenario empty / iteration 0; pre-inject and post-cool keep trial identity",
+  "timing_note": "entire baseline call and health polling have separate monotonic elapsed fields; failed attempts also preserved with O_EXCL",
+  "source_files": [
+    {
+      "file": "internal/eval/runner/generalization_baseline.go",
+      "sha256_before": null,
+      "sha256_after": "e702cb86ac37822a3bcf4e39d8acea2105ca7f93da97643cb986af3a8845f4b1"
+    },
+    {
+      "file": "internal/eval/runner/generalization_baseline_test.go",
+      "sha256_before": null,
+      "sha256_after": "0e411cebd8f8fd24957725c082590fd572d662b9ca25f682b506335c0f985c9c"
+    },
+    {
+      "file": "internal/eval/runner/generalization_run.go",
+      "sha256_before": "0cdbc2a88ba7bb49eea99c64b40403ad24df8a9f901e41704f657887e73f790e",
+      "sha256_after": "c701bf4622c4e7ad974e24f2d798461181cc467cfddb31fdd5c2ec791656b137"
+    },
+    {
+      "file": "internal/eval/runner/doc.go",
+      "sha256_before": "e90cd061e3ad50d89738f892c2ba78767a3a9914070fdcc36aaacbc19dff5a48",
+      "sha256_after": "1c7207641ebc38c063af4286fd4fa5c00a0a084d0c9a014f4881411fc07b1125"
+    }
+  ],
+  "scenario_sha256_unchanged": {
+    "eval/scenarios/otel-demo/OT01.yaml": "a81e03dfcdc9b294126387d90f479b208648755fcb59bdc7c719e46ea0907a18",
+    "eval/scenarios/otel-demo/OT02.yaml": "4904bdd187cef41dab0360da0e2ffbf21abd814ca67de942ccdd8e6f59808222",
+    "eval/scenarios/otel-demo/OT03.yaml": "8dd24d4e7bb0ed4b9ef9e2ddbee33e77f5b5d2bb3f09d046890ebdb223a7459e",
+    "eval/scenarios/otel-demo/OT04.yaml": "d3f6b015aaa4a5be6719e7ccbc621712431909441d7b4215c7c080f209f67f93",
+    "eval/scenarios/otel-demo/OT05.yaml": "19d7ee90b16cd94d8cb527a94a1a4d4d7469fb50ee1850073dd653c6a4d02124"
+  },
+  "frozen_paths_unchanged_from_main": [
+    "internal/doctor/tools",
+    "internal/doctor/agent",
+    "internal/eval/judge",
+    "internal/eval/scoring",
+    "docs/runbooks"
+  ],
+  "timing_helper_unchanged": true,
+  "full_checks_artifact": "phase-09-baseline-wait-checks.json",
+  "checks_all_passed": true
+}

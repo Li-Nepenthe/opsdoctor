@@ -126,34 +126,6 @@ func createDemoRecord(options generalizationCommand, value demoRecovery) error {
 	return errors.Join(writeErr, file.Close())
 }
 
-// demoBaseline 核对所有选定服务的真实健康指标，并确认医生的故障开放期已结束。
-func demoBaseline(ctx context.Context, options generalizationCommand, cases map[string]demoScenario, client *doctorClient) error {
-	// 开关正确与业务健康是两种证据，两者必须同时成立。
-	if _, err := demoMemoryBytes(ctx); err != nil {
-		return err
-	}
-	if len(options.baseline) > 0 {
-		actual, err := readDemoFlags(ctx, options.flagd)
-		if err != nil || !equalJSON(actual, options.baseline) {
-			return fmt.Errorf("外部靶场 Demo 开关与冻结健康配置不同，不能开始新注入：%v", err)
-		}
-	}
-	for _, name := range options.cases {
-		passed, err := demoQuery(ctx, options.prometheus, cases[name].HealthyPromQL)
-		if err != nil || !passed {
-			return fmt.Errorf("外部靶场 Demo 场景 %s 的健康基线未通过：%v", name, err)
-		}
-	}
-	fault, _, err := client.fault(ctx, options.target)
-	if err != nil {
-		return err
-	}
-	if fault.Open {
-		return fmt.Errorf("外部靶场 Demo 上一场故障仍在开放期，不能开始下一次注入")
-	}
-	return nil
-}
-
 // runGeneralization 只运行已冻结的批次；异常留档后停止，原开关记录留待明确恢复。
 func runGeneralization(parent context.Context, options generalizationCommand, cases map[string]demoScenario, reader config.Reader, repository *store.Store, client *doctorClient, output io.Writer) (problem error) {
 	// 时钟守卫覆盖整个批次，包含等待冷却和评委正在收费的时间。
@@ -439,7 +411,7 @@ func coolDemoTrial(ctx context.Context, options generalizationCommand, cases map
 			return err
 		}
 	}
-	if err := demoBaseline(ctx, options, cases, client); err != nil {
+	if err := demoBaselinePhase(ctx, options, cases, client, "post-cool"); err != nil {
 		return err
 	}
 	return repository.AdvanceEvalTrial(ctx, trial, "done", nil)
