@@ -117,3 +117,9 @@ docker compose --env-file .env.phase09-doctor -p opsdoctor-phase09-doctor -f dep
 医生只读取接入配置和[系统说明书](../doctor/targets/otel-demo.profile.md)，按固定地址查 Prometheus、Jaeger 和 OpenSearch。它不持有 Demo 的开关接口、场景文件或 Docker socket。PostgreSQL、Valkey 直查与 pprof 按数据源缺失降级。
 
 评测器在宿主机读取[独立场景目录](../../eval/scenarios/otel-demo/README.md)，通过官方开关接口注入和恢复。它保存原始开关配置，恢复后读回确认；新的批次编号与两个预算账户都和阶段 8 分开。提示、工具、通用手册及评分保持阶段 8 冻结版本。独立部署及隔离适配的检查另见台账 P9-24–P9-28。采集修复已获Claude审核通过；后续首次试跑因采集起点审计异常在模型创建前中断，已恢复并暂停（P9-41）；正式诊断和结果尚未发生，不能把这些部署与只读查询写成泛化成绩。
+
+## 最新正式前置规则与当前停点
+
+用户后续撤回“评分必须成功才继续”：已返回且计量可确认、但冻结校验拒收的评分失败保留为缺失，不重评；新run累计第三份仍停，API/预算/采集/时限和基础设施等其他停点保留。OT03判定仅限定实际PaymentService/Charge SERVER，五个within和阶段9恢复等待为5m，[2m]和其他判据保持原样，见台账P9-58/59。
+
+先用已有对应开关off历史每30秒回放，再在真实Demo上以新run运行医生Mock和judge.Mock的五场景E1/E2完整流程，最后CI通过才直接正式、不再试跑。当前[历史报告](../../docs/reports/phase-09-historical-baseline-replay.md)中的OT03/OT04未100%（P9-60/61），所以真实双Mock矩阵与正式批次均未启动；这项停点不能用单元Mock通过替代。新计时helper仅通过单元验证，没有新的症状或恢复耗时实测。Demo已经stop，医生与新库保持Mock，不删除原资源（P9-62–64）。

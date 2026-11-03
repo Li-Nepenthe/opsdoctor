@@ -189,6 +189,14 @@ func generalizationStore(ctx context.Context, reader config.Reader) (*store.Stor
 func generalizationConfigurations(status runtimeStatus, model string, groups []string) ([]pairedConfiguration, error) {
 	primary, first := status.Executions["primary"]
 	comparison, second := status.Executions["comparison"]
+	if status.Provider == "mock" && first && primary.Provider == "mock" && primary.Model == model && primary.Account == "phase-09-openai" && primary.Budget.Currency == "USD" && primary.Budget.LimitMicros > 0 && primary.Budget.LimitMicros <= 10000000 {
+		// 运行中的Mock医生只需primary；评委使用本地judge.Mock，不要求伪造comparison模型。
+		values := []pairedConfiguration{}
+		for _, group := range groups {
+			values = append(values, pairedConfiguration{Profile: "primary", Group: group, Model: primary.Model, Provider: "mock", Account: primary.Account, Currency: "USD"})
+		}
+		return values, nil
+	}
 	if (status.Provider != "mock" && status.Provider != "openai") || !first || !second || primary.Provider != status.Provider || comparison.Provider != status.Provider || primary.Model != model || primary.Account != "phase-09-openai" || comparison.Account != "phase-09-deepseek" || primary.Budget.Currency != "USD" || comparison.Budget.Currency != "CNY" || primary.Budget.LimitMicros <= 0 || comparison.Budget.LimitMicros <= 0 || primary.Budget.LimitMicros > 10000000 || comparison.Budget.LimitMicros > 10000000 {
 		return nil, fmt.Errorf("阶段 9 需要独立 USD/CNY 账户，各自上限不能超过 10")
 	}

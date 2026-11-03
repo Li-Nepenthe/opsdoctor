@@ -1,0 +1,641 @@
+{
+  "applied_at_utc": "2026-11-03T14:55:57.298105+00:00",
+  "git_baseline": "d2bdbe8ffac4b270edc99c58d6cb296905b91214",
+  "user_authorization": {
+    "status": "approved",
+    "source": "本轮用户限定修订要求，经根代理转交",
+    "scope": "五场景symptom.within统一3m→5m；OT03仿OT01，仅给symptom.promql和healthy_promql增加实际支付业务SERVER span范围；其余字段字节保留",
+    "paid_actions": false
+  },
+  "reason": "延长等待上限而不放宽健康或症状判定；支付服务级指标会包含flagd EventStream控制面CLIENT错误，真实业务SERVER span已用历史与当前只读数据确认。",
+  "payment_selector": {
+    "service_name": "payment",
+    "span_kind": "SPAN_KIND_SERVER",
+    "span_name": "oteldemo.PaymentService/Charge",
+    "evidence": "docs/reports/phase-09-payment-span-discovery.json",
+    "current_flow_used_only_for_naming_and_connectivity": true
+  },
+  "files": [
+    {
+      "scenario": "OT01",
+      "file": "eval/scenarios/otel-demo/OT01.yaml",
+      "sha256_before": "f7e4b563448c972c9cd16453ec8ffb4dfa892669e92838e238e457290832f566",
+      "sha256_after": "a81e03dfcdc9b294126387d90f479b208648755fcb59bdc7c719e46ea0907a18",
+      "git_baseline_file_sha256": "f7e4b563448c972c9cd16453ec8ffb4dfa892669e92838e238e457290832f566",
+      "changes": [
+        {
+          "path": "/symptom/within",
+          "before": "3m",
+          "after": "5m"
+        }
+      ],
+      "other_fields_canonical_sha256_before": "3bef3f9cae93b25f3ec2842a93123546a24346cec0d75e2e0b1d57e0c6fe14ea",
+      "other_fields_canonical_sha256_after": "3bef3f9cae93b25f3ec2842a93123546a24346cec0d75e2e0b1d57e0c6fe14ea",
+      "bytes_excluding_authorized_values_sha256_before": "2c5fe704ed946b4ee4c814640326283181439e9b71cce7ef9cd7313f274ebf76",
+      "bytes_excluding_authorized_values_sha256_after": "2c5fe704ed946b4ee4c814640326283181439e9b71cce7ef9cd7313f274ebf76",
+      "unchanged_leaf_fields": [
+        {
+          "path": "/evidence_milestones/0",
+          "canonical_sha256_before": "9a1a6a3123662a02cc53180f67277c8e18c0b0c008a6768d9f2799848657a789",
+          "canonical_sha256_after": "9a1a6a3123662a02cc53180f67277c8e18c0b0c008a6768d9f2799848657a789",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/1",
+          "canonical_sha256_before": "23f88aa123f2bff4e5504a04f8621b031af87fafbd8552c6f8a9c97af9917714",
+          "canonical_sha256_after": "23f88aa123f2bff4e5504a04f8621b031af87fafbd8552c6f8a9c97af9917714",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/2",
+          "canonical_sha256_before": "5bb5456c536bbb2e88f263b1fc1af09146b6218811c65814e4ba3ae243bc148d",
+          "canonical_sha256_after": "5bb5456c536bbb2e88f263b1fc1af09146b6218811c65814e4ba3ae243bc148d",
+          "equal": true
+        },
+        {
+          "path": "/flag",
+          "canonical_sha256_before": "fbc113ea0927c68b261099f3ebf0acf76758252f7420dc2e0b3fc43590a322a3",
+          "canonical_sha256_after": "fbc113ea0927c68b261099f3ebf0acf76758252f7420dc2e0b3fc43590a322a3",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/component",
+          "canonical_sha256_before": "f2f4c3471a636f68143bf665995bd133853f3aea4fb58535a91a97c1ae7ac617",
+          "canonical_sha256_after": "f2f4c3471a636f68143bf665995bd133853f3aea4fb58535a91a97c1ae7ac617",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/explanation",
+          "canonical_sha256_before": "c510d630e18016839174e138521db47b8bdd34a943471a13f43ea90e690fde2b",
+          "canonical_sha256_after": "c510d630e18016839174e138521db47b8bdd34a943471a13f43ea90e690fde2b",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/mechanism",
+          "canonical_sha256_before": "a346bbe632c807b0e73c76cf66011d31d799768dd582abbc5eab4d93ebd0b4fd",
+          "canonical_sha256_after": "a346bbe632c807b0e73c76cf66011d31d799768dd582abbc5eab4d93ebd0b4fd",
+          "equal": true
+        },
+        {
+          "path": "/healthy_promql",
+          "canonical_sha256_before": "301b8cc21842bcbbebf9bb5d5b4055c01256ece26d50a12b24b2f30120cda94a",
+          "canonical_sha256_after": "301b8cc21842bcbbebf9bb5d5b4055c01256ece26d50a12b24b2f30120cda94a",
+          "equal": true
+        },
+        {
+          "path": "/id",
+          "canonical_sha256_before": "98910782db50325ee92703c6f104dedb519ae64a230c06ffe4b0994fc920e0e2",
+          "canonical_sha256_after": "98910782db50325ee92703c6f104dedb519ae64a230c06ffe4b0994fc920e0e2",
+          "equal": true
+        },
+        {
+          "path": "/source_url",
+          "canonical_sha256_before": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+          "canonical_sha256_after": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+          "equal": true
+        },
+        {
+          "path": "/symptom/promql",
+          "canonical_sha256_before": "d0dac188395d22e8ad36890bd18d79a14b7feb33dcfa5902055c64e47847b204",
+          "canonical_sha256_after": "d0dac188395d22e8ad36890bd18d79a14b7feb33dcfa5902055c64e47847b204",
+          "equal": true
+        },
+        {
+          "path": "/symptoms",
+          "canonical_sha256_before": "12f722133fa4ee6b73631ef49171f3ec39117dbfc05fd301a1c64f4c6b8a5ce5",
+          "canonical_sha256_after": "12f722133fa4ee6b73631ef49171f3ec39117dbfc05fd301a1c64f4c6b8a5ce5",
+          "equal": true
+        },
+        {
+          "path": "/title",
+          "canonical_sha256_before": "ec4616cfc20795253d941613b3ea3352c052eaacd90ca3e4a84ba0bbccf82e0c",
+          "canonical_sha256_after": "ec4616cfc20795253d941613b3ea3352c052eaacd90ca3e4a84ba0bbccf82e0c",
+          "equal": true
+        },
+        {
+          "path": "/variant",
+          "canonical_sha256_before": "990c23868b965814b117cf9a6c4dfe45452eadc2171e1f981865ebfc84f10724",
+          "canonical_sha256_after": "990c23868b965814b117cf9a6c4dfe45452eadc2171e1f981865ebfc84f10724",
+          "equal": true
+        }
+      ],
+      "assertions": {
+        "only_authorized_paths_changed": true,
+        "unchanged_field_canonical_hashes_equal": true,
+        "all_other_bytes_equal_including_comments_and_newlines": true,
+        "original_bytes_equal_git_baseline": true,
+        "two_minute_promql_range_unchanged": true,
+        "symptoms_ground_truth_milestones_unchanged": true
+      }
+    },
+    {
+      "scenario": "OT02",
+      "file": "eval/scenarios/otel-demo/OT02.yaml",
+      "sha256_before": "5fb48b69ba4fff6e3e3a4bc8b5ebd07157270f77534263b2feada766f3b72f6b",
+      "sha256_after": "4904bdd187cef41dab0360da0e2ffbf21abd814ca67de942ccdd8e6f59808222",
+      "git_baseline_file_sha256": "5fb48b69ba4fff6e3e3a4bc8b5ebd07157270f77534263b2feada766f3b72f6b",
+      "changes": [
+        {
+          "path": "/symptom/within",
+          "before": "3m",
+          "after": "5m"
+        }
+      ],
+      "other_fields_canonical_sha256_before": "8d7c62a99c98a16fbab53f6a3a262c2148fca18a6192545831aa9bb0c6db100d",
+      "other_fields_canonical_sha256_after": "8d7c62a99c98a16fbab53f6a3a262c2148fca18a6192545831aa9bb0c6db100d",
+      "bytes_excluding_authorized_values_sha256_before": "ad3745b78b0022f166ac88252ad930725fabbd5b0f15074e51f3e3ecc1097ebe",
+      "bytes_excluding_authorized_values_sha256_after": "ad3745b78b0022f166ac88252ad930725fabbd5b0f15074e51f3e3ecc1097ebe",
+      "unchanged_leaf_fields": [
+        {
+          "path": "/evidence_milestones/0",
+          "canonical_sha256_before": "c417d576447d0af101af110141c98c3752a1a9b2a745f3a0833b79ca87b1f932",
+          "canonical_sha256_after": "c417d576447d0af101af110141c98c3752a1a9b2a745f3a0833b79ca87b1f932",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/1",
+          "canonical_sha256_before": "c624368c6991ad25907813a5d46fae56b8fa203eca3f4c4a6838cbd54b97b365",
+          "canonical_sha256_after": "c624368c6991ad25907813a5d46fae56b8fa203eca3f4c4a6838cbd54b97b365",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/2",
+          "canonical_sha256_before": "8ce3043e52cbf4ee8bf7e9ee6e70391e8081f650992a41147e813fc7f8639a77",
+          "canonical_sha256_after": "8ce3043e52cbf4ee8bf7e9ee6e70391e8081f650992a41147e813fc7f8639a77",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/3",
+          "canonical_sha256_before": "a05b6823b8f3ef5e820e45763b72e7f356dea3be0168059c2c0a3e143bc7668a",
+          "canonical_sha256_after": "a05b6823b8f3ef5e820e45763b72e7f356dea3be0168059c2c0a3e143bc7668a",
+          "equal": true
+        },
+        {
+          "path": "/flag",
+          "canonical_sha256_before": "61fc008f227a070df9b263adf2abc521f3b75419ac881a11b8eb1130955fd076",
+          "canonical_sha256_after": "61fc008f227a070df9b263adf2abc521f3b75419ac881a11b8eb1130955fd076",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/component",
+          "canonical_sha256_before": "2f3fb7206ef4def7233fdff4f0326f4e4ac62a12b31dd8d6d20d448b7bd9f252",
+          "canonical_sha256_after": "2f3fb7206ef4def7233fdff4f0326f4e4ac62a12b31dd8d6d20d448b7bd9f252",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/explanation",
+          "canonical_sha256_before": "326ffee06ae6a416d6ddc4bee788c4dd775b948f9fa14370b60bb7dd4713436e",
+          "canonical_sha256_after": "326ffee06ae6a416d6ddc4bee788c4dd775b948f9fa14370b60bb7dd4713436e",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/mechanism",
+          "canonical_sha256_before": "218c3ba7cf20b64b9f53b128adf068d148423a538c2cda51ce6930aaecf52ef9",
+          "canonical_sha256_after": "218c3ba7cf20b64b9f53b128adf068d148423a538c2cda51ce6930aaecf52ef9",
+          "equal": true
+        },
+        {
+          "path": "/healthy_promql",
+          "canonical_sha256_before": "f6d93d69852fd7c57fa0cfc999c953fcf9289e5ae8f0fec9a3fb0163e9a26d9e",
+          "canonical_sha256_after": "f6d93d69852fd7c57fa0cfc999c953fcf9289e5ae8f0fec9a3fb0163e9a26d9e",
+          "equal": true
+        },
+        {
+          "path": "/id",
+          "canonical_sha256_before": "4fcf081f91d0419f1ce9200c6e076d442552e18be63f4a5929c846497237dabb",
+          "canonical_sha256_after": "4fcf081f91d0419f1ce9200c6e076d442552e18be63f4a5929c846497237dabb",
+          "equal": true
+        },
+        {
+          "path": "/source_url",
+          "canonical_sha256_before": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+          "canonical_sha256_after": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+          "equal": true
+        },
+        {
+          "path": "/symptom/promql",
+          "canonical_sha256_before": "7c077586c06aff5512721d0c31d3da2e460e216b03efc88a0ff5d0c8c3ce977b",
+          "canonical_sha256_after": "7c077586c06aff5512721d0c31d3da2e460e216b03efc88a0ff5d0c8c3ce977b",
+          "equal": true
+        },
+        {
+          "path": "/symptoms",
+          "canonical_sha256_before": "bb9a981377d774cebec796922744acb66707e2ddfd29956f3f2af80c6669b2bd",
+          "canonical_sha256_after": "bb9a981377d774cebec796922744acb66707e2ddfd29956f3f2af80c6669b2bd",
+          "equal": true
+        },
+        {
+          "path": "/title",
+          "canonical_sha256_before": "3f43cf246015465aff6316a6184ff953865eb62c4c22b6ea5cf79268abde7089",
+          "canonical_sha256_after": "3f43cf246015465aff6316a6184ff953865eb62c4c22b6ea5cf79268abde7089",
+          "equal": true
+        },
+        {
+          "path": "/variant",
+          "canonical_sha256_before": "d00492fda826ed48646d6fa5cc09443ba93fc4a85e863ee2734d62dd3f130a90",
+          "canonical_sha256_after": "d00492fda826ed48646d6fa5cc09443ba93fc4a85e863ee2734d62dd3f130a90",
+          "equal": true
+        }
+      ],
+      "assertions": {
+        "only_authorized_paths_changed": true,
+        "unchanged_field_canonical_hashes_equal": true,
+        "all_other_bytes_equal_including_comments_and_newlines": true,
+        "original_bytes_equal_git_baseline": true,
+        "two_minute_promql_range_unchanged": true,
+        "symptoms_ground_truth_milestones_unchanged": true
+      }
+    },
+    {
+      "scenario": "OT03",
+      "file": "eval/scenarios/otel-demo/OT03.yaml",
+      "sha256_before": "915577e3cffb359fd819a4b5b458a6d5ec7ae2d317a49a494b6b19100a080ff8",
+      "sha256_after": "8dd24d4e7bb0ed4b9ef9e2ddbee33e77f5b5d2bb3f09d046890ebdb223a7459e",
+      "git_baseline_file_sha256": "915577e3cffb359fd819a4b5b458a6d5ec7ae2d317a49a494b6b19100a080ff8",
+      "changes": [
+        {
+          "path": "/healthy_promql",
+          "before": "(sum(increase(traces_span_metrics_calls_total{service_name=\"payment\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"payment\"}[2m])) > 0",
+          "after": "(sum(increase(traces_span_metrics_calls_total{service_name=\"payment\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.PaymentService/Charge\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"payment\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.PaymentService/Charge\"}[2m])) > 0"
+        },
+        {
+          "path": "/symptom/promql",
+          "before": "sum(increase(traces_span_metrics_calls_total{service_name=\"payment\",status_code=\"STATUS_CODE_ERROR\"}[2m])) > 0",
+          "after": "sum(increase(traces_span_metrics_calls_total{service_name=\"payment\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.PaymentService/Charge\",status_code=\"STATUS_CODE_ERROR\"}[2m])) > 0"
+        },
+        {
+          "path": "/symptom/within",
+          "before": "3m",
+          "after": "5m"
+        }
+      ],
+      "other_fields_canonical_sha256_before": "c7706491b2a035e89868e0d0e8abbe1e5bb43c107e5044201c87a08e42d5ef52",
+      "other_fields_canonical_sha256_after": "c7706491b2a035e89868e0d0e8abbe1e5bb43c107e5044201c87a08e42d5ef52",
+      "bytes_excluding_authorized_values_sha256_before": "59f136f45e0456079217842e48fe73b15a78e5145ee0e8afda4b09b476de2e4e",
+      "bytes_excluding_authorized_values_sha256_after": "59f136f45e0456079217842e48fe73b15a78e5145ee0e8afda4b09b476de2e4e",
+      "unchanged_leaf_fields": [
+        {
+          "path": "/evidence_milestones/0",
+          "canonical_sha256_before": "32e972c6c5bd49176c1be807bc950f030bde04765dad290935f9599e1b2728f7",
+          "canonical_sha256_after": "32e972c6c5bd49176c1be807bc950f030bde04765dad290935f9599e1b2728f7",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/1",
+          "canonical_sha256_before": "1847f66a665e697573b97dca1c20994a12fe1df35be88ef426de24c064203491",
+          "canonical_sha256_after": "1847f66a665e697573b97dca1c20994a12fe1df35be88ef426de24c064203491",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/2",
+          "canonical_sha256_before": "64cee1ef35e499955e4ee9b42c69d93374af5559f7deae47c491078cdcf45944",
+          "canonical_sha256_after": "64cee1ef35e499955e4ee9b42c69d93374af5559f7deae47c491078cdcf45944",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/3",
+          "canonical_sha256_before": "daefdc6b14b73aee59eb16f9b4203bd3b5c9bfc3db315fd53ca06e40089b2a43",
+          "canonical_sha256_after": "daefdc6b14b73aee59eb16f9b4203bd3b5c9bfc3db315fd53ca06e40089b2a43",
+          "equal": true
+        },
+        {
+          "path": "/flag",
+          "canonical_sha256_before": "963691a747d4bc01ce06f0a45fccc2896947046b734257947af085f7f6db7626",
+          "canonical_sha256_after": "963691a747d4bc01ce06f0a45fccc2896947046b734257947af085f7f6db7626",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/component",
+          "canonical_sha256_before": "fea2ccc047074cfdfadf3e392c717a120eedb54aae8f8b9804edd3fb3cce47dc",
+          "canonical_sha256_after": "fea2ccc047074cfdfadf3e392c717a120eedb54aae8f8b9804edd3fb3cce47dc",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/explanation",
+          "canonical_sha256_before": "f1b818b77e69b5a6c11999dbb766b7de257cbd423919a4b55c5157fecc4df460",
+          "canonical_sha256_after": "f1b818b77e69b5a6c11999dbb766b7de257cbd423919a4b55c5157fecc4df460",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/mechanism",
+          "canonical_sha256_before": "43a79fd9602c9adfda2fb1348a3ddac5bcce78f46c6ddb9745168094ebd9eea0",
+          "canonical_sha256_after": "43a79fd9602c9adfda2fb1348a3ddac5bcce78f46c6ddb9745168094ebd9eea0",
+          "equal": true
+        },
+        {
+          "path": "/id",
+          "canonical_sha256_before": "517104b20d74e49eab98a69d63a8c497d06153494174510905508e2040b1477c",
+          "canonical_sha256_after": "517104b20d74e49eab98a69d63a8c497d06153494174510905508e2040b1477c",
+          "equal": true
+        },
+        {
+          "path": "/source_url",
+          "canonical_sha256_before": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+          "canonical_sha256_after": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+          "equal": true
+        },
+        {
+          "path": "/symptoms",
+          "canonical_sha256_before": "5ab76e269e6c0a2fc5a1f35114e6b1f244e1a9af845fa5ad6c1e6885a14943f1",
+          "canonical_sha256_after": "5ab76e269e6c0a2fc5a1f35114e6b1f244e1a9af845fa5ad6c1e6885a14943f1",
+          "equal": true
+        },
+        {
+          "path": "/title",
+          "canonical_sha256_before": "e22bdec9cdc7ebbf184edd94fda93e1014cb0fe00f48851faa31dc6bd6b71ba3",
+          "canonical_sha256_after": "e22bdec9cdc7ebbf184edd94fda93e1014cb0fe00f48851faa31dc6bd6b71ba3",
+          "equal": true
+        },
+        {
+          "path": "/variant",
+          "canonical_sha256_before": "d00492fda826ed48646d6fa5cc09443ba93fc4a85e863ee2734d62dd3f130a90",
+          "canonical_sha256_after": "d00492fda826ed48646d6fa5cc09443ba93fc4a85e863ee2734d62dd3f130a90",
+          "equal": true
+        }
+      ],
+      "assertions": {
+        "only_authorized_paths_changed": true,
+        "unchanged_field_canonical_hashes_equal": true,
+        "all_other_bytes_equal_including_comments_and_newlines": true,
+        "original_bytes_equal_git_baseline": true,
+        "two_minute_promql_range_unchanged": true,
+        "symptoms_ground_truth_milestones_unchanged": true
+      }
+    },
+    {
+      "scenario": "OT04",
+      "file": "eval/scenarios/otel-demo/OT04.yaml",
+      "sha256_before": "ec088eaa1bb566743c8a0de0f823cab6541aac51f2d77b28a7d153c971f9b400",
+      "sha256_after": "d3f6b015aaa4a5be6719e7ccbc621712431909441d7b4215c7c080f209f67f93",
+      "git_baseline_file_sha256": "ec088eaa1bb566743c8a0de0f823cab6541aac51f2d77b28a7d153c971f9b400",
+      "changes": [
+        {
+          "path": "/symptom/within",
+          "before": "3m",
+          "after": "5m"
+        }
+      ],
+      "other_fields_canonical_sha256_before": "2b2518f57efdb205224b3f33791b8000aa1250ae10d0acf6a6e542d0b65a01ce",
+      "other_fields_canonical_sha256_after": "2b2518f57efdb205224b3f33791b8000aa1250ae10d0acf6a6e542d0b65a01ce",
+      "bytes_excluding_authorized_values_sha256_before": "aa632fcf72ade844aa0ad4346578ae69b28c936b633e9233f3dff8c3b078794c",
+      "bytes_excluding_authorized_values_sha256_after": "aa632fcf72ade844aa0ad4346578ae69b28c936b633e9233f3dff8c3b078794c",
+      "unchanged_leaf_fields": [
+        {
+          "path": "/evidence_milestones/0",
+          "canonical_sha256_before": "b33766e55b3e162b5828520959297a69dd9dfde59b48228a0312ca248c429b6d",
+          "canonical_sha256_after": "b33766e55b3e162b5828520959297a69dd9dfde59b48228a0312ca248c429b6d",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/1",
+          "canonical_sha256_before": "d93ab854e3570acfb8f7043a038bbbff6c0e5eeebc289f8b799e00f0c7f470cd",
+          "canonical_sha256_after": "d93ab854e3570acfb8f7043a038bbbff6c0e5eeebc289f8b799e00f0c7f470cd",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/2",
+          "canonical_sha256_before": "6243a3c91af3a2930fd07263f7b2b6743c4fa671b068a74d2f4f0afd7ec11606",
+          "canonical_sha256_after": "6243a3c91af3a2930fd07263f7b2b6743c4fa671b068a74d2f4f0afd7ec11606",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/3",
+          "canonical_sha256_before": "dacb502f7a83a2ae23480535db3ff7535a9626b27122685d2afbcbde78721890",
+          "canonical_sha256_after": "dacb502f7a83a2ae23480535db3ff7535a9626b27122685d2afbcbde78721890",
+          "equal": true
+        },
+        {
+          "path": "/flag",
+          "canonical_sha256_before": "2c8740e4a915cebd526cd5e51a7f07cf0646b129d659c1189613f3c52998462a",
+          "canonical_sha256_after": "2c8740e4a915cebd526cd5e51a7f07cf0646b129d659c1189613f3c52998462a",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/component",
+          "canonical_sha256_before": "e3783f3ad7d3677da3d9ca9c10fe96f35646204da897e7fb5cda562cdaa91b9a",
+          "canonical_sha256_after": "e3783f3ad7d3677da3d9ca9c10fe96f35646204da897e7fb5cda562cdaa91b9a",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/explanation",
+          "canonical_sha256_before": "3f88bd25975d0bf9c9cfc0fd0c637f4187cf5d77856255abf926e8d78287f18b",
+          "canonical_sha256_after": "3f88bd25975d0bf9c9cfc0fd0c637f4187cf5d77856255abf926e8d78287f18b",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/mechanism",
+          "canonical_sha256_before": "6d9fa8f797365b3cd45abc5055211ec2610c240dfe515cbd287482f970d0c584",
+          "canonical_sha256_after": "6d9fa8f797365b3cd45abc5055211ec2610c240dfe515cbd287482f970d0c584",
+          "equal": true
+        },
+        {
+          "path": "/healthy_promql",
+          "canonical_sha256_before": "a1064c3401241b4d26a0738dbfa16ce6b469417197f948e44d551159cc12920e",
+          "canonical_sha256_after": "a1064c3401241b4d26a0738dbfa16ce6b469417197f948e44d551159cc12920e",
+          "equal": true
+        },
+        {
+          "path": "/id",
+          "canonical_sha256_before": "9b71a021d48e5d05fc13c8cd6fb564b4b066b620c15b3d9a05237153eb42b336",
+          "canonical_sha256_after": "9b71a021d48e5d05fc13c8cd6fb564b4b066b620c15b3d9a05237153eb42b336",
+          "equal": true
+        },
+        {
+          "path": "/source_url",
+          "canonical_sha256_before": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+          "canonical_sha256_after": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+          "equal": true
+        },
+        {
+          "path": "/symptom/promql",
+          "canonical_sha256_before": "7581ff11b010c231f70fccb4eca3ad32330b338abe23ad0d1dfc9d8263c22f74",
+          "canonical_sha256_after": "7581ff11b010c231f70fccb4eca3ad32330b338abe23ad0d1dfc9d8263c22f74",
+          "equal": true
+        },
+        {
+          "path": "/symptoms",
+          "canonical_sha256_before": "5ab76e269e6c0a2fc5a1f35114e6b1f244e1a9af845fa5ad6c1e6885a14943f1",
+          "canonical_sha256_after": "5ab76e269e6c0a2fc5a1f35114e6b1f244e1a9af845fa5ad6c1e6885a14943f1",
+          "equal": true
+        },
+        {
+          "path": "/title",
+          "canonical_sha256_before": "3c5fb35c241ecce4637d2dcfc6ad009d6a975398b0a1de9a273969c83be7f4bd",
+          "canonical_sha256_after": "3c5fb35c241ecce4637d2dcfc6ad009d6a975398b0a1de9a273969c83be7f4bd",
+          "equal": true
+        },
+        {
+          "path": "/variant",
+          "canonical_sha256_before": "990c23868b965814b117cf9a6c4dfe45452eadc2171e1f981865ebfc84f10724",
+          "canonical_sha256_after": "990c23868b965814b117cf9a6c4dfe45452eadc2171e1f981865ebfc84f10724",
+          "equal": true
+        }
+      ],
+      "assertions": {
+        "only_authorized_paths_changed": true,
+        "unchanged_field_canonical_hashes_equal": true,
+        "all_other_bytes_equal_including_comments_and_newlines": true,
+        "original_bytes_equal_git_baseline": true,
+        "two_minute_promql_range_unchanged": true,
+        "symptoms_ground_truth_milestones_unchanged": true
+      }
+    },
+    {
+      "scenario": "OT05",
+      "file": "eval/scenarios/otel-demo/OT05.yaml",
+      "sha256_before": "1d89bc4bbe107adf9ef35da052d9d2451a9e8f6534a3ae8e239a9b0e71f10832",
+      "sha256_after": "19d7ee90b16cd94d8cb527a94a1a4d4d7469fb50ee1850073dd653c6a4d02124",
+      "git_baseline_file_sha256": "1d89bc4bbe107adf9ef35da052d9d2451a9e8f6534a3ae8e239a9b0e71f10832",
+      "changes": [
+        {
+          "path": "/symptom/within",
+          "before": "3m",
+          "after": "5m"
+        }
+      ],
+      "other_fields_canonical_sha256_before": "ec3721e446f5a988492440764433f24df890324c718e27ecab8c2c0a1143028f",
+      "other_fields_canonical_sha256_after": "ec3721e446f5a988492440764433f24df890324c718e27ecab8c2c0a1143028f",
+      "bytes_excluding_authorized_values_sha256_before": "7c7cf76a22ab6002805e70f9bd05612e4d29134f7afe84a61be630d4600d411f",
+      "bytes_excluding_authorized_values_sha256_after": "7c7cf76a22ab6002805e70f9bd05612e4d29134f7afe84a61be630d4600d411f",
+      "unchanged_leaf_fields": [
+        {
+          "path": "/evidence_milestones/0",
+          "canonical_sha256_before": "b729855f3a0d6f45a433a9d2b6b1e88b70636ecbc2df58f0c22fc28b8645ae73",
+          "canonical_sha256_after": "b729855f3a0d6f45a433a9d2b6b1e88b70636ecbc2df58f0c22fc28b8645ae73",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/1",
+          "canonical_sha256_before": "d32bbaa2261b27d8f14c159862822647c9e5a1ab12e6b241c862977361088851",
+          "canonical_sha256_after": "d32bbaa2261b27d8f14c159862822647c9e5a1ab12e6b241c862977361088851",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/2",
+          "canonical_sha256_before": "404affc43c810f515c622d87c2919e0f4100058b19a797b020917e0091da4498",
+          "canonical_sha256_after": "404affc43c810f515c622d87c2919e0f4100058b19a797b020917e0091da4498",
+          "equal": true
+        },
+        {
+          "path": "/evidence_milestones/3",
+          "canonical_sha256_before": "deb84b656a504e563e7225663f236276c42f3d86fbcc623532a0a716c7c9d731",
+          "canonical_sha256_after": "deb84b656a504e563e7225663f236276c42f3d86fbcc623532a0a716c7c9d731",
+          "equal": true
+        },
+        {
+          "path": "/flag",
+          "canonical_sha256_before": "d68bb06af0e21283a8abde4aaebffcaf5811b4cc287e1da92e9b9737d3375014",
+          "canonical_sha256_after": "d68bb06af0e21283a8abde4aaebffcaf5811b4cc287e1da92e9b9737d3375014",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/component",
+          "canonical_sha256_before": "4b8459e49a610d18dd1284ebf7c3442b17fdb21427ce6d13106d7f82537eb70f",
+          "canonical_sha256_after": "4b8459e49a610d18dd1284ebf7c3442b17fdb21427ce6d13106d7f82537eb70f",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/explanation",
+          "canonical_sha256_before": "799c6c938d4dcf7c2f996861a8b91cedd0639ebd30794ca34b8cb30dac6ff543",
+          "canonical_sha256_after": "799c6c938d4dcf7c2f996861a8b91cedd0639ebd30794ca34b8cb30dac6ff543",
+          "equal": true
+        },
+        {
+          "path": "/ground_truth/mechanism",
+          "canonical_sha256_before": "f15ad434846325a091ade9e3b10a3f9b83c77885b665fce8584a5c380b988500",
+          "canonical_sha256_after": "f15ad434846325a091ade9e3b10a3f9b83c77885b665fce8584a5c380b988500",
+          "equal": true
+        },
+        {
+          "path": "/healthy_promql",
+          "canonical_sha256_before": "28e023865d5ec7ebe0f5dd8d4ef025dd545116b3d6f82b55372db7c7dfc57f1f",
+          "canonical_sha256_after": "28e023865d5ec7ebe0f5dd8d4ef025dd545116b3d6f82b55372db7c7dfc57f1f",
+          "equal": true
+        },
+        {
+          "path": "/id",
+          "canonical_sha256_before": "356c02b106c04297523ba6fc3942bcf657d977efb5a30e540b330d21837e7258",
+          "canonical_sha256_after": "356c02b106c04297523ba6fc3942bcf657d977efb5a30e540b330d21837e7258",
+          "equal": true
+        },
+        {
+          "path": "/override_targeting",
+          "canonical_sha256_before": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+          "canonical_sha256_after": "b5bea41b6c623f7c09f1bf24dcae58ebab3c0cdd90ad966bc43a45b44867e12b",
+          "equal": true
+        },
+        {
+          "path": "/source_url",
+          "canonical_sha256_before": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+          "canonical_sha256_after": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+          "equal": true
+        },
+        {
+          "path": "/symptom/promql",
+          "canonical_sha256_before": "325fc77d392607558d68540ff1b0d8ae88e3e97502ef95142663a8b99420caec",
+          "canonical_sha256_after": "325fc77d392607558d68540ff1b0d8ae88e3e97502ef95142663a8b99420caec",
+          "equal": true
+        },
+        {
+          "path": "/symptoms",
+          "canonical_sha256_before": "a890f6ce08e545208de23c02b891becc38e55002fcbbaced0e200ef37752bceb",
+          "canonical_sha256_after": "a890f6ce08e545208de23c02b891becc38e55002fcbbaced0e200ef37752bceb",
+          "equal": true
+        },
+        {
+          "path": "/title",
+          "canonical_sha256_before": "9ff7259ca3e3960137975d8c3e46e4ff7c454eddbda2868584d3670e2597125c",
+          "canonical_sha256_after": "9ff7259ca3e3960137975d8c3e46e4ff7c454eddbda2868584d3670e2597125c",
+          "equal": true
+        },
+        {
+          "path": "/variant",
+          "canonical_sha256_before": "990c23868b965814b117cf9a6c4dfe45452eadc2171e1f981865ebfc84f10724",
+          "canonical_sha256_after": "990c23868b965814b117cf9a6c4dfe45452eadc2171e1f981865ebfc84f10724",
+          "equal": true
+        }
+      ],
+      "assertions": {
+        "only_authorized_paths_changed": true,
+        "unchanged_field_canonical_hashes_equal": true,
+        "all_other_bytes_equal_including_comments_and_newlines": true,
+        "original_bytes_equal_git_baseline": true,
+        "two_minute_promql_range_unchanged": true,
+        "symptoms_ground_truth_milestones_unchanged": true
+      }
+    }
+  ],
+  "preserved_references": [
+    {
+      "path": "docs/reports/phase-09-ot01-baseline-amendment.json",
+      "sha256": "b39c193b89ade4d12458a37798a78628cdcf77ed769521cc7a2bf818f43c2a8c"
+    },
+    {
+      "path": "docs/reports/phase-09-eventstream-controlled-20261103T072744Z.json",
+      "sha256": "f077c5ec5a6e18b2204c6b943987f26c3af0b415e63d0abee55469229ebd1f0a"
+    },
+    {
+      "path": "docs/reports/phase-09-eventstream-controlled-20261103T072744Z.jsonl",
+      "sha256": "6efdf7f41328c5acd98ce9285444c7f61bf31f6f6f30e06b1be8dd98b85abf9c"
+    },
+    {
+      "path": "docs/reports/phase-09-ot01-controlled-validation.json",
+      "sha256": "47236b70b90d1aec13e19a6c51eda248989e773071503b105a0de847de892842"
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-formal-entry-gate.json",
+      "sha256": "167f555fb24209810bd4498cfe5c2220b5c6dc98f690205b526de3773001148d"
+    },
+    {
+      "path": "docs/reports/phase-09-payment-span-discovery.json",
+      "sha256": "f19f2c1abe6f6ea762635902624d5af7d14d6cac05cef696dfa8df17a2366c8e"
+    }
+  ],
+  "limits": [
+    "PromQL仍保留原[2m]：健康必须有调用且错误为0，症状必须错误大于0；within只是等待上限。",
+    "其他四场景不因历史失败调整span或放宽判定；历史非100%如实记录并暂停后续收费。",
+    "原pilot、pilot2报告、评分失败、原注入恢复和之前OT01修订原件全部保留。",
+    "未修改症状文字、标准答案、证据里程碑、提示、工具、手册或评分；本审计不宣称新故障注入/恢复/评测通过。",
+    "本代理未运行Go、数据库、Docker生命周期操作或任何模型请求。"
+  ]
+}

@@ -18,3 +18,10 @@ docs/reports/phase-09-collector-anchor-fix-*.json -text -whitespace
 # 新试跑的原始账本/采样与审计指纹按原字节留存，便于对照失败记录。
 docs/reports/phase-09-pilot2-*.json -text -whitespace
 docs/reports/phase-09-pilot2-*.jsonl -text -whitespace
+# 历史健康回放和限定场景修订按原始字节核对，不转换证据换行。
+docs/reports/phase-09-historical-*.json -text -whitespace
+docs/reports/phase-09-historical-*.jsonl -text -whitespace
+docs/reports/phase-09-scenario-window-amendment.json -text -whitespace
+docs/reports/phase-09-payment-span-discovery.json -text -whitespace
+docs/reports/phase-09-checkout-background-error-spans.json -text -whitespace
+docs/reports/phase-09-preformal-*.json -text -whitespace

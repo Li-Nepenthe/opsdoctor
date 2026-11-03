@@ -1,0 +1,1252 @@
+{
+  "generated_at_utc": "2026-11-03T15:03:13.701160+00:00",
+  "scope": "离线重算相同旧历史，不增加任何HTTP或新流量；主表是全部五开关off的严格子集，补列用户原文的对应单flag off口径。",
+  "raw_responses_path": "docs/reports/phase-09-historical-baseline-responses.jsonl",
+  "raw_responses_sha256": "cb12967ab6106ec307d73f3f853e5bee0adc1d7d9a29c95d5b6a148cc3f3d5e9",
+  "coverage_policy_unchanged": {
+    "why_no_up": "固定版本Prometheus接收OTLP推送，targets为空且历史metric-name列表无up，不能伪造scrape/up证据。",
+    "source": "container_uptime_seconds原始时间戳，8个容器每10s常规采样",
+    "required_containers": [
+      "opsdoctor-otel-demo-ad",
+      "opsdoctor-otel-demo-cart",
+      "opsdoctor-otel-demo-checkout",
+      "opsdoctor-otel-demo-load-generator",
+      "opsdoctor-otel-demo-otel-collector",
+      "opsdoctor-otel-demo-payment",
+      "opsdoctor-otel-demo-product-catalog",
+      "opsdoctor-otel-demo-prometheus"
+    ],
+    "window": "(evaluation-120s,evaluation]",
+    "minimum_samples_each": 10,
+    "first_sample_no_later_than_seconds_from_window_start": 15,
+    "last_sample_max_age_seconds": 15,
+    "maximum_inner_gap_seconds": 15,
+    "uptime_positive_and_no_reset": true,
+    "independent_of_healthy_predicate": true,
+    "zero_or_missing_business_calls_with_complete_environment_remain_failures": true
+  },
+  "own_flag_off_proof": "完整原始flags快照确认cartFailure/paymentFailure/paymentUnreachable/productCatalogFailure均off，OT05 targeting两分支均off；根代理确认该历史范围只有三次adFailure on，未依赖未发现记录推断。",
+  "corresponding_mask": "OT01仍排三段adFailure on及每次恢复后2m；其余四场对应开关从未on，允许相同查询范围内所有环境完整点，包括另一个adFailure on及其回看。",
+  "current_startup_flow_included": false,
+  "scenarios": {
+    "OT01": {
+      "all_five_flags_off_primary": {
+        "passed": 364,
+        "total": 364,
+        "failed": 0,
+        "fraction": 1.0
+      },
+      "only_corresponding_flag_off": {
+        "passed": 364,
+        "total": 364,
+        "failed": 0,
+        "fraction": 1.0,
+        "failed_samples": []
+      }
+    },
+    "OT02": {
+      "all_five_flags_off_primary": {
+        "passed": 364,
+        "total": 364,
+        "failed": 0,
+        "fraction": 1.0
+      },
+      "only_corresponding_flag_off": {
+        "passed": 390,
+        "total": 390,
+        "failed": 0,
+        "fraction": 1.0,
+        "failed_samples": []
+      }
+    },
+    "OT03": {
+      "all_five_flags_off_primary": {
+        "passed": 328,
+        "total": 364,
+        "failed": 36,
+        "fraction": 0.9010989010989011
+      },
+      "only_corresponding_flag_off": {
+        "passed": 354,
+        "total": 390,
+        "failed": 36,
+        "fraction": 0.9076923076923077,
+        "failed_samples": [
+          {
+            "at_utc": "2026-11-03T07:36:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T07:36:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T07:38:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T07:38:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T07:54:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T07:54:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T08:06:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T08:06:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:02:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:03:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:29:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:30:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:33:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:34:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:39:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:40:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:41:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:42:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:42:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:43:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:51:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:52:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:52:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:53:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:57:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:58:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:18:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:19:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:23:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:24:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:29:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:30:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:43:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:44:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:48:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:49:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          }
+        ]
+      }
+    },
+    "OT04": {
+      "all_five_flags_off_primary": {
+        "passed": 326,
+        "total": 364,
+        "failed": 38,
+        "fraction": 0.8956043956043956
+      },
+      "only_corresponding_flag_off": {
+        "passed": 350,
+        "total": 390,
+        "failed": 40,
+        "fraction": 0.8974358974358975,
+        "failed_samples": [
+          {
+            "at_utc": "2026-11-03T07:32:00+00:00",
+            "calls_increase_2m": 125.29643148824108,
+            "error_increase_2m": 1.290231178225578,
+            "reason": "errors_positive_or_other_predicate_failure"
+          },
+          {
+            "at_utc": "2026-11-03T07:32:30+00:00",
+            "calls_increase_2m": 125.79645648949115,
+            "error_increase_2m": 1.7902561794756404,
+            "reason": "errors_positive_or_other_predicate_failure"
+          },
+          {
+            "at_utc": "2026-11-03T07:36:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T07:36:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T07:38:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T07:38:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T07:54:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T07:54:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T08:06:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T08:06:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T08:11:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T08:11:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:02:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:03:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:29:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:30:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:33:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:34:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:39:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:40:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:41:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:42:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:42:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:43:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:51:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:52:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:52:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:53:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:57:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T11:58:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:18:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:19:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:23:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:24:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:29:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:30:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:43:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:44:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:48:30+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          },
+          {
+            "at_utc": "2026-11-03T12:49:00+00:00",
+            "calls_increase_2m": 0.0,
+            "error_increase_2m": 0.0,
+            "reason": "calls_missing_or_zero"
+          }
+        ]
+      }
+    },
+    "OT05": {
+      "all_five_flags_off_primary": {
+        "passed": 364,
+        "total": 364,
+        "failed": 0,
+        "fraction": 1.0
+      },
+      "only_corresponding_flag_off": {
+        "passed": 390,
+        "total": 390,
+        "failed": 0,
+        "fraction": 1.0,
+        "failed_samples": []
+      }
+    }
+  },
+  "additional_environment_complete_points": [
+    {
+      "at_utc": "2026-11-03T07:30:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 348.02320154676977,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 4.00026668444563,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 52.00346689779319,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1172.0781385425696,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T07:30:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 348.02320154676977,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 4.00026668444563,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 52.00346689779319,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1172.0781385425696,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T07:31:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 410.02733515567706,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 6.000400026668444,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 74.00493366224416,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1148.0765384358958,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T07:31:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 410.02733515567706,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 6.000400026668444,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 74.00493366224416,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1148.0765384358958,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T07:32:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 456.022801140057,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 8.000400020001,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": false,
+          "calls_increase_2m": 125.29643148824108,
+          "error_increase_2m": 1.290231178225578
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1200.0600030001501,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T07:32:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 456.022801140057,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 8.000400020001,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": false,
+          "calls_increase_2m": 125.79645648949115,
+          "error_increase_2m": 1.7902561794756404
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1200.0600030001501,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T07:57:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 558.0372024801654,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 10.000666711114075,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 134.0089339289286,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1256.0837389159278,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T07:58:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 402.02680178678577,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 4.00026668444563,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 60.00400026668444,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1288.0858723914928,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T07:58:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 402.02680178678577,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 4.00026668444563,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 60.00400026668444,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1288.0858723914928,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T07:59:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 372.0186009300465,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 4.0002000100004995,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 48.002400120005994,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1220.0610030501523,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T07:59:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 372.01860093004655,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 4.0002000100005,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 48.002400120006,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1220.0610030501525,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T08:00:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 418.0278685245683,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 2.000133342222815,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 24.001600106673777,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1160.0773384892327,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T08:00:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 418.0278685245683,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 2.000133342222815,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 24.001600106673777,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1160.0773384892327,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T08:01:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 344.01720086004303,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 2.00010000500025,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 36.0018000900045,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1196.0598029901496,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:53:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 456.022801140057,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 8.000400020001,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 104.00520026001301,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1184.059202960148,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:53:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 418.0069667827797,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 6.000100001666694,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 88.00146669111152,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1076.0179336322271,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:54:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 418.0069667827797,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 6.000100001666694,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 88.00146669111152,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1076.0179336322271,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:54:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 430.0143338111271,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 6.00020000666689,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 84.00280009333645,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1148.0382679422648,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:55:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 430.0143338111271,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 6.00020000666689,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 84.00280009333645,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1148.0382679422648,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:55:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 398.00663344389073,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 6.000100001666694,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 84.00140002333372,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1052.0175336255604,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:56:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 398.00663344389073,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 6.000100001666694,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 84.00140002333372,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1052.0175336255604,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:56:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 426.0071001183353,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 12.000200003333388,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 144.00240004000065,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1184.0197336622277,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:57:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 426.0071001183353,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 12.000200003333388,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 144.00240004000065,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1184.0197336622277,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:57:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 408.02040102005105,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 4.0002000100005,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 56.002800140007004,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1136.0568028401422,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:58:00+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 408.02040102005105,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 4.0002000100005,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 56.002800140007004,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 1136.0568028401422,
+          "error_increase_2m": 0.0
+        }
+      }
+    },
+    {
+      "at_utc": "2026-11-03T10:58:30+00:00",
+      "why_excluded_from_primary": "adFailure on or its post-restore2m range; other four corresponding flags remainoff by original snapshots and root operation record",
+      "other_scenarios": {
+        "OT02": {
+          "healthy": true,
+          "calls_increase_2m": 378.00630010500174,
+          "error_increase_2m": 0.0
+        },
+        "OT03": {
+          "healthy": true,
+          "calls_increase_2m": 8.000133335555592,
+          "error_increase_2m": 0.0
+        },
+        "OT04": {
+          "healthy": true,
+          "calls_increase_2m": 104.0017333622227,
+          "error_increase_2m": 0.0
+        },
+        "OT05": {
+          "healthy": true,
+          "calls_increase_2m": 956.0159335988933,
+          "error_increase_2m": 0.0
+        }
+      }
+    }
+  ],
+  "all_primary_and_corresponding_masks_100_percent": false,
+  "continue_to_matrix_or_paid": false,
+  "limits": [
+    "主表排任意flag on可减少跨场影响，范围比对应单flag off更严格；不能冒称已覆盖所有对应单flag off时刻。",
+    "补充口径包含其他adFailure故障期，并不等于全系统正常；只是按相同原查询机械回放对应开关off。",
+    "所有完整环境下calls=0/缺失都保留为失败；未用业务calls决定覆盖分母。",
+    "两种口径均失败，不寻找其他新窗口或放宽判定。"
+  ]
+}

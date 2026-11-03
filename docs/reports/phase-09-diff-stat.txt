@@ -4,9 +4,9 @@ User-preserved files are not staged. This stat excludes this evidence file itsel
 $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-width=120 main -- . :(exclude)docs/reports/phase-09-diff-stat.txt
  .dockerignore                                                       |     3 +
  .env.example                                                        |    16 +
- .gitattributes                                                      |    16 +
+ .gitattributes                                                      |    23 +
  .github/workflows/ci.yml                                            |    82 +-
- README.md                                                           |    36 +-
+ README.md                                                           |    40 +-
  deploy/README.md                                                    |     1 +
  deploy/docker-compose.yml                                           |     1 +
  deploy/doctor/README.md                                             |    87 +-
@@ -15,32 +15,33 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  deploy/doctor/targets/README.md                                     |     4 +
  deploy/doctor/targets/otel-demo.profile.md                          |    98 +
  deploy/doctor/targets/otel-demo.yaml                                |    20 +
- deploy/opentelemetry/README.md                                      |   119 +
+ deploy/opentelemetry/README.md                                      |   125 +
  deploy/opentelemetry/compose.phase09.yaml                           |   101 +
  deploy/opentelemetry/doctor.phase09.yaml                            |    17 +
  deploy/opentelemetry/loki-verify.phase09.yaml                       |    25 +
  deploy/opentelemetry/otelcol-config-extras.phase09.yaml             |    20 +
  deploy/opentelemetry/versions.env                                   |     5 +
  docs/architecture.md                                                |    46 +-
- docs/decisions.md                                                   |    40 +
- docs/interview.md                                                   |    75 +-
+ docs/decisions.md                                                   |    48 +
+ docs/interview.md                                                   |    78 +-
  docs/learn/README.md                                                |     3 +-
- docs/learn/phase-09-generalization.md                               |   510 ++++
+ docs/learn/phase-09-generalization.md                               |   558 +
  docs/mcp.md                                                         |     4 +-
  docs/notes.md                                                       |    50 +
- docs/onboarding.md                                                  |   321 ++
+ docs/onboarding.md                                                  |   321 +
  docs/reports/README.md                                              |     3 +-
  docs/reports/phase-09-anchor-evidence-byte-check.json               |    59 +
- docs/reports/phase-09-anchor-fix-checks.json                        |   310 ++
+ docs/reports/phase-09-anchor-fix-checks.json                        |   310 +
  docs/reports/phase-09-approved-run-plan.json                        |    88 +
  docs/reports/phase-09-baseline-initial.json                         |    32 +
  docs/reports/phase-09-baseline-two-minute.json                      |    72 +
  docs/reports/phase-09-baseline-verified.json                        |    32 +
  docs/reports/phase-09-before-db-isolation.tsv                       |    13 +
+ docs/reports/phase-09-checkout-background-error-spans.json          |    15 +
  docs/reports/phase-09-checks.json                                   |   149 +
- docs/reports/phase-09-ci-anchor.json                                |   389 +++
- docs/reports/phase-09-ci-archive.json                               |   203 ++
- docs/reports/phase-09-ci-collection.json                            |   353 +++
+ docs/reports/phase-09-ci-anchor.json                                |   389 +
+ docs/reports/phase-09-ci-archive.json                               |   203 +
+ docs/reports/phase-09-ci-collection.json                            |   353 +
  docs/reports/phase-09-ci-first.json                                 |   160 +
  docs/reports/phase-09-ci-level.json                                 |   159 +
  docs/reports/phase-09-ci-standalone.json                            |   162 +
@@ -48,25 +49,25 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-clock-preflight.json                          |    10 +
  docs/reports/phase-09-codex-mcp-audit.tsv                           |     3 +
  docs/reports/phase-09-codex-mcp-call.json                           |    18 +
- docs/reports/phase-09-codex-mcp-list.json                           |   388 +++
- docs/reports/phase-09-collection-checks.json                        |   260 ++
- docs/reports/phase-09-collector-after-fix-continuation.log          |   395 +++
- docs/reports/phase-09-collector-after-fix.log                       |  1733 +++++++++++
- docs/reports/phase-09-collector-anchor-fix-anchor-all.log           | 13146 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ docs/reports/phase-09-codex-mcp-list.json                           |   388 +
+ docs/reports/phase-09-collection-checks.json                        |   260 +
+ docs/reports/phase-09-collector-after-fix-continuation.log          |   395 +
+ docs/reports/phase-09-collector-after-fix.log                       |  1733 ++
+ docs/reports/phase-09-collector-anchor-fix-anchor-all.log           | 13146 +++++++++++++++
  docs/reports/phase-09-collector-anchor-fix-audit.json               |     1 +
- docs/reports/phase-09-collector-anchor-fix-environment.json         |   219 ++
+ docs/reports/phase-09-collector-anchor-fix-environment.json         |   219 +
  docs/reports/phase-09-collector-anchor-fix-integration.log          |     6 +
  docs/reports/phase-09-collector-anchor-fix-latest.log               |     1 +
  docs/reports/phase-09-collector-anchor-fix-legacy-tail1.log         |     0
  docs/reports/phase-09-collector-anchor-fix-start.json               |     1 +
- docs/reports/phase-09-collector-anchor-fix-window.log               |   169 ++
- docs/reports/phase-09-collector-anchor-fix.json                     |   226 ++
+ docs/reports/phase-09-collector-anchor-fix-window.log               |   169 +
+ docs/reports/phase-09-collector-anchor-fix.json                     |   226 +
  docs/reports/phase-09-collector-anchor-fix.md                       |    50 +
- docs/reports/phase-09-collector-final-before-fix.log                |  5334 +++++++++++++++++++++++++++++++++
+ docs/reports/phase-09-collector-final-before-fix.log                |  5334 ++++++
  docs/reports/phase-09-collector-window-integration-raw.log          |     2 +
  docs/reports/phase-09-collector-window-integration.json             |     1 +
  docs/reports/phase-09-collector-window-integration.log              |     5 +
- docs/reports/phase-09-commit-uncertainty-checks.json                |   301 ++
+ docs/reports/phase-09-commit-uncertainty-checks.json                |   301 +
  docs/reports/phase-09-database-after-level-fix.tsv                  |    20 +
  docs/reports/phase-09-database-checkpoint.tsv                       |    20 +
  docs/reports/phase-09-database-final-before-review.tsv              |    20 +
@@ -76,72 +77,77 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-demo-healthcheck.json                         |    48 +
  docs/reports/phase-09-demo-startup-first.log                        |   133 +
  docs/reports/phase-09-demo-startup-fixed.json                       |     5 +
- docs/reports/phase-09-demo-startup-fixed.log                        |   194 ++
+ docs/reports/phase-09-demo-startup-fixed.log                        |   194 +
  docs/reports/phase-09-doctor-level-case.json                        |     1 +
  docs/reports/phase-09-doctorctl-loki.json                           |     1 +
  docs/reports/phase-09-doctorctl-opensearch.json                     |     1 +
  docs/reports/phase-09-email-log-sample.json                         |     1 +
- docs/reports/phase-09-eventstream-background.json                   |   669 +++++
+ docs/reports/phase-09-eventstream-background.json                   |   669 +
  docs/reports/phase-09-eventstream-background.md                     |    77 +
- docs/reports/phase-09-eventstream-client-spans.json                 |  8946 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ docs/reports/phase-09-eventstream-client-spans.json                 |  8946 ++++++++++
  docs/reports/phase-09-eventstream-controlled-20261103T072744Z.json  |    23 +
  docs/reports/phase-09-eventstream-controlled-20261103T072744Z.jsonl |    29 +
- docs/reports/phase-09-eventstream-coverage.json                     |  1364 +++++++++
+ docs/reports/phase-09-eventstream-coverage.json                     |  1364 ++
  docs/reports/phase-09-evidence-byte-check.json                      |    26 +
- docs/reports/phase-09-generalization.md                             |   331 +++
+ docs/reports/phase-09-generalization.md                             |   345 +
+ docs/reports/phase-09-historical-baseline-mask-comparison.json      |  1252 ++
+ docs/reports/phase-09-historical-baseline-replay.json               | 74046 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+ docs/reports/phase-09-historical-baseline-replay.md                 |    78 +
+ docs/reports/phase-09-historical-baseline-responses.jsonl           |    20 +
  docs/reports/phase-09-http-rename-precondition.json                 |    13 +
  docs/reports/phase-09-http-renamed-samples.json                     |     1 +
  docs/reports/phase-09-http-rule-review.json                         |   154 +
- docs/reports/phase-09-jaeger-prefix-checks.json                     |   295 ++
+ docs/reports/phase-09-jaeger-prefix-checks.json                     |   295 +
  docs/reports/phase-09-jaeger-prefix-get.json                        |    71 +
  docs/reports/phase-09-jaeger-prefix-search.json                     |   102 +
  docs/reports/phase-09-level-case-query.json                         |   152 +
- docs/reports/phase-09-level-checks.json                             |   219 ++
+ docs/reports/phase-09-level-checks.json                             |   219 +
  docs/reports/phase-09-log-config-validation.json                    |     9 +
  docs/reports/phase-09-log-field-comparison.json                     |    79 +
- docs/reports/phase-09-log-fix-after.json                            |   344 +++
+ docs/reports/phase-09-log-fix-after.json                            |   344 +
  docs/reports/phase-09-log-fix-before.json                           |    16 +
- docs/reports/phase-09-log-fix-observation.json                      |   537 ++++
+ docs/reports/phase-09-log-fix-observation.json                      |   537 +
  docs/reports/phase-09-log-fix-samples.jsonl                         |    20 +
  docs/reports/phase-09-log-fix-services.json                         |     1 +
- docs/reports/phase-09-log-impact-final.json                         |   560 ++++
- docs/reports/phase-09-log-impact-initial.json                       |   471 +++
+ docs/reports/phase-09-log-impact-final.json                         |   560 +
+ docs/reports/phase-09-log-impact-initial.json                       |   471 +
  docs/reports/phase-09-log-pipeline-limitation.json                  |    77 +
  docs/reports/phase-09-log-producer-expectations.json                |    92 +
- docs/reports/phase-09-logging-fix.md                                |   174 ++
+ docs/reports/phase-09-logging-fix.md                                |   174 +
  docs/reports/phase-09-network-preflight-summary.json                |    24 +
- docs/reports/phase-09-network-preflight.jsonl                       |   241 ++
+ docs/reports/phase-09-network-preflight.jsonl                       |   241 +
  docs/reports/phase-09-opensearch-after-test.log                     |     6 +
  docs/reports/phase-09-opensearch-indices-after.json                 |     1 +
  docs/reports/phase-09-opensearch-level-test.log                     |     7 +
  docs/reports/phase-09-opensearch-mapping-after.json                 |     1 +
  docs/reports/phase-09-opensearch-schema.json                        |    59 +
- docs/reports/phase-09-ot01-baseline-amendment.json                  |   171 ++
+ docs/reports/phase-09-ot01-baseline-amendment.json                  |   171 +
  docs/reports/phase-09-ot01-baseline-proposal.diff                   |    14 +
  docs/reports/phase-09-ot01-baseline-proposal.md                     |    17 +
  docs/reports/phase-09-ot01-controlled-validation.json               |    46 +
  docs/reports/phase-09-ot01-same-window-proof.json                   |   103 +
  docs/reports/phase-09-ot01-selector-proposal.json                   |    86 +
- docs/reports/phase-09-paid-ad-baseline-investigation.json           |   310 ++
+ docs/reports/phase-09-paid-ad-baseline-investigation.json           |   310 +
  docs/reports/phase-09-paid-baseline.json                            |    98 +
  docs/reports/phase-09-paid-budget-before.tsv                        |     4 +
  docs/reports/phase-09-paid-clock-final.json                         |     9 +
  docs/reports/phase-09-paid-clock-final.jsonl                        |    61 +
  docs/reports/phase-09-paid-clock-preflight.json                     |    11 +
  docs/reports/phase-09-paid-clock-preflight.jsonl                    |    61 +
- docs/reports/phase-09-paid-flags-before-injection.json              |   200 ++
+ docs/reports/phase-09-paid-flags-before-injection.json              |   200 +
  docs/reports/phase-09-paid-network-final.json                       |    30 +
- docs/reports/phase-09-paid-network-final.jsonl                      |   241 ++
- docs/reports/phase-09-paid-network-preflight.jsonl                  |   241 ++
+ docs/reports/phase-09-paid-network-final.jsonl                      |   241 +
+ docs/reports/phase-09-paid-network-preflight.jsonl                  |   241 +
  docs/reports/phase-09-paid-resource-preflight.json                  |    24 +
+ docs/reports/phase-09-payment-span-discovery.json                   |    65 +
  docs/reports/phase-09-pilot-demo-stop.log                           |    28 +
  docs/reports/phase-09-pilot-final-database.tsv                      |     9 +
- docs/reports/phase-09-pilot-final-runtime.json                      |   191 ++
+ docs/reports/phase-09-pilot-final-runtime.json                      |   191 +
  docs/reports/phase-09-pilot-freeze.log                              |     2 +
  docs/reports/phase-09-pilot-interrupted.md                          |    46 +
  docs/reports/phase-09-pilot-interruption-state.tsv                  |    13 +
  docs/reports/phase-09-pilot-interruption-utf8.tsv                   |    13 +
- docs/reports/phase-09-pilot-recovery-proof.json                     |   637 ++++
+ docs/reports/phase-09-pilot-recovery-proof.json                     |   637 +
  docs/reports/phase-09-pilot-restore.log                             |     2 +
  docs/reports/phase-09-pilot-run.log                                 |     6 +
  docs/reports/phase-09-pilot2-balance-before.json                    |    15 +
@@ -154,18 +160,18 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-pilot2-demo-start.json                        |     8 +
  docs/reports/phase-09-pilot2-demo-start.log                         |   156 +
  docs/reports/phase-09-pilot2-demo-stop.log                          |    28 +
- docs/reports/phase-09-pilot2-doctor-analysis.json                   |  2233 ++++++++++++++
+ docs/reports/phase-09-pilot2-doctor-analysis.json                   |  2233 +++
  docs/reports/phase-09-pilot2-doctor-analysis.md                     |    63 +
  docs/reports/phase-09-pilot2-emergency-restore.log                  |     2 +
  docs/reports/phase-09-pilot2-evidence.json                          |    38 +
  docs/reports/phase-09-pilot2-final-database.tsv                     |    11 +
- docs/reports/phase-09-pilot2-final-runtime.json                     |   191 ++
- docs/reports/phase-09-pilot2-formal-entry-gate.json                 |   589 ++++
+ docs/reports/phase-09-pilot2-final-runtime.json                     |   191 +
+ docs/reports/phase-09-pilot2-formal-entry-gate.json                 |   589 +
  docs/reports/phase-09-pilot2-freeze-bound.log                       |     2 +
  docs/reports/phase-09-pilot2-freeze.log                             |     2 +
  docs/reports/phase-09-pilot2-git-byte-check.json                    |    69 +
  docs/reports/phase-09-pilot2-judge-arguments.log                    |     1 +
- docs/reports/phase-09-pilot2-judge-failure.json                     |   180 ++
+ docs/reports/phase-09-pilot2-judge-failure.json                     |   180 +
  docs/reports/phase-09-pilot2-judge-failure.md                       |    51 +
  docs/reports/phase-09-pilot2-judge-judgement.log                    |     1 +
  docs/reports/phase-09-pilot2-judge-record.log                       |     1 +
@@ -173,7 +179,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-pilot2-judge-response.log                     |     1 +
  docs/reports/phase-09-pilot2-mode-handoff.log                       |     2 +
  docs/reports/phase-09-pilot2-network.json                           |    28 +
- docs/reports/phase-09-pilot2-network.jsonl                          |   239 ++
+ docs/reports/phase-09-pilot2-network.jsonl                          |   239 +
  docs/reports/phase-09-pilot2-original-run-after-handoff.tsv         |     8 +
  docs/reports/phase-09-pilot2-original-run-before.tsv                |     8 +
  docs/reports/phase-09-pilot2-original-run-final.tsv                 |     8 +
@@ -185,27 +191,38 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-pilot2-run.log                                |    14 +
  docs/reports/phase-09-pilot2-symptom-observation.json               |    20 +
  docs/reports/phase-09-preflight.json                                |    59 +
+ docs/reports/phase-09-preformal-checks.json                         |   349 +
+ docs/reports/phase-09-preformal-demo-start.json                     |     8 +
+ docs/reports/phase-09-preformal-demo-start.log                      |   156 +
+ docs/reports/phase-09-preformal-demo-stop.log                       |    28 +
+ docs/reports/phase-09-preformal-final-checks.json                   |   355 +
+ docs/reports/phase-09-preformal-final-database.tsv                  |    11 +
+ docs/reports/phase-09-preformal-final-runtime.json                  |   191 +
+ docs/reports/phase-09-preformal-integrity.json                      |    54 +
+ docs/reports/phase-09-preformal-resource-preflight.json             |    21 +
+ docs/reports/phase-09-preformal-verified-checks.json                |   361 +
  docs/reports/phase-09-prepilot-evidence-byte-check.json             |    72 +
  docs/reports/phase-09-release-audit.json                            |    29 +
- docs/reports/phase-09-runtime-after-level-fix.json                  |   196 ++
+ docs/reports/phase-09-runtime-after-level-fix.json                  |   196 +
  docs/reports/phase-09-runtime-before-pilot.json                     |    45 +
- docs/reports/phase-09-runtime-before-review.json                    |   196 ++
+ docs/reports/phase-09-runtime-before-review.json                    |   196 +
  docs/reports/phase-09-runtime-pilot-interrupted.json                |    45 +
- docs/reports/phase-09-standalone-checks.json                        |   233 ++
+ docs/reports/phase-09-scenario-window-amendment.json                |   641 +
+ docs/reports/phase-09-standalone-checks.json                        |   233 +
  docs/reports/phase-09-standalone-database.tsv                       |     4 +
  docs/reports/phase-09-standalone-demo-start.json                    |     6 +
  docs/reports/phase-09-standalone-metric-query.json                  |    33 +
  docs/reports/phase-09-standalone-preflight.json                     |    40 +
- docs/reports/phase-09-standalone-queries.json                       |   967 ++++++
- docs/reports/phase-09-standalone-runtime-final.json                 |   191 ++
- docs/reports/phase-09-standalone-startup.json                       |   285 ++
- docs/reports/phase-09-targets.json                                  |   637 ++++
+ docs/reports/phase-09-standalone-queries.json                       |   967 ++
+ docs/reports/phase-09-standalone-runtime-final.json                 |   191 +
+ docs/reports/phase-09-standalone-startup.json                       |   285 +
+ docs/reports/phase-09-targets.json                                  |   637 +
  docs/reports/phase-09-upstream-config.diff                          |    58 +
  docs/reports/phase-09-zero-cost-before-pilot.json                   |    33 +
  docs/resume-draft.md                                                |    14 +-
  docs/troubleshooting.md                                             |    34 +-
- docs/代码地图.md                                                    |    17 +
- docs/数据台账.md                                                    |    83 +
+ docs/代码地图.md                                                    |    20 +
+ docs/数据台账.md                                                    |    98 +
  eval/scenarios/otel-demo/OT01.yaml                                  |    20 +
  eval/scenarios/otel-demo/OT02.yaml                                  |    21 +
  eval/scenarios/otel-demo/OT03.yaml                                  |    21 +
@@ -217,9 +234,9 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  internal/doctor/source/jaeger/client.go                             |    34 +-
  internal/doctor/source/jaeger/client_test.go                        |    97 +
  internal/doctor/source/jaeger/doc.go                                |     4 +-
- internal/doctor/source/log_contract_test.go                         |   191 ++
+ internal/doctor/source/log_contract_test.go                         |   191 +
  internal/doctor/source/opensearch/client.go                         |   125 +
- internal/doctor/source/opensearch/client_test.go                    |   242 ++
+ internal/doctor/source/opensearch/client_test.go                    |   242 +
  internal/doctor/source/opensearch/config.go                         |    62 +
  internal/doctor/source/opensearch/doc.go                            |    19 +
  internal/doctor/source/opensearch/integration_test.go               |    61 +
@@ -245,20 +262,23 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  internal/eval/report/summary_test.go                                |    49 +
  internal/eval/runner/cli.go                                         |     6 +-
  internal/eval/runner/clock.go                                       |     2 +-
- internal/eval/runner/doc.go                                         |     7 +
- internal/eval/runner/generalization.go                              |   276 ++
- internal/eval/runner/generalization_collection.go                   |   510 ++++
- internal/eval/runner/generalization_collection_test.go              |   477 +++
+ internal/eval/runner/doc.go                                         |    10 +
+ internal/eval/runner/generalization.go                              |   284 +
+ internal/eval/runner/generalization_collection.go                   |   510 +
+ internal/eval/runner/generalization_collection_test.go              |   477 +
  internal/eval/runner/generalization_environment.go                  |   111 +
- internal/eval/runner/generalization_run.go                          |   501 ++++
- internal/eval/runner/generalization_scenario.go                     |   257 ++
- internal/eval/runner/generalization_test.go                         |   274 ++
- internal/eval/runner/grading.go                                     |    12 +-
+ internal/eval/runner/generalization_grading_test.go                 |   212 +
+ internal/eval/runner/generalization_run.go                          |   575 +
+ internal/eval/runner/generalization_scenario.go                     |   268 +
+ internal/eval/runner/generalization_test.go                         |   274 +
+ internal/eval/runner/generalization_timing.go                       |   147 +
+ internal/eval/runner/generalization_timing_test.go                  |   168 +
+ internal/eval/runner/grading.go                                     |    58 +-
  internal/eval/runner/manifest.go                                    |     2 +-
  internal/eval/runner/paired.go                                      |    14 +
  进度.md                                                             |    31 +-
- 项目计划书.md                                                       |    13 +
- 256 files changed, 56525 insertions(+), 101 deletions(-)
+ 项目计划书.md                                                       |    15 +
+ 276 files changed, 134942 insertions(+), 114 deletions(-)
 
 $ git diff --cached --stat main -- internal/doctor/tools internal/doctor/agent
 (empty output; no tools/agent files changed)

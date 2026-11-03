@@ -73,8 +73,8 @@ func decodeDemoScenario(raw []byte) (demoScenario, error) {
 		return value, fmt.Errorf("场景超过 64 KiB 或包含未知字段")
 	}
 	within, err := time.ParseDuration(value.Symptom.Within)
-	if err != nil || within <= 0 || within > 3*time.Minute || value.Symptom.Healthy || value.Symptom.PromQL == "" || value.HealthyPromQL == "" {
-		return value, fmt.Errorf("症状和健康查询不能为空，等待时限须为三分钟以内")
+	if err != nil || within <= 0 || within > demoObservationLimit || value.Symptom.Healthy || value.Symptom.PromQL == "" || value.HealthyPromQL == "" {
+		return value, fmt.Errorf("症状和健康查询不能为空，等待时限须为五分钟以内")
 	}
 	link, err := url.Parse(value.SourceURL)
 	if err != nil || link.Scheme != "https" || (link.Hostname() != "opentelemetry.io" && link.Hostname() != "github.com") {
@@ -231,14 +231,25 @@ func demoQuery(ctx context.Context, base, query string) (bool, error) {
 
 // waitDemoQuery 用调用方给定的原始时限等待，不因重启命令重新计算故障确认窗口。
 func waitDemoQuery(parent context.Context, base, query string, deadline time.Time) error {
+	return waitDemoQueryObserved(parent, base, query, deadline, nil)
+}
+
+// waitDemoQueryObserved保留原判定和五秒轮询，只在首次通过后保存实际观测时刻。
+func waitDemoQueryObserved(parent context.Context, base, query string, deadline time.Time, observed func(time.Time, int) error) error {
 	ctx, cancel := context.WithDeadline(parent, deadline)
 	defer cancel()
+	polls := 0
 	for {
 		passed, err := demoQuery(ctx, base, query)
+		polls++
 		if err != nil {
 			return err
 		}
 		if passed {
+			at := time.Now() // 保留单调时钟，不能先UTC后拿墙钟差冒充经过时间。
+			if observed != nil {
+				return observed(at, polls)
+			}
 			return nil
 		}
 		if err = waitTick(ctx, 5*time.Second); err != nil {

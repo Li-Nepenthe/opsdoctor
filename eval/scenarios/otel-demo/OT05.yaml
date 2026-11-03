@@ -10,7 +10,7 @@ override_targeting: true
 symptoms: 商品详情查询出现部分失败，请核对哪些请求受影响，并结合调用链区分商品服务处理错误与数据库访问错误。
 symptom:
   promql: 'sum(increase(traces_span_metrics_calls_total{service_name="product-catalog",status_code="STATUS_CODE_ERROR"}[2m])) > 0'
-  within: 3m
+  within: 5m
 healthy_promql: '(sum(increase(traces_span_metrics_calls_total{service_name="product-catalog",status_code="STATUS_CODE_ERROR"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name="product-catalog"}[2m])) > 0'
 ground_truth:
   component: product-catalog

@@ -1,0 +1,21 @@
+{
+  "checked_at_utc": "2026-11-03T14:50:32.096112+00:00",
+  "host_free_bytes": 14054674432,
+  "disk_free_bytes": 732888039424,
+  "docker_limit_bytes": 16294768640,
+  "docker_free_output": [
+    "total        used        free      shared  buff/cache   available",
+    "Mem:    16294768640  1172340736  5903093760    26759168  9219334144 14844243968",
+    "Swap:    4294967296     1396736  4293570560"
+  ],
+  "docker_disk_output": [
+    "Filesystem           1-blocks       Used Available Use% Mounted on",
+    "/dev/sdd             1081101176832 125449097216 900659724288  12% /mnt/docker-desktop-disk"
+  ],
+  "running_before": [
+    "opsdoctor-phase09-doctor",
+    "opsdoctor-phase09-doctor-mysql"
+  ],
+  "settings_changed": false,
+  "scope": "Before user-approved free history replay and dual-Mock full rehearsal; no model calls."
+}

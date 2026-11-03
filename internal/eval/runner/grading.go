@@ -2,6 +2,7 @@
 //
 // 评委和 DeepSeek 对比共用人民币账户。它不借用 Terra 诊断的美元归属，也不
 // 绕过发送前预留。已有 running 评分只从审计恢复，不再发第二轮请求挑分数。
+// 阶段9另存原客户端的返回证明；是否继续批次只由generalization自己的门槛决定。
 //
 // 主要内容：newGrader 装配 Mock 或收费客户端；gradeSlot 保存评分输入、费用和结果；
 // gradeInput 只把医生已保存的观察交给评委。
@@ -38,17 +39,18 @@ type grader struct {
 
 // gradedResult 失败也保留；coverage 只在评分通过校验时有效。
 type gradedResult struct {
-	Version    string                   `json:"version"`         // 评分标准版本。
-	Hash       string                   `json:"hash"`            // 实际标准的字节哈希。
-	Status     string                   `json:"status"`          // ok 或 failed。
-	Model      string                   `json:"model"`           // 评委实际使用模型。
-	Error      string                   `json:"error,omitempty"` // 评分失败的原因。
-	Grade      judge.Grade              `json:"grade"`           // 机制和非规则证据评分。
-	Evidence   []scoring.EvidenceResult `json:"evidence"`        // 包含规则与评委的全部项目。
-	Coverage   float64                  `json:"coverage"`        // achieved / 全部项目数。
-	Usage      llm.Usage                `json:"usage"`           // 此次已确认用量。
-	CostMicros int64                    `json:"cost_micros"`     // 包含网络失败预留，币种固定 CNY。
-	Currency   string                   `json:"currency"`        // 不与医生的 USD 相加。
+	Version          string                   `json:"version"`                     // 评分标准版本。
+	Hash             string                   `json:"hash"`                        // 实际标准的字节哈希。
+	Status           string                   `json:"status"`                      // ok 或 failed。
+	Model            string                   `json:"model"`                       // 评委实际使用模型。
+	Error            string                   `json:"error,omitempty"`             // 评分失败的原因。
+	Grade            judge.Grade              `json:"grade"`                       // 机制和非规则证据评分。
+	Evidence         []scoring.EvidenceResult `json:"evidence"`                    // 包含规则与评委的全部项目。
+	Coverage         float64                  `json:"coverage"`                    // achieved / 全部项目数。
+	Usage            llm.Usage                `json:"usage"`                       // 此次已确认用量。
+	CostMicros       int64                    `json:"cost_micros"`                 // 包含网络失败预留，币种固定 CNY。
+	Currency         string                   `json:"currency"`                    // 不与医生的 USD 相加。
+	ResponseReturned *bool                    `json:"response_returned,omitempty"` // 仅阶段9记录已确认的API返回；旧评分不回填。
 }
 
 // newGrader 同时要求运行中的医生与本机显式允许真实调用，填 Key 本身不会启用收费。
@@ -162,13 +164,27 @@ func (value *grader) gradeSlot(ctx context.Context, slot store.EvalResult, scena
 	var response llm.Response
 	var problem error
 	var elapsed *time.Duration
+	var returned *bool
+	if value.account == "phase-09-deepseek" {
+		confirmed := false
+		returned = &confirmed // 缺省false；只有本次调用或已有账本回复能提供返回证明。
+	}
 	if audit.Status == "pending" {
 		started, err := value.repository.StartEvalJudge(ctx, audit.ID)
 		if err != nil || !started {
 			return fmt.Errorf("评分未取得执行权：%v", err)
 		}
 		begin := time.Now()
-		result, response, problem = judge.Evaluate(ctx, value.client, value.model, audit.ID, input)
+		client := value.client
+		var observed *demoJudgeClient
+		if returned != nil {
+			observed = &demoJudgeClient{Client: client, mock: value.provider == "mock"}
+			client = observed
+		}
+		result, response, problem = judge.Evaluate(ctx, client, value.model, audit.ID, input)
+		if observed != nil {
+			*returned = observed.returned
+		}
 		duration := time.Since(begin)
 		elapsed = &duration
 	} else if audit.Status == "running" {
@@ -176,11 +192,15 @@ func (value *grader) gradeSlot(ctx context.Context, slot store.EvalResult, scena
 		if err != nil {
 			return err
 		}
+		if returned != nil {
+			// 恢复只读取原账本，不再调用Complete；无计量或无回答时保持无法确认。
+			*returned = demoJudgeResponse(response, value.provider == "mock")
+		}
 		result, problem = judge.CheckResponse(response, input)
 	} else {
 		return fmt.Errorf("评分已结束但缺少结果，需要核对审计，不能重新付费")
 	}
-	grade := gradedResult{Version: judge.RubricVersion, Hash: judge.RubricHash(), Status: "ok", Model: response.Model, Grade: result, Usage: response.Usage, CostMicros: response.CostMicros, Currency: "CNY", Evidence: []scoring.EvidenceResult{}}
+	grade := gradedResult{Version: judge.RubricVersion, Hash: judge.RubricHash(), Status: "ok", Model: response.Model, Grade: result, Usage: response.Usage, CostMicros: response.CostMicros, Currency: "CNY", Evidence: []scoring.EvidenceResult{}, ResponseReturned: returned}
 	if problem != nil {
 		grade.Status, grade.Error = "failed", problem.Error()
 	} else {

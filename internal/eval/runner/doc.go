@@ -12,6 +12,9 @@
 //   - generalization_collection.go：独占保存每份诊断的Collector日志窗口，异常先落摘要再停止评分。
 //   - generalization_collection_test.go：用模拟Docker输出验证最终丢弃、映射错误、窗口与续跑证据。
 //   - generalization_test.go：用假接口验证开关范围、独立账户、异常暂停、恢复快照和说明书哈希。
+//   - generalization_grading_test.go：验证评分返回证明、累计失败停点、Mock单配置与等待边界。
+//   - generalization_timing.go：保留本进程单调锚点，独占保存首次症状与健康观察。
+//   - generalization_timing_test.go：检查计时原件、续跑未知时长与禁止覆盖。
 //   - load.go：从冻结场景计算诊断期的精确流量，并持续核对实际参数。
 //   - load_test.go：遍历全部场景，验证流量、热点及未变基线的严格匹配。
 //   - execution.go：在命令、轮次和槽位执行前追加当时的代码版本。

@@ -1,0 +1,54 @@
+{
+  "status": "passed",
+  "evidence": [
+    {
+      "path": "docs/reports/phase-09-historical-baseline-responses.jsonl",
+      "bytes": 734189,
+      "sha256": "cb12967ab6106ec307d73f3f853e5bee0adc1d7d9a29c95d5b6a148cc3f3d5e9",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-historical-baseline-replay.json",
+      "bytes": 2305109,
+      "sha256": "d5d0b8039b1ce41518567105c29959240859696ef8edff93face6abc5f7f034e",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-historical-baseline-mask-comparison.json",
+      "bytes": 40924,
+      "sha256": "f9239c55322d808f7b214ffedb03e1aa18f1a24dc4bf0b29b5dc53723c79b269",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-scenario-window-amendment.json",
+      "bytes": 31935,
+      "sha256": "0f239b0f40c3bd412db6702a43f221473506df85f742b757f9e3565b93a98604",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-payment-span-discovery.json",
+      "bytes": 46407,
+      "sha256": "f19f2c1abe6f6ea762635902624d5af7d14d6cac05cef696dfa8df17a2366c8e",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-checkout-background-error-spans.json",
+      "bytes": 2418,
+      "sha256": "03773c34c225ea9784f4c778e26e470a3c53767e1ed2fef14a6a84d7eaece1d2",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-preformal-verified-checks.json",
+      "bytes": 21557,
+      "sha256": "fdca257182ac83744b241e53d85cce49c79a012b380391cb3693895e673eecc5",
+      "git_bytes_equal": true
+    }
+  ],
+  "http_responses": 20,
+  "http_bodies_match_hashes": true,
+  "yaml_authorized_values_only": true,
+  "behavior_files_match_verified_checks": true,
+  "evidence_attributes_only_changed": true,
+  "pilot2_reports_unchanged_from_d2bdbe8": true,
+  "resume_mcp_line13_unchanged": true
+}

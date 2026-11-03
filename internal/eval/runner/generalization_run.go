@@ -22,6 +22,7 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/store"
 	"github.com/Li-Nepenthe/opsdoctor/internal/eval/report"
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
@@ -40,6 +41,34 @@ type demoRecovery struct {
 
 // generalizationGuardKey 区分用户要求“异常即停”的阶段 9 与阶段 8 的自动可靠性补跑。
 type generalizationGuardKey struct{}
+
+// 仅阶段9延长真实症状与恢复等待；shop和数据库的五分钟冷却规则保持原样。
+const (
+	demoObservationLimit  = 5 * time.Minute
+	demoJudgeFailureLimit = 3 // 本批第三份评分失败保留后暂停；前两份不重评。
+)
+
+// demoJudgeClient只观察原客户端的最终结果，不增加请求、重试或改变冻结评分。
+type demoJudgeClient struct {
+	llm.Client
+	mock     bool // Mock没有HTTP账本，只用于免费流程检查。
+	returned bool // 原有限重试结束后，是否取得了可确认的回答和计量。
+}
+
+// Complete保留原Response/error原样返回；有错误时即使带正文也不能当作格式失败豁免。
+func (client *demoJudgeClient) Complete(ctx context.Context, request llm.Request) (llm.Response, error) {
+	response, err := client.Client.Complete(ctx, request)
+	client.returned = err == nil && demoJudgeResponse(response, client.mock)
+	return response, err
+}
+
+// demoJudgeResponse确认外层回答存在；内层参数是否合法仍由冻结Check判断。
+func demoJudgeResponse(response llm.Response, mock bool) bool {
+	if response.Model == "" || response.Message.Role != "assistant" || response.CostMicros < 0 {
+		return false
+	}
+	return mock || response.UsageKnown && len(response.AttemptIDs) > 0
+}
 
 // checkGeneralizationSummary 保存失败后才拦截后续收费；原阶段 8 仍按既有规则补跑。
 func checkGeneralizationSummary(ctx context.Context, value report.Summary, key string) error {
@@ -135,6 +164,7 @@ func runGeneralization(parent context.Context, options generalizationCommand, ca
 	defer stopClock()
 	ctx = context.WithValue(ctx, diagnosisMemoryKey{}, demoMemoryBytes)
 	ctx = context.WithValue(ctx, generalizationGuardKey{}, true)
+	ctx = withDemoTiming(ctx) // 原time.Time只留在本次进程，续跑不能伪造已丢失的单调锚点。
 	status, err := client.runtime(ctx)
 	if err != nil {
 		return err
@@ -166,6 +196,10 @@ func runGeneralization(parent context.Context, options generalizationCommand, ca
 			problem = errors.Join(problem, repository.SetEvalRunState(cleanup, options.runID, "interrupted"))
 		}
 	}()
+	// 续跑先检查本批原失败；先装好interrupt收尾，再拒绝第三份失败或API异常。
+	if err = checkDemoSlot(ctx, options, "", repository); err != nil {
+		return err
+	}
 	for _, order := range plan.Orders {
 		options.scenario, options.iteration = order.Scenario, order.Iteration
 		if err = runDemoTrial(ctx, options, cases, order, reader, repository, client, output); err != nil {
@@ -224,7 +258,9 @@ func advanceDemoTrial(ctx context.Context, options generalizationCommand, cases 
 		}
 		if trial.State == "verifying" {
 			within, _ := time.ParseDuration(value.Symptom.Within)
-			if err = waitDemoQuery(ctx, options.prometheus, value.Symptom.PromQL, record.Started.Add(within)); err != nil {
+			if err = waitDemoQueryObserved(ctx, options.prometheus, value.Symptom.PromQL, record.Started.Add(within), func(at time.Time, polls int) error {
+				return observeDemoSymptom(ctx, options, at, polls)
+			}); err != nil {
 				return err
 			}
 			return repository.AdvanceEvalTrial(ctx, trial, "diagnosing", nil)
@@ -262,7 +298,11 @@ func injectDemoRecord(ctx context.Context, options generalizationCommand, value 
 	if equalJSON(original, injected) {
 		return fmt.Errorf("故障开关已经处在目标状态，不能把旧故障当成新注入")
 	}
-	record := demoRecovery{RunID: options.runID, Scenario: options.scenario, Iteration: options.iteration, Flagd: options.flagd, Started: time.Now().UTC().Truncate(time.Microsecond), Original: original, Injected: injected}
+	at := time.Now()
+	if err = rememberDemoInjection(ctx, options, at); err != nil {
+		return err
+	}
+	record := demoRecovery{RunID: options.runID, Scenario: options.scenario, Iteration: options.iteration, Flagd: options.flagd, Started: at.UTC().Truncate(time.Microsecond), Original: original, Injected: injected}
 	if err = createDemoRecord(options, record); err != nil {
 		return err
 	}
@@ -322,6 +362,12 @@ func restoreDemoRecord(ctx context.Context, options generalizationCommand, outpu
 		if err = writeDemoFlags(ctx, options.flagd, value.Original); err != nil {
 			return err
 		}
+		if options.action != "restore" {
+			// 只记录正常轮次真实写后读回的时刻；紧急恢复不依赖计时设施。
+			if err = rememberDemoRestore(ctx, options, time.Now()); err != nil {
+				return err
+			}
+		}
 	}
 	path, _ := demoRecoveryPath(options)
 	if err = writeDemoRestoreProof(path, value.Original); err != nil {
@@ -378,7 +424,9 @@ func recordDemoEvaluator(ctx context.Context, options generalizationCommand, rep
 func coolDemoTrial(ctx context.Context, options generalizationCommand, cases map[string]demoScenario, trial store.EvalTrial, repository *store.Store, client *doctorClient) error {
 	value := cases[options.scenario]
 	// 先看到健康，再等数据库记录的冷却窗口结束，旧日志不会马上污染下一次实验。
-	if err := waitDemoQuery(ctx, options.prometheus, value.HealthyPromQL, time.Now().Add(3*time.Minute)); err != nil {
+	if err := waitDemoQueryObserved(ctx, options.prometheus, value.HealthyPromQL, time.Now().Add(demoObservationLimit), func(at time.Time, polls int) error {
+		return observeDemoRecovery(ctx, options, at, polls)
+	}); err != nil {
 		return err
 	}
 	for trial.CooldownSeconds > 0 {
@@ -477,25 +525,51 @@ func demoSlotInput(ctx context.Context, options generalizationCommand, value dem
 	return json.Marshal(map[string]any{"fault_started_at": record.Started, "alerts": alerts, "symptoms": value.Symptoms})
 }
 
-// checkDemoSlot 评分协议失败与诊断执行失败都先保留原记录，再暂停后续收费。
+// checkDemoSlot读取本批原记录；格式评分失败可保留缺失，第三份或API异常仍暂停。
 func checkDemoSlot(ctx context.Context, options generalizationCommand, key string, repository *store.Store) error {
-	// 原失败和补跑行都要看；阶段 9 不会以新行替换异常后继续收费。
 	rows, err := repository.EvalResults(ctx, options.runID)
 	if err != nil {
 		return err
 	}
+	return checkDemoJudgements(options.runID, key, rows)
+}
+
+// checkDemoJudgements不调用评委也不改原文；累计只认同一run保存的judgement。
+func checkDemoJudgements(runID, key string, rows []store.EvalResult) error {
+	failures := 0
+	matched := key == "" // 空key用于续跑前检查，允许尚未创建任何槽位的新批次。
 	for _, row := range rows {
-		if row.Key != key && row.RetryOf != key {
+		if row.RunID != runID {
 			continue
+		}
+		current := key != "" && (row.Key == key || row.RetryOf == key)
+		matched = matched || current
+		if len(row.Data) == 0 && len(row.Judgement) == 0 && !current {
+			continue // 已占位置但尚未诊断的槽位，不是假定已经成功。
 		}
 		var summary report.Summary
 		if json.Unmarshal(row.Data, &summary) != nil || summary.Status != "succeeded" || summary.ReliabilityFailure || summary.MixedModel {
 			return fmt.Errorf("阶段 9 诊断执行异常，原结果已保留，暂停后续付费：%s", row.Key)
 		}
-		var grade gradedResult
-		if len(row.Judgement) > 0 && (json.Unmarshal(row.Judgement, &grade) != nil || grade.Status != "ok") {
-			return fmt.Errorf("阶段 9 评分异常，原结果已保留，暂停后续付费：%s", row.Key)
+		if len(row.Judgement) == 0 && !current {
+			continue // 中断的首次评分由原gradeSlot恢复原回答，不在这里重问。
 		}
+		var grade gradedResult
+		if row.JudgeID == "" || json.Unmarshal(row.Judgement, &grade) != nil || grade.Status != "ok" && grade.Status != "failed" {
+			return fmt.Errorf("阶段9缺少可核对的原评分，暂停后续付费：%s", row.Key)
+		}
+		if grade.ResponseReturned == nil || !*grade.ResponseReturned {
+			return fmt.Errorf("阶段9评分API失败或返回/费用无法确认，原记录保留，暂停后续付费：%s", row.Key)
+		}
+		if grade.Status == "failed" {
+			failures++ // 有返回但冻结Check拒收，保持缺失；不把默认零值当作分数。
+		}
+	}
+	if !matched {
+		return fmt.Errorf("阶段9原评分槽位不存在，暂停后续付费")
+	}
+	if failures >= demoJudgeFailureLimit {
+		return fmt.Errorf("阶段9本批累计%d份评分失败，原结果与费用保留，暂停后续付费", failures)
 	}
 	return nil
 }

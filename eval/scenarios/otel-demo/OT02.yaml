@@ -8,7 +8,7 @@ variant: "100%"
 symptoms: 本次窗口内购物车相关调用出现错误。请定位故障组件、机制和影响范围，并给出可核对的证据。
 symptom:
   promql: 'sum(increase(traces_span_metrics_calls_total{service_name="cart",status_code="STATUS_CODE_ERROR"}[2m])) > 0'
-  within: 3m
+  within: 5m
 healthy_promql: '(sum(increase(traces_span_metrics_calls_total{service_name="cart",status_code="STATUS_CODE_ERROR"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name="cart"}[2m])) > 0'
 ground_truth:
   component: cart
