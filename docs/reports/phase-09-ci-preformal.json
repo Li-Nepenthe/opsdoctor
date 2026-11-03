@@ -1,0 +1,319 @@
+{
+  "checked_at_utc": "2026-11-03T15:41:28.340Z",
+  "repo_full_name": "Li-Nepenthe/opsdoctor",
+  "tested_commit": "0d221f72056965788ff2e180093fea23555976f3",
+  "commit_sha": "0d221f72056965788ff2e180093fea23555976f3",
+  "branch": "phase-09-generalization",
+  "workflow": "CI",
+  "event": "push",
+  "run": {
+    "id": 41663273057,
+    "url": "https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41663273057",
+    "api_url": "https://api.github.com/repos/Li-Nepenthe/opsdoctor/actions/runs/41663273057",
+    "attempt": 1,
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-11-03T15:22:48Z",
+    "started_at": "2026-11-03T15:22:48Z",
+    "updated_at": "2026-11-03T15:39:14Z"
+  },
+  "all_success": true,
+  "counts": {
+    "jobs": 1,
+    "steps": 24,
+    "steps_success": 23,
+    "steps_skipped": 1,
+    "steps_failed": 0
+  },
+  "jobs": [
+    {
+      "id": 126011765267,
+      "name": "quality",
+      "status": "completed",
+      "conclusion": "success",
+      "run_id": 41663273057,
+      "url": "https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41663273057/job/126011765267",
+      "head_sha": "0d221f72056965788ff2e180093fea23555976f3",
+      "started_at": "2026-11-03T15:22:52Z",
+      "completed_at": "2026-11-03T15:39:13Z",
+      "runner_name": "GitHub Actions 1000000279",
+      "labels": [
+        "ubuntu-24.04"
+      ],
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-03T15:22:53Z",
+          "completed_at": "2026-11-03T15:22:54Z"
+        },
+        {
+          "name": "Run actions/checkout@v7.0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-03T15:22:54Z",
+          "completed_at": "2026-11-03T15:22:56Z"
+        },
+        {
+          "name": "Run actions/setup-go@v7.0.0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-03T15:22:56Z",
+          "completed_at": "2026-11-03T15:23:13Z"
+        },
+        {
+          "name": "检查格式",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-03T15:23:13Z",
+          "completed_at": "2026-11-03T15:23:13Z"
+        },
+        {
+          "name": "检查模块文件没有遗漏",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-03T15:23:13Z",
+          "completed_at": "2026-11-03T15:23:13Z"
+        },
+        {
+          "name": "Vet",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-11-03T15:23:13Z",
+          "completed_at": "2026-11-03T15:23:22Z"
+        },
+        {
+          "name": "Staticcheck",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-11-03T15:23:22Z",
+          "completed_at": "2026-11-03T15:23:53Z"
+        },
+        {
+          "name": "注释和架构",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-03T15:23:53Z",
+          "completed_at": "2026-11-03T15:23:53Z"
+        },
+        {
+          "name": "单元测试与竞态检查（无外部依赖）",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-11-03T15:23:53Z",
+          "completed_at": "2026-11-03T15:25:58Z"
+        },
+        {
+          "name": "检查另一构建版本能编译",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-11-03T15:25:58Z",
+          "completed_at": "2026-11-03T15:26:01Z"
+        },
+        {
+          "name": "独立医生只启动自身与数据库（无 Shop 凭据）",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-11-03T15:26:01Z",
+          "completed_at": "2026-11-03T15:27:40Z"
+        },
+        {
+          "name": "启动固定版本基础设施并等待健康",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-11-03T15:27:40Z",
+          "completed_at": "2026-11-03T15:32:52Z"
+        },
+        {
+          "name": "MySQL 和 Redis 集成测试与竞态检查",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-11-03T15:32:52Z",
+          "completed_at": "2026-11-03T15:33:16Z"
+        },
+        {
+          "name": "库存服务与 small 造数冒烟",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-11-03T15:33:16Z",
+          "completed_at": "2026-11-03T15:33:18Z"
+        },
+        {
+          "name": "网络实验与恢复冒烟",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-11-03T15:33:18Z",
+          "completed_at": "2026-11-03T15:33:19Z"
+        },
+        {
+          "name": "订单 HTTP、幂等和消息冒烟",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-11-03T15:33:19Z",
+          "completed_at": "2026-11-03T15:33:31Z"
+        },
+        {
+          "name": "指标、调用链、日志和 Grafana 接线冒烟",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-11-03T15:33:31Z",
+          "completed_at": "2026-11-03T15:33:48Z"
+        },
+        {
+          "name": "医生登录、Mock诊断、SSE与告警去重冒烟",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 18,
+          "started_at": "2026-11-03T15:33:48Z",
+          "completed_at": "2026-11-03T15:33:56Z"
+        },
+        {
+          "name": "五轮独立全新卷冷启动、真实消费与日志",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 19,
+          "started_at": "2026-11-03T15:33:56Z",
+          "completed_at": "2026-11-03T15:39:10Z"
+        },
+        {
+          "name": "失败时记录容器状态",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 20,
+          "started_at": "2026-11-03T15:39:10Z",
+          "completed_at": "2026-11-03T15:39:10Z"
+        },
+        {
+          "name": "关闭 CI 的临时容器",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 21,
+          "started_at": "2026-11-03T15:39:10Z",
+          "completed_at": "2026-11-03T15:39:10Z"
+        },
+        {
+          "name": "Post Run actions/setup-go@v7.0.0",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 41,
+          "started_at": "2026-11-03T15:39:10Z",
+          "completed_at": "2026-11-03T15:39:11Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v7.0.1",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 42,
+          "started_at": "2026-11-03T15:39:11Z",
+          "completed_at": "2026-11-03T15:39:11Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 43,
+          "started_at": "2026-11-03T15:39:11Z",
+          "completed_at": "2026-11-03T15:39:11Z"
+        }
+      ]
+    }
+  ],
+  "required_checks": [
+    {
+      "number": 9,
+      "name": "单元测试与竞态检查（无外部依赖）",
+      "conclusion": "success"
+    },
+    {
+      "number": 11,
+      "name": "独立医生只启动自身与数据库（无 Shop 凭据）",
+      "conclusion": "success"
+    },
+    {
+      "number": 13,
+      "name": "MySQL 和 Redis 集成测试与竞态检查",
+      "conclusion": "success"
+    },
+    {
+      "number": 14,
+      "name": "库存服务与 small 造数冒烟",
+      "conclusion": "success"
+    },
+    {
+      "number": 15,
+      "name": "网络实验与恢复冒烟",
+      "conclusion": "success"
+    },
+    {
+      "number": 16,
+      "name": "订单 HTTP、幂等和消息冒烟",
+      "conclusion": "success"
+    },
+    {
+      "number": 17,
+      "name": "指标、调用链、日志和 Grafana 接线冒烟",
+      "conclusion": "success"
+    },
+    {
+      "number": 18,
+      "name": "医生登录、Mock诊断、SSE与告警去重冒烟",
+      "conclusion": "success"
+    },
+    {
+      "number": 19,
+      "name": "五轮独立全新卷冷启动、真实消费与日志",
+      "conclusion": "success"
+    },
+    {
+      "number": 21,
+      "name": "关闭 CI 的临时容器",
+      "conclusion": "success"
+    }
+  ],
+  "cold_start_step": {
+    "number": 19,
+    "started_at": "2026-11-03T15:33:56Z",
+    "completed_at": "2026-11-03T15:39:10Z",
+    "elapsed_seconds": 314,
+    "conclusion": "success"
+  },
+  "sources": [
+    {
+      "tool": "GitHub.fetch",
+      "url": "https://api.github.com/repos/Li-Nepenthe/opsdoctor/actions/runs/41663273057"
+    },
+    {
+      "tool": "GitHub.fetch_workflow_run_jobs",
+      "repo_full_name": "Li-Nepenthe/opsdoctor",
+      "run_id": 41663273057
+    },
+    {
+      "tool": "GitHub.fetch",
+      "url": "https://api.github.com/repos/Li-Nepenthe/opsdoctor/actions/runs/41663273057/jobs?per_page=100"
+    }
+  ],
+  "notes": [
+    "Only the exact pushed code commit is attributed to this CI run; any later archival commit requires separate status attribution.",
+    "The skipped failure-diagnostics step is conditional on failure; its skip is expected in this successful run.",
+    "CI success does not change the failed historical baseline gate (P9-60/P9-61), and does not establish that the real Demo dual-Mock matrix or paid formal batch ran.",
+    "This observation performed read-only GitHub queries. It did not rerun CI, modify source/configuration, access databases, control Docker, inject faults, or call models."
+  ]
+}

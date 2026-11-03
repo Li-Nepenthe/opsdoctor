@@ -44,6 +44,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-ci-collection.json                            |   353 +
  docs/reports/phase-09-ci-first.json                                 |   160 +
  docs/reports/phase-09-ci-level.json                                 |   159 +
+ docs/reports/phase-09-ci-preformal.json                             |   319 +
  docs/reports/phase-09-ci-standalone.json                            |   162 +
  docs/reports/phase-09-clock-before-network.jsonl                    |    61 +
  docs/reports/phase-09-clock-preflight.json                          |    10 +
@@ -89,7 +90,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-eventstream-controlled-20261103T072744Z.jsonl |    29 +
  docs/reports/phase-09-eventstream-coverage.json                     |  1364 ++
  docs/reports/phase-09-evidence-byte-check.json                      |    26 +
- docs/reports/phase-09-generalization.md                             |   345 +
+ docs/reports/phase-09-generalization.md                             |   347 +
  docs/reports/phase-09-historical-baseline-mask-comparison.json      |  1252 ++
  docs/reports/phase-09-historical-baseline-replay.json               | 74046 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
  docs/reports/phase-09-historical-baseline-replay.md                 |    78 +
@@ -222,7 +223,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/resume-draft.md                                                |    14 +-
  docs/troubleshooting.md                                             |    34 +-
  docs/代码地图.md                                                    |    20 +
- docs/数据台账.md                                                    |    98 +
+ docs/数据台账.md                                                    |    99 +
  eval/scenarios/otel-demo/OT01.yaml                                  |    20 +
  eval/scenarios/otel-demo/OT02.yaml                                  |    21 +
  eval/scenarios/otel-demo/OT03.yaml                                  |    21 +
@@ -278,7 +279,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  internal/eval/runner/paired.go                                      |    14 +
  进度.md                                                             |    31 +-
  项目计划书.md                                                       |    15 +
- 276 files changed, 134942 insertions(+), 114 deletions(-)
+ 277 files changed, 135264 insertions(+), 114 deletions(-)
 
 $ git diff --cached --stat main -- internal/doctor/tools internal/doctor/agent
 (empty output; no tools/agent files changed)
