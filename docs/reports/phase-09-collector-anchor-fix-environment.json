@@ -1,0 +1,219 @@
+{
+  "captured_at_utc": "2026-11-03T08:01:51.697461+00:00",
+  "cutoff_utc": "2026-11-03T08:01:50.697461Z",
+  "scope": "read-only same Docker logs selector reproduction; no lifecycle, flags, model, DB or code changes",
+  "records": [
+    {
+      "name": "tail1",
+      "args": [
+        "logs",
+        "--timestamps",
+        "--until",
+        "2026-11-03T08:01:50.697461Z",
+        "--tail",
+        "1",
+        "opsdoctor-otel-demo-otel-collector"
+      ],
+      "began_at_utc": "2026-11-03T08:01:51.697490+00:00",
+      "finished_at_utc": "2026-11-03T08:01:51.745596+00:00",
+      "exit_code": 0,
+      "stdout": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\tail1.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ends_lf": false,
+        "lines": 0
+      },
+      "stderr": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\tail1.stderr.log",
+        "bytes": 370,
+        "sha256": "d5d8f9504695b227c99075477f4baf82a012d323b30824f9e0c7779529c2eb0e",
+        "ends_lf": true,
+        "lines": 1
+      },
+      "total_bytes": 370
+    },
+    {
+      "name": "tail2",
+      "args": [
+        "logs",
+        "--timestamps",
+        "--until",
+        "2026-11-03T08:01:50.697461Z",
+        "--tail",
+        "2",
+        "opsdoctor-otel-demo-otel-collector"
+      ],
+      "began_at_utc": "2026-11-03T08:01:51.746223+00:00",
+      "finished_at_utc": "2026-11-03T08:01:51.789678+00:00",
+      "exit_code": 0,
+      "stdout": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\tail2.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ends_lf": false,
+        "lines": 0
+      },
+      "stderr": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\tail2.stderr.log",
+        "bytes": 741,
+        "sha256": "1798b6b816c5479a1494bca7fbe217ebe9a11133e8defc597327fac4d58d86d2",
+        "ends_lf": true,
+        "lines": 2
+      },
+      "total_bytes": 741
+    },
+    {
+      "name": "tail10",
+      "args": [
+        "logs",
+        "--timestamps",
+        "--until",
+        "2026-11-03T08:01:50.697461Z",
+        "--tail",
+        "10",
+        "opsdoctor-otel-demo-otel-collector"
+      ],
+      "began_at_utc": "2026-11-03T08:01:51.790657+00:00",
+      "finished_at_utc": "2026-11-03T08:01:51.833782+00:00",
+      "exit_code": 0,
+      "stdout": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\tail10.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ends_lf": false,
+        "lines": 0
+      },
+      "stderr": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\tail10.stderr.log",
+        "bytes": 3545,
+        "sha256": "023e5566d8026a4cf0f3967aac74c370c97ed7e96b69fb03c0be3d653047a38b",
+        "ends_lf": true,
+        "lines": 10
+      },
+      "total_bytes": 3545
+    },
+    {
+      "name": "tail100",
+      "args": [
+        "logs",
+        "--timestamps",
+        "--until",
+        "2026-11-03T08:01:50.697461Z",
+        "--tail",
+        "100",
+        "opsdoctor-otel-demo-otel-collector"
+      ],
+      "began_at_utc": "2026-11-03T08:01:51.834291+00:00",
+      "finished_at_utc": "2026-11-03T08:01:51.876225+00:00",
+      "exit_code": 0,
+      "stdout": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\tail100.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ends_lf": false,
+        "lines": 0
+      },
+      "stderr": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\tail100.stderr.log",
+        "bytes": 32427,
+        "sha256": "035f0f5c1e1b0310e9c969ce0159ccf14f591b211a3cd1f4e333f00ac87f711a",
+        "ends_lf": true,
+        "lines": 100
+      },
+      "total_bytes": 32427
+    },
+    {
+      "name": "tailall",
+      "args": [
+        "logs",
+        "--timestamps",
+        "--until",
+        "2026-11-03T08:01:50.697461Z",
+        "--tail",
+        "all",
+        "opsdoctor-otel-demo-otel-collector"
+      ],
+      "began_at_utc": "2026-11-03T08:01:51.876808+00:00",
+      "finished_at_utc": "2026-11-03T08:01:51.994186+00:00",
+      "exit_code": 0,
+      "stdout": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\tailall.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ends_lf": false,
+        "lines": 0
+      },
+      "stderr": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\tailall.stderr.log",
+        "bytes": 4050769,
+        "sha256": "a5b9f8758be8b9a129d43447bae06be0e1ce564c5c8fa30df3fdb00189bec9b3",
+        "ends_lf": true,
+        "lines": 11606
+      },
+      "total_bytes": 4050769
+    },
+    {
+      "name": "window30s",
+      "args": [
+        "logs",
+        "--timestamps",
+        "--since",
+        "2026-11-03T08:01:20.697461Z",
+        "--until",
+        "2026-11-03T08:01:50.697461Z",
+        "opsdoctor-otel-demo-otel-collector"
+      ],
+      "began_at_utc": "2026-11-03T08:01:51.999684+00:00",
+      "finished_at_utc": "2026-11-03T08:01:52.069545+00:00",
+      "exit_code": 0,
+      "stdout": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\window30s.stdout.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "ends_lf": false,
+        "lines": 0
+      },
+      "stderr": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\window30s.stderr.log",
+        "bytes": 31714,
+        "sha256": "2ba872b24fe81dec1a81ce977702f2f44e98e37b64a3885432177426800aec26",
+        "ends_lf": true,
+        "lines": 98
+      },
+      "total_bytes": 31714
+    }
+  ],
+  "combined_tail1": {
+    "args": [
+      "logs",
+      "--timestamps",
+      "--until",
+      "2026-11-03T08:01:50.697461Z",
+      "--tail",
+      "1",
+      "opsdoctor-otel-demo-otel-collector"
+    ],
+    "exit_code": 0,
+    "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\tail1.combined.log",
+    "bytes": 370,
+    "sha256": "d5d8f9504695b227c99075477f4baf82a012d323b30824f9e0c7779529c2eb0e",
+    "repr": "b'2026-11-03T08:01:50.188511909Z 2026-11-03T08:01:50.188Z\\tinfo\\tMetrics\\t{\"resource\": {\"service.instance.id\": \"5008cb0a-1b8a-4a79-bd0b-bf6dee953796\", \"service.name\": \"otelcol-contrib\", \"service.version\": \"0.159.0\"}, \"otelcol.component.id\": \"debug\", \"otelcol.component.kind\": \"exporter\", \"otelcol.signal\": \"metrics\", \"resource metrics\": 1, \"metrics\": 48, \"data points\": 394}\\n'"
+  },
+  "collector": {
+    "inspect_exit": 0,
+    "id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+    "image": "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.159.0",
+    "started_at": "2026-11-03T06:39:41.928421795Z",
+    "restarts": 0,
+    "running": true,
+    "tty": false,
+    "log_config": {
+      "Type": "json-file",
+      "Config": {
+        "max-file": "2",
+        "max-size": "5m"
+      }
+    }
+  }
+}

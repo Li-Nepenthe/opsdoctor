@@ -1,0 +1,1 @@
+2026-11-03T08:11:57.835300528Z 2026-11-03T08:11:57.835Z	info	Metrics	{"resource": {"service.instance.id": "5008cb0a-1b8a-4a79-bd0b-bf6dee953796", "service.name": "otelcol-contrib", "service.version": "0.159.0"}, "otelcol.component.id": "debug", "otelcol.component.kind": "exporter", "otelcol.signal": "metrics", "resource metrics": 1, "metrics": 18, "data points": 77}

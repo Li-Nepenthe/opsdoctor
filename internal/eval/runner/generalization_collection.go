@@ -124,9 +124,14 @@ func beginCollectorWindow(ctx context.Context, key, existingDiagnosis, root stri
 		return nil, fmt.Errorf("Collector未在诊断窗口前持续运行：%v", err)
 	}
 	value.Identity = identity
-	raw, err := run(ctx, "logs", "--timestamps", "--until", value.Start.Format(time.RFC3339Nano), "--tail", "1", collectorContainer)
+	// Docker先取tail再按until过滤；只取末行会在新日志晚于起点时误得空集。
+	// 固定日志轮转限制保留量，外层仍有64MiB硬上限；从全部保留行选择起点前最近一条。
+	raw, err := run(ctx, "logs", "--timestamps", "--until", value.Start.Format(time.RFC3339Nano), "--tail", "all", collectorContainer)
 	if err != nil {
 		return nil, fmt.Errorf("无法取得Collector起点日志锚点")
+	}
+	if len(bytes.TrimSpace(raw)) == 0 {
+		return nil, fmt.Errorf("Collector起点前无保留日志，无法证明窗口覆盖")
 	}
 	for _, line := range strings.Split(strings.TrimSpace(string(raw)), "\n") {
 		line = strings.TrimSuffix(line, "\r")

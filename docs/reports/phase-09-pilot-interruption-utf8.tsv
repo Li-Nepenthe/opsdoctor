@@ -1,0 +1,13 @@
+run_id	scenario	iteration	state	fault_started_at	restored_at	updated_at
+phase09-pilot-20261103-terra	OT01	1	diagnosing	2026-11-03 07:57:10.206982	NULL	2026-11-03 07:57:45.331427
+result_key	run_id	scenario	iteration	experiment_group	diagnosis_id	created_at	finished_at
+phase09-pilot-20261103-terra/OT01/1/primary-E1	phase09-pilot-20261103-terra	OT01	1	E1	NULL	2026-11-03 07:57:45.421380	NULL
+run_id	created_at	reason	reason_utf8_hex
+phase09-pilot-20261103-terra	2026-11-03 07:57:47.915069	Collector起点锚点时间无法验证	436F6C6C6563746F72E8B5B7E782B9E9949AE782B9E697B6E997B4E697A0E6B395E9AA8CE8AF81
+target	run_id	enabled	updated_at
+otel-demo	phase09-pilot-20261103-terra	1	2026-11-03 07:55:32.935734
+generation_attempts
+0
+account	currency	spent_micros
+phase-09-deepseek	CNY	0
+phase-09-openai	USD	0

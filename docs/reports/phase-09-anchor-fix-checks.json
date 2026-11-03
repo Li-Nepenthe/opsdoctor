@@ -1,0 +1,310 @@
+{
+  "started_at_utc": "2026-11-03T08:13:22.027871Z",
+  "finished_at_utc": "2026-11-03T08:13:49.036697Z",
+  "commit": "e1c9fe8da6251731c766073b614b743e1ebe70d2",
+  "branch": "phase-09-generalization",
+  "source_working_tree": "e1c9fe8 + Collector起点查询tail all及真空输出失败说明、Mock与显式只读回归；两处用户修改仅保留，未提交。",
+  "source_working_tree_status_before": "M .gitattributes\n M README.md\n M deploy/opentelemetry/README.md\n M docs/learn/phase-00-foundation.md\n M docs/learn/phase-09-generalization.md\n M docs/notes.md\n M docs/reports/phase-09-generalization.md\n M docs/reports/phase-09-logging-fix.md\n M \"docs/\\346\\225\\260\\346\\215\\256\\345\\217\\260\\350\\264\\246.md\"\n M internal/eval/runner/generalization_collection.go\n M internal/eval/runner/generalization_collection_test.go\n M internal/shop/app/inventoryservice/app.go\n M \"\\350\\277\\233\\345\\272\\246.md\"\n?? docs/reports/phase-09-ci-collection.json\n?? docs/reports/phase-09-eventstream-coverage.json\n?? docs/reports/phase-09-pilot-demo-stop.log\n?? docs/reports/phase-09-pilot-final-database.tsv\n?? docs/reports/phase-09-pilot-final-runtime.json\n?? docs/reports/phase-09-pilot-freeze.log\n?? docs/reports/phase-09-pilot-interrupted.md\n?? docs/reports/phase-09-pilot-interruption-state.tsv\n?? docs/reports/phase-09-pilot-interruption-utf8.tsv\n?? docs/reports/phase-09-pilot-recovery-proof.json\n?? docs/reports/phase-09-pilot-restore.log\n?? docs/reports/phase-09-pilot-run.log\n?? docs/reports/phase-09-runtime-before-pilot.json\n?? docs/reports/phase-09-runtime-pilot-interrupted.json",
+  "source_diff_files": [
+    "internal/eval/report/calibration.go",
+    "internal/eval/report/calibration_test.go",
+    "internal/eval/report/doc.go",
+    "internal/eval/report/markdown.go",
+    "internal/eval/report/markdown_test.go",
+    "internal/eval/report/statistics.go",
+    "internal/eval/report/statistics_test.go",
+    "internal/eval/report/summary.go",
+    "internal/eval/report/summary_test.go",
+    "internal/eval/runner/generalization_collection.go",
+    "internal/eval/runner/generalization_collection_test.go",
+    "internal/eval/runner/paired.go",
+    "internal/eval/runner/doc.go",
+    "eval/scenarios/otel-demo/OT01.yaml",
+    "internal/doctor/source/jaeger/client.go",
+    "internal/doctor/source/jaeger/client_test.go",
+    "internal/doctor/source/jaeger/doc.go",
+    "deploy/doctor/targets/otel-demo.yaml",
+    "deploy/doctor/compose.yaml",
+    "deploy/opentelemetry/doctor.phase09.yaml",
+    ".gitattributes"
+  ],
+  "source_diff_sha256": "28125d50605d6631c27aefe295822886c2e7bab8d590bbca6e969ec20441c0aa",
+  "source_diff_log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\source-diff.patch",
+  "source_file_hashes_before": {
+    "internal/eval/report/calibration.go": "0696bb4ae2284e87fbfa37d213a85379ddb96e630b75fbeb99eed90fe789b975",
+    "internal/eval/report/calibration_test.go": "37d42ad055bc44ce191fb497f6d2f93747ef0b25f7b149585f9549bab2363b11",
+    "internal/eval/report/doc.go": "d1d2a5149c0aa12c19862f0f43a6d154acfe9fd8e7ddd885f33fdd6c1aaf35ea",
+    "internal/eval/report/markdown.go": "14d63b0f7519d434c37857c6da39ef3263f84c467f8d106532d9515256234021",
+    "internal/eval/report/markdown_test.go": "6bdb9873089006cadb63b0b234393a2108c4f1fd9dff841c9efc422523c09e10",
+    "internal/eval/report/statistics.go": "849ca7718298232830704cfe2975b14704f8ab22ba011a3f7bee2dedc3f716f7",
+    "internal/eval/report/statistics_test.go": "1de31dca8ae235ea313b44e949fdf14cc20a6e7c5642e7d91e47820a096f9d03",
+    "internal/eval/report/summary.go": "b56fc5169cc7108fd7ca2b4385f911db2d0698b26f91d3d7b9ef79eac584fe0f",
+    "internal/eval/report/summary_test.go": "73acbf0568fc5b9fb363a7518db9a266d4c8493c58386ffc7ff1efe7a7340e3e",
+    "internal/eval/runner/generalization_collection.go": "5d407d34477039ace01398477ed2de93d08ebb751786b7d6bc64c21f8784962e",
+    "internal/eval/runner/generalization_collection_test.go": "df248a6edfab533afa4ee2bec96b161c825bd3bbab353788071791c254147f51",
+    "internal/eval/runner/paired.go": "5c45009e0c724e478d5e2dd4e1ef30cfd97c04b531353895f3bc1d2671b31bc9",
+    "internal/eval/runner/doc.go": "abd0f260c0f65a419c0327510bf67b85e45c614066f97c62fe13322565f41bad",
+    "eval/scenarios/otel-demo/OT01.yaml": "f7e4b563448c972c9cd16453ec8ffb4dfa892669e92838e238e457290832f566",
+    "internal/doctor/source/jaeger/client.go": "08f663fab20c4a59dedad906d07b06576f83ab2d2c7130335b16c1ea31c81d27",
+    "internal/doctor/source/jaeger/client_test.go": "0e31a2c2e7150cb70b5f526fceff40a82e55a95d4cfdab1f43db78b03db48937",
+    "internal/doctor/source/jaeger/doc.go": "4fbbe9c118a287060d8632cffb602ac63a9556e9dc5f2981849476b50bdef3ef",
+    "deploy/doctor/targets/otel-demo.yaml": "6319080353ee1cfa2de498f2fe8f3ccdfa863b1cdefa48e1f514c824a010bb4b",
+    "deploy/doctor/compose.yaml": "9dd62f87688f2cb866695ca64bbd0ed40011678ffcfce8742d024a1240f0084e",
+    "deploy/opentelemetry/doctor.phase09.yaml": "360ceeaa0b93d2fa20338de407023cb68f9df6d23187770644ace1478b6218af",
+    ".gitattributes": "75f4050a844b7cf99444f2c1b44680f7cbb8039adece4532152687f85fc5c987"
+  },
+  "source_file_hashes_after": {
+    "internal/eval/report/calibration.go": "0696bb4ae2284e87fbfa37d213a85379ddb96e630b75fbeb99eed90fe789b975",
+    "internal/eval/report/calibration_test.go": "37d42ad055bc44ce191fb497f6d2f93747ef0b25f7b149585f9549bab2363b11",
+    "internal/eval/report/doc.go": "d1d2a5149c0aa12c19862f0f43a6d154acfe9fd8e7ddd885f33fdd6c1aaf35ea",
+    "internal/eval/report/markdown.go": "14d63b0f7519d434c37857c6da39ef3263f84c467f8d106532d9515256234021",
+    "internal/eval/report/markdown_test.go": "6bdb9873089006cadb63b0b234393a2108c4f1fd9dff841c9efc422523c09e10",
+    "internal/eval/report/statistics.go": "849ca7718298232830704cfe2975b14704f8ab22ba011a3f7bee2dedc3f716f7",
+    "internal/eval/report/statistics_test.go": "1de31dca8ae235ea313b44e949fdf14cc20a6e7c5642e7d91e47820a096f9d03",
+    "internal/eval/report/summary.go": "b56fc5169cc7108fd7ca2b4385f911db2d0698b26f91d3d7b9ef79eac584fe0f",
+    "internal/eval/report/summary_test.go": "73acbf0568fc5b9fb363a7518db9a266d4c8493c58386ffc7ff1efe7a7340e3e",
+    "internal/eval/runner/generalization_collection.go": "5d407d34477039ace01398477ed2de93d08ebb751786b7d6bc64c21f8784962e",
+    "internal/eval/runner/generalization_collection_test.go": "df248a6edfab533afa4ee2bec96b161c825bd3bbab353788071791c254147f51",
+    "internal/eval/runner/paired.go": "5c45009e0c724e478d5e2dd4e1ef30cfd97c04b531353895f3bc1d2671b31bc9",
+    "internal/eval/runner/doc.go": "abd0f260c0f65a419c0327510bf67b85e45c614066f97c62fe13322565f41bad",
+    "eval/scenarios/otel-demo/OT01.yaml": "f7e4b563448c972c9cd16453ec8ffb4dfa892669e92838e238e457290832f566",
+    "internal/doctor/source/jaeger/client.go": "08f663fab20c4a59dedad906d07b06576f83ab2d2c7130335b16c1ea31c81d27",
+    "internal/doctor/source/jaeger/client_test.go": "0e31a2c2e7150cb70b5f526fceff40a82e55a95d4cfdab1f43db78b03db48937",
+    "internal/doctor/source/jaeger/doc.go": "4fbbe9c118a287060d8632cffb602ac63a9556e9dc5f2981849476b50bdef3ef",
+    "deploy/doctor/targets/otel-demo.yaml": "6319080353ee1cfa2de498f2fe8f3ccdfa863b1cdefa48e1f514c824a010bb4b",
+    "deploy/doctor/compose.yaml": "9dd62f87688f2cb866695ca64bbd0ed40011678ffcfce8742d024a1240f0084e",
+    "deploy/opentelemetry/doctor.phase09.yaml": "360ceeaa0b93d2fa20338de407023cb68f9df6d23187770644ace1478b6218af",
+    ".gitattributes": "75f4050a844b7cf99444f2c1b44680f7cbb8039adece4532152687f85fc5c987"
+  },
+  "source_files_unchanged_during_checks": true,
+  "toolchain": {
+    "CC": "gcc",
+    "CGO_ENABLED": "1",
+    "GOARCH": "amd64",
+    "GOCACHE": "D:\\Code\\GoCache",
+    "GOOS": "windows",
+    "GOPATH": "C:\\Users\\Nepenthe\\go",
+    "GOVERSION": "go1.27.1",
+    "staticcheck_version": "staticcheck.exe 2026.2.2 (0.8.2)"
+  },
+  "environment": {
+    "LLM_PROVIDER": "mock",
+    "EVAL_COMPARISON_ENABLED": "false",
+    "CGO_ENABLED": "1",
+    "TEST_env_count": 0,
+    "model_api_keys_present": false,
+    "cleared_environment_variable_names": [
+      "OPENAI_API_KEY"
+    ],
+    "global_environment_modified": false
+  },
+  "checks": [
+    {
+      "check": "format",
+      "command": "gofmt -l cmd gen internal tools",
+      "started_at_utc": "2026-11-03T08:13:22.162069Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\format.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 0.04971,
+      "finished_at_utc": "2026-11-03T08:13:22.211831Z",
+      "unformatted_files": [],
+      "passed": true,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "vet",
+      "command": "go vet ./...",
+      "started_at_utc": "2026-11-03T08:13:22.212107Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\vet.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 0.887013,
+      "finished_at_utc": "2026-11-03T08:13:23.099162Z",
+      "passed": true,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "staticcheck",
+      "command": "C:\\Users\\Nepenthe\\go\\bin\\staticcheck.exe ./...",
+      "started_at_utc": "2026-11-03T08:13:23.099500Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\staticcheck.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 1.174988,
+      "finished_at_utc": "2026-11-03T08:13:24.274529Z",
+      "passed": true,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "check": "commentcheck",
+      "command": "go run ./tools/commentcheck ./...",
+      "started_at_utc": "2026-11-03T08:13:24.274741Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\commentcheck.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 0.14095,
+      "finished_at_utc": "2026-11-03T08:13:24.415734Z",
+      "file_count": 443,
+      "passed": true,
+      "sha256": "6585aadc62e3f7d6a9c925951200128eafaefe32f25495c3ba486fa8ed03cc77"
+    },
+    {
+      "check": "archcheck",
+      "command": "go run ./tools/archcheck ./...",
+      "started_at_utc": "2026-11-03T08:13:24.416858Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\archcheck.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 0.144421,
+      "finished_at_utc": "2026-11-03T08:13:24.561333Z",
+      "passed": true,
+      "sha256": "34aadc8dfe47f2765c8a270910975bdf72dc1050a3398036d6ed7e0edc0657e0"
+    },
+    {
+      "check": "race",
+      "command": "go test -race ./... -count=1 -timeout=180s -json",
+      "started_at_utc": "2026-11-03T08:13:24.562372Z",
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\race.log",
+      "mock_mode": "mock",
+      "comparison_enabled": "false",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "exit_code": 0,
+      "elapsed_seconds": 24.448621,
+      "finished_at_utc": "2026-11-03T08:13:49.010544Z",
+      "passed": true,
+      "sha256": "0400663178ac3cfb8f6bf3f786d5746cbf442f1357c5f5839e917356868f7b62"
+    }
+  ],
+  "test_statistics": {
+    "top_level_pass": 306,
+    "including_subtests_pass": 1033,
+    "top_level_skip": 48,
+    "including_subtests_skip": 58,
+    "top_level_fail": 0,
+    "including_subtests_fail": 0,
+    "packages_pass": 58,
+    "packages_skip": 16,
+    "packages_fail": 0,
+    "packages_total": 74
+  },
+  "failed_tests": [],
+  "non_json_race_lines": [],
+  "protected_files": [
+    {
+      "path": "docs/learn/phase-00-foundation.md",
+      "expected": "dc0d4d5288d5d140e800f7e412680a1f0ab3ad0188026ecc1906ffd730ec306a",
+      "before": "dc0d4d5288d5d140e800f7e412680a1f0ab3ad0188026ecc1906ffd730ec306a",
+      "after": "dc0d4d5288d5d140e800f7e412680a1f0ab3ad0188026ecc1906ffd730ec306a",
+      "unchanged": true
+    },
+    {
+      "path": "internal/shop/app/inventoryservice/app.go",
+      "expected": "72265f52b1fa90182d0ea44bba08936e913d3963cdf6b7fea20854e164aab1a5",
+      "before": "72265f52b1fa90182d0ea44bba08936e913d3963cdf6b7fea20854e164aab1a5",
+      "after": "72265f52b1fa90182d0ea44bba08936e913d3963cdf6b7fea20854e164aab1a5",
+      "unchanged": true
+    }
+  ],
+  "protected_files_unchanged": true,
+  "prior_checks_artifacts": [
+    {
+      "path": "docs\\reports\\phase-09-checks.json",
+      "sha256_before": "59e151ba5f80d803d9be00083ecf8ec703ff2f68f657a148f820944ca5847814",
+      "sha256_after": "59e151ba5f80d803d9be00083ecf8ec703ff2f68f657a148f820944ca5847814",
+      "preserved": true
+    },
+    {
+      "path": "docs\\reports\\phase-09-level-checks.json",
+      "sha256_before": "ccb6df2b531b0f2df22e08381bdd0246bcd6799efd69169600e0f2c426bcff1e",
+      "sha256_after": "ccb6df2b531b0f2df22e08381bdd0246bcd6799efd69169600e0f2c426bcff1e",
+      "preserved": true
+    },
+    {
+      "path": "docs\\reports\\phase-09-standalone-checks.json",
+      "sha256_before": "77edb0d7e9f74f85d4348d6a56856cd2670af0da9799302961d2ae739c695ef7",
+      "sha256_after": "77edb0d7e9f74f85d4348d6a56856cd2670af0da9799302961d2ae739c695ef7",
+      "preserved": true
+    },
+    {
+      "path": "docs\\reports\\phase-09-collection-checks.json",
+      "sha256_before": "0d3098e7e52e3247f837fb8b546fe2c82f87e55990857cb334ed30d9aa9b5c72",
+      "sha256_after": "0d3098e7e52e3247f837fb8b546fe2c82f87e55990857cb334ed30d9aa9b5c72",
+      "preserved": true
+    },
+    {
+      "path": "docs\\reports\\phase-09-jaeger-prefix-checks.json",
+      "sha256_before": "e4a2de53ac03b39a1b1cfeb73608b4f5529e2b818320d5630919aa3f6b207544",
+      "sha256_after": "e4a2de53ac03b39a1b1cfeb73608b4f5529e2b818320d5630919aa3f6b207544",
+      "preserved": true
+    },
+    {
+      "path": "docs\\reports\\phase-09-commit-uncertainty-checks.json",
+      "sha256_before": "a38db24f2a41a84ca704a69092728bba475c0c7526a11cc614a0455fe965e89a",
+      "sha256_after": "a38db24f2a41a84ca704a69092728bba475c0c7526a11cc614a0455fe965e89a",
+      "preserved": true
+    }
+  ],
+  "original_logs_preserved": true,
+  "log_digests": [
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\vet.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\staticcheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\commentcheck.log",
+      "sha256": "6585aadc62e3f7d6a9c925951200128eafaefe32f25495c3ba486fa8ed03cc77"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\archcheck.log",
+      "sha256": "34aadc8dfe47f2765c8a270910975bdf72dc1050a3398036d6ed7e0edc0657e0"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks-anchor-fix\\20261103T081322Z\\race.log",
+      "sha256": "0400663178ac3cfb8f6bf3f786d5746cbf442f1357c5f5839e917356868f7b62"
+    }
+  ],
+  "notes": [
+    "Only gofmt -l was executed; no user or source file was formatted.",
+    "TEST_* and model API key variables were cleared only in child processes; Mock mode and comparison=false were explicit.",
+    "Original toolchain and original GOCACHE were reused; no ACL, system setting, container, or Docker operation was performed.",
+    "External integration tests were intentionally skipped without TEST_*; skipped tests are not counted as passed.",
+    "No generation-model requests were executed; this artifact preserves all six earlier phase-09 check artifacts and their original logs."
+  ],
+  "unchanged_directories_relative_to_main": {
+    "paths": [
+      "internal/doctor/tools",
+      "internal/doctor/agent",
+      "internal/doctor/source/httpbackend",
+      "internal/eval/judge",
+      "internal/eval/scoring"
+    ],
+    "numstat": "",
+    "empty": true
+  },
+  "all_checks_passed": true
+}

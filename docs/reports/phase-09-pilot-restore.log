@@ -1,0 +1,2 @@
+eval arguments: restore --run phase09-pilot-20261103-terra --scenario OT01 --iteration 1
+Demo 原始开关已恢复并读回确认；恢复文件保留：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-pilot-20261103-terra\OT01-1.json

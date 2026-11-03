@@ -1,0 +1,226 @@
+{
+  "captured_at_utc": "2026-11-03T08:14:52.260302Z",
+  "source_commit": "e1c9fe8da6251731c766073b614b743e1ebe70d2",
+  "scope": "Free read-only Collector regression and Mock engineering checks; no diagnosis, fault switch, model call, restart or automatic pilot rerun.",
+  "original_incident": {
+    "run_id": "phase09-pilot-20261103-terra",
+    "error": "Collector起点锚点时间无法验证",
+    "original_failing_anchor_raw_retained": false,
+    "evidence_boundary": "The original failed command output was not saved. The following is a repeated mechanism demonstration on the same retained Collector, not recovery of that original output.",
+    "diagnosis_created": false,
+    "generation_attempts": 0,
+    "model_cost_usd": 0,
+    "judge_cost_cny": 0,
+    "incident_sources": [
+      "docs/reports/phase-09-pilot-interrupted.md",
+      "docs/reports/phase-09-pilot-recovery-proof.json"
+    ]
+  },
+  "mechanism": {
+    "legacy_selector": [
+      "logs",
+      "--timestamps",
+      "--until",
+      "2026-11-03T08:10:58.3492546Z",
+      "--tail",
+      "1",
+      "opsdoctor-otel-demo-otel-collector"
+    ],
+    "replacement_selector": [
+      "logs",
+      "--timestamps",
+      "--until",
+      "2026-11-03T08:10:58.3492546Z",
+      "--tail",
+      "all",
+      "opsdoctor-otel-demo-otel-collector"
+    ],
+    "observed_legacy_empty_success": true,
+    "retained_legal_older_lines_exist": true,
+    "conclusion": "The observed Docker tail selection precedes until filtering: its newest retained line is newer than cutoff, so tail 1 plus until succeeds with zero bytes while tail all retains eligible older lines.",
+    "stdout_stderr_splice_proven": false
+  },
+  "implementation": {
+    "files": [
+      "internal/eval/runner/generalization_collection.go",
+      "internal/eval/runner/generalization_collection_test.go"
+    ],
+    "production_changes": [
+      "Change only start-anchor tail argument from 1 to all.",
+      "Fail closed with explicit no-retained-logs error for empty or whitespace-only output."
+    ],
+    "preserved": [
+      "64 MiB command output limit",
+      "fixed container identity, started time and restart checks",
+      "clock margin and original immutable window",
+      "Docker timestamp parsing and rejection of future lines",
+      "latest legal anchor selection",
+      "finish-time retained-anchor rotation check",
+      "quality pause before grade or next slot",
+      "frozen doctor tools, agent, httpbackend, judge and scoring unchanged"
+    ]
+  },
+  "read_only_replay": {
+    "test": "TestIntegrationCollectorWindow",
+    "go_test_exit_code": 0,
+    "test_status": "PASS",
+    "root": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-fix\\20261103T081155031480Z",
+    "cutoff_utc": "2026-11-03T08:10:58.3492546Z",
+    "observation_utc": "2026-11-03T08:11:58.349254600Z",
+    "cutoff_age_seconds": 60,
+    "anchor_timestamp": "2026-11-03T08:10:57.033325246Z",
+    "window_end_utc": "2026-11-03T08:12:00.6681492Z",
+    "window_seconds": 62.318895,
+    "status": "ok",
+    "data_quality": "normal",
+    "collector_identity": {
+      "id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+      "started": "2026-11-03T06:39:41.928421795Z",
+      "restarts": 0,
+      "running": true
+    },
+    "counts": {
+      "dropping_data_events": 0,
+      "log_dropped_items": 0,
+      "mapper_error_lines": 0,
+      "mapper_error_occurrences": 0,
+      "signal_dropped_items": {},
+      "signal_dropping_data_events": {}
+    },
+    "raw_integrity_verified_by_test": true,
+    "anchor_retention_verified_by_test": true,
+    "saved_audit_verified_by_test": true,
+    "wrapper_note": "Go subprocess returned 0 and the complete binary log contains PASS. The wrapper then failed only while printing Chinese test output through a cp1252 console; evidence files and test result were unaffected.",
+    "interpretation": "normal means this bounded Collector evidence passed retained-window checks and reported no final drops or mapper errors; it is not proof of end-to-end zero loss."
+  },
+  "raw_timestamp_analysis": {
+    "latest": {
+      "line_count": 1,
+      "malformed_docker_timestamp_lines": 0,
+      "after_boundary_lines": 1,
+      "first_timestamp": "2026-11-03T08:11:57.835300528Z",
+      "last_timestamp": "2026-11-03T08:11:57.835300528Z",
+      "maximum_timestamp": "2026-11-03T08:11:57.835300528Z",
+      "boundary": "2026-11-03T08:10:58.3492546Z"
+    },
+    "anchor_all": {
+      "line_count": 13146,
+      "malformed_docker_timestamp_lines": 0,
+      "after_boundary_lines": 0,
+      "first_timestamp": "2026-11-03T06:52:43.156561106Z",
+      "last_timestamp": "2026-11-03T08:10:57.033325246Z",
+      "maximum_timestamp": "2026-11-03T08:10:57.033325246Z",
+      "boundary": "2026-11-03T08:10:58.3492546Z"
+    },
+    "window": {
+      "line_count": 169,
+      "malformed_docker_timestamp_lines": 0,
+      "after_boundary_lines": 0,
+      "first_timestamp": "2026-11-03T08:11:03.679422589Z",
+      "last_timestamp": "2026-11-03T08:11:57.835300528Z",
+      "maximum_timestamp": "2026-11-03T08:11:57.835300528Z",
+      "boundary": "2026-11-03T08:12:00.6681492Z"
+    }
+  },
+  "collector_environment_snapshot": {
+    "snapshot_utc": "2026-11-03T08:01:51.697461+00:00",
+    "same_container_id": true,
+    "image": "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.159.0",
+    "log_config": {
+      "Type": "json-file",
+      "Config": {
+        "max-file": "2",
+        "max-size": "5m"
+      }
+    },
+    "tty": false,
+    "maximum_command_bytes": 67108864
+  },
+  "mock_regressions": [
+    "tail 1 plus until modeled as empty success; tail all returns eligible retained rows",
+    "latest valid anchor selected even if returned lines are out of timestamp order",
+    "genuinely empty and whitespace-only output fail",
+    "any future timestamp fails",
+    "64 MiB plus one-byte output rejected without extending buffer",
+    "existing restart, rotation, command failure, malformed data and quality-gate cases remain passing"
+  ],
+  "engineering_checks": {
+    "artifact": "docs/reports/phase-09-anchor-fix-checks.json",
+    "all_checks_passed": true,
+    "test_statistics": {
+      "top_level_pass": 306,
+      "including_subtests_pass": 1033,
+      "top_level_skip": 48,
+      "including_subtests_skip": 58,
+      "top_level_fail": 0,
+      "including_subtests_fail": 0,
+      "packages_pass": 58,
+      "packages_skip": 16,
+      "packages_fail": 0,
+      "packages_total": 74
+    },
+    "commentcheck_files": 443,
+    "protected_files_unchanged": true,
+    "frozen_directories_empty_diff": true,
+    "prior_artifacts_preserved": true
+  },
+  "evidence": {
+    "latest": {
+      "path": "docs/reports/phase-09-collector-anchor-fix-latest.log",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-fix\\20261103T081155031480Z\\retained-20261103T081158.349254600Z.latest.log",
+      "bytes": 369,
+      "sha256": "811b8cb70232a8076f8f127947c92d6edb202c8762c6f446c2f1837226de8ce0",
+      "copied_without_reencoding": true
+    },
+    "legacy_tail1": {
+      "path": "docs/reports/phase-09-collector-anchor-fix-legacy-tail1.log",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-fix\\20261103T081155031480Z\\retained-20261103T081158.349254600Z.legacy-tail1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "copied_without_reencoding": true
+    },
+    "anchor_all": {
+      "path": "docs/reports/phase-09-collector-anchor-fix-anchor-all.log",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-fix\\20261103T081155031480Z\\retained-20261103T081158.349254600Z.anchor-all.log",
+      "bytes": 4588422,
+      "sha256": "4d0576ac56a2ebaa7dc0be21b20fd7033ef368f08e6a530e45f611e5b9133fcd",
+      "copied_without_reencoding": true
+    },
+    "window": {
+      "path": "docs/reports/phase-09-collector-anchor-fix-window.log",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-fix\\20261103T081155031480Z\\opsdoctor-phase09\\collector-audit\\b8b4646d69a3007e84776f8f9442973e2cbee6cdba993a026643406a03598d60.log",
+      "bytes": 59274,
+      "sha256": "b8a45ac981e7d92384d73971c5d4355f9e79e1382698b8758d1677825d08139a",
+      "copied_without_reencoding": true
+    },
+    "audit": {
+      "path": "docs/reports/phase-09-collector-anchor-fix-audit.json",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-fix\\20261103T081155031480Z\\opsdoctor-phase09\\collector-audit\\b8b4646d69a3007e84776f8f9442973e2cbee6cdba993a026643406a03598d60.audit.json",
+      "bytes": 665,
+      "sha256": "9304b5470f180efb154d32ae41245e6a919d3eb0d3ab08eb5b250192756f9a3c",
+      "copied_without_reencoding": true
+    },
+    "start": {
+      "path": "docs/reports/phase-09-collector-anchor-fix-start.json",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-fix\\20261103T081155031480Z\\opsdoctor-phase09\\collector-audit\\b8b4646d69a3007e84776f8f9442973e2cbee6cdba993a026643406a03598d60.start.json",
+      "bytes": 673,
+      "sha256": "06f14e65c192928dd8ea3e446832453a77a6e962cec729af167cdf3141ff2ef0",
+      "copied_without_reencoding": true
+    },
+    "integration": {
+      "path": "docs/reports/phase-09-collector-anchor-fix-integration.log",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-fix\\20261103T081155031480Z\\integration.log",
+      "bytes": 1704,
+      "sha256": "3b7e6bb07cba9a16e4b863912afa2933c0e0f6b3fdd8dddb6991758c9078fe33",
+      "copied_without_reencoding": true
+    },
+    "environment": {
+      "path": "docs/reports/phase-09-collector-anchor-fix-environment.json",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-anchor-research\\20261103T080151697107Z\\capture.json",
+      "bytes": 8252,
+      "sha256": "718b5a731795cfc126a805672e0a2299ee9a15d58c17030def4d60956d9ef223",
+      "copied_without_reencoding": true
+    }
+  },
+  "next_action": "Await user approval for a new paid pilot batch. No pilot was automatically rerun."
+}

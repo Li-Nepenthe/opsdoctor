@@ -1,0 +1,59 @@
+{
+  "status": "passed",
+  "source": "phase-09-collector-anchor-fix.json",
+  "evidence": [
+    {
+      "path": "docs/reports/phase-09-collector-anchor-fix-latest.log",
+      "bytes": 369,
+      "sha256": "811b8cb70232a8076f8f127947c92d6edb202c8762c6f446c2f1837226de8ce0",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-collector-anchor-fix-legacy-tail1.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-collector-anchor-fix-anchor-all.log",
+      "bytes": 4588422,
+      "sha256": "4d0576ac56a2ebaa7dc0be21b20fd7033ef368f08e6a530e45f611e5b9133fcd",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-collector-anchor-fix-window.log",
+      "bytes": 59274,
+      "sha256": "b8a45ac981e7d92384d73971c5d4355f9e79e1382698b8758d1677825d08139a",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-collector-anchor-fix-audit.json",
+      "bytes": 665,
+      "sha256": "9304b5470f180efb154d32ae41245e6a919d3eb0d3ab08eb5b250192756f9a3c",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-collector-anchor-fix-start.json",
+      "bytes": 673,
+      "sha256": "06f14e65c192928dd8ea3e446832453a77a6e962cec729af167cdf3141ff2ef0",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-collector-anchor-fix-integration.log",
+      "bytes": 1704,
+      "sha256": "3b7e6bb07cba9a16e4b863912afa2933c0e0f6b3fdd8dddb6991758c9078fe33",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-collector-anchor-fix-environment.json",
+      "bytes": 8252,
+      "sha256": "718b5a731795cfc126a805672e0a2299ee9a15d58c17030def4d60956d9ef223",
+      "git_bytes_equal": true
+    }
+  ],
+  "source_file_sha256": {
+    "internal/eval/runner/generalization_collection.go": "5d407d34477039ace01398477ed2de93d08ebb751786b7d6bc64c21f8784962e",
+    "internal/eval/runner/generalization_collection_test.go": "df248a6edfab533afa4ee2bec96b161c825bd3bbab353788071791c254147f51"
+  },
+  "preserved_old_originals": "phase-09-prepilot-evidence-byte-check.json; all source files still unchanged from that record"
+}

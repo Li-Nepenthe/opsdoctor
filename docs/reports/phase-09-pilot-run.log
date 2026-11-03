@@ -1,0 +1,6 @@
+eval arguments: run --run phase09-pilot-20261103-terra --scenarios OT01 --groups E1 --iterations 1 --model gpt-6.1-terra --allow-paid
+Demo OT01/1 state=pending
+原始开关已保存：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-pilot-20261103-terra\OT01-1.json；现在注入。
+Demo OT01/1 state=injecting
+Demo OT01/1 state=verifying
+Demo OT01/1 state=diagnosing

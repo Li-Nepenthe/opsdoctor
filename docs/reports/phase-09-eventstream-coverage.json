@@ -1,0 +1,1364 @@
+{
+  "title": "Coverage check of all saved Jaeger services versus fixed flagd configuration",
+  "generated_at_utc": "2026-11-03T08:03:58.320192+00:00",
+  "scope": "Free read-only filesystem analysis of existing services/operations responses and fixed Demo source. No new HTTP requests, observation loop, Docker operations, flag changes, or model calls.",
+  "fixed_demo_version": "3.1.0",
+  "fixed_demo_commit": "dedc0178918e260823323b8d95005a8cb924b007",
+  "services_request_source": {
+    "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\endpoint-probe-2.body",
+    "sha256": "1a4b8af995187c7c247bc54c93fd5c2b444bcd00b7cf42aa8d20938d2665dafe",
+    "api_path": "/jaeger/ui/api/services"
+  },
+  "saved_service_count": 20,
+  "services_with_operations_request": 20,
+  "all_saved_services_queried": true,
+  "snapshot_first_query_utc": "2026-11-03T07:15:00.798621+00:00",
+  "snapshot_last_query_utc": "2026-11-03T07:15:01.019246+00:00",
+  "named_client_v2_eventstream_services": [
+    "ad",
+    "fraud-detection",
+    "payment",
+    "recommendation"
+  ],
+  "records": [
+    {
+      "service": "accounting",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-accounting.json",
+        "sha256": "220af6d593726bc48eddf1cbf341b4be7edf101591db4ebbbe972502cefedc26",
+        "bytes": 195,
+        "queried_at_utc": "2026-11-03T07:15:00.981273+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=accounting"
+      },
+      "operation_count": 3,
+      "all_operations": [
+        {
+          "name": "receive orders",
+          "spanKind": "consumer"
+        },
+        {
+          "name": "astronomy_db",
+          "spanKind": "client"
+        },
+        {
+          "name": "order-consumed",
+          "spanKind": "internal"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [],
+      "classification": "no_subscription_evidence_in_inspected_compose",
+      "interpretation": "No FLAGD_HOST declaration or named flagd operation was found in the inspected inputs. Application code outside the listed evidence is not exhaustively reviewed; no normality inference."
+    },
+    {
+      "service": "ad",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-ad.json",
+        "sha256": "30aa217816762c85b5665c1bb6e4d4af677db244dd4e7d1eeb31aec80aeef736",
+        "bytes": 392,
+        "queried_at_utc": "2026-11-03T07:15:01.019246+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=ad"
+      },
+      "operation_count": 6,
+      "all_operations": [
+        {
+          "name": "getAdsByCategory",
+          "spanKind": "internal"
+        },
+        {
+          "name": "oteldemo.AdService/GetAds",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveBoolean",
+          "spanKind": "client"
+        },
+        {
+          "name": "resolve",
+          "spanKind": "client"
+        },
+        {
+          "name": "getRandomAds",
+          "spanKind": "internal"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/EventStream",
+          "spanKind": "client"
+        }
+      ],
+      "eventstream_named_operations": [
+        {
+          "name": "flagd.evaluation.v2.Service/EventStream",
+          "spanKind": "client"
+        }
+      ],
+      "other_flagd_named_operations": [
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveBoolean",
+          "spanKind": "client"
+        }
+      ],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT"
+          ]
+        }
+      ],
+      "classification": "observed_client_v2_eventstream",
+      "interpretation": "Java flagd provider0.14.1; included in controlled4-client observation.",
+      "fixed_source": {
+        "path": "src/ad/build.gradle",
+        "line_numbers": [
+          58,
+          59
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/ad/build.gradle",
+        "sha256_local_file": "8f1e84d9f2d63b9b990219757399cac4c6c1f7b57cc08f6bb100d180bd1045d4"
+      }
+    },
+    {
+      "service": "agent",
+      "in_saved_jaeger_services": false,
+      "operations_request": null,
+      "operation_count": null,
+      "all_operations": null,
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.agent.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT"
+          ]
+        }
+      ],
+      "classification": "optional_layer_not_in_saved_services",
+      "interpretation": "Optional compose.agent.yaml declares FLAGD_HOST/PORT; Python source initializes FlagdProvider. Agent was not present in the saved20-service catalogue. This supplement does not infer runtime health or start it.",
+      "fixed_source": {
+        "path": "src/agent/src/agents/feature_flags.py",
+        "line_numbers": [
+          13,
+          20
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/agent/src/agents/feature_flags.py",
+        "sha256_local_file": "762647a5d3d83ca56be3269aa3d3e3573633b33d942cc88670512d65a133462b"
+      }
+    },
+    {
+      "service": "cart",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-cart.json",
+        "sha256": "35b99b29f4f9734164e0a8fddaa500ab4d6d4659d94529ae2a12a4cec2107d70",
+        "bytes": 485,
+        "queried_at_utc": "2026-11-03T07:15:00.940589+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=cart"
+      },
+      "operation_count": 7,
+      "all_operations": [
+        {
+          "name": "POST",
+          "spanKind": "client"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveBoolean",
+          "spanKind": "client"
+        },
+        {
+          "name": "POST /oteldemo.CartService/GetCart",
+          "spanKind": "server"
+        },
+        {
+          "name": "valkey-cart:6379",
+          "spanKind": "client"
+        },
+        {
+          "name": "POST /oteldemo.CartService/AddItem",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveFloat",
+          "spanKind": "client"
+        },
+        {
+          "name": "POST /oteldemo.CartService/EmptyCart",
+          "spanKind": "server"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveBoolean",
+          "spanKind": "client"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveFloat",
+          "spanKind": "client"
+        }
+      ],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT"
+          ]
+        }
+      ],
+      "classification": "other_flagd_client_rpc_seen_no_named_eventstream",
+      "interpretation": "Initializes .NET FlagdProvider; operations snapshot includes client ResolveBoolean/ResolveFloat, but not a named client EventStream. Missing stream operation is not evidence of normality.",
+      "fixed_source": {
+        "path": "src/cart/src/Program.cs",
+        "line_numbers": [
+          51,
+          57
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/cart/src/Program.cs",
+        "sha256_local_file": "d3a644df06337c9068a9a2fc34e33177c90bada3b3e6a4168d4e80361bc0be02"
+      }
+    },
+    {
+      "service": "checkout",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-checkout.json",
+        "sha256": "414144576083b8397de11102e11131b552616e564679e513bff7f06ce06ab53b",
+        "bytes": 602,
+        "queried_at_utc": "2026-11-03T07:15:00.904536+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=checkout"
+      },
+      "operation_count": 9,
+      "all_operations": [
+        {
+          "name": "oteldemo.CartService/EmptyCart",
+          "spanKind": "client"
+        },
+        {
+          "name": "oteldemo.CheckoutService/PlaceOrder",
+          "spanKind": "server"
+        },
+        {
+          "name": "prepareOrderItemsAndShippingQuoteFromCart",
+          "spanKind": "internal"
+        },
+        {
+          "name": "publish orders",
+          "spanKind": "producer"
+        },
+        {
+          "name": "oteldemo.CartService/GetCart",
+          "spanKind": "client"
+        },
+        {
+          "name": "oteldemo.ProductCatalogService/GetProduct",
+          "spanKind": "client"
+        },
+        {
+          "name": "oteldemo.CurrencyService/Convert",
+          "spanKind": "client"
+        },
+        {
+          "name": "POST",
+          "spanKind": "client"
+        },
+        {
+          "name": "oteldemo.PaymentService/Charge",
+          "spanKind": "client"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT"
+          ]
+        }
+      ],
+      "classification": "configured_sdk_no_named_eventstream_observed",
+      "interpretation": "Initializes Go flagd.NewProvider. This supplement does not resolve provider default transport/resolver or explain missing named RPC spans.",
+      "fixed_source": {
+        "path": "src/checkout/main.go",
+        "line_numbers": [
+          199,
+          206
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/checkout/main.go",
+        "sha256_local_file": "c48aed09015b3c08e6ce7550968079b4572fe73fc7ab44f39853dcbbc9a64330"
+      }
+    },
+    {
+      "service": "currency",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-currency.json",
+        "sha256": "e84a8f578d99ca3a6670caa85648894359cdc62fa2b1d99e72134b4527cfbf19",
+        "bytes": 198,
+        "queried_at_utc": "2026-11-03T07:15:00.940840+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=currency"
+      },
+      "operation_count": 2,
+      "all_operations": [
+        {
+          "name": "oteldemo.CurrencyService/GetSupportedCurrencies",
+          "spanKind": "server"
+        },
+        {
+          "name": "oteldemo.CurrencyService/Convert",
+          "spanKind": "server"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [],
+      "classification": "no_subscription_evidence_in_inspected_compose",
+      "interpretation": "No FLAGD_HOST declaration or named flagd operation was found in the inspected inputs. Application code outside the listed evidence is not exhaustively reviewed; no normality inference."
+    },
+    {
+      "service": "email",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-email.json",
+        "sha256": "48efd6cf03c32d5ec16947c0dd6703611086d2e3e349836d13bd1d61ac280a64",
+        "bytes": 217,
+        "queried_at_utc": "2026-11-03T07:15:00.857621+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=email"
+      },
+      "operation_count": 3,
+      "all_operations": [
+        {
+          "name": "sinatra.render_template",
+          "spanKind": "internal"
+        },
+        {
+          "name": "send_email",
+          "spanKind": "internal"
+        },
+        {
+          "name": "POST /send_order_confirmation",
+          "spanKind": "server"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT"
+          ]
+        }
+      ],
+      "classification": "configured_sdk_no_named_eventstream_observed",
+      "interpretation": "Ruby builds flagd provider and configures host/port/TLS. No named flagd/EventStream operation in saved snapshot; no health inference.",
+      "fixed_source": {
+        "path": "src/email/email_server.rb",
+        "line_numbers": [
+          20,
+          29
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/email/email_server.rb",
+        "sha256_local_file": "f494eeeae2d34d1d8f6c5cd7a0e545c70ef3fc62832a33bd1bcd30ae744e52aa"
+      }
+    },
+    {
+      "service": "flagd",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-flagd.json",
+        "sha256": "ec6dd9a82c351659efee83b58d547faeb01a2b0e27e90bb8498de194c9a86b85",
+        "bytes": 1037,
+        "queried_at_utc": "2026-11-03T07:15:00.882248+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=flagd"
+      },
+      "operation_count": 18,
+      "all_operations": [
+        {
+          "name": "flagd.evaluation.v1.Service/ResolveAll",
+          "spanKind": "server"
+        },
+        {
+          "name": "resolveInt",
+          "spanKind": "internal"
+        },
+        {
+          "name": "flagd.evaluation.v1.Service/ResolveInt",
+          "spanKind": "server"
+        },
+        {
+          "name": "resolveFloat",
+          "spanKind": "internal"
+        },
+        {
+          "name": "resolveFloat",
+          "spanKind": "server"
+        },
+        {
+          "name": "resolveBoolean",
+          "spanKind": "internal"
+        },
+        {
+          "name": "POST",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v1.Service/EventStream",
+          "spanKind": "server"
+        },
+        {
+          "name": "resolveInt",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveInt",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/EventStream",
+          "spanKind": "server"
+        },
+        {
+          "name": "resolveBoolean",
+          "spanKind": "server"
+        },
+        {
+          "name": "resolveAll",
+          "spanKind": "internal"
+        },
+        {
+          "name": "flagSync",
+          "spanKind": "internal"
+        },
+        {
+          "name": "resolveAll",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveFloat",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveBoolean",
+          "spanKind": "server"
+        },
+        {
+          "name": "resolveAnyValue",
+          "spanKind": "internal"
+        }
+      ],
+      "eventstream_named_operations": [
+        {
+          "name": "flagd.evaluation.v1.Service/EventStream",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/EventStream",
+          "spanKind": "server"
+        }
+      ],
+      "other_flagd_named_operations": [
+        {
+          "name": "flagd.evaluation.v1.Service/ResolveAll",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v1.Service/ResolveInt",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveInt",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveFloat",
+          "spanKind": "server"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveBoolean",
+          "spanKind": "server"
+        }
+      ],
+      "fixed_compose_declarations": [],
+      "classification": "observed_server_v1_and_v2",
+      "interpretation": "Daemon is a server, not one of the four identified client providers. v1 connect_rpc and v2 gRPC remain separated.",
+      "fixed_source": {
+        "path": "compose.yaml",
+        "line_numbers": [
+          697,
+          715
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/compose.yaml",
+        "sha256_local_file": "104fec955bf2b772941cdc62e6b48f5416f5d550bba4c4a9bfb3ac993d91a470"
+      }
+    },
+    {
+      "service": "flagd-ui",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-flagd-ui.json",
+        "sha256": "d354b4f1c8336dfc2613ed5a0ff4f7443592844241cc67954389711141e998a1",
+        "bytes": 100,
+        "queried_at_utc": "2026-11-03T07:15:00.868447+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=flagd-ui"
+      },
+      "operation_count": 1,
+      "all_operations": [
+        {
+          "name": "GET /api/read",
+          "spanKind": "server"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_UI_PORT"
+          ]
+        }
+      ],
+      "classification": "configuration_editor_no_named_eventstream_observed",
+      "interpretation": "The inspected storage implementation edits the shared configuration file and broadcasts UI state; source inspection is not a full claim that every UI path has no flagd call.",
+      "fixed_source": {
+        "path": "src/flagd-ui/lib/flagd_ui/storage.ex",
+        "line_numbers": [
+          105,
+          116
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/flagd-ui/lib/flagd_ui/storage.ex",
+        "sha256_local_file": "8cf4711e7eb2ad833d50835e23bb023d5a6854569e45243a801ba91233667afd"
+      }
+    },
+    {
+      "service": "fraud-detection",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-fraud-detection.json",
+        "sha256": "5d57b3a01f413552e47974a6e5cbfc13f6b82edfc76d8140394872fda3e1ea60",
+        "bytes": 331,
+        "queried_at_utc": "2026-11-03T07:15:00.845752+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=fraud-detection"
+      },
+      "operation_count": 5,
+      "all_operations": [
+        {
+          "name": "resolve",
+          "spanKind": "client"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveInt",
+          "spanKind": "client"
+        },
+        {
+          "name": "receive orders",
+          "spanKind": "consumer"
+        },
+        {
+          "name": "process orders",
+          "spanKind": "consumer"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/EventStream",
+          "spanKind": "client"
+        }
+      ],
+      "eventstream_named_operations": [
+        {
+          "name": "flagd.evaluation.v2.Service/EventStream",
+          "spanKind": "client"
+        }
+      ],
+      "other_flagd_named_operations": [
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveInt",
+          "spanKind": "client"
+        }
+      ],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.full.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT"
+          ]
+        }
+      ],
+      "classification": "observed_client_v2_eventstream",
+      "interpretation": "Java provider0.14.1; included in controlled4-client observation.",
+      "fixed_source": {
+        "path": "src/fraud-detection/build.gradle.kts",
+        "line_numbers": [
+          51,
+          52
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/fraud-detection/build.gradle.kts",
+        "sha256_local_file": "3fa9f1c926c8866565006e62148b171438b2a51251c2570bcdbc35fd5a12cc78"
+      }
+    },
+    {
+      "service": "frontend",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-frontend.json",
+        "sha256": "1f29d55d8e26ba5438a3a210b2c36ec51d0e4d940581465b96166b6090ec97c4",
+        "bytes": 2203,
+        "queried_at_utc": "2026-11-03T07:15:00.817389+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=frontend"
+      },
+      "operation_count": 36,
+      "all_operations": [
+        {
+          "name": "oteldemo.AdService/GetAds",
+          "spanKind": "client"
+        },
+        {
+          "name": "oteldemo.CartService/GetCart",
+          "spanKind": "client"
+        },
+        {
+          "name": "executing api route (pages) /api/currency",
+          "spanKind": "internal"
+        },
+        {
+          "name": "dns.lookup",
+          "spanKind": "client"
+        },
+        {
+          "name": "executing api route (pages) /api/products/index",
+          "spanKind": "internal"
+        },
+        {
+          "name": "POST /api/checkout",
+          "spanKind": "server"
+        },
+        {
+          "name": "render route (pages) /cart",
+          "spanKind": "internal"
+        },
+        {
+          "name": "GET /api/shipping",
+          "spanKind": "server"
+        },
+        {
+          "name": "oteldemo.CartService/AddItem",
+          "spanKind": "client"
+        },
+        {
+          "name": "GET /api/cart",
+          "spanKind": "server"
+        },
+        {
+          "name": "oteldemo.RecommendationService/ListRecommendations",
+          "spanKind": "client"
+        },
+        {
+          "name": "resolve page components",
+          "spanKind": "internal"
+        },
+        {
+          "name": "oteldemo.CurrencyService/Convert",
+          "spanKind": "client"
+        },
+        {
+          "name": "render route (pages) /",
+          "spanKind": "internal"
+        },
+        {
+          "name": "GET /api/data",
+          "spanKind": "server"
+        },
+        {
+          "name": "executing api route (pages) /api/data",
+          "spanKind": "internal"
+        },
+        {
+          "name": "POST",
+          "spanKind": "server"
+        },
+        {
+          "name": "executing api route (pages) /api/checkout",
+          "spanKind": "internal"
+        },
+        {
+          "name": "GET /api/recommendations",
+          "spanKind": "server"
+        },
+        {
+          "name": "executing api route (pages) /api/products/[productId]/index",
+          "spanKind": "internal"
+        },
+        {
+          "name": "GET /",
+          "spanKind": "server"
+        },
+        {
+          "name": "executing api route (pages) /api/shipping",
+          "spanKind": "internal"
+        },
+        {
+          "name": "GET /api/products/index",
+          "spanKind": "server"
+        },
+        {
+          "name": "oteldemo.CheckoutService/PlaceOrder",
+          "spanKind": "client"
+        },
+        {
+          "name": "GET /api/products/[productId]/index",
+          "spanKind": "server"
+        },
+        {
+          "name": "POST /api/cart",
+          "spanKind": "server"
+        },
+        {
+          "name": "executing api route (pages) /api/cart",
+          "spanKind": "internal"
+        },
+        {
+          "name": "GET",
+          "spanKind": "server"
+        },
+        {
+          "name": "GET /cart",
+          "spanKind": "server"
+        },
+        {
+          "name": "POST",
+          "spanKind": "client"
+        },
+        {
+          "name": "oteldemo.ProductCatalogService/ListProducts",
+          "spanKind": "client"
+        },
+        {
+          "name": "executing api route (pages) /api/recommendations",
+          "spanKind": "internal"
+        },
+        {
+          "name": "oteldemo.ProductCatalogService/GetProduct",
+          "spanKind": "client"
+        },
+        {
+          "name": "GET /api/currency",
+          "spanKind": "server"
+        },
+        {
+          "name": "tcp.connect",
+          "spanKind": "internal"
+        },
+        {
+          "name": "oteldemo.CurrencyService/GetSupportedCurrencies",
+          "spanKind": "client"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT"
+          ]
+        }
+      ],
+      "classification": "browser_provider_source_no_named_eventstream_client_observed",
+      "interpretation": "Provider initialization is guarded by typeof window; browser FlagdWebProvider uses pathPrefix=flagservice through Envoy. Frontend process env alone is not proof of a separate server-side stream.",
+      "fixed_source": {
+        "path": "src/frontend/pages/_app.tsx",
+        "line_numbers": [
+          27,
+          53
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/frontend/pages/_app.tsx",
+        "sha256_local_file": "ff3feab4a93ee6d584003b2d9952ffbbfa7e4b2bb718d63bfe7bc1f47630bd2c"
+      }
+    },
+    {
+      "service": "frontend-proxy",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-frontend-proxy.json",
+        "sha256": "b48df1520788afdba3cccbea542d49a93263bdc212bf3d6bcf4564f52cc4f1ca",
+        "bytes": 297,
+        "queried_at_utc": "2026-11-03T07:15:00.898423+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=frontend-proxy"
+      },
+      "operation_count": 5,
+      "all_operations": [
+        {
+          "name": "POST",
+          "spanKind": "server"
+        },
+        {
+          "name": "router image-provider egress",
+          "spanKind": "client"
+        },
+        {
+          "name": "GET",
+          "spanKind": "server"
+        },
+        {
+          "name": "router frontend egress",
+          "spanKind": "client"
+        },
+        {
+          "name": "router flagservice egress",
+          "spanKind": "client"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT",
+            "FLAGD_UI_HOST",
+            "FLAGD_UI_PORT"
+          ]
+        }
+      ],
+      "classification": "routing_infrastructure_not_sdk_subscriber",
+      "interpretation": "Envoy forwards /flagservice/ to flagd and /feature to flagd-ui; FLAGD variables configure routes and do not prove an SDK subscription.",
+      "fixed_source": {
+        "path": "src/frontend-proxy/envoy.tmpl.yaml",
+        "line_numbers": [
+          69,
+          79
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/frontend-proxy/envoy.tmpl.yaml",
+        "sha256_local_file": "b89bbf31f0366f1801dae0d3066351828984dd1b1b5dee15203c237369fa3052"
+      }
+    },
+    {
+      "service": "frontend-web",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-frontend-web.json",
+        "sha256": "6c15ffa6f5820e5a50b37e36db3ba78cc4e3a08fa8e550f973479a6486bcfdda",
+        "bytes": 305,
+        "queried_at_utc": "2026-11-03T07:15:00.798621+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=frontend-web"
+      },
+      "operation_count": 6,
+      "all_operations": [
+        {
+          "name": "GET",
+          "spanKind": "client"
+        },
+        {
+          "name": "documentFetch",
+          "spanKind": "internal"
+        },
+        {
+          "name": "documentLoad",
+          "spanKind": "internal"
+        },
+        {
+          "name": "click",
+          "spanKind": "internal"
+        },
+        {
+          "name": "resourceFetch",
+          "spanKind": "internal"
+        },
+        {
+          "name": "POST",
+          "spanKind": "client"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [],
+      "classification": "browser_provider_source_no_named_eventstream_client_observed",
+      "interpretation": "Browser telemetry service is visible, but its operation names did not include EventStream. Cannot assign all flagd/v1 server spans to this caller without correlation.",
+      "fixed_source": {
+        "path": "src/frontend/pages/_app.tsx",
+        "line_numbers": [
+          27,
+          53
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/frontend/pages/_app.tsx",
+        "sha256_local_file": "ff3feab4a93ee6d584003b2d9952ffbbfa7e4b2bb718d63bfe7bc1f47630bd2c"
+      }
+    },
+    {
+      "service": "image-provider",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-image-provider.json",
+        "sha256": "75fdf2b1c5e252973e7ec22d168906588565066b3e8ad57b0a689adc709cf39b",
+        "bytes": 133,
+        "queried_at_utc": "2026-11-03T07:15:00.817215+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=image-provider"
+      },
+      "operation_count": 2,
+      "all_operations": [
+        {
+          "name": "GET /status",
+          "spanKind": "server"
+        },
+        {
+          "name": "GET",
+          "spanKind": "server"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [],
+      "classification": "no_subscription_evidence_in_inspected_compose",
+      "interpretation": "No FLAGD_HOST declaration or named flagd operation was found in the inspected inputs. Application code outside the listed evidence is not exhaustively reviewed; no normality inference."
+    },
+    {
+      "service": "load-generator",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-load-generator.json",
+        "sha256": "c24caaee3bb3e5b0512803f6942567029332ba28498e1bf5083fda50ca5d8be7",
+        "bytes": 743,
+        "queried_at_utc": "2026-11-03T07:15:00.807814+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=load-generator"
+      },
+      "operation_count": 14,
+      "all_operations": [
+        {
+          "name": "GET",
+          "spanKind": "client"
+        },
+        {
+          "name": "user_browse_product",
+          "spanKind": "internal"
+        },
+        {
+          "name": "user_index",
+          "spanKind": "internal"
+        },
+        {
+          "name": "user_session_start",
+          "spanKind": "internal"
+        },
+        {
+          "name": "user_get_ads",
+          "spanKind": "internal"
+        },
+        {
+          "name": "user_ask_agent",
+          "spanKind": "internal"
+        },
+        {
+          "name": "user_checkout_single",
+          "spanKind": "internal"
+        },
+        {
+          "name": "user_checkout_multi",
+          "spanKind": "internal"
+        },
+        {
+          "name": "POST",
+          "spanKind": "client"
+        },
+        {
+          "name": "browser_add_to_cart",
+          "spanKind": "internal"
+        },
+        {
+          "name": "browser_change_currency",
+          "spanKind": "internal"
+        },
+        {
+          "name": "user_get_recommendations",
+          "spanKind": "internal"
+        },
+        {
+          "name": "user_view_cart",
+          "spanKind": "internal"
+        },
+        {
+          "name": "user_add_to_cart",
+          "spanKind": "internal"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT",
+            "FLAGD_OFREP_PORT"
+          ]
+        }
+      ],
+      "classification": "ofrep_http_user_not_named_grpc_eventstream",
+      "interpretation": "Configures OFREPProvider(base_url=flagd:FLAGD_OFREP_PORT). This source uses OFREP HTTP instead of establishing a gRPC EventStream provider; it may still have other feature-flag/HTTP failures not studied here.",
+      "fixed_source": {
+        "path": "src/load-generator/locustfile.py",
+        "line_numbers": [
+          35,
+          37,
+          89,
+          91
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/load-generator/locustfile.py",
+        "sha256_local_file": "3389067532a8d0bae44c58bbb55750e2eb7b60ddb7272ccdf8aac7508bf65b08"
+      }
+    },
+    {
+      "service": "payment",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-payment.json",
+        "sha256": "a0e5d63a971d6e0c10444e5c2be701a7aca9418b5be2521ff7b1e838de099d79",
+        "bytes": 461,
+        "queried_at_utc": "2026-11-03T07:15:00.915237+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=payment"
+      },
+      "operation_count": 7,
+      "all_operations": [
+        {
+          "name": "charge",
+          "spanKind": "internal"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/EventStream",
+          "spanKind": "client"
+        },
+        {
+          "name": "dns.lookup",
+          "spanKind": "client"
+        },
+        {
+          "name": "tcp.connect",
+          "spanKind": "internal"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveFloat",
+          "spanKind": "client"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveBoolean",
+          "spanKind": "client"
+        },
+        {
+          "name": "oteldemo.PaymentService/Charge",
+          "spanKind": "server"
+        }
+      ],
+      "eventstream_named_operations": [
+        {
+          "name": "flagd.evaluation.v2.Service/EventStream",
+          "spanKind": "client"
+        }
+      ],
+      "other_flagd_named_operations": [
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveFloat",
+          "spanKind": "client"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveBoolean",
+          "spanKind": "client"
+        }
+      ],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT"
+          ]
+        }
+      ],
+      "classification": "observed_client_v2_eventstream",
+      "interpretation": "Node provider; included in controlled4-client observation.",
+      "fixed_source": {
+        "path": "src/payment/package-lock.json",
+        "line_numbers": [
+          106,
+          108
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/payment/package-lock.json",
+        "sha256_local_file": "186472b99938ca85de442b2d4f52097a020dbbc46d2a8b25a74710b372a270c3"
+      }
+    },
+    {
+      "service": "product-catalog",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-product-catalog.json",
+        "sha256": "eda5f15d03ae60c32e0e8e918ac981915af22356d12b0d1ee095cea8f33468a4",
+        "bytes": 247,
+        "queried_at_utc": "2026-11-03T07:15:00.981439+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=product-catalog"
+      },
+      "operation_count": 3,
+      "all_operations": [
+        {
+          "name": "astronomy-db",
+          "spanKind": "client"
+        },
+        {
+          "name": "oteldemo.ProductCatalogService/ListProducts",
+          "spanKind": "server"
+        },
+        {
+          "name": "oteldemo.ProductCatalogService/GetProduct",
+          "spanKind": "server"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT"
+          ]
+        }
+      ],
+      "classification": "configured_sdk_no_named_eventstream_observed",
+      "interpretation": "Initializes Go flagd.NewProvider. No named flagd/EventStream operations in this saved snapshot; no health inference.",
+      "fixed_source": {
+        "path": "src/product-catalog/main.go",
+        "line_numbers": [
+          153,
+          160
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/product-catalog/main.go",
+        "sha256_local_file": "4dd4016574c716a8343cd8ee223f311e498baa21d5331634900c594a07d9b521"
+      }
+    },
+    {
+      "service": "quote",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-quote.json",
+        "sha256": "9131f097271878f4c48000eec17400c4d5121d8cd369f4f56f14008a17849bd0",
+        "bytes": 193,
+        "queried_at_utc": "2026-11-03T07:15:00.835066+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=quote"
+      },
+      "operation_count": 3,
+      "all_operations": [
+        {
+          "name": "calculate-quote",
+          "spanKind": "internal"
+        },
+        {
+          "name": "{closure}",
+          "spanKind": "internal"
+        },
+        {
+          "name": "POST /getquote",
+          "spanKind": "server"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [],
+      "classification": "no_subscription_evidence_in_inspected_compose",
+      "interpretation": "No FLAGD_HOST declaration or named flagd operation was found in the inspected inputs. Application code outside the listed evidence is not exhaustively reviewed; no normality inference."
+    },
+    {
+      "service": "recommendation",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-recommendation.json",
+        "sha256": "6ed33f34cd4e525bb99d484196236442fa61a5431c99e4956f25f349d94e0861",
+        "bytes": 407,
+        "queried_at_utc": "2026-11-03T07:15:00.994735+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=recommendation"
+      },
+      "operation_count": 5,
+      "all_operations": [
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveBoolean",
+          "spanKind": "client"
+        },
+        {
+          "name": "oteldemo.ProductCatalogService/ListProducts",
+          "spanKind": "client"
+        },
+        {
+          "name": "oteldemo.RecommendationService/ListRecommendations",
+          "spanKind": "server"
+        },
+        {
+          "name": "get_product_list",
+          "spanKind": "internal"
+        },
+        {
+          "name": "flagd.evaluation.v2.Service/EventStream",
+          "spanKind": "client"
+        }
+      ],
+      "eventstream_named_operations": [
+        {
+          "name": "flagd.evaluation.v2.Service/EventStream",
+          "spanKind": "client"
+        }
+      ],
+      "other_flagd_named_operations": [
+        {
+          "name": "flagd.evaluation.v2.Service/ResolveBoolean",
+          "spanKind": "client"
+        }
+      ],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT"
+          ]
+        }
+      ],
+      "classification": "observed_client_v2_eventstream",
+      "interpretation": "Python provider; included in controlled4-client observation.",
+      "fixed_source": {
+        "path": "src/recommendation/requirements.txt",
+        "line_numbers": [
+          306
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/recommendation/requirements.txt",
+        "sha256_local_file": "18e1ce775cc3919af060f4d7d1e0e9674f3ea4862cc024df8dd9e50ea3118979"
+      }
+    },
+    {
+      "service": "shipping",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-shipping.json",
+        "sha256": "98afe5706ba6e2d91fd7946fee4bd34495faf2a9c90c65bb1805d7b907b8428d",
+        "bytes": 186,
+        "queried_at_utc": "2026-11-03T07:15:01.019095+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=shipping"
+      },
+      "operation_count": 3,
+      "all_operations": [
+        {
+          "name": "POST",
+          "spanKind": "client"
+        },
+        {
+          "name": "POST /get-quote",
+          "spanKind": "server"
+        },
+        {
+          "name": "POST /ship-order",
+          "spanKind": "server"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [
+        {
+          "file": "compose.yaml",
+          "environment_variable_names": [
+            "FLAGD_HOST",
+            "FLAGD_PORT"
+          ]
+        }
+      ],
+      "classification": "configured_sdk_no_named_eventstream_observed",
+      "interpretation": "Rust initializes FlagdProvider with default options except cache_settings=None. No named flagd/EventStream operation in saved snapshot; default resolver behavior is not asserted here.",
+      "fixed_source": {
+        "path": "src/shipping/src/main.rs",
+        "line_numbers": [
+          50,
+          55
+        ],
+        "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/shipping/src/main.rs",
+        "sha256_local_file": "fdb197949d2d29bb1517e56a72a70a288e0d1dd75f1dccd46a1604a54654d447"
+      }
+    },
+    {
+      "service": "telemetry-docs",
+      "in_saved_jaeger_services": true,
+      "operations_request": {
+        "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\operations-telemetry-docs.json",
+        "sha256": "bd11f9294dcdd0b4afde81dd726709f73dca4f8a08c203c4259e4469c9003c69",
+        "bytes": 90,
+        "queried_at_utc": "2026-11-03T07:15:00.981572+00:00",
+        "http_status": 200,
+        "api_errors": null,
+        "api_url": "http://127.0.0.1:19686/jaeger/ui/api/operations?service=telemetry-docs"
+      },
+      "operation_count": 1,
+      "all_operations": [
+        {
+          "name": "GET",
+          "spanKind": "server"
+        }
+      ],
+      "eventstream_named_operations": [],
+      "other_flagd_named_operations": [],
+      "fixed_compose_declarations": [],
+      "classification": "no_subscription_evidence_in_inspected_compose",
+      "interpretation": "No FLAGD_HOST declaration or named flagd operation was found in the inspected inputs. Application code outside the listed evidence is not exhaustively reviewed; no normality inference."
+    }
+  ],
+  "coverage_limits": [
+    "The20-service catalogue and operation names were fetched once before the controlled trial; they are not a census of every process or future operation.",
+    "Searching operation names does not inspect every generic HTTP span URL or correlate every server stream to a caller.",
+    "Absence of a named client EventStream span does not mean no flagd use, no stream, no error, or normality.",
+    "The four identified client/v2 services are the directly observed comparison cohort. Other SDK users are listed without extrapolating their health.",
+    "Flagd server/v1 caller identity was not established; do not assign the518 captured server spans to a specific missing client.",
+    "Optional Agent layer is inspected as source only, was not in the saved services catalogue, and was not started by this supplement.",
+    "No previous background JSON/Markdown/span archive is modified by this supplement."
+  ]
+}

@@ -2,7 +2,7 @@
 
 > 本报告是进行中记录，**阶段 9 尚未完成，工程验收未通过**。从 `main` 的 `231ee48` 切出 `phase-09-generalization`。用户于 2026-11-02 明确授权开始本阶段；阶段 10 已由 Claude 验收并合并，学习验收继续由用户本人决定。
 >
-> 当前停点：Claude 已通过 Collector 修复审核并授权继续；新增逐诊断采集审计、Jaeger 部署路径接线，并按用户授权仅修订 OT01 两条判定查询。正在完成 EventStream 免费摸底与开跑条件复核，尚无付费诊断。试跑、正式 E1/E2 和第二张真实诊断结果表均未完成，阶段 9 不勾工程验收。实测数字均来自[阶段 9 数据台账](../数据台账.md#阶段-9开源靶场泛化测试进行中)；采集修复的完整审阅范围见[专项报告](phase-09-logging-fix.md)。
+> 当前停点：Claude 已通过 Collector 修复审核并授权继续；新增逐诊断采集审计、Jaeger 部署路径接线，并按用户授权仅修订 OT01 两条判定查询。EventStream 免费摸底及开跑复核完成；首轮试跑在创建模型任务前被Collector起点校验阻止，已恢复原开关并切回Mock；最小锚点修复与免费检查通过，等待用户决定是否用新批次继续。诊断与支出均为零。试跑、正式 E1/E2 和第二张真实诊断结果表均未完成，阶段 9 不勾工程验收。实测数字均来自[阶段 9 数据台账](../数据台账.md#阶段-9开源靶场泛化测试进行中)；采集修复的完整审阅范围见[专项报告](phase-09-logging-fix.md)。
 
 ## 一、总览
 
@@ -53,7 +53,8 @@
 | `internal/doctor/target` | 修改 | 校验日志后端互斥、字段和独立凭据，装配 OpenSearch，计算缺失数据源 | 原有 `Load`、`System` 接口不变 |
 | `internal/eval/runner` | 修改 | 独立外部批次、开关注入与恢复、版本/账户/环境守卫 | 从原 `RunCLI` 分流 `generalization` 子命令；不向医生增加故障控制能力 |
 | `internal/doctor/store` | 修改 | 允许阶段 9 独立批次使用 OT 编号，沿用既有轮次和执行审计 | 既有仓储方法签名、表结构不变 |
-| `internal/eval/report` | 修改 | 导出时准确区分自建靶场与接入系统 | 原 `Markdown` 接口不变；仍按模型分层 |
+| `internal/eval/report` | 修改 | 外部系统来源标记、采集质量分表与正常样本统计资格 | 原 `Markdown` 接口不变；仍按模型分层，affected/unknown保留全部费用 |
+| `internal/doctor/source/jaeger` | 修改 | 接入固定Demo的安全base path | 原TraceSource/Search/Get方法签名不变，共享HTTP层不变 |
 
 ### 2. 新增和修改的文件
 
@@ -122,6 +123,21 @@
 | `sourceHashUsing`（修改） | [manifest.go](../../internal/eval/runner/manifest.go) | 把全部系统说明书加入行为哈希 | 冻结与执行审计 |
 | `validEvalTrial` | [eval_trials.go:46](../../internal/doctor/store/eval_trials.go) | 仅阶段 9 批次放行 OT 编号，保留原 S 编号规则 | `EvalTrial`、`RecordEvalExecution` |
 | `Markdown`（修改） | [markdown.go:22](../../internal/eval/report/markdown.go) | 外部结果不再标成自建靶场 | export、已有报告调用方 |
+
+本轮追加的采集质量与接入路径符号如下；不改变医生工具或Agent的接口。
+
+| 名称或方法 | 文件 | 作用与调用方 |
+|---|---|---|
+| `QualityNormal`、`QualityAffected`、`QualityUnknown`、`CollectorAudit`、`Summary`新增字段 | [report/summary.go](../../internal/eval/report/summary.go) | 持久化窗口、容器、原件指纹和分信号计数，供runner与导出使用 |
+| `CollectionQuality`、`requiresCollectionAudit` | [report/summary.go](../../internal/eval/report/summary.go) | 阶段9缺审计时保守判unknown，已知丢弃优先affected；阶段8不新增此门槛 |
+| `collectorCommand`、`collectorIdentity`、`collectorWindow`、`collectorOutput.Write` | [generalization_collection.go](../../internal/eval/runner/generalization_collection.go) | 固定命令边界、容器身份、不可刷新起点与有界原始输出 |
+| `runCollectorCommand`、`inspectCollector`、`collectorLineTime` | 同文件 | 参数数组只读Docker，单条命令有时限；只认Docker首个时间戳 |
+| `beginCollectorWindow`、`writeCollectorEvidence`、`collectorWindow.finish` | 同文件 | 先独占写起点，再创建诊断；结束取原件、核身份与保留锚点，不覆写旧失败 |
+| `parseCollectorWindow`、`verifyCollectorRaw`、`checkCollectorSummary`、`readCollectorSummary` | 同文件 | 丢弃和重试分计，重启/轮转/损坏/空原件阻止评分及下一收费槽位 |
+| `terminalCollectorDetail`、`cancelUnattachedCollector`、`createCollectorTask` | 同文件 | 创建提交不确定或关联失败时先取消原ID，取终态，不新建补跑 |
+| `executeDemoDiagnosis` | 同文件 | 阶段9专用执行与审计收尾；SQL、取证、取消使用独立清理时间预算 |
+| `statistics`、Markdown质量分组与审计表、盲评候选过滤 | [statistics.go](../../internal/eval/report/statistics.go)、[markdown.go](../../internal/eval/report/markdown.go)、[calibration.go](../../internal/eval/report/calibration.go) | affected/unknown不进入正常成绩或盲评，费用和原报告保留 |
+| `jaeger.New`、`Client.read` | [jaeger/client.go](../../internal/doctor/source/jaeger/client.go) | 严格校验配置中的安全路径，再拼接固定只读API；Search/Get与标签保留规则不变 |
 
 ### 4. 数据库变更
 
@@ -217,7 +233,7 @@ Collector 修复的固定窗口观察及字段验证已经完成，范围和例�
 | 新增适配器未修改 tools、agent | 本审核停点通过 | [完整 stat 与冻结目录空输出](phase-09-diff-stat.txt)；用户两处修改未暂存 |
 | 追加独立部署与接入说明 | 部署、指南和只读联调通过；真实诊断未完成 | P9-25–P9-29；只有Mock启动与真实数据查询，仍待Claude审核后做付费诊断 |
 
-采集修复的专项固定窗口检查已通过，结果与适用边界见 P9-14、P9-15；Claude 审核尚未完成。阶段 9 整体仍未验收，学习验收未勾选。当前新增台账 **P9-1–P9-40**，包含原接入、采集、检查，以及追加独立部署的资源、分段计时、实际查询、数据隔离与版本重验。这些条目不构成泛化诊断成绩。
+采集修复的专项固定窗口检查已通过，结果与适用边界见 P9-14、P9-15；Claude 审核尚未完成。阶段 9 整体仍未验收，学习验收未勾选。当前新增台账 **P9-1–P9-46**，包含原接入、采集、检查，以及追加独立部署的资源、分段计时、实际查询、数据隔离与版本重验。这些条目不构成泛化诊断成绩。
 
 ## 六、偏离计划之处
 
@@ -232,7 +248,7 @@ Loki 对照最初返回空结果，原 Alloy 缺少创建时项目环境项。�
 ## 七、已知问题与遗留事项
 
 1. **日志历史缺口保留。** P9-13 的最终修复前窗口出现 316 个 OpenSearch 最终失败请求，`dropped_items` 报告和为 6209，包含 2293 次单条 mapper 错误。Bulk 可能部分成功，6209 不能称为唯一丢失日志数，也不能按服务或场景平摊。frontend 控制台记录与 mapper 错误相差 3，未逐条关联，原因未知。Prometheus 的其他失败与重试另列，见[最终量化](phase-09-log-impact-final.json)。
-2. **采集修复已获 Claude 审核通过。** 固定 600.105213886 秒窗口的最终 drop、日志条目报告和及 mapper 错误均为 0，预期 OTLP 日志源 17/17 有记录，五字段 mapping 5/5 不变；见 P9-14、P9-15 与[专项报告](phase-09-logging-fix.md)。image-provider 官方不启用日志，email 样本含受控合成触发，Jaeger traces 仍有重试。这些例外和历史缺口保留；尚未开始付费试跑。
+2. **采集修复已获 Claude 审核通过。** 固定 600.105213886 秒窗口的最终 drop、日志条目报告和及 mapper 错误均为 0，预期 OTLP 日志源 17/17 有记录，五字段 mapping 5/5 不变；见 P9-14、P9-15 与[专项报告](phase-09-logging-fix.md)。image-provider 官方不启用日志，email 样本含受控合成触发，Jaeger traces 仍有重试。这些例外和历史缺口保留；首轮试跑在模型创建前被独立采集审计阻止，见P9-41。
 3. **数据源降级。** 没有 PostgreSQL 检查、Valkey 直查和 pprof。otel-demo 暴露 8 项只读工具，shop 为 16 项（P9-8）。`kafka_consumer_lag`、`recent_changes` 随 Prometheus 注册，但外部系统可能没有它们预置的指标，空结果应如实解释。
 4. **真实评测与失败分析尚无数据。** OT01–OT05 的定义已经完成；OT01 已做免费注入恢复观察，付费诊断、评分和跨靶场差异仍需在阶段 9 内完成。不通过针对场景修改提示、工具或手册来补分；需要通用改进时先按用户规则讨论版本和双靶场重跑费用。
 5. **MCP 验证范围。** P9-10 是 Codex 经 PowerShell 实现 HTTP 传输，实际列工具并调用一次 `service_topology`；不是桌面原生 MCP 配置，也不是完整自主排障。它补充了 P7-8 的官方 Go SDK 验证，不能扩大成所有外部 Agent 客户端均已测试。
@@ -262,3 +278,17 @@ Claude 要求每份诊断保留 Collector 时间窗、原始日志指纹、dropp
 原 OT01 失败及同窗判定、新旧哈希保存在 P9-36；免费受控开关动作和恢复原件也保留。EventStream 的默认 deadline、其他服务、开关与恢复的关系单独调查，不根据噪声改医生提示、工具或评分。原未应用提案保持原样作为审批历史，批准后实际差异以修订审计为准。
 
 免费摸底结果见 P9-37 与[背景专项报告](phase-09-eventstream-background.md)：四个当前实例的已捕获流符合上游默认deadline，未检出这次开关造成提前结束或额外短流；有限采样与内存淘汰的边界均已记录。背景噪声保持原样。OT01免费注入/恢复采样的实际值见P9-36，不代替正式runner自己的3分钟症状/健康验证。最终评测器异常取消边界及完整Mock检查见P9-40；收费任务未开始前的新库仍零生成、两币种零支出。
+
+## 首轮试跑中断（P9-41）
+
+`phase09-pilot-20261103-terra` 按获批清单冻结并注入OT01，三分钟内症状检查通过；进入diagnosing后，Collector起点锚点时间未能验证，审计程序在调用store.Evaluation前返回错误。原槽位未绑定诊断ID，生成与评分均零次，美元和人民币支出均零。中断批次、原开关及恢复文件、无诊断的导出表和数据库错误都保留，不覆盖或自动补跑。
+
+随后通过紧急restore还原完整开关、读回比对，并独立查询实际healthy通过；原trial仍停在diagnosing、run为interrupted，没有把紧急恢复倒填成正常完成轮次。医生已切回Mock并关闭comparison，评测模式继续保留暂停自动诊断。原始run日志记录stdout；最终错误依据数据库显式utf8mb4及HEX导出，不冒充完整stderr捕获。首份默认字符集导出存在中文问号，也作为原件保留。
+
+这是开跑前审计设施异常，不是一次模型诊断。下一步先免费定位并提出可审阅修法，再由用户决定是否继续；正式E1/E2尚未运行，不勾工程或学习验收。
+
+补核P9-42表明当时逐一读取全部服务operations，命名CLIENT EventStream只有上述四个；其他flagd使用者与无命名流的边界在[覆盖清单](phase-09-eventstream-coverage.json)逐项保留。未观测不等于没有错误。
+
+收费暂停期间仅修评测器的Docker锚点读取，不改Collector配置、医生策略或冻结评分。Mock与实际只读回归后完整检查见P9-44；Demo已stop，独立pair为Mock，旧资源与账户核对见P9-45。修复前版本远端CI见P9-46，不能拿它冒充后续最小补丁的CI。原中断批次不会续跑，新版本若获用户批准需用新批次重新冻结，继续复用同一阶段9账户及原预算，不重新开额度。
+
+P9-43的同容器只读复现表明，本机Docker先取tail再按until过滤；最后一行晚于截止时，tail1可返回空，而旧行仍保留。评测器只把起点查询改成tail/all，并对真正空输出明确失败；全部原有输出、时间、身份和轮转限制保留。原失败命令的输出没有保存，因此只称重复机制复现，不声称已找回原次字节。[修复证据](phase-09-collector-anchor-fix.json)列出原始日志、窗口指纹和完整检查。收费继续暂停，等待用户决定新批次。

@@ -5,11 +5,13 @@
 // 它不访问数据库、模型或故障开关，CI未设置该变量时跳过。
 //
 // 主要内容：TestCollectorCounts检查计数；TestCollectorWindow检查证据；TestCollectorGate检查暂停。
+// TestCollectorRetainedAnchor覆盖tail先截断的空成功；真正空输出和未来行仍然拒绝。
 // TestIntegrationCollectorWindow另外验证真实Docker命令、解析和日志保留锚点。
 
 package runner
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -353,6 +355,51 @@ func TestCollectorCommitUncertainty(t *testing.T) {
 	}
 }
 
+// TestCollectorRetainedAnchor复现Docker先tail后until，保证旧行仍在时不会因最新行较新而误停。
+func TestCollectorRetainedAnchor(t *testing.T) {
+	start := time.Date(2026, 11, 3, 8, 0, 0, 0, time.UTC)
+	newestBefore := start.Add(-time.Second).Format(time.RFC3339Nano) + " retained latest before start"
+	retained := newestBefore + "\n" + start.Add(-5*time.Second).Format(time.RFC3339Nano) + " retained older line\n"
+	fake := collectorFake{start: start}
+	run := func(ctx context.Context, args ...string) ([]byte, error) {
+		if args[0] == "inspect" {
+			return fake.run(ctx, args...)
+		}
+		// 新的末行晚于until，因此旧实现tail1为空；all仍能读到边界前的真实保留行。
+		if slices.Contains(args, "1") {
+			return []byte{}, nil
+		}
+		if !slices.Contains(args, "all") {
+			return nil, errors.New("unexpected retained log query")
+		}
+		return []byte(retained), nil
+	}
+	legacy, err := run(t.Context(), "logs", "--timestamps", "--until", start.Format(time.RFC3339Nano), "--tail", "1", collectorContainer)
+	if err != nil || len(legacy) != 0 {
+		t.Fatal("未复现tail先截断的空成功结果", err)
+	}
+	window, err := beginCollectorWindow(t.Context(), "retained-before-start", "", t.TempDir(), start, run)
+	if err != nil || window.Anchor != newestBefore {
+		t.Fatal("未从全部保留行选择最近的合法锚点", window, err)
+	}
+	for _, bad := range []string{"", " \r\n\t", retained + start.Add(time.Nanosecond).Format(time.RFC3339Nano) + " future line\n"} {
+		badRun := func(ctx context.Context, args ...string) ([]byte, error) {
+			if args[0] == "inspect" {
+				return fake.run(ctx, args...)
+			}
+			return []byte(bad), nil
+		}
+		if _, err = beginCollectorWindow(t.Context(), "bad-retained", "", t.TempDir(), start, badRun); err == nil {
+			t.Fatal("真正空输出或未来日志被当作合法锚点")
+		}
+	}
+	// all仍必须经过生产查看器的64MiB保护，不能用改选择方式放开无界输出。
+	output := collectorOutput{Buffer: *bytes.NewBuffer(make([]byte, collectorMaximumBytes))}
+	if n, err := output.Write([]byte("x")); err == nil || n != 0 || output.Len() != collectorMaximumBytes {
+		t.Fatal("all查询绕过输出硬上限", n, err)
+	}
+}
+
 // TestIntegrationCollectorWindow只在显式指定保留目录时查看现有Collector，不清理真实证据。
 func TestIntegrationCollectorWindow(t *testing.T) {
 	directory := os.Getenv("TEST_PHASE09_COLLECTOR_DIR")
@@ -363,12 +410,50 @@ func TestIntegrationCollectorWindow(t *testing.T) {
 		t.Fatal("TEST_PHASE09_COLLECTOR_DIR必须是宿主机绝对路径")
 	}
 	// 不用t.TempDir或Cleanup：真实原件在测试结束后仍需供人工和台账复核。
-	start := time.Now().UTC()
-	key := "phase09-readonly-preflight/" + start.Format("20060102T150405.000000000Z")
-	window, err := beginCollectorWindow(t.Context(), key, "", directory, start, runCollectorCommand)
+	observed := time.Now().UTC()
+	start := observed.Add(-time.Minute)
+	key := "phase09-readonly-preflight/" + observed.Format("20060102T150405.000000000Z")
+	proof := filepath.Join(directory, "retained-"+observed.Format("20060102T150405.000000000Z"))
+	latest, err := runCollectorCommand(t.Context(), "logs", "--timestamps", "--tail", "1", collectorContainer)
 	if err != nil {
 		t.Fatal(err)
 	}
+	newer := false
+	for _, line := range strings.Split(strings.TrimSpace(string(latest)), "\n") {
+		stamp, _, err := collectorLineTime(strings.TrimSuffix(line, "\r"))
+		if err != nil {
+			t.Fatal(err)
+		}
+		newer = newer || stamp.After(start)
+	}
+	if !newer {
+		t.Fatal("本次没有晚于旧60秒边界的新日志，不能验证tail/until缺陷")
+	}
+	if err = writeCollectorEvidence(proof+".latest.log", latest); err != nil {
+		t.Fatal(err)
+	}
+	legacy, err := runCollectorCommand(t.Context(), "logs", "--timestamps", "--until", start.Format(time.RFC3339Nano), "--tail", "1", collectorContainer)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = writeCollectorEvidence(proof+".legacy-tail1.log", legacy); err != nil {
+		t.Fatal(err)
+	}
+	if len(legacy) != 0 {
+		t.Fatal("当前Docker未复现旧tail1空成功，保留原件后停止本次对照")
+	}
+	run := func(ctx context.Context, args ...string) ([]byte, error) {
+		raw, err := runCollectorCommand(ctx, args...)
+		if slices.Contains(args, "--tail") && slices.Contains(args, "all") {
+			err = errors.Join(err, writeCollectorEvidence(proof+".anchor-all.log", raw))
+		}
+		return raw, err
+	}
+	window, err := beginCollectorWindow(t.Context(), key, "", directory, start, run)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Logf("旧边界=%s；最新原件=%s；旧tail1原件=%s；修复all原件=%s；所选锚点=%s", start.Format(time.RFC3339Nano), proof+".latest.log", proof+".legacy-tail1.log", proof+".anchor-all.log", window.Anchor)
 	if err = waitTick(t.Context(), 2*time.Second); err != nil {
 		t.Fatal(err)
 	}

@@ -13,3 +13,5 @@ docs/reports/phase-09-paid-*.jsonl -text -whitespace
 docs/reports/phase-09-ot01-*.json -text -whitespace
 docs/reports/phase-09-ot01-baseline-proposal.diff -text -whitespace
 docs/reports/phase-09-ot01-baseline-proposal.md -text -whitespace
+# 锚点回归的起点与审计JSON也是独占保存的原件，SHA按原字节核对。
+docs/reports/phase-09-collector-anchor-fix-*.json -text -whitespace
