@@ -183,7 +183,7 @@ Collector 补丁在原 `transform/sanitize_logs` 中保留 scope 规则，再重
 
 P9-14 的固定观察窗口为 05:04:46.894786114–05:14:47.000000000 UTC，实际 600.105213886 秒：最终 `Dropping data` 事件为 0、OpenSearch 日志 `dropped_items` 报告和为 0、mapper 错误为 0。预期具备 OTLP 日志接线的源 17/17 在窗口内有日志，改名后的 `http_request.method` 记录为 1884 条；见[固定窗口汇总](phase-09-log-fix-after.json)、[原始日志](phase-09-collector-after-fix.log)和[逐服务响应](phase-09-log-fix-services.json)。image-provider 的官方矩阵为 `logs=False`，不算入这些预期源；email 的 9 条中有 1 条合成标记精确匹配记录，不能冒充自然结账流量覆盖。同期另有 10 条 Jaeger traces 重试，因此不能称整个 Collector 零错误或端到端无静默丢失。
 
-P9-15 的[字段对照](phase-09-log-field-comparison.json)确认医生五个字段的完整 mapping 逐节点 5/5 相同，[修复前 UUID](phase-09-log-fix-before.json)与[修复后 UUID](phase-09-opensearch-indices-after.json)一致，[固定版本配置验证](phase-09-log-config-validation.json)退出码为 0。这个固定窗口验证已经完成，完整[采集修复专项报告](phase-09-logging-fix.md)仍须 Claude 审核；不据此提前开始付费或认定整个阶段完成。
+P9-15 的[字段对照](phase-09-log-field-comparison.json)确认医生五个字段的完整 mapping 逐节点 5/5 相同，[修复前 UUID](phase-09-log-fix-before.json)与[修复后 UUID](phase-09-opensearch-indices-after.json)一致，[固定版本配置验证](phase-09-log-config-validation.json)退出码为 0。这个固定窗口验证已经完成，完整[采集修复专项报告](phase-09-logging-fix.md)已获 Claude 审核通过；后续试跑异常见P9-41，不能把采集验证当作整个阶段完成。
 
 扩展到 05:17:07.909028 UTC 的持续观察单列为 P9-18，见[扩展汇总与字节拼接说明](phase-09-log-fix-observation.json)。它没有替换首窗口口径。修复后原适配器的真实查询复验也通过（P9-16），见[集成输出](phase-09-opensearch-after-test.log)。
 
@@ -207,6 +207,18 @@ P9-15 的[字段对照](phase-09-log-field-comparison.json)确认医生五个字
 | `TestDemoRestoreProof`、`TestGeneralizationCLI` | [generalization_test.go](../../internal/eval/runner/generalization_test.go) | 原快照不截断，恢复后不能续接旧注入；非法参数在凭据前拒绝 |
 | `TestGeneralizationScenarioFiles`、`TestGeneralizationProfileHash` | [generalization_test.go](../../internal/eval/runner/generalization_test.go) | 实际候选 YAML 可加载；第二说明书变化进入冻结哈希 |
 
+本轮补充测试清单：
+
+| 测试函数 | 文件 | 验证内容 |
+|---|---|---|
+| `TestCollectorCounts`、`TestCollectorMalformed` | [generalization_collection_test.go](../../internal/eval/runner/generalization_collection_test.go) | 分信号丢弃计数、mapper与重试分开、损坏计数和时间戳拒绝 |
+| `TestCollectorWindow`、`TestCollectorGate` | 同文件 | 原件、身份、重启/轮转、窗口完整性与评分前失败关闭 |
+| `TestCollectorTerminal`、`TestCollectorAttachFailure`、`TestCollectorCommitUncertainty` | 同文件 | 终态不确定及原ID取消，不产生补跑任务 |
+| `TestCollectorRetainedAnchor`、`TestIntegrationCollectorWindow` | 同文件 | tail/until空集回归、有界输出与显式真实只读证明；后者未启用时跳过 |
+| `TestCollectionQuality`、`TestStatisticsCollectionQuality` | [summary_test.go](../../internal/eval/report/summary_test.go)、[statistics_test.go](../../internal/eval/report/statistics_test.go) | 质量保守分类与正常统计排除，不改变旧阶段样本 |
+| `TestMarkdownCollectionQuality`、`TestCalibrationCollectionQuality` | [markdown_test.go](../../internal/eval/report/markdown_test.go)、[calibration_test.go](../../internal/eval/report/calibration_test.go) | 分表保留费用、审计明细及盲评候选排除 |
+| `TestDeploymentPrefix`、`TestInvalidDeploymentPrefix` | [jaeger/client_test.go](../../internal/doctor/source/jaeger/client_test.go) | 根地址兼容、配置前缀实际Search/Get路径、危险路径和重定向拒绝 |
+
 ### 2. 运行命令和结果
 
 全仓命令为 `gofmt -l cmd gen internal tools`、`go vet ./...`、`staticcheck ./...`、`go run ./tools/commentcheck ./...`、`go run ./tools/archcheck ./...`、`go test -race ./... -count=1 -timeout=180s -json`。P9-6 记录这轮全部通过，race 顶层通过/跳过为 291/47，含子例为 977/57，失败为 0；commentcheck 检查 441 个文件。运行进程清空全部 `TEST_*`、`LLM_API_KEY`、`DEEPSEEK_API_KEY`，设置 Mock 与 CGO，未格式化用户文件。详情见[检查统计](phase-09-checks.json)。
@@ -215,13 +227,13 @@ P9-15 的[字段对照](phase-09-log-field-comparison.json)确认医生五个字
 
 收尾发现冻结工具接受大写 INFO，而实际 frontend 使用小写 info。原精确 term 翻译漏查；新适配器仅对级别启用 `case_insensitive`，服务/trace不变。同一固定窗口实查从 0 到 1896 条、真实 Go 集成带 INFO 返回 10 条、新 Mock 医生返回 5 条，见 P9-21、P9-23。这个口径是 frontend 的 INFO 总量，不是 P9-14 的 HTTP method 计数。原 uppercase 夹具和未带级别的集成都没有覆盖差异；新增回归后重新完成全部检查，P9-22 为 race292 顶层/985含子例通过、47/57跳过、失败0，见[独立检查统计](phase-09-level-checks.json)。
 
-初版提交 4596540 的[CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41583884321)已经通过，详见[逐步骤结果](phase-09-ci-first.json)和 P9-20。后续级别补丁提交2396d3e的[CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41585632149)也通过，见P9-30和[逐步骤结果](phase-09-ci-level.json)。新增独立部署CI步骤仍须由后续提交验证，不能用旧绿色结果替代。
+初版提交 4596540 的[CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41583884321)已经通过，详见[逐步骤结果](phase-09-ci-first.json)和 P9-20。后续级别补丁提交2396d3e的[CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41585632149)也通过，见P9-30和[逐步骤结果](phase-09-ci-level.json)。新增独立部署CI随后已由P9-31验证通过；本轮逐诊断审计及Jaeger接线的CI见P9-46，锚点最小补丁使用自己的新提交CI，不用旧绿色结果替代。
 
 独立部署增加了精确的新数据库隔离白名单和 Mock CI 启动检查。代码变更后全仓再次重验，P9-28 的[检查结果](phase-09-standalone-checks.json)为 race292 顶层/985含子例通过、47/57跳过、失败0；不覆盖前两轮检查。真实独立部署、数据源及资源证据见 P9-25–P9-29。
 
 Collector 修复的固定窗口观察及字段验证已经完成，范围和例外见 P9-14、P9-15 及[专项报告](phase-09-logging-fix.md)。这个窗口没有最终 drop 或 mapper 错误，仍单列 Jaeger traces 的重试；不能将日志检查结论扩大为整个 Collector 没有错误。
 
-尚未完成：Claude 对采集修复的审核、官方故障开关注入与恢复的真实整轮、Terra 小规模试跑、DeepSeek 评分及 E1/E2 正式批次。当前审核停点的[凭据、链接与冻结范围检查](phase-09-release-audit.json)单独归档，提交后的 CI 另行记录；不将本次检查当作全阶段验收。
+采集修复Claude审核、OT01免费注入恢复和EventStream摸底已完成。尚未完成：Terra模型诊断的有效试跑、DeepSeek评分及E1/E2正式批次；首个空诊断槽位见P9-41，不算一份模型报告。当前审核停点的[凭据、链接与冻结范围检查](phase-09-release-audit.json)单独归档，提交后的 CI 另行记录；不将本次检查当作全阶段验收。
 
 ## 五、工程验收结果
 
@@ -231,9 +243,9 @@ Collector 修复的固定窗口观察及字段验证已经完成，范围和例�
 | 记录接入耗时和卡点 | 部分完成，未通过完整验收 | 启动失败/修正计时见 P9-4、P9-5；Collector 缺口见 P9-11、P9-13。完整接入过程仍进行中，不把并行开发墙钟冒充纯接入耗时 |
 | 同格式 `search_logs` 分别查询 shop/Loki 与 Demo/OpenSearch | 通过 | P9-9：同一医生实例分别返回 2、5 条；[两份真实 CLI 证据](phase-09-doctorctl-loki.json)、[OpenSearch 证据](phase-09-doctorctl-opensearch.json) |
 | 新增适配器未修改 tools、agent | 本审核停点通过 | [完整 stat 与冻结目录空输出](phase-09-diff-stat.txt)；用户两处修改未暂存 |
-| 追加独立部署与接入说明 | 部署、指南和只读联调通过；真实诊断未完成 | P9-25–P9-29；只有Mock启动与真实数据查询，仍待Claude审核后做付费诊断 |
+| 追加独立部署与接入说明 | 部署、指南和只读联调通过；真实诊断未完成 | P9-25–P9-29；已有独立启动、真实只读查询与免费注入恢复；首轮在模型创建前中断，等用户决定新试跑 |
 
-采集修复的专项固定窗口检查已通过，结果与适用边界见 P9-14、P9-15；Claude 审核尚未完成。阶段 9 整体仍未验收，学习验收未勾选。当前新增台账 **P9-1–P9-46**，包含原接入、采集、检查，以及追加独立部署的资源、分段计时、实际查询、数据隔离与版本重验。这些条目不构成泛化诊断成绩。
+采集修复的专项固定窗口检查已通过，结果与适用边界见 P9-14、P9-15；Claude已审核通过；锚点最小修法及免费回归也通过，当前按异常暂停约定等用户决定新批次。阶段 9 整体仍未验收，学习验收未勾选。当前新增台账 **P9-1–P9-47**，包含原接入、采集、检查，以及追加独立部署的资源、分段计时、实际查询、数据隔离与版本重验。这些条目不构成泛化诊断成绩。
 
 ## 六、偏离计划之处
 
@@ -253,7 +265,7 @@ Loki 对照最初返回空结果，原 Alloy 缺少创建时项目环境项。�
 4. **真实评测与失败分析尚无数据。** OT01–OT05 的定义已经完成；OT01 已做免费注入恢复观察，付费诊断、评分和跨靶场差异仍需在阶段 9 内完成。不通过针对场景修改提示、工具或手册来补分；需要通用改进时先按用户规则讨论版本和双靶场重跑费用。
 5. **MCP 验证范围。** P9-10 是 Codex 经 PowerShell 实现 HTTP 传输，实际列工具并调用一次 `service_topology`；不是桌面原生 MCP 配置，也不是完整自主排障。它补充了 P7-8 的官方 Go SDK 验证，不能扩大成所有外部 Agent 客户端均已测试。
 6. **旧学习材料交接给 Claude。** 阶段 0–8 学习材料保持未修改。若补说明，请在阶段 5 的接口/降级部分补 OpenSearch 作为后续实现的入口，在阶段 7 的 MCP 部分区分 Go SDK 与本阶段 Codex HTTP 调用，在阶段 8 的评测部分注明外部系统使用独立批次与币种账户；同时把旧称 `mcp_audits` 对照实际表名 `mcp_audit`。这些是交接建议，本阶段没有替 Claude 修改旧学习正文。
-7. **开跑前新发现与边界。** 原 OT01 服务级健康判定被 flagd CLIENT EventStream 干扰，原失败保留；用户仅批准将两条健康/症状查询限定到 GetAds SERVER，症状文本、标准答案和里程碑逐字节不变，见[修订审计](phase-09-ot01-baseline-amendment.json)。免费注入恢复与 EventStream 摸底不创建诊断。Jaeger 固定版 API 有 `/jaeger/ui` 前缀，已在 source/jaeger 支持安全配置路径，真实 search/get 通过；没有改工具、Agent 或共享 HTTP 层。当前 Demo 与独立医生、新库运行，shop 与旧医生库停止，旧卷保留。用户两处修改不还原、不暂存、不提交。
+7. **开跑前新发现与边界。** 原 OT01 服务级健康判定被 flagd CLIENT EventStream 干扰，原失败保留；用户仅批准将两条健康/症状查询限定到 GetAds SERVER，症状文本、标准答案和里程碑逐字节不变，见[修订审计](phase-09-ot01-baseline-amendment.json)。免费注入恢复与 EventStream 摸底不创建诊断。Jaeger 固定版 API 有 `/jaeger/ui` 前缀，已在 source/jaeger 支持安全配置路径，真实 search/get 通过；没有改工具、Agent 或共享 HTTP 层。本轮曾仅运行Demo与独立pair；收尾Demo全部stop，只有Mock独立医生与新库运行，shop与旧医生库停止，原卷保留（P9-45）。用户两处修改不还原、不暂存、不提交。
 
 ## 八、注释自查结论
 
@@ -292,3 +304,5 @@ Claude 要求每份诊断保留 Collector 时间窗、原始日志指纹、dropp
 收费暂停期间仅修评测器的Docker锚点读取，不改Collector配置、医生策略或冻结评分。Mock与实际只读回归后完整检查见P9-44；Demo已stop，独立pair为Mock，旧资源与账户核对见P9-45。修复前版本远端CI见P9-46，不能拿它冒充后续最小补丁的CI。原中断批次不会续跑，新版本若获用户批准需用新批次重新冻结，继续复用同一阶段9账户及原预算，不重新开额度。
 
 P9-43的同容器只读复现表明，本机Docker先取tail再按until过滤；最后一行晚于截止时，tail1可返回空，而旧行仍保留。评测器只把起点查询改成tail/all，并对真正空输出明确失败；全部原有输出、时间、身份和轮转限制保留。原失败命令的输出没有保存，因此只称重复机制复现，不声称已找回原次字节。[修复证据](phase-09-collector-anchor-fix.json)列出原始日志、窗口指纹和完整检查。收费继续暂停，等待用户决定新批次。
+
+锚点修复运行代码a7003ff的完整CI已通过（P9-47，[远端运行](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41602337487)及[证据](phase-09-ci-anchor.json)）；随后只归档文档与审计。当前按用户“出现异常时停下”约定等批准：若继续，使用新编号重新冻结一次OT01/E1试跑，正常后在原两账户/原预算内继续正式矩阵；原空槽位和原失败不覆盖。阶段9仍未完成，不合并main、不勾工程或学习验收。

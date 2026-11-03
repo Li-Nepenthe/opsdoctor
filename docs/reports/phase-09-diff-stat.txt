@@ -30,6 +30,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/notes.md                                                       |    42 +
  docs/onboarding.md                                                  |   321 ++
  docs/reports/README.md                                              |     3 +-
+ docs/reports/phase-09-anchor-evidence-byte-check.json               |    59 +
  docs/reports/phase-09-anchor-fix-checks.json                        |   310 ++
  docs/reports/phase-09-approved-run-plan.json                        |    88 +
  docs/reports/phase-09-baseline-initial.json                         |    32 +
@@ -37,6 +38,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-baseline-verified.json                        |    32 +
  docs/reports/phase-09-before-db-isolation.tsv                       |    13 +
  docs/reports/phase-09-checks.json                                   |   149 +
+ docs/reports/phase-09-ci-anchor.json                                |   389 +++
  docs/reports/phase-09-ci-collection.json                            |   353 +++
  docs/reports/phase-09-ci-first.json                                 |   160 +
  docs/reports/phase-09-ci-level.json                                 |   159 +
@@ -85,7 +87,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-eventstream-controlled-20261103T072744Z.jsonl |    29 +
  docs/reports/phase-09-eventstream-coverage.json                     |  1364 +++++++++
  docs/reports/phase-09-evidence-byte-check.json                      |    26 +
- docs/reports/phase-09-generalization.md                             |   294 ++
+ docs/reports/phase-09-generalization.md                             |   308 ++
  docs/reports/phase-09-http-rename-precondition.json                 |    13 +
  docs/reports/phase-09-http-renamed-samples.json                     |     1 +
  docs/reports/phase-09-http-rule-review.json                         |   154 +
@@ -143,7 +145,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/reports/phase-09-pilot-run.log                                 |     6 +
  docs/reports/phase-09-preflight.json                                |    59 +
  docs/reports/phase-09-prepilot-evidence-byte-check.json             |    72 +
- docs/reports/phase-09-release-audit.json                            |    28 +
+ docs/reports/phase-09-release-audit.json                            |    29 +
  docs/reports/phase-09-runtime-after-level-fix.json                  |   196 ++
  docs/reports/phase-09-runtime-before-pilot.json                     |    45 +
  docs/reports/phase-09-runtime-before-review.json                    |   196 ++
@@ -162,7 +164,7 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  docs/resume-draft.md                                                |    13 +-
  docs/troubleshooting.md                                             |    34 +-
  docs/代码地图.md                                                    |    17 +
- docs/数据台账.md                                                    |    63 +
+ docs/数据台账.md                                                    |    65 +
  eval/scenarios/otel-demo/OT01.yaml                                  |    20 +
  eval/scenarios/otel-demo/OT02.yaml                                  |    21 +
  eval/scenarios/otel-demo/OT03.yaml                                  |    21 +
@@ -213,9 +215,9 @@ $ git -c core.quotepath=false diff --cached --stat --stat-width=160 --stat-name-
  internal/eval/runner/grading.go                                     |    12 +-
  internal/eval/runner/manifest.go                                    |     2 +-
  internal/eval/runner/paired.go                                      |    14 +
- 进度.md                                                             |    29 +-
+ 进度.md                                                             |    31 +-
  项目计划书.md                                                       |    13 +
- 213 files changed, 51430 insertions(+), 100 deletions(-)
+ 215 files changed, 51896 insertions(+), 101 deletions(-)
 
 $ git diff --cached --stat main -- internal/doctor/tools internal/doctor/agent
 (empty output; no tools/agent files changed)
