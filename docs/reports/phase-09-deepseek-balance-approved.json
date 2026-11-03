@@ -1,0 +1,15 @@
+{
+  "checked_at_utc": "2026-11-03T06:31:52.889452+00:00",
+  "scope": "Free pre-paid balance recheck after Claude approval",
+  "response": {
+    "is_available": true,
+    "balance_infos": [
+      {
+        "currency": "CNY",
+        "total_balance": "1.71",
+        "granted_balance": "0.00",
+        "topped_up_balance": "1.71"
+      }
+    ]
+  }
+}

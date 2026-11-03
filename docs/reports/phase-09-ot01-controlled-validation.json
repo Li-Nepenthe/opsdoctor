@@ -1,0 +1,46 @@
+{
+  "source": "phase-09-eventstream-controlled-20261103T072744Z.jsonl",
+  "sha256": "6efdf7f41328c5acd98ce9285444c7f61bf31f6f6f30e06b1be8dd98b85abf9c",
+  "phases": {
+    "baseline_before_switch": {
+      "samples": 1,
+      "first_at_utc": "2026-11-03T07:27:44.610239+00:00",
+      "last_at_utc": "2026-11-03T07:27:44.610239+00:00",
+      "healthy_samples": 1,
+      "symptom_samples": 0
+    },
+    "adFailure_on": {
+      "samples": 7,
+      "first_at_utc": "2026-11-03T07:27:44.659382+00:00",
+      "last_at_utc": "2026-11-03T07:30:44.657110+00:00",
+      "healthy_samples": 6,
+      "symptom_samples": 1
+    },
+    "restored_observation": {
+      "samples": 21,
+      "first_at_utc": "2026-11-03T07:30:44.676807+00:00",
+      "last_at_utc": "2026-11-03T07:40:44.668848+00:00",
+      "healthy_samples": 19,
+      "symptom_samples": 2
+    }
+  },
+  "actions": [
+    {
+      "action": "adFailure_on",
+      "requested_at_utc": "2026-11-03T07:27:44.634930+00:00",
+      "confirmed_at_utc": "2026-11-03T07:27:44.659363+00:00"
+    },
+    {
+      "action": "restore_original_flags",
+      "requested_at_utc": "2026-11-03T07:30:44.667163+00:00",
+      "confirmed_at_utc": "2026-11-03T07:30:44.674459+00:00"
+    }
+  ],
+  "restore_verified": true,
+  "final_equals_original": true,
+  "first_observed_symptom_at_utc": "2026-11-03T07:30:44.657110+00:00",
+  "first_observed_healthy_after_restore_at_utc": "2026-11-03T07:31:44.676313+00:00",
+  "sampled_symptom_delay_seconds": 179.997747,
+  "sampled_restored_healthy_delay_seconds": 60.001854,
+  "limits": "30-second sampling; first observed sample is not exact fault onset/recovery latency; no diagnosis or model calls."
+}

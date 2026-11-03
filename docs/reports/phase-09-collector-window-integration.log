@@ -1,0 +1,5 @@
+=== RUN   TestIntegrationCollectorWindow
+    generalization_collection_test.go:295: Collector原始日志保留：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-readonly-20261103T071042Z\opsdoctor-phase09\collector-audit\61421a949b5137ffe9785a37fd910c4da31ee52272b97ff666ba598188329891.log；JSON审计保留：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-readonly-20261103T071042Z\opsdoctor-phase09\collector-audit\61421a949b5137ffe9785a37fd910c4da31ee52272b97ff666ba598188329891.audit.json；SHA256=097811ee8b6dca1c704df1b5776baf5ad22fb8360e8e42ad3434feb51aa312c0
+--- PASS: TestIntegrationCollectorWindow (2.40s)
+PASS
+ok  	github.com/Li-Nepenthe/opsdoctor/internal/eval/runner	4.288s

@@ -1,0 +1,71 @@
+{
+  "checked_at_utc": "2026-11-03T07:33:38.478469+00:00",
+  "doctor_image": "phase09-20261102.4",
+  "search": {
+    "tool": "search_traces",
+    "status": "ok",
+    "summary": "1 条调用链，每条只显示最慢五步；父步骤耗时包含子步骤，不能直接相加",
+    "data": [
+      {
+        "trace_id": "33cb75891d365e04e7aec81191db3a6c",
+        "span_count": 2,
+        "services": [
+          "ad",
+          "flagd"
+        ],
+        "slowest_spans": [
+          {
+            "id": "94745632a989dd67",
+            "parent_id": "",
+            "service": "ad",
+            "operation": "flagd.evaluation.v2.Service/EventStream",
+            "start_us": 1793690407192146,
+            "duration_us": 600001829,
+            "tags": {
+              "error": "true",
+              "otel.status_code": "ERROR",
+              "rpc.grpc.status_code": "4",
+              "rpc.method": "EventStream",
+              "rpc.service": "flagd.evaluation.v2.Service"
+            }
+          },
+          {
+            "id": "7d6fadb25ece4426",
+            "parent_id": "94745632a989dd67",
+            "service": "flagd",
+            "operation": "flagd.evaluation.v2.Service/EventStream",
+            "start_us": 1793690407193705,
+            "duration_us": 599999569,
+            "tags": {
+              "error": "true",
+              "otel.status_code": "ERROR",
+              "rpc.grpc.status_code": "4",
+              "rpc.method": "EventStream",
+              "rpc.service": "flagd.evaluation.v2.Service"
+            }
+          }
+        ]
+      }
+    ],
+    "truncated": false,
+    "original_bytes": 749,
+    "bytes": 973,
+    "duration_ms": 6
+  },
+  "trace_id": "33cb75891d365e04e7aec81191db3a6c",
+  "get": {
+    "tool": "get_trace",
+    "status": "ok",
+    "summary": "采集到 2 个 span，树中显示 2 个；最多 200 个、32 层",
+    "data": {
+      "shown_spans": 2,
+      "span_count": 2,
+      "trace_id": "33cb75891d365e04e7aec81191db3a6c",
+      "tree": "ad | flagd.evaluation.v2.Service/EventStream | 600001.829ms | span=94745632a989dd67\n  flagd | flagd.evaluation.v2.Service/EventStream | 599999.569ms | span=7d6fadb25ece4426"
+    },
+    "truncated": false,
+    "original_bytes": 261,
+    "bytes": 450,
+    "duration_ms": 4
+  }
+}

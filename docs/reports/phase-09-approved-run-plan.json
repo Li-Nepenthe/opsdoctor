@@ -1,0 +1,88 @@
+{
+  "checked_at_utc": "2026-11-03T06:48:17.362557+00:00",
+  "status": {
+    "budget": {
+      "currency": "USD",
+      "spent_micros": 0,
+      "limit_micros": 10000000,
+      "blocked": false,
+      "reason": ""
+    },
+    "executions": {
+      "comparison": {
+        "model": "deepseek-flash",
+        "provider": "openai",
+        "account": "phase-09-deepseek",
+        "budget": {
+          "currency": "CNY",
+          "spent_micros": 0,
+          "limit_micros": 10000000,
+          "blocked": false,
+          "reason": ""
+        }
+      },
+      "primary": {
+        "model": "gpt-6.1-terra",
+        "provider": "openai",
+        "account": "phase-09-openai",
+        "budget": {
+          "currency": "USD",
+          "spent_micros": 0,
+          "limit_micros": 10000000,
+          "blocked": false,
+          "reason": ""
+        }
+      }
+    },
+    "model": "gpt-6.1-terra",
+    "provider": "openai"
+  },
+  "budget_caps": {
+    "USD": 10,
+    "CNY": 10
+  },
+  "pilot": {
+    "scenarios": [
+      "OT01"
+    ],
+    "groups": [
+      "E1"
+    ],
+    "iterations": 1,
+    "reports": 1
+  },
+  "formal": {
+    "scenarios": [
+      "OT01",
+      "OT02",
+      "OT03",
+      "OT04",
+      "OT05"
+    ],
+    "groups": [
+      "E1",
+      "E2"
+    ],
+    "iterations": 1,
+    "reports": 10
+  },
+  "forecast_not_actual": {
+    "doctor_each": {
+      "input_tokens": 100000,
+      "output_tokens": 3000,
+      "uncached_usd": 0.115
+    },
+    "judge_each": {
+      "input_tokens": 30000,
+      "output_tokens": 2000,
+      "peak_cny": 0.076
+    },
+    "pilot_usd": 0.115,
+    "pilot_cny": 0.076,
+    "formal_usd": 1.15,
+    "formal_cny": 0.76,
+    "total_usd": 1.265,
+    "total_cny": 0.836
+  },
+  "currency_note": "Separate currencies. USD per project usage ledger; key is shared, platform bill cannot be reconciled for this project alone."
+}

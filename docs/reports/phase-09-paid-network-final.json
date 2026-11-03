@@ -1,0 +1,30 @@
+{
+  "recorded_at_utc": "2026-11-03T07:48:14.547310+00:00",
+  "method": "free GET models in actual doctor container; no generation calls",
+  "source": "phase-09-paid-network-final.jsonl",
+  "raw_sha256": "0dc916ff1f3c2d9a7cc261f98d01ca1864e4245bad3e03ef1eeb9b15329e2503",
+  "summary": {
+    "type": "summary",
+    "started_utc": "2026-11-03T07:37:53.247465078Z",
+    "finished_utc": "2026-11-03T07:47:53.210986814Z",
+    "elapsed_ms": 600001,
+    "sampling_window_seconds": 600,
+    "interval_seconds": 5,
+    "attempts": 240,
+    "successes": 240,
+    "failures": 0,
+    "providers": {
+      "deepseek": {
+        "attempts": 120,
+        "successes": 120,
+        "failures": 0
+      },
+      "openai": {
+        "attempts": 120,
+        "successes": 120,
+        "failures": 0
+      }
+    },
+    "completed": true
+  }
+}

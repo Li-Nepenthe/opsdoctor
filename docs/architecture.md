@@ -2,7 +2,7 @@
 
 OpsDoctor 把三件事放在同一个仓库：运行中的电商靶场、受权限约束的诊断医生、知道标准答案的故障注入与评测器。靶场产生真实症状，医生只能从观测数据取证，评测器独立比较结果。先看 [展示入口](../README.md)，运行命令见 [操作手册](operations.md)，找代码时从 [代码地图](代码地图.md) 进入。
 
-本文描述已经实现的系统。阶段 10 已按用户确认合并 `main`（231ee48），阶段 9 于 2026-11-02 恢复实施。当前医生可同时登记 shop 和 OpenTelemetry Demo，日志有 Loki 与 OpenSearch 两个实现；OpenSearch 已查询真实 Demo 日志（台账 P9-3）。**尚未完成泛化评测**：采集修复已完成固定窗口验证（P9-14、P9-15），等待 Claude 审核，通过后才开始付费诊断。
+本文描述已经实现的系统。阶段 10 已按用户确认合并 `main`（231ee48），阶段 9 于 2026-11-02 恢复实施。医生可同时登记 shop 和 OpenTelemetry Demo，日志有 Loki 与 OpenSearch 两个实现；OpenSearch 已查询真实 Demo 日志（台账 P9-3）。采集修复已完成固定窗口验证（P9-14、P9-15）并通过 Claude 审核，用户已批准按独立预算运行阶段 9 评测。**接线验证不等于泛化效果**：实际诊断与评分仍须单独留档，从[数据台账](数据台账.md)追溯。
 
 ## 总体结构
 
@@ -41,7 +41,7 @@ flowchart TD
 
 阶段 9 先在同一专用医生中加载 shop 与 otel-demo 两份配置，完成不重启的后端切换，见 P9-8、P9-9。用户随后追加独立部署：通用[双服务 Compose](../deploy/doctor/compose.yaml)只运行医生及其状态库，不列 shop 专用变量；按外部目录选择目标、通过外部 env_file 注入该目标引用的凭据。本次独立实例只选 Demo，实测与隔离资源见 P9-25–P9-27。原 doctor 与原 doctor-mysql 均保留并停止，阶段 8 卷未挂入新实例。
 
-切换已登记目标不需要重启医生，修改接入目录内容则要重新启动医生加载。otel-demo 的 PostgreSQL、Valkey 直查与 pprof 没有接入，相应工具不注册。[接入指南](onboarding.md)解释配置、只读账号与验证；本阶段只有部署和数据源查询证据，付费诊断仍等采集修复审核。
+切换已登记目标不需要重启医生，修改接入目录内容则要重新启动医生加载。otel-demo 的 PostgreSQL、Valkey 直查与 pprof 没有接入，相应工具不注册。[接入指南](onboarding.md)解释配置、只读账号与验证；部署和数据源查询证据不能替代后续诊断成绩。
 
 ## 代码怎样分工
 
@@ -77,6 +77,8 @@ Alloy 按 Docker 的 Compose 项目标签发现容器，随后只保留配置允
 
 医生的数据源接口把“查什么”和“后端怎样表达”分开。[source](../internal/doctor/source/source.go) 定义统一类型，工具只依赖这些接口，具体适配器处理 Prometheus、Jaeger、Loki、OpenSearch、MySQL、Redis 与 pprof 的格式。
 
+Jaeger 有时部署在站点的一个子路径下，这个固定路径称为 base path。Demo 的查询入口位于 `/jaeger/ui`；[Jaeger 适配器](../internal/doctor/source/jaeger/client.go)单独校验这一部署前缀，再追加代码固定的 `/api/traces` 搜索和详情路径。普通路径段可配置，编码路径、点路径、空段、反斜杠、URL 凭据、查询串、片段和重定向仍被拒绝。[公共 HTTP 客户端](../internal/doctor/source/httpbackend/client.go)仍只接受根地址，其他来源没有因此放宽。使用医生镜像 `phase09-20261102.4` 的真实[搜索](reports/phase-09-jaeger-prefix-search.json)与[按搜索结果读取详情](reports/phase-09-jaeger-prefix-get.json)均已成功；这证明调用链接线可用，不代表诊断结论正确。
+
 [Loki](../internal/doctor/source/loki/client.go)与[OpenSearch](../internal/doctor/source/opensearch/client.go)实现同一个 `LogSource`。工具仍传服务、级别、关键词、trace、时间和数量条件，不传后端地址、索引或完整查询语言。接入层按系统配置选择实现，同时填写 Loki 和 OpenSearch 会在启动时被拒绝。
 
 | 条件或边界 | Loki | OpenSearch |
@@ -93,7 +95,7 @@ OpenSearch 直接使用标准库 `net/http`，没有引入产品客户端库。�
 
 级别大小写也属于适配器职责：工具规定大写 INFO，而 Demo frontend 实际写小写 info。新实现只对级别使用 `case_insensitive`，实际同窗查询和部署后的 Mock 医生复验见 P9-21、P9-23；服务和 trace 的条件仍精确匹配。冻结的工具定义没有改变。
 
-Demo 的 Collector 经 OTLP 接收日志并写入 OpenSearch，曾因 `attributes.http` 的 text/object 映射冲突拒收部分记录。固定版本的采集配置将日志属性键的 `http.` 前缀改成 `http_`，保留旧索引和原 scope 处理，不改变医生的五个映射字段。修复前报告计数、最小上游差异与固定十分钟观察见[专项报告](reports/phase-09-logging-fix.md)及台账 P9-13–P9-15。窗口内未报告最终日志丢弃，17/17 个预期 OTLP 源有日志；image-provider 官方未启用日志，Jaeger traces 仍有重试。结论限于本窗口，不能证明端到端无静默丢失；Claude 审核通过前不开始付费诊断。
+Demo 的 Collector 经 OTLP 接收日志并写入 OpenSearch，曾因 `attributes.http` 的 text/object 映射冲突拒收部分记录。固定版本的采集配置将日志属性键的 `http.` 前缀改成 `http_`，保留旧索引和原 scope 处理，不改变医生的五个映射字段。修复前报告计数、最小上游差异与固定十分钟观察见[专项报告](reports/phase-09-logging-fix.md)及台账 P9-13–P9-15。窗口内未报告最终日志丢弃，17/17 个预期 OTLP 源有日志；image-provider 官方未启用日志，Jaeger traces 仍有重试。结论限于本窗口，不能证明端到端无静默丢失；后续每份阶段 9 诊断另有自己的采集窗口审计。
 
 ## 核心流程一：告警 → 诊断 → 报告
 
@@ -154,7 +156,7 @@ shop 和 doctor 使用不同 MySQL 实例。前者保存业务数据，后者保
 
 模型请求前在持久化事务中预留费用和批次 token，确认用量后结算，结果未知时保留预留；单次调查、全局账户和批次预算共同约束花费。供应商、模型、账户、币种和单价随尝试保存，重启不清除累计。费用算法见 [模型客户端](../internal/doctor/llm/doc.go) 与 [账本](../internal/doctor/store/budget.go)。
 
-美元按项目用量账本计：每次请求实际 token 用量乘以 2026-10-29 核对过的官方单价，分档结算，未知请求保留预留。平台账单因 Key 与其他用途共用，无法单独核对。美元与人民币分开，不能相加。DeepSeek 余额差 ¥0.769756 尚未归因，详见 [数据台账](数据台账.md) P8-190、P8-197；不猜差额原因。本阶段的演示和检查只用 Mock。
+美元按项目用量账本计：每次请求实际 token 用量乘以 2026-10-29 核对过的官方单价，分档结算，未知请求保留预留。平台账单因 Key 与其他用途共用，无法单独核对。美元与人民币分开，不能相加。DeepSeek 余额差 ¥0.769756 尚未归因，详见 [数据台账](数据台账.md) P8-190、P8-197；不猜差额原因。单元测试和 CI 只用 Mock，阶段 9 的真实调用另受用户授权与独立账本限制。
 
 ## 核心流程二：注入 → 评测
 
@@ -173,9 +175,15 @@ flowchart LR
 
 冻结清单先保存代码哈希、提示、手册、评分与模型版本，以及各轮配置顺序。E0 没有查证工具，E1 使用完整工具，E2 增加通用手册检索，E3 去掉调用链工具；DeepSeek E1 在同一次故障上作为另一配置比较。顺序随机并留档，减少先后时间固定偏向某组的影响。医生不知道场景答案，评测器才读取它。见 [冻结清单](reports/phase-08-formal-manifest.json)、[配对执行](../internal/eval/runner/paired.go) 和 [自动流程](../internal/eval/runner/automatic.go)。
 
-上图的五配置是阶段 8 已完成实验。阶段 9 的[独立入口](../internal/eval/runner/generalization.go)复用轮次、槽位、评分和导出，只选择 E1/E2；[外部场景控制](../internal/eval/runner/generalization_scenario.go)通过官方控制接口保存、注入、读回与恢复完整配置，控制地址和标准答案不会交给医生。新批次、新美元与人民币账户分别保存，不能覆盖阶段 8 或合并两套系统的统计。目前只是实现与数据源验收，尚无付费诊断成绩。
+上图的五配置是阶段 8 已完成实验。阶段 9 的[独立入口](../internal/eval/runner/generalization.go)复用轮次、槽位、评分和导出，只选择 E1/E2；[外部场景控制](../internal/eval/runner/generalization_scenario.go)通过官方控制接口保存、注入、读回与恢复完整配置，控制地址和标准答案不会交给医生。新批次、新美元与人民币账户分别保存，不能覆盖阶段 8 或合并两套系统的统计。[已授权运行安排](reports/phase-09-approved-run-plan.json)中的预估不当作实际诊断成绩。
+
+阶段 9 的[采集窗口审计](../internal/eval/runner/generalization_collection.go)在宿主机执行，医生不会因此取得 Docker 权限。创建诊断前先保存 Collector 身份和日志保留锚点，诊断结束后独占保存该窗口原始日志、SHA256、时间边界、各信号最终丢弃和 mapper 错误计数，并保留首次摘要。审计失败、空输出、容器身份变化或日志轮转缺口均不能当作采集正常；取消请求后仍用独立的有限时间收集原件和终态费用，不能重新采一段更好的窗口覆盖原结果。
+
+[结果导出](../internal/eval/report/markdown.go)把 `data_quality` 分成 `normal`、`affected`、`unknown`。已观察到任一信号最终丢弃或 mapper 错误时为 affected；不能完整核对证据时为 unknown。后两类先保存诊断和费用，再停止评分及后续槽位，不自动补跑，并从正常组件、机制、覆盖率、耗时等聚合和正常报告抽样中排除。原诊断、已有评分与所有费用仍可追溯。阶段 8 历史记录保持原口径，不追溯要求新增窗口审计。实现与边界的 Mock 回归见[采集检查](reports/phase-09-collection-checks.json)及[Jaeger 接线后的检查](reports/phase-09-jaeger-prefix-checks.json)，各轮保留当时的源码身份。
 
 Demo 的 span 指标实际按一分钟间隔到达，原一分钟 increase 窗口会没有足够样本；场景验证窗口已改为两分钟，五个健康条件均返回样本，见台账 P9-7、[原空结果](reports/phase-09-baseline-verified.json)与[修订后检查](reports/phase-09-baseline-two-minute.json)。这只修正宿主机的场景验证条件，不是医生提示、工具、手册或评分调整，也不是五场故障注入通过的证明。
+
+后续开跑前，OT01 的服务级健康条件又包含了 flagd EventStream 的 CLIENT span。用户只批准将[OT01](../eval/scenarios/otel-demo/OT01.yaml)的症状判定与健康判定限定到 `span_kind="SPAN_KIND_SERVER"`、`span_name="oteldemo.AdService/GetAds"`；发给医生的 `symptoms`、标准答案与证据里程碑保持冻结。原健康失败、同窗影子查询和其他字段哈希断言都保存在[修订审计](reports/phase-09-ot01-baseline-amendment.json)。这项范围修订不说明 EventStream 的错误原因或稳定性，其独立观察结论仍待后续记录。
 
 中断后续读原轮次和槽位，保存过的输入、终态与首次盲评编号不覆盖。正常可靠性失败与格式、推理和预算失败分开；指定校时取消的补跑是经用户批准的单独例外，不推广成随意重跑。评测时写审批会被拒绝，执行器也再次拦截；恢复由宿主机评测器完成。见 [结果存储](../internal/doctor/store/eval_results.go)、[可靠性分类](../internal/doctor/store/eval_reliability.go)、[版本修订审计](reports/phase-08-execution-versions.json)。
 

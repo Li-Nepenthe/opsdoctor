@@ -39,6 +39,9 @@ func SelectCalibration(rows []store.EvalResult) ([]string, error) {
 		if value.MixedModel || value.ReliabilityFailure || len(value.Report) == 0 || string(value.Report) == "null" || grade.Status != "ok" {
 			continue
 		}
+		if requiresCollectionAudit(row) && CollectionQuality(value) != QualityNormal {
+			continue // 阶段 9 的采集异常不能混入正常报告的独立评分抽样。
+		}
 		candidates = append(candidates, candidate{row.Key, row.Scenario, row.Group + "/" + value.Model, grade.Grade.Mechanism})
 	}
 	if len(candidates) < 20 {

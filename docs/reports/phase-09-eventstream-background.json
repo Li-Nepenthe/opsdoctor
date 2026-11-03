@@ -1,0 +1,669 @@
+{
+  "title": "EventStream background deadline and one controlled adFailure toggle",
+  "generated_at_utc": "2026-11-03T07:47:55.830597+00:00",
+  "scope": "Free read-only Jaeger observation while root alone toggled native adFailure off/on/restored. No diagnosis or model requests.",
+  "action_evidence": {
+    "file": "phase-09-eventstream-controlled-20261103T072744Z.json",
+    "sha256": "f077c5ec5a6e18b2204c6b943987f26c3af0b415e63d0abee55469229ebd1f0a",
+    "actions": [
+      {
+        "action": "adFailure_on",
+        "requested_at_utc": "2026-11-03T07:27:44.634930+00:00",
+        "confirmed_at_utc": "2026-11-03T07:27:44.659363+00:00"
+      },
+      {
+        "action": "restore_original_flags",
+        "requested_at_utc": "2026-11-03T07:30:44.667163+00:00",
+        "confirmed_at_utc": "2026-11-03T07:30:44.674459+00:00"
+      }
+    ],
+    "restore_verified": true,
+    "original_flags_sha256": "c0f6ac8ac14bcaae3551d8a356ff109067fdfaefe052e0820370d5a3b542c047",
+    "final_flags_sha256": "c0f6ac8ac14bcaae3551d8a356ff109067fdfaefe052e0820370d5a3b542c047",
+    "alignment_uses": "confirmed_at_utc from root action log; not merely span appearance time"
+  },
+  "observation": {
+    "started_at_utc": "2026-11-03T07:28:08.862299+00:00",
+    "finished_at_utc": "2026-11-03T07:42:15.045077+00:00",
+    "monotonic_duration_seconds": 846.1943690999979,
+    "cycles": 29,
+    "client_poll_seconds": 30,
+    "server_poll_seconds": 60,
+    "query_count": 146,
+    "query_errors": 0,
+    "raw_sha256_mismatches": 0,
+    "query_limit": 1000,
+    "queries_hitting_limit": 0,
+    "lookback_seconds": 7200,
+    "unique_trace_ids": 531,
+    "distinct_trace_object_versions": 545,
+    "includes_retained_pre_monitor_spans": true,
+    "monitor_started_after_on_confirmation": true
+  },
+  "current_client_v2_summary": {
+    "ad": {
+      "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+      "captured_completed_streams": 4,
+      "grpc_codes": {
+        "4": 4
+      },
+      "duration_seconds_min": 600.000959,
+      "duration_seconds_max": 600.00185,
+      "start_intervals_seconds": [
+        604.967785,
+        604.970401,
+        604.974839
+      ],
+      "end_to_next_start_seconds": [
+        4.966197,
+        4.968551,
+        4.97301
+      ]
+    },
+    "fraud-detection": {
+      "service_instance_id": "63ee6d48-2cef-42ea-9eb9-0c64af3f45da",
+      "captured_completed_streams": 4,
+      "grpc_codes": {
+        "4": 4
+      },
+      "duration_seconds_min": 600.002273,
+      "duration_seconds_max": 600.003236,
+      "start_intervals_seconds": [
+        604.96937,
+        604.97091,
+        604.975266
+      ],
+      "end_to_next_start_seconds": [
+        4.966134,
+        4.96853,
+        4.972993
+      ]
+    },
+    "recommendation": {
+      "service_instance_id": "8d88b123-3de6-4978-975c-19645daf4077",
+      "captured_completed_streams": 4,
+      "grpc_codes": {
+        "4": 4
+      },
+      "duration_seconds_min": 599.963547,
+      "duration_seconds_max": 599.973969,
+      "start_intervals_seconds": [
+        611.969835,
+        611.970601,
+        611.974305
+      ],
+      "end_to_next_start_seconds": [
+        12.000372,
+        11.999249,
+        12.000336
+      ]
+    },
+    "payment": {
+      "service_instance_id": "669991a1-78b4-41a5-92a5-c457f490cf72",
+      "captured_completed_streams": 4,
+      "grpc_codes": {
+        "4": 4
+      },
+      "duration_seconds_min": 600.000018,
+      "duration_seconds_max": 600.00098,
+      "start_intervals_seconds": [
+        604.969,
+        604.97,
+        604.971
+      ],
+      "end_to_next_start_seconds": [
+        4.96802,
+        4.969678,
+        4.970596
+      ]
+    }
+  },
+  "client_v2_spans": [
+    {
+      "service": "ad",
+      "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+      "trace_id": "4356964e11083099b21738befb9a2a0a",
+      "span_id": "09f2db85f53f7b51",
+      "start_us": 1793689197253960,
+      "end_us": 1793689797255548,
+      "start_utc": "2026-11-03T06:59:57.253960+00:00",
+      "end_utc": "2026-11-03T07:09:57.255548+00:00",
+      "duration_seconds": 600.001588,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    },
+    {
+      "service": "ad",
+      "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+      "trace_id": "e3a78bb1662a01775a22a9adac5dc724",
+      "span_id": "d86cac5a6e66834e",
+      "start_us": 1793689802221745,
+      "end_us": 1793690402223595,
+      "start_utc": "2026-11-03T07:10:02.221745+00:00",
+      "end_utc": "2026-11-03T07:20:02.223595+00:00",
+      "duration_seconds": 600.00185,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    },
+    {
+      "service": "ad",
+      "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+      "trace_id": "33cb75891d365e04e7aec81191db3a6c",
+      "span_id": "94745632a989dd67",
+      "start_us": 1793690407192146,
+      "end_us": 1793691007193975,
+      "start_utc": "2026-11-03T07:20:07.192146+00:00",
+      "end_utc": "2026-11-03T07:30:07.193975+00:00",
+      "duration_seconds": 600.001829,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": true,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [
+          {
+            "timestamp_us": 1793690865238553,
+            "timestamp_utc": "2026-11-03T07:27:45.238553+00:00",
+            "fields": {
+              "event": "message",
+              "message.id": 24,
+              "message.type": "RECEIVED"
+            }
+          }
+        ],
+        "restore": []
+      }
+    },
+    {
+      "service": "ad",
+      "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+      "trace_id": "2327db24a589c0e9c6f817aae292befa",
+      "span_id": "7fbbf6821ac4d156",
+      "start_us": 1793691012166985,
+      "end_us": 1793691612167944,
+      "start_utc": "2026-11-03T07:30:12.166985+00:00",
+      "end_utc": "2026-11-03T07:40:12.167944+00:00",
+      "duration_seconds": 600.000959,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": true,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": [
+          {
+            "timestamp_us": 1793691045201015,
+            "timestamp_utc": "2026-11-03T07:30:45.201015+00:00",
+            "fields": {
+              "event": "message",
+              "message.id": 3,
+              "message.type": "RECEIVED"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "service": "fraud-detection",
+      "service_instance_id": "63ee6d48-2cef-42ea-9eb9-0c64af3f45da",
+      "trace_id": "f1f248b748d2aa94b1b55785092ae7fa",
+      "span_id": "44aa3918bdf5c8f3",
+      "start_us": 1793689201294656,
+      "end_us": 1793689801297892,
+      "start_utc": "2026-11-03T07:00:01.294656+00:00",
+      "end_utc": "2026-11-03T07:10:01.297892+00:00",
+      "duration_seconds": 600.003236,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    },
+    {
+      "service": "fraud-detection",
+      "service_instance_id": "63ee6d48-2cef-42ea-9eb9-0c64af3f45da",
+      "trace_id": "26781e5330ceca1dbcc91e1b442fd740",
+      "span_id": "84900185e89211fd",
+      "start_us": 1793689806264026,
+      "end_us": 1793690406266406,
+      "start_utc": "2026-11-03T07:10:06.264026+00:00",
+      "end_utc": "2026-11-03T07:20:06.266406+00:00",
+      "duration_seconds": 600.00238,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    },
+    {
+      "service": "fraud-detection",
+      "service_instance_id": "63ee6d48-2cef-42ea-9eb9-0c64af3f45da",
+      "trace_id": "894bf0163330ba0f126556ad5adc7c0d",
+      "span_id": "a7aee91a2765056f",
+      "start_us": 1793690411234936,
+      "end_us": 1793691011237209,
+      "start_utc": "2026-11-03T07:20:11.234936+00:00",
+      "end_utc": "2026-11-03T07:30:11.237209+00:00",
+      "duration_seconds": 600.002273,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": true,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [
+          {
+            "timestamp_us": 1793690865239217,
+            "timestamp_utc": "2026-11-03T07:27:45.239217+00:00",
+            "fields": {
+              "event": "message",
+              "message.id": 24,
+              "message.type": "RECEIVED"
+            }
+          }
+        ],
+        "restore": []
+      }
+    },
+    {
+      "service": "fraud-detection",
+      "service_instance_id": "63ee6d48-2cef-42ea-9eb9-0c64af3f45da",
+      "trace_id": "11525620808c07356575027152633e4d",
+      "span_id": "44582dfb1a73f629",
+      "start_us": 1793691016210202,
+      "end_us": 1793691616212706,
+      "start_utc": "2026-11-03T07:30:16.210202+00:00",
+      "end_utc": "2026-11-03T07:40:16.212706+00:00",
+      "duration_seconds": 600.002504,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": true,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": [
+          {
+            "timestamp_us": 1793691045201315,
+            "timestamp_utc": "2026-11-03T07:30:45.201315+00:00",
+            "fields": {
+              "event": "message",
+              "message.id": 3,
+              "message.type": "RECEIVED"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "service": "payment",
+      "service_instance_id": "669991a1-78b4-41a5-92a5-c457f490cf72",
+      "trace_id": "18801175da8d3cac354c30bd8e91e8c4",
+      "span_id": "3e83c211a4962c89",
+      "start_us": 1793689275682000,
+      "end_us": 1793689875682980,
+      "start_utc": "2026-11-03T07:01:15.682000+00:00",
+      "end_utc": "2026-11-03T07:11:15.682980+00:00",
+      "duration_seconds": 600.00098,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    },
+    {
+      "service": "payment",
+      "service_instance_id": "669991a1-78b4-41a5-92a5-c457f490cf72",
+      "trace_id": "18801175da8d3cac354c30bd8e91e8c4",
+      "span_id": "727ac4204ed1395e",
+      "start_us": 1793689880651000,
+      "end_us": 1793690480651322,
+      "start_utc": "2026-11-03T07:11:20.651000+00:00",
+      "end_utc": "2026-11-03T07:21:20.651322+00:00",
+      "duration_seconds": 600.000322,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    },
+    {
+      "service": "payment",
+      "service_instance_id": "669991a1-78b4-41a5-92a5-c457f490cf72",
+      "trace_id": "18801175da8d3cac354c30bd8e91e8c4",
+      "span_id": "815d15820fb8656a",
+      "start_us": 1793690485621000,
+      "end_us": 1793691085621404,
+      "start_utc": "2026-11-03T07:21:25.621000+00:00",
+      "end_utc": "2026-11-03T07:31:25.621404+00:00",
+      "duration_seconds": 600.000404,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": true,
+      "crosses_restore_confirmed_utc": true,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    },
+    {
+      "service": "payment",
+      "service_instance_id": "669991a1-78b4-41a5-92a5-c457f490cf72",
+      "trace_id": "18801175da8d3cac354c30bd8e91e8c4",
+      "span_id": "f88f3f7839393357",
+      "start_us": 1793691090592000,
+      "end_us": 1793691690592018,
+      "start_utc": "2026-11-03T07:31:30.592000+00:00",
+      "end_utc": "2026-11-03T07:41:30.592018+00:00",
+      "duration_seconds": 600.000018,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    },
+    {
+      "service": "recommendation",
+      "service_instance_id": "8d88b123-3de6-4978-975c-19645daf4077",
+      "trace_id": "079dc833087e22fc8bf6089cb04e808f",
+      "span_id": "8d120624cef54eb7",
+      "start_us": 1793689210105743,
+      "end_us": 1793689810075206,
+      "start_utc": "2026-11-03T07:00:10.105743+00:00",
+      "end_utc": "2026-11-03T07:10:10.075206+00:00",
+      "duration_seconds": 599.969463,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    },
+    {
+      "service": "recommendation",
+      "service_instance_id": "8d88b123-3de6-4978-975c-19645daf4077",
+      "trace_id": "9f5e7de21ff146e12322a7d629906e88",
+      "span_id": "fc3fcb8918718ffa",
+      "start_us": 1793689822075578,
+      "end_us": 1793690422046930,
+      "start_utc": "2026-11-03T07:10:22.075578+00:00",
+      "end_utc": "2026-11-03T07:20:22.046930+00:00",
+      "duration_seconds": 599.971352,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    },
+    {
+      "service": "recommendation",
+      "service_instance_id": "8d88b123-3de6-4978-975c-19645daf4077",
+      "trace_id": "3583fa0789d342e3ad6cc51717dfaeee",
+      "span_id": "3bcd404a4a2ba0c1",
+      "start_us": 1793690434046179,
+      "end_us": 1793691034020148,
+      "start_utc": "2026-11-03T07:20:34.046179+00:00",
+      "end_utc": "2026-11-03T07:30:34.020148+00:00",
+      "duration_seconds": 599.973969,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": true,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    },
+    {
+      "service": "recommendation",
+      "service_instance_id": "8d88b123-3de6-4978-975c-19645daf4077",
+      "trace_id": "5ea4b05762338c6eec60c8b4fded7d3c",
+      "span_id": "f1d1a82feea47d58",
+      "start_us": 1793691046020484,
+      "end_us": 1793691645984031,
+      "start_utc": "2026-11-03T07:30:46.020484+00:00",
+      "end_utc": "2026-11-03T07:40:45.984031+00:00",
+      "duration_seconds": 599.963547,
+      "grpc_code": 4,
+      "error": true,
+      "otel_status": "ERROR",
+      "crosses_on_confirmed_utc": false,
+      "crosses_restore_confirmed_utc": false,
+      "trace_message_events_near_actions": {
+        "on": [],
+        "restore": []
+      }
+    }
+  ],
+  "unexpected_client_instances_captured": [],
+  "flagd_server_groups": {
+    "v1": {
+      "captured_completed_spans": 518,
+      "grpc_codes": {
+        "None": 518
+      },
+      "error_true": 0,
+      "otel_status_present": 0,
+      "rpc_systems": {
+        "connect_rpc": 518
+      },
+      "service_instance_id_present": false
+    },
+    "v2": {
+      "captured_completed_spans": 16,
+      "grpc_codes": {
+        "4": 9,
+        "0": 7
+      },
+      "error_true": 9,
+      "otel_status_present": 9,
+      "rpc_systems": {
+        "grpc": 16
+      },
+      "service_instance_id_present": false
+    }
+  },
+  "public_original_span_file": {
+    "path": "phase-09-eventstream-client-spans.json",
+    "bytes": 259017,
+    "sha256": "5260af19cc7ef20d90e17954c3d2724d6dc4d42daf57c6cdc5d771ab3a878e2c"
+  },
+  "upstream_sources": [
+    {
+      "id": "java_defaults",
+      "repository": "open-feature/java-sdk-contrib",
+      "commit": "d69584b44cc98ef9a869a00b0ce2ab63521106e1",
+      "path": "providers/flagd/src/main/java/dev/openfeature/contrib/providers/flagd/Config.java",
+      "url": "https://github.com/open-feature/java-sdk-contrib/blob/d69584b44cc98ef9a869a00b0ce2ab63521106e1/providers/flagd/src/main/java/dev/openfeature/contrib/providers/flagd/Config.java",
+      "lines": [
+        20,
+        21
+      ],
+      "finding": "flagd provider0.14.1 defaults stream deadline600000ms and max retry backoff5000ms."
+    },
+    {
+      "id": "java_restart",
+      "repository": "open-feature/java-sdk-contrib",
+      "commit": "d69584b44cc98ef9a869a00b0ce2ab63521106e1",
+      "path": "providers/flagd/src/main/java/dev/openfeature/contrib/providers/flagd/resolver/rpc/RpcResolver.java",
+      "url": "https://github.com/open-feature/java-sdk-contrib/blob/d69584b44cc98ef9a869a00b0ce2ab63521106e1/providers/flagd/src/main/java/dev/openfeature/contrib/providers/flagd/resolver/rpc/RpcResolver.java",
+      "lines": [
+        334,
+        342,
+        350,
+        360,
+        432,
+        451
+      ],
+      "finding": "Reissued RPC sets configured deadline; completed/error streams schedule reconnect. ConfigurationChange handler invalidates cache/emits an event and does not directly restart the stream."
+    },
+    {
+      "id": "server_default",
+      "repository": "open-feature/flagd",
+      "commit": "80b9e9548163c1adbd28d45ca52364956e7fa08f",
+      "path": "flagd/cmd/start.go",
+      "url": "https://github.com/open-feature/flagd/blob/80b9e9548163c1adbd28d45ca52364956e7fa08f/flagd/cmd/start.go",
+      "lines": [
+        95
+      ],
+      "finding": "flagd v0.16.0 server --stream-deadline defaults to0, meaning no independent server deadline."
+    },
+    {
+      "id": "server_context",
+      "repository": "open-feature/flagd",
+      "commit": "80b9e9548163c1adbd28d45ca52364956e7fa08f",
+      "path": "flagd/pkg/service/flag-evaluation/flag_evaluator_v2.go",
+      "url": "https://github.com/open-feature/flagd/blob/80b9e9548163c1adbd28d45ca52364956e7fa08f/flagd/pkg/service/flag-evaluation/flag_evaluator_v2.go",
+      "finding": "EventStream applies a server deadline only when configured nonzero; ctx DeadlineExceeded also covers propagated client deadlines and returns code4 with server-side-timeout text. Other context cancellation returns nil."
+    },
+    {
+      "id": "server_update",
+      "repository": "open-feature/flagd",
+      "commit": "80b9e9548163c1adbd28d45ca52364956e7fa08f",
+      "path": "flagd/pkg/service/flag-evaluation/eventing.go",
+      "url": "https://github.com/open-feature/flagd/blob/80b9e9548163c1adbd28d45ca52364956e7fa08f/flagd/pkg/service/flag-evaluation/eventing.go",
+      "finding": "Changed flag configuration is delivered through notification subscription; no-change results do not emit a change message."
+    },
+    {
+      "id": "demo_ad_dependency",
+      "repository": "open-telemetry/opentelemetry-demo",
+      "commit": "dedc0178918e260823323b8d95005a8cb924b007",
+      "path": "src/ad/build.gradle",
+      "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/ad/build.gradle",
+      "lines": [
+        58,
+        59
+      ],
+      "finding": "Demo3.1.0 pins Java flagd provider0.14.1 and SDK1.22.1."
+    },
+    {
+      "id": "demo_fraud_dependency",
+      "repository": "open-telemetry/opentelemetry-demo",
+      "commit": "dedc0178918e260823323b8d95005a8cb924b007",
+      "path": "src/fraud-detection/build.gradle.kts",
+      "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/fraud-detection/build.gradle.kts",
+      "lines": [
+        51,
+        52
+      ],
+      "finding": "Fraud-detection pins the same Java provider0.14.1."
+    },
+    {
+      "id": "demo_ad_options",
+      "repository": "open-telemetry/opentelemetry-demo",
+      "commit": "dedc0178918e260823323b8d95005a8cb924b007",
+      "path": "src/ad/src/main/java/oteldemo/AdService.java",
+      "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/ad/src/main/java/oteldemo/AdService.java",
+      "lines": [
+        113,
+        120
+      ],
+      "finding": "Ad enables global telemetry on FlagdOptions, without a per-stream override in this code."
+    },
+    {
+      "id": "demo_flagd_command",
+      "repository": "open-telemetry/opentelemetry-demo",
+      "commit": "dedc0178918e260823323b8d95005a8cb924b007",
+      "path": "compose.yaml",
+      "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/compose.yaml",
+      "lines": [
+        697,
+        715
+      ],
+      "finding": "The fixed flagd command only starts the daemon with its file URI; it does not set --stream-deadline."
+    },
+    {
+      "id": "jaeger_base",
+      "repository": "open-telemetry/opentelemetry-demo",
+      "commit": "dedc0178918e260823323b8d95005a8cb924b007",
+      "path": "src/jaeger/config.yml",
+      "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/src/jaeger/config.yml",
+      "lines": [
+        36
+      ],
+      "finding": "Query base path is /jaeger/ui; storage is bounded memory."
+    },
+    {
+      "id": "jaeger_capacity",
+      "repository": "open-telemetry/opentelemetry-demo",
+      "commit": "dedc0178918e260823323b8d95005a8cb924b007",
+      "path": "compose.observability.yaml",
+      "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/dedc0178918e260823323b8d95005a8cb924b007/compose.observability.yaml",
+      "lines": [
+        32
+      ],
+      "finding": "Fixed Compose sets MEMORY_MAX_TRACES=25000."
+    }
+  ],
+  "original_temp_archive": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\controlled\\20261103T072636Z",
+  "original_temp_manifest": {
+    "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\controlled\\20261103T072636Z\\artifact-manifest.json",
+    "sha256": "adf570c6910e2ef89dba426bb99c2dabdd74348d4342ba437fdb5ee1d46bc1f0",
+    "bytes": 160619
+  },
+  "findings": {
+    "deployment_or_injection_induced_new_eventstream_anomaly_identified": false,
+    "conclusion": "Within captured completed spans of the four identified current clients, the one on/restore cycle did not introduce observed premature endings or extra short reconnect streams. Durations and spacing support the fixed upstream600s deadline background mechanism.",
+    "causal_limit": "One finite cycle and incomplete historical coverage cannot exclude every deployment effect, unseen/unexported span, or future toggle effect.",
+    "server_default_deadline_is600s": false,
+    "known_separate_jaeger_integration_issue": "Bare19686 /api/services returned404; prefixed /jaeger/ui/api/services worked. This observer used the prefix. Doctor-tool remediation is outside this observation and is not claimed verified here."
+  },
+  "limitations": [
+    "Live monitoring began after the on action; historical2h queries recover retained completed spans, not a complete archive since deployment.",
+    "Only completed and exported spans are visible. Ongoing streams and absent or evicted historical data are not inferred.",
+    "Streams are identified by traceID plus spanID; a repeated traceID alone is not a new or missing stream.",
+    "Flagd server spans have no service.instance.id; v1 connect_rpc and v2 gRPC outcomes are reported separately.",
+    "Near-action message events have no payload; timing alone does not decode their exact configuration contents.",
+    "This is one controlled toggle cycle, not proof about every switch or statistical significance of long-run frequency.",
+    "Read-only GET success does not establish full business health or a diagnosis result.",
+    "Four complete client spans per service include retained pre-observation history, not four newly completed streams during the14-minute observation.",
+    "Message event payload is not exported; a received-message timestamp alone does not prove its exact flag contents.",
+    "A short on-phase can coincide with a natural600s completion; compare original start/duration and adjacent starts, not raw completion counts per short phase.",
+    "No old-process comparison is manufactured. Server instance identity is unavailable in the captured server tags."
+  ]
+}

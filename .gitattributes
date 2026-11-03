@@ -5,3 +5,11 @@
 # 阶段9的Collector原始日志与采样包含字节指纹，不能在检出/提交时转换换行。
 docs/reports/phase-09-*.log -text -whitespace
 docs/reports/phase-09-log-fix-samples.jsonl -text -whitespace
+# 开跑前失败、审批差异与免费摸底也按原字节留档，供跨文件SHA审计。
+docs/reports/phase-09-eventstream-*.json -text -whitespace
+docs/reports/phase-09-eventstream-*.jsonl -text -whitespace
+docs/reports/phase-09-paid-*.json -text -whitespace
+docs/reports/phase-09-paid-*.jsonl -text -whitespace
+docs/reports/phase-09-ot01-*.json -text -whitespace
+docs/reports/phase-09-ot01-baseline-proposal.diff -text -whitespace
+docs/reports/phase-09-ot01-baseline-proposal.md -text -whitespace

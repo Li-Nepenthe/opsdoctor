@@ -333,6 +333,14 @@ func pairedSlots(ctx context.Context, options command, order trialOrder, record 
 
 // executeSlot 即使已有失败也不覆盖；只有明确的可靠性失败才创建一个新补跑槽位。
 func executeSlot(ctx context.Context, options command, configuration pairedConfiguration, slot store.EvalResult, scenario scenario.Scenario, repository *store.Store, client *doctorClient, grader *grader, output io.Writer) error {
+	// 只有第二系统增加宿主采集窗口；旧shop流程、诊断参数和评分标准保持原样。
+	if ctx.Value(generalizationGuardKey{}) != nil && len(slot.Data) == 0 {
+		var err error
+		slot, err = executeDemoDiagnosis(ctx, options, configuration, slot, scenario.GroundTruth.Component, repository, client, output)
+		if err != nil {
+			return err
+		}
+	}
 	// 先读冻结身份再创建任务，重复执行命令只能拿回原 ID。
 	if len(slot.Data) == 0 {
 		current, err := client.runtime(ctx)
@@ -383,6 +391,9 @@ func executeSlot(ctx context.Context, options command, configuration pairedConfi
 	}
 	if strings.Contains(savedSummary.Error, string(llm.ErrEvaluationBudget)) {
 		return llm.ErrEvaluationBudget
+	}
+	if err := checkCollectorSummary(ctx, savedSummary); err != nil {
+		return err
 	}
 	if err := checkGeneralizationSummary(ctx, savedSummary, slot.Key); err != nil {
 		return err

@@ -9,6 +9,8 @@
 //   - generalization_scenario.go：加载官方故障定义，通过有界 HTTP 修改开关并核对指标。
 //   - generalization_run.go：保存每轮完整恢复文件，推进外部系统注入、诊断、恢复与冷却。
 //   - generalization_environment.go：按 Docker 实际上限检查外部实验内存，不套用 shop 的暂停线。
+//   - generalization_collection.go：独占保存每份诊断的Collector日志窗口，异常先落摘要再停止评分。
+//   - generalization_collection_test.go：用模拟Docker输出验证最终丢弃、映射错误、窗口与续跑证据。
 //   - generalization_test.go：用假接口验证开关范围、独立账户、异常暂停、恢复快照和说明书哈希。
 //   - load.go：从冻结场景计算诊断期的精确流量，并持续核对实际参数。
 //   - load_test.go：遍历全部场景，验证流量、热点及未变基线的严格匹配。

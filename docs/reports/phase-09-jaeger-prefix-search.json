@@ -1,0 +1,102 @@
+{
+  "checked_at_utc": "2026-11-03T07:25:05.017220+00:00",
+  "doctor_image": "phase09-20261102.4",
+  "configured_jaeger": "http://host.docker.internal:19686/jaeger/ui",
+  "arguments": {
+    "service": "ad",
+    "operation": "flagd.evaluation.v2.Service/EventStream",
+    "lookback_seconds": 3600,
+    "limit": 3
+  },
+  "result": {
+    "tool": "search_traces",
+    "status": "ok",
+    "summary": "2 条调用链，每条只显示最慢五步；父步骤耗时包含子步骤，不能直接相加",
+    "data": [
+      {
+        "trace_id": "e3a78bb1662a01775a22a9adac5dc724",
+        "span_count": 2,
+        "services": [
+          "ad",
+          "flagd"
+        ],
+        "slowest_spans": [
+          {
+            "id": "d86cac5a6e66834e",
+            "parent_id": "",
+            "service": "ad",
+            "operation": "flagd.evaluation.v2.Service/EventStream",
+            "start_us": 1793689802221745,
+            "duration_us": 600001850,
+            "tags": {
+              "error": "true",
+              "otel.status_code": "ERROR",
+              "rpc.grpc.status_code": "4",
+              "rpc.method": "EventStream",
+              "rpc.service": "flagd.evaluation.v2.Service"
+            }
+          },
+          {
+            "id": "592fe4bf62ca17fb",
+            "parent_id": "d86cac5a6e66834e",
+            "service": "flagd",
+            "operation": "flagd.evaluation.v2.Service/EventStream",
+            "start_us": 1793689802222828,
+            "duration_us": 600000048,
+            "tags": {
+              "error": "true",
+              "otel.status_code": "ERROR",
+              "rpc.grpc.status_code": "4",
+              "rpc.method": "EventStream",
+              "rpc.service": "flagd.evaluation.v2.Service"
+            }
+          }
+        ]
+      },
+      {
+        "trace_id": "4356964e11083099b21738befb9a2a0a",
+        "span_count": 2,
+        "services": [
+          "ad",
+          "flagd"
+        ],
+        "slowest_spans": [
+          {
+            "id": "09f2db85f53f7b51",
+            "parent_id": "",
+            "service": "ad",
+            "operation": "flagd.evaluation.v2.Service/EventStream",
+            "start_us": 1793689197253960,
+            "duration_us": 600001588,
+            "tags": {
+              "error": "true",
+              "otel.status_code": "ERROR",
+              "rpc.grpc.status_code": "4",
+              "rpc.method": "EventStream",
+              "rpc.service": "flagd.evaluation.v2.Service"
+            }
+          },
+          {
+            "id": "758c282363556f4b",
+            "parent_id": "09f2db85f53f7b51",
+            "service": "flagd",
+            "operation": "flagd.evaluation.v2.Service/EventStream",
+            "start_us": 1793689197255015,
+            "duration_us": 599999878,
+            "tags": {
+              "error": "true",
+              "otel.status_code": "ERROR",
+              "rpc.grpc.status_code": "4",
+              "rpc.method": "EventStream",
+              "rpc.service": "flagd.evaluation.v2.Service"
+            }
+          }
+        ]
+      }
+    ],
+    "truncated": false,
+    "original_bytes": 1497,
+    "bytes": 1724,
+    "duration_ms": 16
+  }
+}

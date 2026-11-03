@@ -1,0 +1,23 @@
+{
+  "started_at_utc": "2026-11-03T07:27:44.609908+00:00",
+  "scope": "Free controlled off/on/restored observation. No doctor diagnosis, no model calls; only native adFailure defaultVariant toggled.",
+  "original_sha256": "c0f6ac8ac14bcaae3551d8a356ff109067fdfaefe052e0820370d5a3b542c047",
+  "active_sha256": "61318231fdf766c23addcc8286f193bd242e6b65e4274c983cdd112fa7b0d8c4",
+  "actions": [
+    {
+      "action": "adFailure_on",
+      "requested_at_utc": "2026-11-03T07:27:44.634930+00:00",
+      "confirmed_at_utc": "2026-11-03T07:27:44.659363+00:00"
+    },
+    {
+      "action": "restore_original_flags",
+      "requested_at_utc": "2026-11-03T07:30:44.667163+00:00",
+      "confirmed_at_utc": "2026-11-03T07:30:44.674459+00:00"
+    }
+  ],
+  "raw_directory": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eventstream-research\\controlled-actions\\20261103T072744Z",
+  "samples_file": "phase-09-eventstream-controlled-20261103T072744Z.jsonl",
+  "restore_verified": true,
+  "finished_at_utc": "2026-11-03T07:40:44.710578+00:00",
+  "final_flags_sha256": "c0f6ac8ac14bcaae3551d8a356ff109067fdfaefe052e0820370d5a3b542c047"
+}

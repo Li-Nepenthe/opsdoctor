@@ -1,0 +1,310 @@
+{
+  "checked_at_utc": "2026-11-03T07:00:56.531817+00:00",
+  "queries": [
+    {
+      "query": "sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",status_code=\"STATUS_CODE_ERROR\"}[2m]))",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793689256.454,
+                "2.000133342222815"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "query": "sum(increase(traces_span_metrics_calls_total{service_name=\"ad\"}[2m]))",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793689256.456,
+                "92.00613374224949"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "query": "traces_span_metrics_calls_total{service_name=\"ad\"}",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {
+                "__name__": "traces_span_metrics_calls_total",
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_INTERNAL",
+                "span_name": "getAdsByCategory",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "value": [
+                1793689256.458,
+                "360"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "traces_span_metrics_calls_total",
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_CLIENT",
+                "span_name": "flagd.evaluation.v2.Service/ResolveBoolean",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "value": [
+                1793689256.458,
+                "3"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "traces_span_metrics_calls_total",
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_SERVER",
+                "span_name": "oteldemo.AdService/GetAds",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "value": [
+                1793689256.458,
+                "370"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "traces_span_metrics_calls_total",
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_CLIENT",
+                "span_name": "resolve",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "value": [
+                1793689256.458,
+                "3"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "traces_span_metrics_calls_total",
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_INTERNAL",
+                "span_name": "getRandomAds",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "value": [
+                1793689256.458,
+                "22"
+              ]
+            },
+            {
+              "metric": {
+                "__name__": "traces_span_metrics_calls_total",
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_CLIENT",
+                "span_name": "flagd.evaluation.v2.Service/EventStream",
+                "status_code": "STATUS_CODE_ERROR"
+              },
+              "value": [
+                1793689256.458,
+                "2"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "query": "timestamp(traces_span_metrics_calls_total{service_name=\"ad\"})",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_INTERNAL",
+                "span_name": "getAdsByCategory",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "value": [
+                1793689256.476,
+                "1793689242.685"
+              ]
+            },
+            {
+              "metric": {
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_CLIENT",
+                "span_name": "flagd.evaluation.v2.Service/ResolveBoolean",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "value": [
+                1793689256.476,
+                "1793689242.685"
+              ]
+            },
+            {
+              "metric": {
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_SERVER",
+                "span_name": "oteldemo.AdService/GetAds",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "value": [
+                1793689256.476,
+                "1793689242.685"
+              ]
+            },
+            {
+              "metric": {
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_CLIENT",
+                "span_name": "resolve",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "value": [
+                1793689256.476,
+                "1793689242.685"
+              ]
+            },
+            {
+              "metric": {
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_INTERNAL",
+                "span_name": "getRandomAds",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "value": [
+                1793689256.476,
+                "1793689242.685"
+              ]
+            },
+            {
+              "metric": {
+                "collector_instance_id": "c8877464-6e64-46c7-9d4e-c8e48004c9fd",
+                "host_name": "docker-desktop",
+                "instance": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "d04ba161-a7f8-45d9-80b8-85aacd6adbc1",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_CLIENT",
+                "span_name": "flagd.evaluation.v2.Service/EventStream",
+                "status_code": "STATUS_CODE_ERROR"
+              },
+              "value": [
+                1793689256.476,
+                "1793689242.685"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "ad_last100_logs": "2026-11-03T06:55:24.659300649Z 2026-11-03 06:55:24 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=0d679b6aab1a18f3d22b5b245a9abee9 span_id=7b166bbe2f1e61a4 trace_flags=01 \n2026-11-03T06:55:24.793326940Z 2026-11-03 06:55:24 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=4cdc9816976ccb65bd245fb1ffeb54c0 span_id=e088808687d44ddd trace_flags=01 \n2026-11-03T06:55:27.433565207Z 2026-11-03 06:55:27 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=dc7ff82b29d38eaaabf447f2cbbaf3ed span_id=f6450a0455885799 trace_flags=01 \n2026-11-03T06:55:28.210089710Z 2026-11-03 06:55:28 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=ff1f3aa8602c245f2b61bc17ec843a20 span_id=9f864958c2223ae6 trace_flags=01 \n2026-11-03T06:55:28.333798277Z 2026-11-03 06:55:28 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=16c09da3b4a3821381a9c4dc79501ad4 span_id=6ecb875065b78899 trace_flags=01 \n2026-11-03T06:55:32.611246264Z 2026-11-03 06:55:32 - oteldemo.AdService - Targeted ad request received for [travel] trace_id=39e1eac44629bbb71497a02af5941f50 span_id=4bc8cf449cca282c trace_flags=01 \n2026-11-03T06:55:33.953271728Z 2026-11-03 06:55:33 - oteldemo.AdService - Targeted ad request received for [accessories] trace_id=6906e6e37e8765e237f23897abdd3f33 span_id=0f3315346d386084 trace_flags=01 \n2026-11-03T06:55:45.364938765Z 2026-11-03 06:55:45 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=4ae5912749d723e885643669f547d607 span_id=f8b738518e4992d5 trace_flags=01 \n2026-11-03T06:55:45.524776744Z 2026-11-03 06:55:45 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=8bd46120084a82e20c98aec003ebe199 span_id=a935eaaea97c323c trace_flags=01 \n2026-11-03T06:55:47.592375438Z 2026-11-03 06:55:47 - oteldemo.AdService - Targeted ad request received for [assembly] trace_id=fc79ae611872d1e681c0c7892505b443 span_id=d9ca08171bc4c012 trace_flags=01 \n2026-11-03T06:55:47.938272774Z 2026-11-03 06:55:47 - oteldemo.AdService - Targeted ad request received for [travel] trace_id=1a73d07e4a967f58d6f0eb50d614598c span_id=54c7897240c0902b trace_flags=01 \n2026-11-03T06:55:48.921507841Z 2026-11-03 06:55:48 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=caf2e0e89268e38adda44ec2bb7e50a4 span_id=941b113270941457 trace_flags=01 \n2026-11-03T06:55:49.034965510Z 2026-11-03 06:55:49 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=7f797054be1440c47636c3ddcb9218e1 span_id=f3d6ca05af103e33 trace_flags=01 \n2026-11-03T06:55:55.856965310Z 2026-11-03 06:55:55 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=68d357f51047ab72a7acc1bde4bc54c7 span_id=e8e9b262d546128c trace_flags=01 \n2026-11-03T06:55:56.026401709Z 2026-11-03 06:55:56 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=85319b3b655e31f2876af5c72dff1b75 span_id=438c8b2269a909bb trace_flags=01 \n2026-11-03T06:56:02.388245021Z 2026-11-03 06:56:02 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=160ba1772d9a40709210a2ddfc4d49fc span_id=bcdebea598b459e6 trace_flags=01 \n2026-11-03T06:56:02.515133191Z 2026-11-03 06:56:02 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=837f9ac28446f890ba84d0e1d31b9680 span_id=0079e56a2a35f71f trace_flags=01 \n2026-11-03T06:56:15.085534711Z 2026-11-03 06:56:15 - oteldemo.AdService - Targeted ad request received for [accessories] trace_id=ae1cd1db855e14616050e9ae7aa05cf9 span_id=2737e6e55a45a9ec trace_flags=01 \n2026-11-03T06:56:18.051465187Z 2026-11-03 06:56:18 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=db7e0dd0084bed17c785ad1d559a5d34 span_id=08459cd5ed75585a trace_flags=01 \n2026-11-03T06:56:18.186298691Z 2026-11-03 06:56:18 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=1b22980b99dc25849c6ede270510cd56 span_id=d364f7817d2d9ec3 trace_flags=01 \n2026-11-03T06:56:21.620434108Z 2026-11-03 06:56:21 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=e0b5958ca7395b82631d0c76aec41426 span_id=2ca6a7f06a35ed64 trace_flags=01 \n2026-11-03T06:56:21.765011916Z 2026-11-03 06:56:21 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=4e577825bcfbfbe4377c83935303badf span_id=a14652ef9031f977 trace_flags=01 \n2026-11-03T06:56:42.184394944Z 2026-11-03 06:56:42 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=3f6154a7f484fde8ba0c9e7ef9e637d6 span_id=ea74cf49ab41b267 trace_flags=01 \n2026-11-03T06:56:42.364720015Z 2026-11-03 06:56:42 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=3fdc0364d397a4e54616905a8c3041cd span_id=62a3f72e9b61f8b3 trace_flags=01 \n2026-11-03T06:56:52.482531654Z 2026-11-03 06:56:52 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=82d53c143a29cd531b46633b10e8c73e span_id=f3c05278e5a0cfd3 trace_flags=01 \n2026-11-03T06:56:52.597018216Z 2026-11-03 06:56:52 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=c9b30b9b932553f3b9b329764b30ad8d span_id=846a8378cd0f142e trace_flags=01 \n2026-11-03T06:56:58.336662499Z 2026-11-03 06:56:58 - oteldemo.AdService - Targeted ad request received for [books] trace_id=a1c292abd3d69f997c9276733c30ca7b span_id=ae9a94a662ed7c77 trace_flags=01 \n2026-11-03T06:56:59.643236569Z 2026-11-03 06:56:59 - oteldemo.AdService - Targeted ad request received for [travel] trace_id=473b710b726b69f8e5085199b6619126 span_id=deb55dc79eba1f86 trace_flags=01 \n2026-11-03T06:57:07.838458038Z 2026-11-03 06:57:07 - oteldemo.AdService - Targeted ad request received for [travel] trace_id=7d1865df610d2920001e973d425b779a span_id=b65eb1b3bc732598 trace_flags=01 \n2026-11-03T06:57:09.729105660Z 2026-11-03 06:57:09 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=e1ee00b014ab9f8878e93abe009ddb0f span_id=4554a4644e3c3f5d trace_flags=01 \n2026-11-03T06:57:09.843283309Z 2026-11-03 06:57:09 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=9a3a94a5682b3db05f5610e3c2cfe018 span_id=151bb711e39d7436 trace_flags=01 \n2026-11-03T06:57:13.230862489Z 2026-11-03 06:57:13 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=ebf33609e013574151f1ab0c7317eccc span_id=64375cf019f62290 trace_flags=01 \n2026-11-03T06:57:13.361118979Z 2026-11-03 06:57:13 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=1c5dad761f208110e9afad932dc21d08 span_id=38a1806d83b2472c trace_flags=01 \n2026-11-03T06:57:16.334194426Z 2026-11-03 06:57:16 - oteldemo.AdService - Targeted ad request received for [assembly] trace_id=6ba051dd337c8fb1807f235734147b2e span_id=d454a76756160dd4 trace_flags=01 \n2026-11-03T06:57:36.958838055Z 2026-11-03 06:57:36 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=6e03569dbc272981db519d4c7085e962 span_id=5957abc1e829832a trace_flags=01 \n2026-11-03T06:57:37.087936088Z 2026-11-03 06:57:37 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=2a34f2092746e6c2fdd079a3705e87ad span_id=8b874ee30e45480d trace_flags=01 \n2026-11-03T06:57:49.527752767Z 2026-11-03 06:57:49 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=3abd6d7dc6dadbfb7bfd6904c379347e span_id=1dd83c6900cc86ab trace_flags=01 \n2026-11-03T06:57:49.670884778Z 2026-11-03 06:57:49 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=0ba1006858e3680fd16fc8ef828349b1 span_id=cd13fd440c682d1a trace_flags=01 \n2026-11-03T06:57:53.183828176Z 2026-11-03 06:57:53 - oteldemo.AdService - Targeted ad request received for [accessories] trace_id=9f805237d4eff5bca9871beb19198efa span_id=2a6fe604240b15db trace_flags=01 \n2026-11-03T06:58:06.510901768Z 2026-11-03 06:58:06 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=8c5f5b83459ac475c6fdc9fdf4e0bc7e span_id=631c4c815b814959 trace_flags=01 \n2026-11-03T06:58:06.628157778Z 2026-11-03 06:58:06 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=6177ffcd861e929fe71096be355c9ab9 span_id=a3319f85b1c0ef20 trace_flags=01 \n2026-11-03T06:58:09.931393133Z 2026-11-03 06:58:09 - oteldemo.AdService - Targeted ad request received for [books] trace_id=664c03bc07e8315dc25fb610734cf1ba span_id=c672435494369502 trace_flags=01 \n2026-11-03T06:58:17.078701122Z 2026-11-03 06:58:17 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=1ed94daee596a9953cc2bff17ba9f344 span_id=5fefc2e1e90825b6 trace_flags=01 \n2026-11-03T06:58:17.203121765Z 2026-11-03 06:58:17 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=461b0eba67b4d5a2ff1e229f2726545a span_id=6fc8bf76cefdcc12 trace_flags=01 \n2026-11-03T06:58:20.638092572Z 2026-11-03 06:58:20 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=c593c674947a25448b098aeede60e2b2 span_id=585a3e09d40e2dd0 trace_flags=01 \n2026-11-03T06:58:20.773947988Z 2026-11-03 06:58:20 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=f74182b9c5fff761b5a9747c4adb0050 span_id=630e4e1a700d57d2 trace_flags=01 \n2026-11-03T06:58:27.503075524Z 2026-11-03 06:58:27 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=e67fa8522377d84ea81cdc22aee2e70a span_id=9ceef09f97e266fb trace_flags=01 \n2026-11-03T06:58:27.652379890Z 2026-11-03 06:58:27 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=b389f94363743f4033767099b70dfb25 span_id=1f7e1940e4323c6e trace_flags=01 \n2026-11-03T06:58:31.026152908Z 2026-11-03 06:58:31 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=b995a9e4a48f0ae38a0836150bfb829b span_id=739b6746d50e26ea trace_flags=01 \n2026-11-03T06:58:31.206515555Z 2026-11-03 06:58:31 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=e974b21dd4aac5e66cf568db4749f167 span_id=a516c2060d101bb1 trace_flags=01 \n2026-11-03T06:58:37.643455733Z 2026-11-03 06:58:37 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=4569141406a8a975c4b52902b85178c5 span_id=628e92a8dd3c3454 trace_flags=01 \n2026-11-03T06:58:37.780445704Z 2026-11-03 06:58:37 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=1da50c83014e7dfa1804f48f5fe11ae0 span_id=6c916587d4ae41f0 trace_flags=01 \n2026-11-03T06:58:40.593933691Z 2026-11-03 06:58:40 - oteldemo.AdService - Targeted ad request received for [assembly] trace_id=1325d463caf8e7f330775694baf9c180 span_id=3e066065079533c9 trace_flags=01 \n2026-11-03T06:58:50.493967728Z 2026-11-03 06:58:50 - oteldemo.AdService - Non-targeted ad request received, preparing random response. trace_id=6885458b50d3acf894ee20f8e778aa37 span_id=aa30e70edb1a0fb3 trace_flags=01 \n2026-11-03T06:58:53.324872178Z 2026-11-03 06:58:53 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=7815711d47c9233878b2df63734deda4 span_id=7154bee778d08446 trace_flags=01 \n2026-11-03T06:58:53.452709223Z 2026-11-03 06:58:53 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=e46042b8ed37bbdd16c2b84b83ad75a7 span_id=0cf654b56bc7561b trace_flags=01 \n2026-11-03T06:58:57.413055305Z 2026-11-03 06:58:57 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=55d218c2e10d27527705b364207aa5fa span_id=7c78e702609270b8 trace_flags=01 \n2026-11-03T06:58:57.553721979Z 2026-11-03 06:58:57 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=34d19a384a19bb43d9a18b0d893adbcc span_id=6770c2891e8c74b2 trace_flags=01 \n2026-11-03T06:59:01.542138214Z 2026-11-03 06:59:01 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=b2035a8c5d14cde18115309b2dd860e9 span_id=b16f1e63f63ec661 trace_flags=01 \n2026-11-03T06:59:01.664327195Z 2026-11-03 06:59:01 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=a86d6464041ee04ab9e52366aa032a20 span_id=61b266a93f194c5a trace_flags=01 \n2026-11-03T06:59:09.368309013Z 2026-11-03 06:59:09 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=c4fee1e898bd0a4601dd687418281971 span_id=b13a9078040648b6 trace_flags=01 \n2026-11-03T06:59:09.495533147Z 2026-11-03 06:59:09 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=72a564d5b10ffc50bb580771cecebac6 span_id=ea170397d3e96137 trace_flags=01 \n2026-11-03T06:59:12.771160907Z 2026-11-03 06:59:12 - oteldemo.AdService - Targeted ad request received for [telescopes] trace_id=2adb1d61cc2d322bf85da18ad6e9e777 span_id=b515393d654b48e0 trace_flags=01 \n2026-11-03T06:59:13.477316005Z 2026-11-03 06:59:13 - oteldemo.AdService - Targeted ad request received for [travel] trace_id=7c751f79b740869b7c8b08a9dfc497cc span_id=53f42aef892bec34 trace_flags=01 \n2026-11-03T06:59:21.353123516Z 2026-11-03 06:59:21 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=37f232bd26453f34fcfebdc296d4c5a4 span_id=cc17473c3ecb7d5e trace_flags=01 \n2026-11-03T06:59:22.660377894Z 2026-11-03 06:59:22 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=854f2954225942039854f6a831b37115 span_id=239d5953cceabdcd trace_flags=01 \n2026-11-03T06:59:22.816239005Z 2026-11-03 06:59:22 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=b88b25abd81aeeafbfed67ce6d45b257 span_id=e9d6d2fd76f17e7f trace_flags=01 \n2026-11-03T06:59:28.613096521Z 2026-11-03 06:59:28 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=d9cb5e5800af0903b3c6758051f1d837 span_id=f45b2f9af40b8c71 trace_flags=01 \n2026-11-03T06:59:28.768142885Z 2026-11-03 06:59:28 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=0e2122ed991b5668a06267477aee3bf5 span_id=2bc43e9dba3ef008 trace_flags=01 \n2026-11-03T06:59:32.675204614Z 2026-11-03 06:59:32 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=75504ef803267be970d4f1623d14114f span_id=7fc592d034d2a893 trace_flags=01 \n2026-11-03T06:59:32.813798577Z 2026-11-03 06:59:32 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=3c7d5a49ccebcfc8a231c3d9762ae659 span_id=cf15089dca925327 trace_flags=01 \n2026-11-03T06:59:37.220263981Z 2026-11-03 06:59:37 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=4f33d86e8000359a3cdf12912350b927 span_id=a40d69bdf4ef62ee trace_flags=01 \n2026-11-03T06:59:37.385539059Z 2026-11-03 06:59:37 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=e0feefada0da86579a1e5db933e8729d span_id=31c40fc48fd64271 trace_flags=01 \n2026-11-03T06:59:41.213877763Z 2026-11-03 06:59:41 - oteldemo.AdService - Targeted ad request received for [telescopes] trace_id=4e9c8598980ebcea36c4434e01a00ce3 span_id=3fc4e6a362dced97 trace_flags=01 \n2026-11-03T06:59:41.289656471Z 2026-11-03 06:59:41 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=f637f7c1fe4de5946af97b5ecd90c568 span_id=53dfab61e8e43f8b trace_flags=01 \n2026-11-03T06:59:41.414708399Z 2026-11-03 06:59:41 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=4f651bf7426831018c0494ac415230a0 span_id=df8a010e18c21f4c trace_flags=01 \n2026-11-03T06:59:45.341185335Z 2026-11-03 06:59:45 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=5b2ea524c0c408bd2768ccbad0c37e5a span_id=5e53217885f832e3 trace_flags=01 \n2026-11-03T06:59:45.469438402Z 2026-11-03 06:59:45 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=b0c8e281585ab83070029b8f8a9e4b6c span_id=aa2d0ee3a4b112eb trace_flags=01 \n2026-11-03T06:59:49.415986273Z 2026-11-03 06:59:49 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=7edba2c28abcaaf7a3ce59929829bfe5 span_id=ba23537237cdec37 trace_flags=01 \n2026-11-03T06:59:49.565923331Z 2026-11-03 06:59:49 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=6c8ee7bb214979e0032a12a756b805aa span_id=bfbb11c846f3d991 trace_flags=01 \n2026-11-03T06:59:53.420268003Z 2026-11-03 06:59:53 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=dd87639842c53027a9f5976af42f32f3 span_id=b89f6be39ac6522d trace_flags=01 \n2026-11-03T06:59:53.568611132Z 2026-11-03 06:59:53 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=76a98d300654e3be5728aeb24a947912 span_id=0e8ad7f29c9f4850 trace_flags=01 \n2026-11-03T06:59:57.407081921Z 2026-11-03 06:59:57 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=d347d8bfe5eaeb297fec4aab49054815 span_id=b52a3278a4b39afe trace_flags=01 \n2026-11-03T06:59:57.543885443Z 2026-11-03 06:59:57 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=ebe8f157a8c6bd93cc3d8b4ac42e9fd1 span_id=62b84b7daa884262 trace_flags=01 \n2026-11-03T07:00:05.910340379Z 2026-11-03 07:00:05 - oteldemo.AdService - Targeted ad request received for [books] trace_id=0924241253cabd5d0183e6031403e6c8 span_id=7bdb3725e593cde1 trace_flags=01 \n2026-11-03T07:00:07.876459847Z 2026-11-03 07:00:07 - oteldemo.AdService - Targeted ad request received for [travel] trace_id=7a58c50fdbd944419258eeae2d78c4a1 span_id=212c1c84d371b5a1 trace_flags=01 \n2026-11-03T07:00:09.240338739Z 2026-11-03 07:00:09 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=b5ab12f23c6941e157454624f53d3849 span_id=c78afe2542391bd5 trace_flags=01 \n2026-11-03T07:00:09.372328593Z 2026-11-03 07:00:09 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=74f31c61f5d99085c458f9c815fa5909 span_id=cc0282ea0b94375e trace_flags=01 \n2026-11-03T07:00:13.251572715Z 2026-11-03 07:00:13 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=30e175759d166d5cb92d05a6b4be615c span_id=ea227c92e27aacbf trace_flags=01 \n2026-11-03T07:00:13.380856161Z 2026-11-03 07:00:13 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=59c02c61e864ef46afa1c5fe7d24a2f9 span_id=3384d8818442658e trace_flags=01 \n2026-11-03T07:00:17.292186072Z 2026-11-03 07:00:17 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=b939e656c128586e2f945d9475561807 span_id=8351a153427f9948 trace_flags=01 \n2026-11-03T07:00:17.442606647Z 2026-11-03 07:00:17 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=425f9507b84f40ec83379a405db13329 span_id=7ae9f174e39ef7e9 trace_flags=01 \n2026-11-03T07:00:29.212875344Z 2026-11-03 07:00:29 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=26fb85fc98dfa7aa31e52cfbd22089f6 span_id=377cd62a348d4f8b trace_flags=01 \n2026-11-03T07:00:29.356332627Z 2026-11-03 07:00:29 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=5490b51d7e1b50b4421971b0a0f8ab56 span_id=1ee0ca61b4793e0c trace_flags=01 \n2026-11-03T07:00:32.758214306Z 2026-11-03 07:00:32 - oteldemo.AdService - Targeted ad request received for [assembly] trace_id=48f6234092543c0c628e0a6eafe0ba1c span_id=5a19fbcbc6033b27 trace_flags=01 \n2026-11-03T07:00:40.918483503Z 2026-11-03 07:00:40 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=1802fdb226b41129a4cf6d4d85202710 span_id=e8bea98416ed0d66 trace_flags=01 \n2026-11-03T07:00:41.054485149Z 2026-11-03 07:00:41 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=680c413ce1987ceb304b4caefb19b260 span_id=82e4e7bd9399a886 trace_flags=01 \n2026-11-03T07:00:48.738855172Z 2026-11-03 07:00:48 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=a0e4bb51c5aa0291c851dabf004199f3 span_id=8a2731be26dbeb8e trace_flags=01 \n2026-11-03T07:00:48.876896425Z 2026-11-03 07:00:48 - oteldemo.AdService - Targeted ad request received for [binoculars] trace_id=3156ca64291ab12e38f9ee7d1e3ad863 span_id=b56e13333502d38f trace_flags=01 \n2026-11-03T07:00:54.434427992Z 2026-11-03 07:00:54 - oteldemo.AdService - Non-targeted ad request received, preparing random response. trace_id=692288d3467617d686abf4bdd2ff0eed span_id=1faef9e5eb4f5ab4 trace_flags=01 \n"
+}

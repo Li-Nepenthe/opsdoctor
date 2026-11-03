@@ -1,0 +1,9 @@
+{
+  "source": "phase-09-paid-clock-final.jsonl",
+  "samples": 61,
+  "intervals": 60,
+  "max_correction_ns": 2104268,
+  "corrections_over_100ms": 0,
+  "elapsed_ns": 60021332646,
+  "raw_sha256": "74765c2966b7bf23fca1fefe8863887b1a126e7c467e005c2a464c74916890a6"
+}

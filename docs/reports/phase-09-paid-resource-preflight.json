@@ -1,0 +1,24 @@
+{
+  "checked_at_utc": "2026-11-03T06:39:14.5019465Z",
+  "host_free_bytes": 17151983616,
+  "docker_limit_bytes": 16294768640,
+  "docker_free_output": [
+    "              total        used        free      shared  buff/cache   available",
+    "Mem:    16294768640  1147461632  4012961792    27910144 11134345216 14867968000",
+    "Swap:    4294967296      245760  4294721536"
+  ],
+  "docker_disk_output": [
+    "Filesystem           1-blocks       Used Available Use% Mounted on",
+    "/dev/sdd             1081101176832 124477222912 901631598592  12% /mnt/docker-desktop-disk"
+  ],
+  "physical_disk": {
+    "DeviceID": "D:",
+    "Size": 1503256375296,
+    "FreeSpace": 738279239680
+  },
+  "running_before": [
+    "opsdoctor-phase09-doctor",
+    "opsdoctor-phase09-doctor-mysql"
+  ],
+  "settings_changed": false
+}

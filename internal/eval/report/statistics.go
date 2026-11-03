@@ -61,13 +61,20 @@ type judgementView struct {
 type statisticsRow struct {
 	scenario, group, model, currency                             string
 	reliability, mixed, incomplete                               int
+	dataAffected, dataUnknown                                    int
 	component, mechanism, coverage, seconds, tools, rounds, cost measurement
 	allCost, judgeCost                                           int64
 }
 
 // Statistics 分层后再输出，不把十三种不同问题混成一个笼统准确率。
 func Statistics(output io.Writer, rows []store.EvalResult) error {
+	return statistics(output, rows, false)
+}
+
+// statistics 让整批阶段 9 导出也能要求审计，不能因某个历史槽位缺少批次字段而漏检。
+func statistics(output io.Writer, rows []store.EvalResult, requireAudit bool) error {
 	grouped := map[string]*statisticsRow{}
+	qualityColumn := requireAudit
 	for _, row := range rows {
 		var value Summary
 		if len(row.Data) > 0 && json.Unmarshal(row.Data, &value) != nil {
@@ -89,10 +96,25 @@ func Statistics(output io.Writer, rows []store.EvalResult) error {
 			return fmt.Errorf("统计评分无法解码")
 		}
 		entry.judgeCost += grade.CostMicros
+		required := requireAudit || requiresCollectionAudit(row)
+		qualityColumn = qualityColumn || required
 		// 费用保留在上方；下面的排除只影响诊断质量和耗时样本，不让失败的钱消失。
 		if len(row.Data) == 0 {
 			entry.incomplete++
+			if required {
+				entry.dataUnknown++
+			}
 			continue
+		}
+		if required {
+			switch CollectionQuality(value) {
+			case QualityAffected:
+				entry.dataAffected++
+				continue
+			case QualityUnknown:
+				entry.dataUnknown++
+				continue
+			}
 		}
 		if value.ReliabilityFailure {
 			entry.reliability++
@@ -122,7 +144,15 @@ func Statistics(output io.Writer, rows []store.EvalResult) error {
 			entry.coverage.add(grade.Coverage)
 		}
 	}
-	fmt.Fprintln(output, "\n## 分层结果\n\n每格为平均值 [最小, 最大] n=有效样本数。组件一致记 1，否则 0；机制正确/部分/错误记 1/0.5/0。基础设施失败和混合模型单列；评分失败不填零。三次样本很小，以下不是生产准确率。\n\n| 场景 | 组 | 模型 | 组件一致 | 机制 | 证据覆盖 | 轮数 | 工具数 | 秒 | 医生单次账本 | 全部医生费用（含排除项） | 评委费用 | 可靠性 / 混合 / 未完成 |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|")
+	intro := "\n## 分层结果\n\n每格为平均值 [最小, 最大] n=有效样本数。组件一致记 1，否则 0；机制正确/部分/错误记 1/0.5/0。基础设施失败和混合模型单列；评分失败不填零。三次样本很小，以下不是生产准确率。"
+	header := "\n\n| 场景 | 组 | 模型 | 组件一致 | 机制 | 证据覆盖 | 轮数 | 工具数 | 秒 | 医生单次账本 | 全部医生费用（含排除项） | 评委费用 | 可靠性 / 混合 / 未完成 |"
+	separator := "\n|---|---|---|---|---|---|---|---|---|---|---|---|---|"
+	if qualityColumn {
+		intro = "\n## 分层结果\n\n每格为平均值 [最小, 最大] n=有效样本数。阶段 9 只有采集窗口审计正常的样本参与质量、耗时、工具与单次成本统计；受影响和无法验证的样本仍保留全部医生及评委费用。组件一致记 1，否则 0；机制正确/部分/错误记 1/0.5/0。基础设施失败和混合模型仍排除，评分失败不填零。样本很少，以下不是生产准确率。"
+		header += " 采集受影响 / 采集未知 |"
+		separator += "---|"
+	}
+	fmt.Fprintln(output, intro+header+separator)
 	keys := []string{}
 	for key := range grouped {
 		keys = append(keys, key)
@@ -130,7 +160,15 @@ func Statistics(output io.Writer, rows []store.EvalResult) error {
 	sort.Strings(keys)
 	for _, key := range keys {
 		value := grouped[key]
-		if _, err := fmt.Fprintf(output, "| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s %s | %s %.6f | CNY %.6f | %d / %d / %d |\n", cell(value.scenario), cell(value.group), cell(value.model), value.component.text(), value.mechanism.text(), value.coverage.text(), value.rounds.text(), value.tools.text(), value.seconds.text(), cell(value.currency), value.cost.text(), cell(value.currency), float64(value.allCost)/1e6, float64(value.judgeCost)/1e6, value.reliability, value.mixed, value.incomplete); err != nil {
+		if _, err := fmt.Fprintf(output, "| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s %s | %s %.6f | CNY %.6f | %d / %d / %d |", cell(value.scenario), cell(value.group), cell(value.model), value.component.text(), value.mechanism.text(), value.coverage.text(), value.rounds.text(), value.tools.text(), value.seconds.text(), cell(value.currency), value.cost.text(), cell(value.currency), float64(value.allCost)/1e6, float64(value.judgeCost)/1e6, value.reliability, value.mixed, value.incomplete); err != nil {
+			return err
+		}
+		if qualityColumn {
+			if _, err := fmt.Fprintf(output, " %d / %d |", value.dataAffected, value.dataUnknown); err != nil {
+				return err
+			}
+		}
+		if _, err := fmt.Fprintln(output); err != nil {
 			return err
 		}
 	}

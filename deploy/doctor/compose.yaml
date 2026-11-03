@@ -37,8 +37,8 @@ services:
       dockerfile: deploy/docker/go.Dockerfile
       args:
         CMD_NAME: doctor
-        APP_VERSION: phase09-20261102.3
-    image: opsdoctor/doctor:phase09-20261102.3
+        APP_VERSION: phase09-20261102.4
+    image: opsdoctor/doctor:phase09-20261102.4
     # 系统凭据的变量名由target YAML决定；不在environment逐条列出，以免空值覆盖env_file。
     env_file:
       - ${DOCTOR_TARGET_ENV_FILE:?请设置被诊断系统的凭据env文件路径}

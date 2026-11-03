@@ -7,9 +7,9 @@ flag: adFailure
 variant: "on"
 symptoms: 广告查询出现间歇性错误，请结合本次时间范围内的指标、调用链和日志定位原因及影响范围。
 symptom:
-  promql: 'sum(increase(traces_span_metrics_calls_total{service_name="ad",status_code="STATUS_CODE_ERROR"}[2m])) > 0'
+  promql: 'sum(increase(traces_span_metrics_calls_total{service_name="ad",span_kind="SPAN_KIND_SERVER",span_name="oteldemo.AdService/GetAds",status_code="STATUS_CODE_ERROR"}[2m])) > 0'
   within: 3m
-healthy_promql: '(sum(increase(traces_span_metrics_calls_total{service_name="ad",status_code="STATUS_CODE_ERROR"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name="ad"}[2m])) > 0'
+healthy_promql: '(sum(increase(traces_span_metrics_calls_total{service_name="ad",span_kind="SPAN_KIND_SERVER",span_name="oteldemo.AdService/GetAds",status_code="STATUS_CODE_ERROR"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name="ad",span_kind="SPAN_KIND_SERVER",span_name="oteldemo.AdService/GetAds"}[2m])) > 0'
 ground_truth:
   component: ad
   mechanism: intermittent_ad_request_failure

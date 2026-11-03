@@ -682,3 +682,11 @@ amend-baseline 先确认原故障已恢复且开放期关闭，再把原轮次�
 用户要求只运行doctor和doctor-mysql、不写死shop专用环境变量，并用这种方式完成后续Demo诊断。通用Compose放在既有deploy/doctor下：只提供自身数据库、身份与模型参数，目标目录和目标凭据env_file由调用者选择。原shop入口不变，独立状态卷不挂阶段8原卷。通用入口默认Mock，阶段9薄覆盖固定预算与宿主评测端口；不改doctor/tools或doctor/agent。
 
 真实准备至健康、菜单、只读查询按不同边界计时，见台账P9-25–P9-29。初查up为零序列，保留原件，再对真实span计数器读取非空保留数据，不用status=ok代替有效证据。换新状态库前旧阶段9账本与生成请求均零，旧库仅stop保留；后续费用只从新实例继续，不能重复开启旧实例重置预算。采集修复Claude审核门槛不变，独立部署通过不代替正式诊断评测。
+
+## 2026-11-02：Claude通过采集修复，OT01最小判定修订
+
+用户转达Claude通过采集修复，可以按原授权在独立部署上先Terra试跑再正式E1/E2，新增逐诊断窗口Collector审计。出现dropped_items或mapper错误的报告单列“数据受影响”，不能混入正常样本；无法证明完整窗口也不算正常。预算、医生模型、DeepSeek评委与rubric-v1.1均保持原授权。
+
+首次准备时OT01健康判定失败；同窗GetAds SERVER无错误且有调用，服务级错误来自flagd EventStream CLIENT。用户批准只把两条判定收窄到GetAds SERVER，保持医生收到的symptoms、标准答案、证据里程碑和其余判定条件不变。原失败、原提案、同窗响应及新旧版本哈希分别保存，不覆盖。用户同时要求付费前免费比较无开关、切换和恢复期间的EventStream；若是默认背景噪声则保留，若归因于本次部署或注入则先报告停下。
+
+免费查询另发现固定版Jaeger的base_path=/jaeger/ui。只在source/jaeger支持严格校验的配置前缀，路径仍由固定只读Search/Get拼接；其他HTTP客户端与doctor/tools、doctor/agent保持不变。真实工具Search/Get复核通过；这是接入路径修复，没有改诊断策略或评分。

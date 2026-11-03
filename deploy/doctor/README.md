@@ -50,6 +50,8 @@ cp -n deploy/doctor/standalone.env.example deploy/doctor/.env.standalone
 
 数据源地址必须从医生容器中可达。Docker Desktop 可使用 `host.docker.internal` 访问宿主机已有的端口；Compose 也声明了 Linux 的 `host-gateway` 别名。Linux 上该别名只解决地址解析，不会自动让仅绑定宿主回环的服务对容器可达。独立远端后端则填写容器可访问的固定地址，并使用相应只读账号。
 
+Jaeger 的地址可带安全的部署前缀。例如 Demo 的接入地址为 `http://host.docker.internal:19686/jaeger/ui`，适配器在此之后追加固定搜索和详情 API；不要把 `/api/traces` 当部署前缀。编码路径、点路径、重复斜线、反斜杠、URL 凭据、查询串、片段及重定向仍被拒绝，其他 HTTP 数据源继续使用根地址。真实 Search/Get 接线原件见[搜索](../../docs/reports/phase-09-jaeger-prefix-search.json)和[详情](../../docs/reports/phase-09-jaeger-prefix-get.json)。
+
 医生只读挂载这个目标目录与通用手册，不挂仓库、实验场景、恢复记录或 Docker socket。target 凭据只进入医生，不进入 `doctor-mysql`。医生自己的数据库写账号与被诊断系统的只读账号分开。
 
 ## 构建、启动和停止
@@ -62,7 +64,7 @@ docker compose --env-file deploy/doctor/.env.standalone -f deploy/doctor/compose
 docker compose --env-file deploy/doctor/.env.standalone -f deploy/doctor/compose.yaml ps
 ```
 
-页面默认位于 `http://127.0.0.1:8090`。初始化失败时先查这两个服务的日志；配置渲染可用 `config --quiet`，不要把含密码的完整配置输出交给他人。构建固定使用 `opsdoctor/doctor:phase09-20261102.3`，MySQL 固定为 `8.4.13`；Go 与运行时镜像版本沿用[公共 Dockerfile](../docker/go.Dockerfile)。
+页面默认位于 `http://127.0.0.1:8090`。初始化失败时先查这两个服务的日志；配置渲染可用 `config --quiet`，不要把含密码的完整配置输出交给他人。构建固定使用 `opsdoctor/doctor:phase09-20261102.4`，MySQL 固定为 `8.4.13`；Go 与运行时镜像版本沿用[公共 Dockerfile](../docker/go.Dockerfile)。
 
 默认项目名为 `opsdoctor-standalone`，也可以在每条命令中加入同一个 `-p`。网络与 `doctor-state` 数据卷由这个项目独立创建，不引用原来的 `opsdoctor_doctor-mysql-data`。数据库不发布宿主端口，医生通过本项目的 `doctor-mysql:3306` 连接。MySQL 官方入口创建 `doctor` 库、`doctor` 账号并授予该库权限；医生启动时执行自身表迁移。这里不挂原演示的测试库初始化脚本，不额外创建测试库。已有数据卷不会重跑首次初始化，也不会因修改 env 密码而自动更改库内密码。
 
@@ -81,3 +83,5 @@ docker compose --env-file deploy/doctor/.env.standalone -f deploy/doctor/compose
 可选模型变量包括 `LLM_BASE_URL`、`LLM_API_FORMAT`、`LLM_MODEL`、`LLM_API_KEY`、`LLM_TIMEOUT`，以及 `LLM_INPUT_PRICE_PER_MTOKEN`、`LLM_OUTPUT_PRICE_PER_MTOKEN`、`LLM_CACHE_HIT_PRICE_PER_MTOKEN`、`LLM_CACHE_WRITE_PRICE_PER_MTOKEN`。预算用 `LLM_BUDGET_ACCOUNT`、`LLM_BUDGET_CURRENCY`、`LLM_TOTAL_BUDGET`、`LLM_DIAGNOSIS_BUDGET`。默认金额是部署保护值，实际价格和授权范围仍须开跑前核对，不能把默认单价当作永久价表。
 
 真实对比默认关闭，启用时还需要独立的 `DEEPSEEK_API_KEY` 和 `EVAL_COMPARISON_*` 参数，完整名称与默认值见[Compose](compose.yaml)。调度的 `DOCTOR_LEASE_TTL`、`DOCTOR_RESUME_MAX_AGE`、并发与告警等待参数也可覆盖；HTTPS 部署使用 `DOCTOR_COOKIE_SECURE=true`。这里不自动部署反向代理或远端监控组件。
+
+阶段 9 的专用[薄覆盖](../opentelemetry/doctor.phase09.yaml)固定本阶段预算与评测数据库端口；它不替代通用 Compose。宿主评测器另为每份诊断保存 Collector 原始窗口，并将采集受影响或无法验证的结果单列，先保留诊断及费用再停止评分和后续槽位。这属于本次实验的审计条件，不向医生容器添加 Docker socket。范围和失败保留方式见[架构说明](../../docs/architecture.md#核心流程二注入--评测)与[采集审计实现](../../internal/eval/runner/generalization_collection.go)。

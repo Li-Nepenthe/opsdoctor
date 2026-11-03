@@ -6,7 +6,7 @@ alert_token_env: OTEL_DEMO_ALERT_TOKEN
 alert_recovery_window: 3m
 # 医生在原网络中运行，通过Docker Desktop宿主网关访问第二套独立项目的回环映射。
 prometheus: http://host.docker.internal:19090
-jaeger: http://host.docker.internal:19686
+jaeger: http://host.docker.internal:19686/jaeger/ui
 opensearch:
   url: http://host.docker.internal:19200
   index: otel-logs-*

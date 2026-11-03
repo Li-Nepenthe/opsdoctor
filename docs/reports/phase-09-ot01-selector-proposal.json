@@ -1,0 +1,86 @@
+{
+  "checked_at_utc": "2026-11-03T07:03:59.542595+00:00",
+  "faults_injected": 0,
+  "proposed_symptom": "sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\",status_code=\"STATUS_CODE_ERROR\"}[2m])) > 0",
+  "proposed_healthy": "(sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\"}[2m])) > 0",
+  "queries": [
+    {
+      "name": "business_error_increase",
+      "query": "sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793689439.483,
+                "0"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "business_total_increase",
+      "query": "sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\"}[2m]))",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793689439.485,
+                "38.00190009500476"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "proposed_healthy",
+      "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\"}[2m])) > 0",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793689439.508,
+                "0"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "client_flagd_error_increase",
+      "query": "sum by(span_name)(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_CLIENT\",status_code=\"STATUS_CODE_ERROR\"}[2m]))",
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {
+                "span_name": "flagd.evaluation.v2.Service/EventStream"
+              },
+              "value": [
+                1793689439.523,
+                "0"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

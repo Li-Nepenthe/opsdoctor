@@ -1,0 +1,171 @@
+{
+  "applied_at_utc": "2026-11-03T07:15:36.412050Z",
+  "scenario": "OT01",
+  "file": "eval/scenarios/otel-demo/OT01.yaml",
+  "git_baseline": "b32e89921b99693ec9b92c1e086c5142adea1da5",
+  "sha256_before": "8cb23de88d2d547fdc58a0c401654ee9441e013eaf37f202339c53b252921fe9",
+  "sha256_after": "f7e4b563448c972c9cd16453ec8ffb4dfa892669e92838e238e457290832f566",
+  "git_baseline_file_sha256": "8cb23de88d2d547fdc58a0c401654ee9441e013eaf37f202339c53b252921fe9",
+  "user_authorization": {
+    "status": "approved",
+    "source": "本轮用户附加授权，经根代理转交",
+    "scope": "仅OT01症状与健康两条PromQL增加GetAds SERVER范围；symptoms描述、ground_truth、evidence_milestones及所有其他字段保持不变",
+    "paid_actions_by_this_amendment": false
+  },
+  "reason": "原service_name=ad范围同时包含flagd控制面CLIENT EventStream错误，未精确对应adFailure作用的GetAds SERVER业务入口；仅收窄被检查span，不放宽两分钟窗口、故障时有错误、健康时有调用且无错误的要求。",
+  "queries": [
+    {
+      "path": "/symptom/promql",
+      "before": "sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",status_code=\"STATUS_CODE_ERROR\"}[2m])) > 0",
+      "after": "sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\",status_code=\"STATUS_CODE_ERROR\"}[2m])) > 0"
+    },
+    {
+      "path": "/healthy_promql",
+      "before": "(sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"ad\"}[2m])) > 0",
+      "after": "(sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\"}[2m])) > 0"
+    }
+  ],
+  "changed_paths": [
+    "/healthy_promql",
+    "/symptom/promql"
+  ],
+  "query_fields_changed": 2,
+  "other_fields_canonical_sha256_before": "d2a15f60aaa031390912f8b02b452f1c71604fc5c38d9147ff5fa98c490a9b0d",
+  "other_fields_canonical_sha256_after": "d2a15f60aaa031390912f8b02b452f1c71604fc5c38d9147ff5fa98c490a9b0d",
+  "unchanged_leaf_fields": [
+    {
+      "path": "/evidence_milestones/0",
+      "canonical_sha256_before": "9a1a6a3123662a02cc53180f67277c8e18c0b0c008a6768d9f2799848657a789",
+      "canonical_sha256_after": "9a1a6a3123662a02cc53180f67277c8e18c0b0c008a6768d9f2799848657a789",
+      "equal": true
+    },
+    {
+      "path": "/evidence_milestones/1",
+      "canonical_sha256_before": "23f88aa123f2bff4e5504a04f8621b031af87fafbd8552c6f8a9c97af9917714",
+      "canonical_sha256_after": "23f88aa123f2bff4e5504a04f8621b031af87fafbd8552c6f8a9c97af9917714",
+      "equal": true
+    },
+    {
+      "path": "/evidence_milestones/2",
+      "canonical_sha256_before": "5bb5456c536bbb2e88f263b1fc1af09146b6218811c65814e4ba3ae243bc148d",
+      "canonical_sha256_after": "5bb5456c536bbb2e88f263b1fc1af09146b6218811c65814e4ba3ae243bc148d",
+      "equal": true
+    },
+    {
+      "path": "/flag",
+      "canonical_sha256_before": "fbc113ea0927c68b261099f3ebf0acf76758252f7420dc2e0b3fc43590a322a3",
+      "canonical_sha256_after": "fbc113ea0927c68b261099f3ebf0acf76758252f7420dc2e0b3fc43590a322a3",
+      "equal": true
+    },
+    {
+      "path": "/ground_truth/component",
+      "canonical_sha256_before": "f2f4c3471a636f68143bf665995bd133853f3aea4fb58535a91a97c1ae7ac617",
+      "canonical_sha256_after": "f2f4c3471a636f68143bf665995bd133853f3aea4fb58535a91a97c1ae7ac617",
+      "equal": true
+    },
+    {
+      "path": "/ground_truth/explanation",
+      "canonical_sha256_before": "c510d630e18016839174e138521db47b8bdd34a943471a13f43ea90e690fde2b",
+      "canonical_sha256_after": "c510d630e18016839174e138521db47b8bdd34a943471a13f43ea90e690fde2b",
+      "equal": true
+    },
+    {
+      "path": "/ground_truth/mechanism",
+      "canonical_sha256_before": "a346bbe632c807b0e73c76cf66011d31d799768dd582abbc5eab4d93ebd0b4fd",
+      "canonical_sha256_after": "a346bbe632c807b0e73c76cf66011d31d799768dd582abbc5eab4d93ebd0b4fd",
+      "equal": true
+    },
+    {
+      "path": "/id",
+      "canonical_sha256_before": "98910782db50325ee92703c6f104dedb519ae64a230c06ffe4b0994fc920e0e2",
+      "canonical_sha256_after": "98910782db50325ee92703c6f104dedb519ae64a230c06ffe4b0994fc920e0e2",
+      "equal": true
+    },
+    {
+      "path": "/source_url",
+      "canonical_sha256_before": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+      "canonical_sha256_after": "9a68f07f9ed85bec96dd270d6d2c77d1a06c879f495110e5605760360fcbe229",
+      "equal": true
+    },
+    {
+      "path": "/symptom/within",
+      "canonical_sha256_before": "d62d5a43c75ad3ef951f4816a6907e9c65f93584d30cfdb0b75e4a8ce4b61603",
+      "canonical_sha256_after": "d62d5a43c75ad3ef951f4816a6907e9c65f93584d30cfdb0b75e4a8ce4b61603",
+      "equal": true
+    },
+    {
+      "path": "/symptoms",
+      "canonical_sha256_before": "12f722133fa4ee6b73631ef49171f3ec39117dbfc05fd301a1c64f4c6b8a5ce5",
+      "canonical_sha256_after": "12f722133fa4ee6b73631ef49171f3ec39117dbfc05fd301a1c64f4c6b8a5ce5",
+      "equal": true
+    },
+    {
+      "path": "/title",
+      "canonical_sha256_before": "ec4616cfc20795253d941613b3ea3352c052eaacd90ca3e4a84ba0bbccf82e0c",
+      "canonical_sha256_after": "ec4616cfc20795253d941613b3ea3352c052eaacd90ca3e4a84ba0bbccf82e0c",
+      "equal": true
+    },
+    {
+      "path": "/variant",
+      "canonical_sha256_before": "990c23868b965814b117cf9a6c4dfe45452eadc2171e1f981865ebfc84f10724",
+      "canonical_sha256_after": "990c23868b965814b117cf9a6c4dfe45452eadc2171e1f981865ebfc84f10724",
+      "equal": true
+    }
+  ],
+  "bytes_excluding_queries_sha256_before": "fe7b20194da0c57c9592c877916c9ff117dac6bc43dcaee36ece059d19de21ba",
+  "bytes_excluding_queries_sha256_after": "fe7b20194da0c57c9592c877916c9ff117dac6bc43dcaee36ece059d19de21ba",
+  "assertions": {
+    "matches_reviewed_proposal_diff": true,
+    "canonical_changed_paths_are_only_two_queries": true,
+    "every_other_leaf_canonical_hash_equal": true,
+    "other_fields_canonical_equal": true,
+    "all_nonquery_bytes_equal_including_comments_and_newlines": true,
+    "original_working_file_canonical_matches_git_baseline": true,
+    "original_failure_is_preserved": true,
+    "same_window_queries_share_evaluation_time": true
+  },
+  "same_window_evaluation_time": 1793689256.454,
+  "preserved_references": [
+    {
+      "path": "docs/reports/phase-09-paid-baseline.json",
+      "sha256": "a90b5af4071eb1da98d459d6107fd889082455144664f09c15cc277586c5cb34",
+      "purpose": "原OT01健康失败（空结果）保留，不用后续偶然窗口替换"
+    },
+    {
+      "path": "docs/reports/phase-09-paid-ad-baseline-investigation.json",
+      "sha256": "36a117dc5ecb80abe9d96c9e330c772b882240b9a476a2e476aaa358eaf0c442",
+      "purpose": "原服务级失败的只读核对"
+    },
+    {
+      "path": "docs/reports/phase-09-ot01-same-window-proof.json",
+      "sha256": "4af8866f9f415a33cf093e00786b1a9d80a27f170daafdd136e2259c0a120883",
+      "purpose": "同一Prometheus evaluation time下区分GetAds SERVER与flagd CLIENT"
+    },
+    {
+      "path": "docs/reports/phase-09-ot01-selector-proposal.json",
+      "sha256": "6deb04e365abc26f18e91ac990f8414418364efdb5cc0a225aeacf64ca2872e0",
+      "purpose": "两条待批准查询及只读影子结果"
+    },
+    {
+      "path": "docs/reports/phase-09-ot01-baseline-proposal.diff",
+      "sha256": "1bc712f1d7a9a07d148db6c5a26d7fbf8e96907ea99d114d617ce39594bc671f",
+      "purpose": "本轮获用户批准的精确两行差异"
+    },
+    {
+      "path": "docs/reports/phase-09-ot01-baseline-proposal.md",
+      "sha256": "9d81f48ea7a11a6e0a14f593604c81ab0c35887732567d58369076951a2f6924",
+      "purpose": "原提案、限制与未归因控制面问题"
+    },
+    {
+      "path": "docs/reports/phase-09-paid-flags-before-injection.json",
+      "sha256": "cac9c1f606fcef8b1e3bdf776f930f9f7113e2ef39536a0825fe9eb568396a40",
+      "purpose": "故障注入前开关原件"
+    }
+  ],
+  "limits": [
+    "保留原健康失败与同窗原始响应；不覆盖原批次或诊断。",
+    "同窗数据仅证明健康判定范围差异，不代表已验证故障注入、恢复或医生诊断。",
+    "flagd EventStream控制面错误原因仍未确定，未据此宣称控制面正常。",
+    "本次仅写YAML和改动审计，未操作Docker、故障开关或任何模型；后续必须新冻结批次并重新验证注入和恢复。"
+  ]
+}

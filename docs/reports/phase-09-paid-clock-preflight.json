@@ -1,0 +1,11 @@
+{
+  "checked_at_utc": "2026-11-03T06:43:36.380602+00:00",
+  "samples": 61,
+  "intervals": 60,
+  "max_abs_wall_minus_monotonic_correction_ns": 1574833,
+  "events_over_100ms": 0,
+  "elapsed_ns": 60016870569,
+  "raw_file": "docs\\reports\\phase-09-paid-clock-preflight.jsonl",
+  "passed": true,
+  "parser_note": "Doctor sampling command succeeded and emitted NDJSON. Initial helper incorrectly attempted single-object json.loads; retained raw output was parsed correctly as 61 JSON lines, without replacing original data."
+}

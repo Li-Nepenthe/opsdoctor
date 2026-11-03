@@ -1,0 +1,98 @@
+{
+  "checked_at_utc": "2026-11-03T06:52:29.695082+00:00",
+  "faults_injected": 0,
+  "queries": [
+    {
+      "scenario": "OT01",
+      "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"ad\"}[2m])) > 0",
+      "passed": false,
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": []
+        }
+      }
+    },
+    {
+      "scenario": "OT02",
+      "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"cart\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"cart\"}[2m])) > 0",
+      "passed": true,
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793688749.641,
+                "0"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "scenario": "OT03",
+      "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"payment\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"payment\"}[2m])) > 0",
+      "passed": true,
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793688749.662,
+                "0"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "scenario": "OT04",
+      "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"checkout\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"checkout\"}[2m])) > 0",
+      "passed": true,
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793688749.665,
+                "0"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "scenario": "OT05",
+      "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"product-catalog\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"product-catalog\"}[2m])) > 0",
+      "passed": true,
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793688749.693,
+                "0"
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

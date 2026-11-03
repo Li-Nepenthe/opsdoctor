@@ -4,6 +4,7 @@
 // 必须重跑真实样例契约测试，不能因为路径没变就假定字段也没变。
 //
 // 主要内容：
+//   - New：只为 Jaeger 接受经过严格校验的部署前缀，其他 HTTP 来源仍只接受根地址。
 //   - Search、Get：搜索请求和按 ID 读取完整调用链。
 //   - decode：合并 process 与 span，并保留父子关系和诊断属性。
 //   - tagAllowed：排除没有必要提供给诊断工具的属性。
@@ -19,6 +20,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source"
@@ -26,15 +28,39 @@ import (
 )
 
 // Client 始终使用创建时绑定的 Jaeger，trace ID 不参与选择后端。
-type Client struct{ backend *httpbackend.Client }
+type Client struct {
+	backend *httpbackend.Client // 仍绑定没有凭据、查询串和路径的固定根地址。
+	prefix  string              // 部署者提供的安全前缀，工具调用不能改变。
+}
 
 // New 在启动时发现地址错误，避免等诊断开始才暴露配置问题。
 func New(address string) (*Client, error) {
-	backend, err := httpbackend.New(address)
+	base, err := url.Parse(address)
+	if err != nil {
+		return nil, fmt.Errorf("调用链后端 Jaeger 地址格式不合法")
+	}
+	// 不解码或清理可疑路径：编码、点路径和空段都直接拒绝，避免代理与 Go 解释不同。
+	prefix := strings.TrimSuffix(base.Path, "/")
+	if base.RawPath != "" || strings.Contains(base.EscapedPath(), "%") || base.RawQuery != "" || base.ForceQuery || strings.Contains(address, "#") {
+		return nil, fmt.Errorf("调用链后端 Jaeger 部署地址不能含编码路径、查询串或片段")
+	}
+	if prefix != "" {
+		if !regexp.MustCompile(`^/[A-Za-z0-9._~/-]+$`).MatchString(prefix) || strings.Contains(base.Path, "//") {
+			return nil, fmt.Errorf("调用链后端 Jaeger 部署前缀只能包含普通路径段")
+		}
+		for _, segment := range strings.Split(prefix[1:], "/") {
+			if segment == "." || segment == ".." {
+				return nil, fmt.Errorf("调用链后端 Jaeger 部署前缀不能包含点路径")
+			}
+		}
+	}
+	// 公共客户端的根地址校验原样执行；这里没有给其他适配器增加路径权限。
+	base.Path = ""
+	backend, err := httpbackend.New(base.String())
 	if err != nil {
 		return nil, err
 	}
-	return &Client{backend: backend}, nil
+	return &Client{backend: backend, prefix: prefix}, nil
 }
 
 // Close 释放空闲 HTTP 连接，停机后不继续占用后端资源。
@@ -110,7 +136,7 @@ func (client *Client) read(ctx context.Context, path string, query url.Values) (
 		Data   []wireTrace       // 搜索和详情共用这个数组外壳。
 		Errors []json.RawMessage // 原始错误可能带请求内容，不直接回显。
 	}
-	if err := client.backend.Get(ctx, path, query, &response); err != nil {
+	if err := client.backend.Get(ctx, client.prefix+path, query, &response); err != nil {
 		return nil, err
 	}
 	if len(response.Errors) > 0 {

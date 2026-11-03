@@ -2,6 +2,7 @@
 //
 // 主要内容：TestCalibrationSelection 检查二十个不同编号和分层；
 // TestBlindAndAgreement 检查评分空白、原材料保留以及缺分拒绝。
+// TestCalibrationCollectionQuality 不把阶段 9 的采集异常混入正常报告抽样。
 // 阅读建议：样本都是虚构数据，不用于项目实际成绩。
 
 package report
@@ -47,6 +48,29 @@ func TestCalibrationSelection(t *testing.T) {
 	}
 	if _, err = SelectCalibration(rows[:19]); err == nil {
 		t.Fatal("不足二十仍生成")
+	}
+}
+
+// TestCalibrationCollectionQuality 即使原评委给出有效评分，采集异常也不能成为正常候选。
+func TestCalibrationCollectionQuality(t *testing.T) {
+	rows := []store.EvalResult{}
+	// 恰好二十份正常报告应全部入选，额外异常不能靠随机抽样碰巧被隐藏。
+	for index := range 20 {
+		raw, _ := json.Marshal(Summary{DataQuality: QualityNormal, CollectorAudit: collectorAuditFixture(), Model: "mock-terra", Report: json.RawMessage(`{"summary":"虚构"}`)})
+		rows = append(rows, store.EvalResult{Key: fmt.Sprintf("normal-%d", index), RunID: "phase09-test", Scenario: "OT01", Group: "E1", Data: raw, Judgement: json.RawMessage(`{"status":"ok","grade":{"mechanism":"correct"}}`)})
+	}
+	for _, quality := range []string{QualityAffected, QualityUnknown} {
+		raw, _ := json.Marshal(Summary{DataQuality: quality, Model: "mock-terra", Report: json.RawMessage(`{"summary":"保留原报告"}`)})
+		rows = append(rows, store.EvalResult{Key: quality, RunID: "phase09-test", Scenario: "OT02", Group: "E2", Data: raw, Judgement: json.RawMessage(`{"status":"ok","grade":{"mechanism":"correct"}}`)})
+	}
+	keys, err := SelectCalibration(rows)
+	if err != nil || len(keys) != 20 {
+		t.Fatal(keys, err)
+	}
+	for _, key := range keys {
+		if !strings.HasPrefix(key, "normal-") {
+			t.Fatal("采集异常进入了正常报告抽样", key)
+		}
 	}
 }
 

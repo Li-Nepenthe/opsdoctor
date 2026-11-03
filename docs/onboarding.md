@@ -68,7 +68,7 @@ WAREHOUSE_MCP_TOKEN=
 | `alert_token_env` | 本系统告警推送令牌的**环境变量名**，例如 `WAREHOUSE_ALERT_TOKEN`；不在 YAML 写令牌值 |
 | `alert_recovery_window` | 全组告警恢复后，继续把迟到症状归入同一次故障的观察期。必填，正时长且不超过 `24h`；按自己的最长规则 `for`、规则评估间隔和通知等待决定，不直接照搬 shop 的 `3m` |
 | `prometheus` | Prometheus HTTP 根地址，例如 `http://metrics.internal:9090`；不是 `/api/v1/query` 路径 |
-| `jaeger` | Jaeger 查询服务根地址，例如 `http://traces.internal:16686`；不是 OTLP 接收端口 |
+| `jaeger` | Jaeger 查询服务地址，例如 `http://traces.internal:16686`；可追加已部署的安全 base path，例如 `/jaeger/ui`，不要填写 `/api/traces` 或 OTLP 接收端口 |
 | `loki` | Loki 查询根地址；与 `opensearch` 只能选一个 |
 | `mysql_readonly_dsn_env` | 目标 MySQL 只读 DSN 的环境变量名。DSN 必须固定库名、独立账号和密码，不能用 `root` 或业务 `app` 账号 |
 | `redis_readonly_url_env` | 目标 Redis 只读 URL 的环境变量名。当前实现要求独立 ACL 用户、密码和 DB 0，不能用 `default` 用户 |
@@ -155,7 +155,9 @@ docker compose --env-file deploy/doctor/.env.standalone -f deploy/doctor/compose
 
 地址要从**医生容器内部**能访问。`localhost` 指医生容器自己，不指宿主机，也不指你的业务服务。Docker Desktop 可以使用 `host.docker.internal` 访问宿主机；同一 Docker 网络可以使用服务名；远端系统使用医生实际可达的内网地址。独立 Compose 已声明 Linux 的 `host-gateway` 别名，但别名只解决地址解析，不会让仅绑定宿主回环的服务自动对容器可达。宿主发布端口与容器端口不要混用，复制 shop 地址前先检查网络是否相同。
 
-目前 HTTP 数据源只接受根地址，不接受 URL 内的账号或任意 API 路径。Prometheus、Jaeger、Loki、pprof 没有独立的 Basic/Bearer 或租户头配置；OpenSearch 另外支持上面的 Basic 环境变量。已有后端要求这些鉴权方式时，当前配置不能直接完成认证，应由部署者提供适合医生只读访问的网络入口，不能把网页登录地址当成查询 API。
+Prometheus、Loki、pprof 和 OpenSearch 的配置使用 HTTP 根地址。Jaeger 单独支持部署前缀，也叫 base path：例如 Demo 将查询服务放在 `/jaeger/ui` 下，应填写 `http://host.docker.internal:19686/jaeger/ui`。适配器会在固定前缀后追加自己的搜索和详情 API，调用工具时不能再选择路径。前缀只接受普通路径段，编码、点路径、重复斜线、反斜杠、查询串和片段都会被拒绝；公共 HTTP 来源的根地址规则没有因此放宽。
+
+URL 内仍不能包含账号，也不能借重定向访问其他后端。Prometheus、Jaeger、Loki、pprof 没有独立的 Basic/Bearer 或租户头配置；OpenSearch 另外支持上面的 Basic 环境变量。已有后端要求这些鉴权方式时，当前配置不能直接完成认证，应由部署者提供适合医生只读访问的网络入口，不能把普通网页登录地址当成查询 API。
 
 | 已实现来源 | 提供的只读工具 | 没有配置时 |
 |---|---|---|
@@ -256,6 +258,10 @@ docker compose --env-file deploy/doctor/.env.standalone -f deploy/doctor/compose
 
 针对 `up` 空结果，随后只临时启动 Demo 的 Prometheus 读取保留数据：`sum(traces_span_metrics_calls_total)` 回看一小时，实际返回 1 条序列、124 个采样点，`limited=false`，查询完成后再次 stop（P9-29，[独立后续响应](reports/phase-09-standalone-metric-query.json)）。这证明医生能够取得已有的非空指标，与之前 30 个容器运行时的 `up` 查询是不同观测，不能混成一次结果，也不能把历史采样当作当前系统健康或新鲜故障基线。
 
+后续接线复核发现 Demo 的 Jaeger 使用 `/jaeger/ui` 前缀，裸根地址的查询路径不适用。医生镜像 `phase09-20261102.4` 已通过真实[调用链搜索](reports/phase-09-jaeger-prefix-search.json)，并从搜索结果取得 trace ID 后成功[读取详情](reports/phase-09-jaeger-prefix-get.json)。这些都是只读工具查询，不能替代真实根因诊断；前缀与安全边界的 Mock 回归在[Jaeger 接线检查](reports/phase-09-jaeger-prefix-checks.json)中单独留档。
+
+独立医生接入已有系统不要求宿主机持有 Docker 权限。阶段 9 的实验控制则另外在宿主评测器中[记录每份诊断的 Collector 窗口](../internal/eval/runner/generalization_collection.go)，保存原始日志、窗口、容器身份和文件摘要。`data_quality=affected` 或 `unknown` 的样本单列，保留诊断与费用，停止评分和后续槽位，不进入正常结果统计；缺少成功审计不能按正常处理。这项实验审计没有增加医生工具或 MCP 的权限，也不是所有独立部署的必填组件。
+
 ## 6. 让 Alertmanager 把告警发给医生
 
 完成只读工具验证后，再把自己系统的 Alertmanager webhook 指向 `/api/v1/targets/warehouse/alerts`。`warehouse` 必须与 YAML 的 `name` 一致，使用 `WAREHOUSE_ALERT_TOKEN` 对应的独立 Bearer 令牌；网页登录 JWT、MCP 令牌和另一个系统的告警令牌都不能替代它。
@@ -309,5 +315,7 @@ MCP 工具调用不需要医生调用大模型，但客户端自己发起的模�
 | P9-26、P9-27 | 不提供 shop 环境，实际查询 otel-demo；日志非空，`up` 查询完成但无序列，新库与原卷隔离且未付费 | 所有数据源都有证据、端到端采集完整，或实际诊断已完成 |
 | P9-28 | 独立入口补充后的全仓检查通过，跳过项单列 | Claude 已审核通过或泛化付费评测已完成 |
 | P9-29 | 后续仅临时恢复 Prometheus，读取保留的一小时 span 指标，取得非空响应 | P9-26 的 `up` 当时非空、当前业务健康，或付费前的新鲜基线已确认 |
+| [Jaeger 搜索](reports/phase-09-jaeger-prefix-search.json)、[详情](reports/phase-09-jaeger-prefix-get.json) | Demo 的 `/jaeger/ui` 接线已由独立医生的真实 Search/Get 工具验证 | 已完成模型诊断、故障定位或根因评分 |
+| [逐诊断审计检查](reports/phase-09-collection-checks.json)、[Jaeger 接线检查](reports/phase-09-jaeger-prefix-checks.json) | Mock 验证采集正常、受影响和未知样本分流，并保留原诊断与费用 | 所有未来窗口都正常，或阶段 8 历史结果要按新门槛重算 |
 
 实测数字和原件统一从[数据台账](数据台账.md#阶段-9开源靶场泛化测试进行中)追溯。接入完成后，应为自己的独立启动、实际来源查询、告警通知和 MCP 调用分别留证；结果不足时明确缺什么，不把日志空结果、Mock 脚本输出或健康检查当成真实诊断能力。

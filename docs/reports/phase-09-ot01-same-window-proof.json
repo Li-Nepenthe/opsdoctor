@@ -1,0 +1,103 @@
+{
+  "checked_at_utc": "2026-11-03T07:05:10.104888+00:00",
+  "same_evaluation_time": 1793689256.454,
+  "queries": [
+    {
+      "name": "business_error_increase",
+      "query": "sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)",
+      "evaluation_time": 1793689256.454,
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793689256.454,
+                "0"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "business_total_increase",
+      "query": "sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\"}[2m]))",
+      "evaluation_time": 1793689256.454,
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793689256.454,
+                "44.00293352890193"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "proposed_healthy",
+      "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\"}[2m])) > 0",
+      "evaluation_time": 1793689256.454,
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {},
+              "value": [
+                1793689256.454,
+                "0"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "client_flagd_error_increase",
+      "query": "sum by(span_name)(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_CLIENT\",status_code=\"STATUS_CODE_ERROR\"}[2m]))",
+      "evaluation_time": 1793689256.454,
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": [
+            {
+              "metric": {
+                "span_name": "flagd.evaluation.v2.Service/EventStream"
+              },
+              "value": [
+                1793689256.454,
+                "2.000133342222815"
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "original_healthy",
+      "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"ad\"}[2m])) > 0",
+      "evaluation_time": 1793689256.454,
+      "response": {
+        "status": "success",
+        "data": {
+          "resultType": "vector",
+          "result": []
+        }
+      }
+    }
+  ],
+  "flags_before_injection": "phase-09-paid-flags-before-injection.json",
+  "faults_injected": 0,
+  "paid_generation_requests": 0
+}

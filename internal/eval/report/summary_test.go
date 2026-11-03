@@ -4,6 +4,7 @@
 // TestMarkdownUnknown 明确展示未知用量和无效时间，不让失败看起来像正常提交。
 // TestMissingDuration 检查没有单调时钟测量的老记录不会被补算成有效耗时。
 // TestReliabilityRows 检查补跑不会隐藏原失败及其未知费用。
+// TestCollectionQuality 验证阶段 9 的审计缺项和实际丢弃都不能冒充正常采集。
 // 阅读建议：组件别名和大小写变化都不自动纠正，避免把宽松匹配冒充精确比较。
 
 package report
@@ -59,6 +60,54 @@ func TestMissingDuration(t *testing.T) {
 	got := Summarize(store.Detail{StartedAt: &start, FinishedAt: &end}, "unknown")
 	if got.DurationKnown || got.Seconds != 0 {
 		t.Fatal("把旧时间戳冒充单调时钟测量")
+	}
+}
+
+// collectorAuditFixture 提供完整但不访问外部进程的窗口证据，每个用例取得独立副本。
+func collectorAuditFixture() *CollectorAudit {
+	start := time.Date(2026, 11, 3, 8, 0, 0, 0, time.UTC)
+	return &CollectorAudit{WindowStart: start, WindowEnd: start.Add(time.Minute), Status: "ok", ContainerID: strings.Repeat("b", 64), RawPath: "slot-collector.log", SHA256: strings.Repeat("a", 64), RawBytes: 128, SignalDroppedItems: map[string]int64{}, SignalDroppingDataEvents: map[string]int64{}}
+}
+
+// TestCollectionQuality 只确认已持久化证据的资格，不重新查询容器或替审计补数据。
+func TestCollectionQuality(t *testing.T) {
+	// 审计成功和数据未受影响是两件事，分别改变其中一项才能看清门槛。
+	for _, test := range []struct {
+		name   string
+		change func(*Summary)
+		want   string
+	}{
+		{"完整正常", func(*Summary) {}, QualityNormal},
+		{"缺少审计", func(value *Summary) { value.CollectorAudit = nil }, QualityUnknown},
+		{"没有正常声明", func(value *Summary) { value.DataQuality = "" }, QualityUnknown},
+		{"审计失败", func(value *Summary) { value.CollectorAudit.Status = "failed" }, QualityUnknown},
+		{"失败原因未清空", func(value *Summary) { value.CollectorAudit.Error = "日志读取中断" }, QualityUnknown},
+		{"窗口倒序", func(value *Summary) {
+			value.CollectorAudit.WindowEnd = value.CollectorAudit.WindowStart.Add(-time.Second)
+		}, QualityUnknown},
+		{"原始文件摘要缺失", func(value *Summary) { value.CollectorAudit.SHA256 = "" }, QualityUnknown},
+		{"容器身份缺失", func(value *Summary) { value.CollectorAudit.ContainerID = "" }, QualityUnknown},
+		{"负计数", func(value *Summary) { value.CollectorAudit.SignalDroppedItems["logs"] = -1 }, QualityUnknown},
+		{"空输出", func(value *Summary) { value.CollectorAudit.RawBytes = 0 }, QualityUnknown},
+		{"空输出但已确认丢弃", func(value *Summary) { value.CollectorAudit.RawBytes = 0; value.CollectorAudit.DroppingDataEvents = 1 }, QualityAffected},
+		{"最终丢弃事件", func(value *Summary) { value.CollectorAudit.DroppingDataEvents = 1 }, QualityAffected},
+		{"日志丢弃项", func(value *Summary) { value.CollectorAudit.LogDroppedItems = 10 }, QualityAffected},
+		{"映射错误行", func(value *Summary) { value.CollectorAudit.MapperErrorLines = 1 }, QualityAffected},
+		{"映射错误次数", func(value *Summary) { value.CollectorAudit.MapperErrorOccurrences = 2 }, QualityAffected},
+		{"调用链丢弃", func(value *Summary) { value.CollectorAudit.SignalDroppedItems["traces"] = 3 }, QualityAffected},
+		{"指标丢弃事件", func(value *Summary) { value.CollectorAudit.SignalDroppingDataEvents["metrics"] = 1 }, QualityAffected},
+		{"审计失败但已确认丢弃", func(value *Summary) {
+			value.CollectorAudit.Status = "failed"
+			value.CollectorAudit.DroppingDataEvents = 1
+		}, QualityAffected},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			value := Summary{DataQuality: QualityNormal, CollectorAudit: collectorAuditFixture()}
+			test.change(&value)
+			if got := CollectionQuality(value); got != test.want {
+				t.Fatalf("quality=%s want=%s", got, test.want)
+			}
+		})
 	}
 }
 
