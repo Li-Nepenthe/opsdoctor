@@ -1,0 +1,2 @@
+eval arguments: finish --run phase09-pilot2-20261103-terra --model mock-script-v1
+评测模式已退出，自动告警诊断恢复；真实验收结束后还需将本机和运行中的医生切回 Mock。

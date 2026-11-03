@@ -1,0 +1,805 @@
+{
+  "kind": "phase09-formal-file-observations",
+  "run_id": "phase09-formal-20261103T181204Z-terra",
+  "observed_at_utc": "2026-11-03T18:57:38.910899+00:00",
+  "scope": "Only original TEMP baseline/timing/Collector summary files. Not database, grading, budget or paid-entry approval.",
+  "counts": {
+    "original_files": 31,
+    "baseline_records": 11,
+    "baseline_status_passed": 11,
+    "symptom_records": 5,
+    "recovery_records": 5,
+    "collector_summary_records": 10,
+    "collector_summary_normal": 10,
+    "collector_summary_terra_only": 10
+  },
+  "database_queried": false,
+  "budget_queried": false,
+  "grades_evaluated": false,
+  "entry_gate_evaluated": false,
+  "records": [
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-freeze-20261103T181339.783272700Z.json",
+      "sha256": "7408d22a75a44c259a0661f949aab82784f3a2d3fc5bc203ef14bb4b0ad47812",
+      "bytes": 731,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "",
+        "iteration": 0,
+        "kind": "baseline",
+        "phase": "freeze",
+        "start_utc": "2026-11-03T18:13:39.7832727Z",
+        "finished_utc": "2026-11-03T18:13:42.3396562Z",
+        "passed_utc": "2026-11-03T18:13:42.3396562Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.5564489,
+        "elapsed_ns": 2556448900,
+        "health_start_utc": "2026-11-03T18:13:42.3306287Z",
+        "health_finished_utc": "2026-11-03T18:13:42.3364714Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0058428,
+        "health_elapsed_ns": 5842800,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T182333.344734700Z.json",
+      "sha256": "acd84fc5cab106f017b49699731236eddfce6c174232839c949859938bc940e2",
+      "bytes": 738,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT01",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "start_utc": "2026-11-03T18:23:33.3447347Z",
+        "finished_utc": "2026-11-03T18:23:35.3252376Z",
+        "passed_utc": "2026-11-03T18:23:35.3252376Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 1.9805536,
+        "elapsed_ns": 1980553600,
+        "health_start_utc": "2026-11-03T18:23:35.3167212Z",
+        "health_finished_utc": "2026-11-03T18:23:35.3220298Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0053087,
+        "health_elapsed_ns": 5308700,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T183228.787352300Z.json",
+      "sha256": "72b81c94c35bac572f717a4641995228167b9fcc9e195587ad292b3ea9f7d765",
+      "bytes": 739,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT02",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "start_utc": "2026-11-03T18:32:28.7873523Z",
+        "finished_utc": "2026-11-03T18:32:30.4317869Z",
+        "passed_utc": "2026-11-03T18:32:30.4317869Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 1.6444767,
+        "elapsed_ns": 1644476700,
+        "health_start_utc": "2026-11-03T18:32:30.4171641Z",
+        "health_finished_utc": "2026-11-03T18:32:30.4291466Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0119828,
+        "health_elapsed_ns": 11982800,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T183932.663666300Z.json",
+      "sha256": "d09d0fe4822fc50300e0f3d3ec77871964660dd10dc3965f47e23090057c8bbe",
+      "bytes": 746,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT03",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "start_utc": "2026-11-03T18:39:32.6636663Z",
+        "finished_utc": "2026-11-03T18:40:25.1202314Z",
+        "passed_utc": "2026-11-03T18:40:25.1202314Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 52.457908,
+        "elapsed_ns": 52457908000,
+        "health_start_utc": "2026-11-03T18:39:35.0540998Z",
+        "health_finished_utc": "2026-11-03T18:40:25.1170008Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 50.0641826,
+        "health_elapsed_ns": 50064182600,
+        "polls": 11,
+        "queries": 55
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T184735.552364100Z.json",
+      "sha256": "059a6a3124f39455f1d75fcfc1ebb10a99202aa082108ab430d9f2080e90305e",
+      "bytes": 738,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT04",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "start_utc": "2026-11-03T18:47:35.5523641Z",
+        "finished_utc": "2026-11-03T18:47:38.0521175Z",
+        "passed_utc": "2026-11-03T18:47:38.0521175Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.4998174,
+        "elapsed_ns": 2499817400,
+        "health_start_utc": "2026-11-03T18:47:38.0430217Z",
+        "health_finished_utc": "2026-11-03T18:47:38.0489261Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0059046,
+        "health_elapsed_ns": 5904600,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T185443.386043800Z.json",
+      "sha256": "107c23206ac255dff0d7d1769a68c718ec705e25786d48cff346924a6c39d300",
+      "bytes": 738,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT05",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "start_utc": "2026-11-03T18:54:43.3860438Z",
+        "finished_utc": "2026-11-03T18:54:45.8014544Z",
+        "passed_utc": "2026-11-03T18:54:45.8014544Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.4154029,
+        "elapsed_ns": 2415402900,
+        "health_start_utc": "2026-11-03T18:54:45.7929791Z",
+        "health_finished_utc": "2026-11-03T18:54:45.7982858Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0053067,
+        "health_elapsed_ns": 5306700,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T181609.419953100Z.json",
+      "sha256": "846025c0ab2491c6241107719812b6abe12b400800e0793ab9971a8cbcb5dae1",
+      "bytes": 746,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT01",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "start_utc": "2026-11-03T18:16:09.4199531Z",
+        "finished_utc": "2026-11-03T18:16:21.9464236Z",
+        "passed_utc": "2026-11-03T18:16:21.9464236Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 12.5267911,
+        "elapsed_ns": 12526791100,
+        "health_start_utc": "2026-11-03T18:16:11.9285697Z",
+        "health_finished_utc": "2026-11-03T18:16:21.9442853Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 10.015972,
+        "health_elapsed_ns": 10015972000,
+        "polls": 3,
+        "queries": 15
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T182335.382548000Z.json",
+      "sha256": "05eed23efa4e920df0cf7ceec5b53313868c8387013a3e2d87b0b91fcd8cdfc9",
+      "bytes": 738,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT02",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "start_utc": "2026-11-03T18:23:35.382548Z",
+        "finished_utc": "2026-11-03T18:23:37.4382037Z",
+        "passed_utc": "2026-11-03T18:23:37.4382037Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.0557083,
+        "elapsed_ns": 2055708300,
+        "health_start_utc": "2026-11-03T18:23:37.4308074Z",
+        "health_finished_utc": "2026-11-03T18:23:37.4355695Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0047623,
+        "health_elapsed_ns": 4762300,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T183230.477825500Z.json",
+      "sha256": "1cfcf7056f2498e53f592335562db09725641a0c9abf20ff0a60911b8eb214d8",
+      "bytes": 739,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT03",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "start_utc": "2026-11-03T18:32:30.4778255Z",
+        "finished_utc": "2026-11-03T18:32:32.5338153Z",
+        "passed_utc": "2026-11-03T18:32:32.5338153Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.0560425,
+        "elapsed_ns": 2056042500,
+        "health_start_utc": "2026-11-03T18:32:32.5268164Z",
+        "health_finished_utc": "2026-11-03T18:32:32.5308151Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0039988,
+        "health_elapsed_ns": 3998800,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T184025.173271900Z.json",
+      "sha256": "f7288366492bf8507a30a50211b916810d48b605ed96a886b608efe23f1f1e5c",
+      "bytes": 738,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT04",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "start_utc": "2026-11-03T18:40:25.1732719Z",
+        "finished_utc": "2026-11-03T18:40:27.7273135Z",
+        "passed_utc": "2026-11-03T18:40:27.7273135Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.554107,
+        "elapsed_ns": 2554107000,
+        "health_start_utc": "2026-11-03T18:40:27.7203132Z",
+        "health_finished_utc": "2026-11-03T18:40:27.7253116Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0049986,
+        "health_elapsed_ns": 4998600,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T184738.102522700Z.json",
+      "sha256": "95d0f3c95035e1cfd68a88b8872c33b1ad46e34073e387f49d358ea92e525e5c",
+      "bytes": 736,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT05",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "start_utc": "2026-11-03T18:47:38.1025227Z",
+        "finished_utc": "2026-11-03T18:47:40.1679434Z",
+        "passed_utc": "2026-11-03T18:47:40.1679434Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.0654736,
+        "elapsed_ns": 2065473600,
+        "health_start_utc": "2026-11-03T18:47:40.1592871Z",
+        "health_finished_utc": "2026-11-03T18:47:40.16526Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.005973,
+        "health_elapsed_ns": 5973000,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT01-1.symptom-observed.json",
+      "sha256": "61c565ba051d1a912930ecaa4c2c4ec162715e2b9cf4d8f63e7a86647dcae10b",
+      "bytes": 323,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT01",
+        "iteration": 1,
+        "kind": "symptom",
+        "start_utc": "2026-11-03T18:16:21.9655753Z",
+        "passed_utc": "2026-11-03T18:17:22.0904713Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 60.1264352,
+        "elapsed_ns": 60126435200,
+        "polls": 13
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT02-1.symptom-observed.json",
+      "sha256": "3fb97c82c6927e13a196918d953eef653ccb1b0fe68b6cc1f470a4fc34359b64",
+      "bytes": 325,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT02",
+        "iteration": 1,
+        "kind": "symptom",
+        "start_utc": "2026-11-03T18:23:37.4445766Z",
+        "passed_utc": "2026-11-03T18:26:22.6000284Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 165.1596798,
+        "elapsed_ns": 165159679800,
+        "polls": 34
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT03-1.symptom-observed.json",
+      "sha256": "8797981bf7a7578dbaba43c319e0cd37050736df2a59a0cc06470b72bc7312db",
+      "bytes": 322,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT03",
+        "iteration": 1,
+        "kind": "symptom",
+        "start_utc": "2026-11-03T18:32:32.5398155Z",
+        "passed_utc": "2026-11-03T18:33:22.6655603Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 50.127028,
+        "elapsed_ns": 50127028000,
+        "polls": 11
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT04-1.symptom-observed.json",
+      "sha256": "6d225e828eae3b2b1340886931ad495e7f1039d91dc50946153e3426b3920a44",
+      "bytes": 323,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT04",
+        "iteration": 1,
+        "kind": "symptom",
+        "start_utc": "2026-11-03T18:40:27.7333125Z",
+        "passed_utc": "2026-11-03T18:41:22.8454198Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 55.1135181,
+        "elapsed_ns": 55113518100,
+        "polls": 12
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT05-1.symptom-observed.json",
+      "sha256": "4bfc2f0dda2a01817f4acdf2ae465059768a8786769df9068d906a57a321aecd",
+      "bytes": 323,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT05",
+        "iteration": 1,
+        "kind": "symptom",
+        "start_utc": "2026-11-03T18:47:40.1866945Z",
+        "passed_utc": "2026-11-03T18:48:25.3074676Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 45.1219282,
+        "elapsed_ns": 45121928200,
+        "polls": 10
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT01-1.recovery-observed.json",
+      "sha256": "12ab82b5cb63bb1f3ea0914e0333c53ff213f977663e2da27f85839fe2cb1aa7",
+      "bytes": 324,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT01",
+        "iteration": 1,
+        "kind": "recovery",
+        "start_utc": "2026-11-03T18:18:28.2057892Z",
+        "passed_utc": "2026-11-03T18:19:23.2664855Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 55.0621058,
+        "elapsed_ns": 55062105800,
+        "polls": 12
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT02-1.recovery-observed.json",
+      "sha256": "574eed98646a13e6055e48793436c0ca6a522e3c323c11fea07e4bde42e9dac5",
+      "bytes": 319,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT02",
+        "iteration": 1,
+        "kind": "recovery",
+        "start_utc": "2026-11-03T18:27:28.6620918Z",
+        "passed_utc": "2026-11-03T18:27:28.7032131Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 0.0411223,
+        "elapsed_ns": 41122300,
+        "polls": 1
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT03-1.recovery-observed.json",
+      "sha256": "800df9c50b5c908adbbc0138b06d4a887e5028c9368a057b845ee6f858bb92cb",
+      "bytes": 326,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT03",
+        "iteration": 1,
+        "kind": "recovery",
+        "start_utc": "2026-11-03T18:34:27.5121812Z",
+        "passed_utc": "2026-11-03T18:36:22.5895593Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 115.0803241,
+        "elapsed_ns": 115080324100,
+        "polls": 24
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT04-1.recovery-observed.json",
+      "sha256": "63c191f6f87c92a186525fbf476fddc84397cc25121801b4a14bc541553fdd50",
+      "bytes": 324,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT04",
+        "iteration": 1,
+        "kind": "recovery",
+        "start_utc": "2026-11-03T18:42:35.4142987Z",
+        "passed_utc": "2026-11-03T18:43:25.4745631Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 50.0615459,
+        "elapsed_ns": 50061545900,
+        "polls": 11
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT05-1.recovery-observed.json",
+      "sha256": "615d2750040664d1162701de2340df7ab7a82908636d106a7bf46d0a3516db16",
+      "bytes": 326,
+      "data": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT05",
+        "iteration": 1,
+        "kind": "recovery",
+        "start_utc": "2026-11-03T18:49:43.2379778Z",
+        "passed_utc": "2026-11-03T18:51:23.3158732Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 100.0781998,
+        "elapsed_ns": 100078199800,
+        "polls": 21
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c.summary.json",
+      "sha256": "32b442bd515f585969d781576ebc8f3cfe94f7381fe1fbc6897e786a08c28763",
+      "bytes": 2985,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "9dbc6e9788f9cf1c6397e8af5613a882",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "gpt-6.1-terra",
+        "actual_models": [
+          "gpt-6.1-terra"
+        ],
+        "mixed_model": false,
+        "reliability_failure": false
+      },
+      "scenario": "OT01",
+      "group": "E1",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T18:18:00.5129946Z",
+        "window_end": "2026-11-03T18:18:25.078964Z",
+        "raw_bytes": 23718,
+        "sha256": "1b1b70856392ce82e8fb18cb6d3499996a192f5f17eefffcfedb51440047264a",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585.summary.json",
+      "sha256": "fc4fdbed4bf6614775455eff7b9fb812d93f2646c40c15590af1736bd58ac9ed",
+      "bytes": 3133,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "e745dc8ca20a97b1bf81403e6f1f3fe0",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "gpt-6.1-terra",
+        "actual_models": [
+          "gpt-6.1-terra"
+        ],
+        "mixed_model": false,
+        "reliability_failure": false
+      },
+      "scenario": "OT01",
+      "group": "E2",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T18:17:23.0285681Z",
+        "window_end": "2026-11-03T18:17:55.0052439Z",
+        "raw_bytes": 29798,
+        "sha256": "7b6789cfd288b9580f7a594243b802dc1982517518a30660335551202b0d4ba5",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba.summary.json",
+      "sha256": "fe2ff755d668707e58c43718d7c966d2d19a65b68d0ba8b5219b6449755f29cf",
+      "bytes": 3456,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "3b9c0971d5e695d6444021d3e495a88b",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "gpt-6.1-terra",
+        "actual_models": [
+          "gpt-6.1-terra"
+        ],
+        "mixed_model": false,
+        "reliability_failure": false
+      },
+      "scenario": "OT02",
+      "group": "E1",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T18:26:23.4243635Z",
+        "window_end": "2026-11-03T18:26:53.4089314Z",
+        "raw_bytes": 28749,
+        "sha256": "ba796a65ec835c868c03145e190355436479372d952a2d9b561fe2eeadc66cbc",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6.summary.json",
+      "sha256": "190ba3eacc7d624a7abe11097846101397558488abc32e463873c7af5c234cea",
+      "bytes": 3663,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "ca405f01876da54a5152c7967b9f6759",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "gpt-6.1-terra",
+        "actual_models": [
+          "gpt-6.1-terra"
+        ],
+        "mixed_model": false,
+        "reliability_failure": false
+      },
+      "scenario": "OT02",
+      "group": "E2",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T18:27:00.3003629Z",
+        "window_end": "2026-11-03T18:27:24.9708285Z",
+        "raw_bytes": 23693,
+        "sha256": "bcc6f163c5d93c2ab69a1e165692ccb9ba22ae98212330a88fbaf05566c101dd",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072.summary.json",
+      "sha256": "2b2608f24ce8c120ec928c3222bcc36ba27786e99473f6f71f95f67cd5d6ecf7",
+      "bytes": 3164,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "6279680a106f2d29cbd4082ba9f7d087",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "gpt-6.1-terra",
+        "actual_models": [
+          "gpt-6.1-terra"
+        ],
+        "mixed_model": false,
+        "reliability_failure": false
+      },
+      "scenario": "OT03",
+      "group": "E1",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T18:33:23.7962772Z",
+        "window_end": "2026-11-03T18:33:49.7959877Z",
+        "raw_bytes": 24693,
+        "sha256": "a9b27deafa23a6ad946477ae268c0e0d16138ce49fcb278a5293c6994933d4fc",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e.summary.json",
+      "sha256": "a723fb47ca4ff122eaf86d1cd20b85a7eac09a12fb37aedff848b17dd26f1778",
+      "bytes": 3107,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "1bb2675225d40194054a1f2157b51703",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "gpt-6.1-terra",
+        "actual_models": [
+          "gpt-6.1-terra"
+        ],
+        "mixed_model": false,
+        "reliability_failure": false
+      },
+      "scenario": "OT03",
+      "group": "E2",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T18:33:53.7346808Z",
+        "window_end": "2026-11-03T18:34:23.7743147Z",
+        "raw_bytes": 29086,
+        "sha256": "65d73b89c23815d52edd5bb62dbbce998fe9186e02e607e5c3df0e97c2f4dbb9",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0.summary.json",
+      "sha256": "be9c804be09632e550649387fae9f37d27ff1f2a3d51cbf0390fe59d16d73baf",
+      "bytes": 3113,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "269a13612df8cf855e24c808fdab310d",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "gpt-6.1-terra",
+        "actual_models": [
+          "gpt-6.1-terra"
+        ],
+        "mixed_model": false,
+        "reliability_failure": false
+      },
+      "scenario": "OT04",
+      "group": "E1",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T18:41:59.9520725Z",
+        "window_end": "2026-11-03T18:42:31.95575Z",
+        "raw_bytes": 31603,
+        "sha256": "e6b3bffe15b0dde79b9f976a219761a8a498aef50ad95383feeaec1561e21aac",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3.summary.json",
+      "sha256": "e4446edbb0b0ccf10c24aad51fc4a841f98960fabe3814c4dfffc9849679d38c",
+      "bytes": 3232,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "97ad5ea29fece02873a502c109098af3",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "gpt-6.1-terra",
+        "actual_models": [
+          "gpt-6.1-terra"
+        ],
+        "mixed_model": false,
+        "reliability_failure": false
+      },
+      "scenario": "OT04",
+      "group": "E2",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T18:41:24.1567898Z",
+        "window_end": "2026-11-03T18:41:56.1335855Z",
+        "raw_bytes": 27638,
+        "sha256": "8b9453a334e8123aa7ce0f939d1618e4798f7f900ec8ec983322b57cfad0175d",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2.summary.json",
+      "sha256": "0420bba26c71013cfe0e2a12437d63c6811b19cdc25781d884a2fc1f97553d4f",
+      "bytes": 3708,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "002ab198684ccbe0853140444fd67424",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "gpt-6.1-terra",
+        "actual_models": [
+          "gpt-6.1-terra"
+        ],
+        "mixed_model": false,
+        "reliability_failure": false
+      },
+      "scenario": "OT05",
+      "group": "E1",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T18:49:07.0851308Z",
+        "window_end": "2026-11-03T18:49:39.7412019Z",
+        "raw_bytes": 33614,
+        "sha256": "b252a483667d6becb755e7cd2e94ae0d4a3ce85d928de8907682b9a896229286",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8.summary.json",
+      "sha256": "dfdbc790ad53bb251a1e7df2f5cd3399b94a78b005527436f3ee66e401d98033",
+      "bytes": 3955,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "099f7b599c5c1ab93448df25d7ff01ce",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "gpt-6.1-terra",
+        "actual_models": [
+          "gpt-6.1-terra"
+        ],
+        "mixed_model": false,
+        "reliability_failure": false
+      },
+      "scenario": "OT05",
+      "group": "E2",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T18:48:26.9253513Z",
+        "window_end": "2026-11-03T18:49:01.5029824Z",
+        "raw_bytes": 33904,
+        "sha256": "6a0ccef26de877e8a20690cfc49d9878dbdd3ea0647ba16abc4ff0d144e6a1de",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    }
+  ],
+  "limits": [
+    "The root reported session87525 exited0, automatic finish succeeded and runtime returned to Mock/comparisonfalse; the file watcher did not inspect these runtime/database states.",
+    "All31 original paths/SHA256/byte lengths were preserved and hashes recomputed. No missing evidence was manufactured.",
+    "Whole baseline time and health-wait time remain separate; first-recovery timing excludes subsequent cooldown.",
+    "Collector raw-log SHA values are copied from summary metadata. This watcher did not independently verify raw log bytes.",
+    "This file observer made no API, SQL, Docker, model, process-control, source-change, staging or commit action."
+  ]
+}

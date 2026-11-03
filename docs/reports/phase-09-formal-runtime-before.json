@@ -1,0 +1,45 @@
+{
+  "checked_at_utc": "2026-11-03T18:12:03.947540+00:00",
+  "runtime": {
+    "budget": {
+      "currency": "USD",
+      "spent_micros": 27179,
+      "limit_micros": 10000000,
+      "blocked": false,
+      "reason": ""
+    },
+    "executions": {
+      "comparison": {
+        "model": "deepseek-flash",
+        "provider": "openai",
+        "account": "phase-09-deepseek",
+        "budget": {
+          "currency": "CNY",
+          "spent_micros": 14920,
+          "limit_micros": 10000000,
+          "blocked": false,
+          "reason": ""
+        }
+      },
+      "primary": {
+        "model": "gpt-6.1-terra",
+        "provider": "openai",
+        "account": "phase-09-openai",
+        "budget": {
+          "currency": "USD",
+          "spent_micros": 27179,
+          "limit_micros": 10000000,
+          "blocked": false,
+          "reason": ""
+        }
+      }
+    },
+    "model": "gpt-6.1-terra",
+    "provider": "openai"
+  },
+  "database_tsv": "generation_attempts\n6\naccount\tcurrency\tspent_micros\nphase-09-deepseek\tCNY\t14920\nphase-09-openai\tUSD\t27179\nstatus\tdiagnoses\nfailed\t1\nsucceeded\t21\nid\ttarget\tstatus\ttokens_used\nphase09-dualmock-20261103T171411Z\totel-demo\tcompleted\t0\nphase09-pilot-20261103-terra\totel-demo\tinterrupted\t0\nphase09-pilot2-20261103-terra\totel-demo\tinterrupted\t66103\nrun_id\tslots\tgraded\nphase09-dualmock-20261103T171411Z\t10\t10\nphase09-pilot-20261103-terra\t1\t0\nphase09-pilot2-20261103-terra\t1\t1\n",
+  "target_files": [
+    "otel-demo.profile.md",
+    "otel-demo.yaml"
+  ]
+}

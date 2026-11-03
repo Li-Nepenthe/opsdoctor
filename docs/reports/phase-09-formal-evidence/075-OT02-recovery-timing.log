@@ -1,0 +1,12 @@
+{
+  "run_id": "phase09-formal-20261103T181204Z-terra",
+  "scenario": "OT02",
+  "iteration": 1,
+  "kind": "recovery",
+  "start_utc": "2026-11-03T18:27:28.6620918Z",
+  "passed_utc": "2026-11-03T18:27:28.7032131Z",
+  "monotonic_elapsed_known": true,
+  "elapsed_ns": 41122300,
+  "elapsed_seconds": 0.0411223,
+  "polls": 1
+}

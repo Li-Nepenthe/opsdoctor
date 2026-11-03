@@ -1,0 +1,691 @@
+{
+  "kind": "phase09_formal_original_monotonic_timing",
+  "run_id": "phase09-formal-20261103T181204Z-terra",
+  "source_snapshot": {
+    "repository_path": "docs/reports/phase-09-formal-snapshot.json",
+    "bytes": 375727,
+    "sha256": "667b913d6c33ca0a5f1aa1611660ba22cd8a376ca342bcae036fcea00b50a067",
+    "unchanged": true
+  },
+  "source_observations": {
+    "repository_path": "docs/reports/phase-09-formal-observations.json",
+    "bytes": 31599,
+    "sha256": "bd950a35a0e8f3512a08247352f266be5395d9c588eca6f39217aaa1fdf0215a",
+    "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-observations.json",
+    "kind": "original_file_observations"
+  },
+  "counts": {
+    "baseline": 11,
+    "freeze": 1,
+    "pre_inject": 5,
+    "post_cool": 5,
+    "symptom": 5,
+    "recovery": 5
+  },
+  "all_21_timing_records_validated": true,
+  "all_capped_monotonic_waits_within_300_seconds": true,
+  "baseline": [
+    {
+      "original_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-freeze-20261103T181339.783272700Z.json",
+      "archive": {
+        "repository_path": "docs/reports/phase-09-formal-evidence/057-baseline-freeze-20261103T181339.783272700Z.log",
+        "sha256": "7408d22a75a44c259a0661f949aab82784f3a2d3fc5bc203ef14bb4b0ad47812",
+        "bytes": 731
+      },
+      "original": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "",
+        "iteration": 0,
+        "kind": "baseline",
+        "phase": "freeze",
+        "scenarios": [
+          "OT01",
+          "OT02",
+          "OT03",
+          "OT04",
+          "OT05"
+        ],
+        "start_utc": "2026-11-03T18:13:39.7832727Z",
+        "finished_utc": "2026-11-03T18:13:42.3396562Z",
+        "passed_utc": "2026-11-03T18:13:42.3396562Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_ns": 2556448900,
+        "elapsed_seconds": 2.5564489,
+        "health_start_utc": "2026-11-03T18:13:42.3306287Z",
+        "health_finished_utc": "2026-11-03T18:13:42.3364714Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_ns": 5842800,
+        "health_elapsed_seconds": 0.0058428,
+        "polls": 1,
+        "queries": 5,
+        "status": "passed"
+      },
+      "whole_call_elapsed_ns": 2556448900,
+      "health_wait_elapsed_ns": 5842800
+    },
+    {
+      "original_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T182333.344734700Z.json",
+      "archive": {
+        "repository_path": "docs/reports/phase-09-formal-evidence/058-baseline-post-cool-20261103T182333.344734700Z.log",
+        "sha256": "acd84fc5cab106f017b49699731236eddfce6c174232839c949859938bc940e2",
+        "bytes": 738
+      },
+      "original": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT01",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "scenarios": [
+          "OT01",
+          "OT02",
+          "OT03",
+          "OT04",
+          "OT05"
+        ],
+        "start_utc": "2026-11-03T18:23:33.3447347Z",
+        "finished_utc": "2026-11-03T18:23:35.3252376Z",
+        "passed_utc": "2026-11-03T18:23:35.3252376Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_ns": 1980553600,
+        "elapsed_seconds": 1.9805536,
+        "health_start_utc": "2026-11-03T18:23:35.3167212Z",
+        "health_finished_utc": "2026-11-03T18:23:35.3220298Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_ns": 5308700,
+        "health_elapsed_seconds": 0.0053087,
+        "polls": 1,
+        "queries": 5,
+        "status": "passed"
+      },
+      "whole_call_elapsed_ns": 1980553600,
+      "health_wait_elapsed_ns": 5308700
+    },
+    {
+      "original_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T183228.787352300Z.json",
+      "archive": {
+        "repository_path": "docs/reports/phase-09-formal-evidence/059-baseline-post-cool-20261103T183228.787352300Z.log",
+        "sha256": "72b81c94c35bac572f717a4641995228167b9fcc9e195587ad292b3ea9f7d765",
+        "bytes": 739
+      },
+      "original": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT02",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "scenarios": [
+          "OT01",
+          "OT02",
+          "OT03",
+          "OT04",
+          "OT05"
+        ],
+        "start_utc": "2026-11-03T18:32:28.7873523Z",
+        "finished_utc": "2026-11-03T18:32:30.4317869Z",
+        "passed_utc": "2026-11-03T18:32:30.4317869Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_ns": 1644476700,
+        "elapsed_seconds": 1.6444767,
+        "health_start_utc": "2026-11-03T18:32:30.4171641Z",
+        "health_finished_utc": "2026-11-03T18:32:30.4291466Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_ns": 11982800,
+        "health_elapsed_seconds": 0.0119828,
+        "polls": 1,
+        "queries": 5,
+        "status": "passed"
+      },
+      "whole_call_elapsed_ns": 1644476700,
+      "health_wait_elapsed_ns": 11982800
+    },
+    {
+      "original_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T183932.663666300Z.json",
+      "archive": {
+        "repository_path": "docs/reports/phase-09-formal-evidence/060-baseline-post-cool-20261103T183932.663666300Z.log",
+        "sha256": "d09d0fe4822fc50300e0f3d3ec77871964660dd10dc3965f47e23090057c8bbe",
+        "bytes": 746
+      },
+      "original": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT03",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "scenarios": [
+          "OT01",
+          "OT02",
+          "OT03",
+          "OT04",
+          "OT05"
+        ],
+        "start_utc": "2026-11-03T18:39:32.6636663Z",
+        "finished_utc": "2026-11-03T18:40:25.1202314Z",
+        "passed_utc": "2026-11-03T18:40:25.1202314Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_ns": 52457908000,
+        "elapsed_seconds": 52.457908,
+        "health_start_utc": "2026-11-03T18:39:35.0540998Z",
+        "health_finished_utc": "2026-11-03T18:40:25.1170008Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_ns": 50064182600,
+        "health_elapsed_seconds": 50.0641826,
+        "polls": 11,
+        "queries": 55,
+        "status": "passed"
+      },
+      "whole_call_elapsed_ns": 52457908000,
+      "health_wait_elapsed_ns": 50064182600
+    },
+    {
+      "original_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T184735.552364100Z.json",
+      "archive": {
+        "repository_path": "docs/reports/phase-09-formal-evidence/061-baseline-post-cool-20261103T184735.552364100Z.log",
+        "sha256": "059a6a3124f39455f1d75fcfc1ebb10a99202aa082108ab430d9f2080e90305e",
+        "bytes": 738
+      },
+      "original": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT04",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "scenarios": [
+          "OT01",
+          "OT02",
+          "OT03",
+          "OT04",
+          "OT05"
+        ],
+        "start_utc": "2026-11-03T18:47:35.5523641Z",
+        "finished_utc": "2026-11-03T18:47:38.0521175Z",
+        "passed_utc": "2026-11-03T18:47:38.0521175Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_ns": 2499817400,
+        "elapsed_seconds": 2.4998174,
+        "health_start_utc": "2026-11-03T18:47:38.0430217Z",
+        "health_finished_utc": "2026-11-03T18:47:38.0489261Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_ns": 5904600,
+        "health_elapsed_seconds": 0.0059046,
+        "polls": 1,
+        "queries": 5,
+        "status": "passed"
+      },
+      "whole_call_elapsed_ns": 2499817400,
+      "health_wait_elapsed_ns": 5904600
+    },
+    {
+      "original_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T185443.386043800Z.json",
+      "archive": {
+        "repository_path": "docs/reports/phase-09-formal-evidence/062-baseline-post-cool-20261103T185443.386043800Z.log",
+        "sha256": "107c23206ac255dff0d7d1769a68c718ec705e25786d48cff346924a6c39d300",
+        "bytes": 738
+      },
+      "original": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT05",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "scenarios": [
+          "OT01",
+          "OT02",
+          "OT03",
+          "OT04",
+          "OT05"
+        ],
+        "start_utc": "2026-11-03T18:54:43.3860438Z",
+        "finished_utc": "2026-11-03T18:54:45.8014544Z",
+        "passed_utc": "2026-11-03T18:54:45.8014544Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_ns": 2415402900,
+        "elapsed_seconds": 2.4154029,
+        "health_start_utc": "2026-11-03T18:54:45.7929791Z",
+        "health_finished_utc": "2026-11-03T18:54:45.7982858Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_ns": 5306700,
+        "health_elapsed_seconds": 0.0053067,
+        "polls": 1,
+        "queries": 5,
+        "status": "passed"
+      },
+      "whole_call_elapsed_ns": 2415402900,
+      "health_wait_elapsed_ns": 5306700
+    },
+    {
+      "original_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T181609.419953100Z.json",
+      "archive": {
+        "repository_path": "docs/reports/phase-09-formal-evidence/063-baseline-pre-inject-20261103T181609.419953100Z.log",
+        "sha256": "846025c0ab2491c6241107719812b6abe12b400800e0793ab9971a8cbcb5dae1",
+        "bytes": 746
+      },
+      "original": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT01",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "scenarios": [
+          "OT01",
+          "OT02",
+          "OT03",
+          "OT04",
+          "OT05"
+        ],
+        "start_utc": "2026-11-03T18:16:09.4199531Z",
+        "finished_utc": "2026-11-03T18:16:21.9464236Z",
+        "passed_utc": "2026-11-03T18:16:21.9464236Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_ns": 12526791100,
+        "elapsed_seconds": 12.5267911,
+        "health_start_utc": "2026-11-03T18:16:11.9285697Z",
+        "health_finished_utc": "2026-11-03T18:16:21.9442853Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_ns": 10015972000,
+        "health_elapsed_seconds": 10.015972,
+        "polls": 3,
+        "queries": 15,
+        "status": "passed"
+      },
+      "whole_call_elapsed_ns": 12526791100,
+      "health_wait_elapsed_ns": 10015972000
+    },
+    {
+      "original_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T182335.382548000Z.json",
+      "archive": {
+        "repository_path": "docs/reports/phase-09-formal-evidence/064-baseline-pre-inject-20261103T182335.382548000Z.log",
+        "sha256": "05eed23efa4e920df0cf7ceec5b53313868c8387013a3e2d87b0b91fcd8cdfc9",
+        "bytes": 738
+      },
+      "original": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT02",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "scenarios": [
+          "OT01",
+          "OT02",
+          "OT03",
+          "OT04",
+          "OT05"
+        ],
+        "start_utc": "2026-11-03T18:23:35.382548Z",
+        "finished_utc": "2026-11-03T18:23:37.4382037Z",
+        "passed_utc": "2026-11-03T18:23:37.4382037Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_ns": 2055708300,
+        "elapsed_seconds": 2.0557083,
+        "health_start_utc": "2026-11-03T18:23:37.4308074Z",
+        "health_finished_utc": "2026-11-03T18:23:37.4355695Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_ns": 4762300,
+        "health_elapsed_seconds": 0.0047623,
+        "polls": 1,
+        "queries": 5,
+        "status": "passed"
+      },
+      "whole_call_elapsed_ns": 2055708300,
+      "health_wait_elapsed_ns": 4762300
+    },
+    {
+      "original_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T183230.477825500Z.json",
+      "archive": {
+        "repository_path": "docs/reports/phase-09-formal-evidence/065-baseline-pre-inject-20261103T183230.477825500Z.log",
+        "sha256": "1cfcf7056f2498e53f592335562db09725641a0c9abf20ff0a60911b8eb214d8",
+        "bytes": 739
+      },
+      "original": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT03",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "scenarios": [
+          "OT01",
+          "OT02",
+          "OT03",
+          "OT04",
+          "OT05"
+        ],
+        "start_utc": "2026-11-03T18:32:30.4778255Z",
+        "finished_utc": "2026-11-03T18:32:32.5338153Z",
+        "passed_utc": "2026-11-03T18:32:32.5338153Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_ns": 2056042500,
+        "elapsed_seconds": 2.0560425,
+        "health_start_utc": "2026-11-03T18:32:32.5268164Z",
+        "health_finished_utc": "2026-11-03T18:32:32.5308151Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_ns": 3998800,
+        "health_elapsed_seconds": 0.0039988,
+        "polls": 1,
+        "queries": 5,
+        "status": "passed"
+      },
+      "whole_call_elapsed_ns": 2056042500,
+      "health_wait_elapsed_ns": 3998800
+    },
+    {
+      "original_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T184025.173271900Z.json",
+      "archive": {
+        "repository_path": "docs/reports/phase-09-formal-evidence/066-baseline-pre-inject-20261103T184025.173271900Z.log",
+        "sha256": "f7288366492bf8507a30a50211b916810d48b605ed96a886b608efe23f1f1e5c",
+        "bytes": 738
+      },
+      "original": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT04",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "scenarios": [
+          "OT01",
+          "OT02",
+          "OT03",
+          "OT04",
+          "OT05"
+        ],
+        "start_utc": "2026-11-03T18:40:25.1732719Z",
+        "finished_utc": "2026-11-03T18:40:27.7273135Z",
+        "passed_utc": "2026-11-03T18:40:27.7273135Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_ns": 2554107000,
+        "elapsed_seconds": 2.554107,
+        "health_start_utc": "2026-11-03T18:40:27.7203132Z",
+        "health_finished_utc": "2026-11-03T18:40:27.7253116Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_ns": 4998600,
+        "health_elapsed_seconds": 0.0049986,
+        "polls": 1,
+        "queries": 5,
+        "status": "passed"
+      },
+      "whole_call_elapsed_ns": 2554107000,
+      "health_wait_elapsed_ns": 4998600
+    },
+    {
+      "original_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T184738.102522700Z.json",
+      "archive": {
+        "repository_path": "docs/reports/phase-09-formal-evidence/067-baseline-pre-inject-20261103T184738.102522700Z.log",
+        "sha256": "95d0f3c95035e1cfd68a88b8872c33b1ad46e34073e387f49d358ea92e525e5c",
+        "bytes": 736
+      },
+      "original": {
+        "run_id": "phase09-formal-20261103T181204Z-terra",
+        "scenario": "OT05",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "scenarios": [
+          "OT01",
+          "OT02",
+          "OT03",
+          "OT04",
+          "OT05"
+        ],
+        "start_utc": "2026-11-03T18:47:38.1025227Z",
+        "finished_utc": "2026-11-03T18:47:40.1679434Z",
+        "passed_utc": "2026-11-03T18:47:40.1679434Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_ns": 2065473600,
+        "elapsed_seconds": 2.0654736,
+        "health_start_utc": "2026-11-03T18:47:40.1592871Z",
+        "health_finished_utc": "2026-11-03T18:47:40.16526Z",
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_ns": 5973000,
+        "health_elapsed_seconds": 0.005973,
+        "polls": 1,
+        "queries": 5,
+        "status": "passed"
+      },
+      "whole_call_elapsed_ns": 2065473600,
+      "health_wait_elapsed_ns": 5973000
+    }
+  ],
+  "scenarios": [
+    {
+      "scenario": "OT01",
+      "iteration": 1,
+      "restoration_proof": {
+        "original_sha256": "8cffd4a599064beac11b1680a2f9a3dad3a3a9647f91931a84d4db99446b938d",
+        "confirmed_at": "2026-11-03T18:18:28.2063263Z"
+      },
+      "original_flags_and_restore_hash_verified": true,
+      "symptom": {
+        "archive": {
+          "repository_path": "docs/reports/phase-09-formal-evidence/070-OT01-symptom-timing.log",
+          "sha256": "61c565ba051d1a912930ecaa4c2c4ec162715e2b9cf4d8f63e7a86647dcae10b",
+          "bytes": 323
+        },
+        "original": {
+          "run_id": "phase09-formal-20261103T181204Z-terra",
+          "scenario": "OT01",
+          "iteration": 1,
+          "kind": "symptom",
+          "start_utc": "2026-11-03T18:16:21.9655753Z",
+          "passed_utc": "2026-11-03T18:17:22.0904713Z",
+          "monotonic_elapsed_known": true,
+          "elapsed_ns": 60126435200,
+          "elapsed_seconds": 60.1264352,
+          "polls": 13
+        }
+      },
+      "recovery": {
+        "archive": {
+          "repository_path": "docs/reports/phase-09-formal-evidence/071-OT01-recovery-timing.log",
+          "sha256": "12ab82b5cb63bb1f3ea0914e0333c53ff213f977663e2da27f85839fe2cb1aa7",
+          "bytes": 324
+        },
+        "original": {
+          "run_id": "phase09-formal-20261103T181204Z-terra",
+          "scenario": "OT01",
+          "iteration": 1,
+          "kind": "recovery",
+          "start_utc": "2026-11-03T18:18:28.2057892Z",
+          "passed_utc": "2026-11-03T18:19:23.2664855Z",
+          "monotonic_elapsed_known": true,
+          "elapsed_ns": 55062105800,
+          "elapsed_seconds": 55.0621058,
+          "polls": 12
+        }
+      }
+    },
+    {
+      "scenario": "OT02",
+      "iteration": 1,
+      "restoration_proof": {
+        "original_sha256": "8cffd4a599064beac11b1680a2f9a3dad3a3a9647f91931a84d4db99446b938d",
+        "confirmed_at": "2026-11-03T18:27:28.6625962Z"
+      },
+      "original_flags_and_restore_hash_verified": true,
+      "symptom": {
+        "archive": {
+          "repository_path": "docs/reports/phase-09-formal-evidence/074-OT02-symptom-timing.log",
+          "sha256": "3fb97c82c6927e13a196918d953eef653ccb1b0fe68b6cc1f470a4fc34359b64",
+          "bytes": 325
+        },
+        "original": {
+          "run_id": "phase09-formal-20261103T181204Z-terra",
+          "scenario": "OT02",
+          "iteration": 1,
+          "kind": "symptom",
+          "start_utc": "2026-11-03T18:23:37.4445766Z",
+          "passed_utc": "2026-11-03T18:26:22.6000284Z",
+          "monotonic_elapsed_known": true,
+          "elapsed_ns": 165159679800,
+          "elapsed_seconds": 165.1596798,
+          "polls": 34
+        }
+      },
+      "recovery": {
+        "archive": {
+          "repository_path": "docs/reports/phase-09-formal-evidence/075-OT02-recovery-timing.log",
+          "sha256": "574eed98646a13e6055e48793436c0ca6a522e3c323c11fea07e4bde42e9dac5",
+          "bytes": 319
+        },
+        "original": {
+          "run_id": "phase09-formal-20261103T181204Z-terra",
+          "scenario": "OT02",
+          "iteration": 1,
+          "kind": "recovery",
+          "start_utc": "2026-11-03T18:27:28.6620918Z",
+          "passed_utc": "2026-11-03T18:27:28.7032131Z",
+          "monotonic_elapsed_known": true,
+          "elapsed_ns": 41122300,
+          "elapsed_seconds": 0.0411223,
+          "polls": 1
+        }
+      }
+    },
+    {
+      "scenario": "OT03",
+      "iteration": 1,
+      "restoration_proof": {
+        "original_sha256": "8cffd4a599064beac11b1680a2f9a3dad3a3a9647f91931a84d4db99446b938d",
+        "confirmed_at": "2026-11-03T18:34:27.5121812Z"
+      },
+      "original_flags_and_restore_hash_verified": true,
+      "symptom": {
+        "archive": {
+          "repository_path": "docs/reports/phase-09-formal-evidence/078-OT03-symptom-timing.log",
+          "sha256": "8797981bf7a7578dbaba43c319e0cd37050736df2a59a0cc06470b72bc7312db",
+          "bytes": 322
+        },
+        "original": {
+          "run_id": "phase09-formal-20261103T181204Z-terra",
+          "scenario": "OT03",
+          "iteration": 1,
+          "kind": "symptom",
+          "start_utc": "2026-11-03T18:32:32.5398155Z",
+          "passed_utc": "2026-11-03T18:33:22.6655603Z",
+          "monotonic_elapsed_known": true,
+          "elapsed_ns": 50127028000,
+          "elapsed_seconds": 50.127028,
+          "polls": 11
+        }
+      },
+      "recovery": {
+        "archive": {
+          "repository_path": "docs/reports/phase-09-formal-evidence/079-OT03-recovery-timing.log",
+          "sha256": "800df9c50b5c908adbbc0138b06d4a887e5028c9368a057b845ee6f858bb92cb",
+          "bytes": 326
+        },
+        "original": {
+          "run_id": "phase09-formal-20261103T181204Z-terra",
+          "scenario": "OT03",
+          "iteration": 1,
+          "kind": "recovery",
+          "start_utc": "2026-11-03T18:34:27.5121812Z",
+          "passed_utc": "2026-11-03T18:36:22.5895593Z",
+          "monotonic_elapsed_known": true,
+          "elapsed_ns": 115080324100,
+          "elapsed_seconds": 115.0803241,
+          "polls": 24
+        }
+      }
+    },
+    {
+      "scenario": "OT04",
+      "iteration": 1,
+      "restoration_proof": {
+        "original_sha256": "8cffd4a599064beac11b1680a2f9a3dad3a3a9647f91931a84d4db99446b938d",
+        "confirmed_at": "2026-11-03T18:42:35.4142987Z"
+      },
+      "original_flags_and_restore_hash_verified": true,
+      "symptom": {
+        "archive": {
+          "repository_path": "docs/reports/phase-09-formal-evidence/082-OT04-symptom-timing.log",
+          "sha256": "6d225e828eae3b2b1340886931ad495e7f1039d91dc50946153e3426b3920a44",
+          "bytes": 323
+        },
+        "original": {
+          "run_id": "phase09-formal-20261103T181204Z-terra",
+          "scenario": "OT04",
+          "iteration": 1,
+          "kind": "symptom",
+          "start_utc": "2026-11-03T18:40:27.7333125Z",
+          "passed_utc": "2026-11-03T18:41:22.8454198Z",
+          "monotonic_elapsed_known": true,
+          "elapsed_ns": 55113518100,
+          "elapsed_seconds": 55.1135181,
+          "polls": 12
+        }
+      },
+      "recovery": {
+        "archive": {
+          "repository_path": "docs/reports/phase-09-formal-evidence/083-OT04-recovery-timing.log",
+          "sha256": "63c191f6f87c92a186525fbf476fddc84397cc25121801b4a14bc541553fdd50",
+          "bytes": 324
+        },
+        "original": {
+          "run_id": "phase09-formal-20261103T181204Z-terra",
+          "scenario": "OT04",
+          "iteration": 1,
+          "kind": "recovery",
+          "start_utc": "2026-11-03T18:42:35.4142987Z",
+          "passed_utc": "2026-11-03T18:43:25.4745631Z",
+          "monotonic_elapsed_known": true,
+          "elapsed_ns": 50061545900,
+          "elapsed_seconds": 50.0615459,
+          "polls": 11
+        }
+      }
+    },
+    {
+      "scenario": "OT05",
+      "iteration": 1,
+      "restoration_proof": {
+        "original_sha256": "8cffd4a599064beac11b1680a2f9a3dad3a3a9647f91931a84d4db99446b938d",
+        "confirmed_at": "2026-11-03T18:49:43.2385084Z"
+      },
+      "original_flags_and_restore_hash_verified": true,
+      "symptom": {
+        "archive": {
+          "repository_path": "docs/reports/phase-09-formal-evidence/086-OT05-symptom-timing.log",
+          "sha256": "4bfc2f0dda2a01817f4acdf2ae465059768a8786769df9068d906a57a321aecd",
+          "bytes": 323
+        },
+        "original": {
+          "run_id": "phase09-formal-20261103T181204Z-terra",
+          "scenario": "OT05",
+          "iteration": 1,
+          "kind": "symptom",
+          "start_utc": "2026-11-03T18:47:40.1866945Z",
+          "passed_utc": "2026-11-03T18:48:25.3074676Z",
+          "monotonic_elapsed_known": true,
+          "elapsed_ns": 45121928200,
+          "elapsed_seconds": 45.1219282,
+          "polls": 10
+        }
+      },
+      "recovery": {
+        "archive": {
+          "repository_path": "docs/reports/phase-09-formal-evidence/087-OT05-recovery-timing.log",
+          "sha256": "615d2750040664d1162701de2340df7ab7a82908636d106a7bf46d0a3516db16",
+          "bytes": 326
+        },
+        "original": {
+          "run_id": "phase09-formal-20261103T181204Z-terra",
+          "scenario": "OT05",
+          "iteration": 1,
+          "kind": "recovery",
+          "start_utc": "2026-11-03T18:49:43.2379778Z",
+          "passed_utc": "2026-11-03T18:51:23.3158732Z",
+          "monotonic_elapsed_known": true,
+          "elapsed_ns": 100078199800,
+          "elapsed_seconds": 100.0781998,
+          "polls": 21
+        }
+      }
+    }
+  ],
+  "measurement_boundary": {
+    "symptom": "original injection Started before UTC conversion to first true symptom query",
+    "recovery": "original flag write/readback confirmation monotonic anchor to first true healthy query; excludes later cooldown",
+    "baseline_health": "same-round all-five-case healthy polling only; whole-call time additionally includes memory/flags/fault checks",
+    "precision": "use original elapsed_ns and elapsed_seconds; UTC only identifies events; no DB or UTC differences used",
+    "warning": "OT02 recovery 0.0411223s is the first observed truth of a sampled rolling-window predicate, not proof of instant business recovery or 41ms end-to-end repair."
+  }
+}

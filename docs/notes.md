@@ -1792,3 +1792,25 @@ EventStream摸底、四服务原始span及已授权OT01两查询修订见P9-36/3
 Terra在pilot2主动提交1份ad/GetAds报告，原文承认具体机制仍未知；Collector诊断窗normal。DeepSeek一次HTTP成功，但内层submit_grade.arguments缺引号，冻结Check拒绝整份评分，run自动interrupted。没有重评、修JSON、替换标准或开正式批次，字面correct和失败默认coverage0都不当有效分。费用、原文与精确定位见P9-51–54及失败专项。
 
 按用户约定紧急restore后切Mock。原flags及证明SHA匹配；本轮中断后直到13:10 UTC才完成首次实际healthy观察，不能倒写成3分钟内恢复或正常trial.done/冷却完成。只stop Demo，原资源和旧run保留；新库账户累计USD$0.027179、CNY¥0.014920，不重置。美元按项目用量账本计，Key与其他用途共用，平台账单不能单独核对。正式矩阵费用估算虽低于剩余额度/余额，评委门槛仍失败，所以暂停（P9-54、P9-55）。
+
+
+### 2026-11-03：基线等待获准修订，双 Mock 与新正式矩阵完成
+
+历史回放失败保留。用户只授权 demoBaseline 的 health 从单次改为 5 秒一轮、5 分钟内同轮全部通过；memory→flags→health→fault 顺序和判据不改，开关不一致不进入轮询，查询报错、超时、落盘失败仍停。Mock 回归、全仓六项检查和 ac71f30 的 CI41679143036 通过（P9-67、P9-69）；最终运行代码未再改变，场景 YAML 与冻结材料亦未改变。
+
+新 evaluator 为 eval-baseline-wait.exe（SHA9bfe5a04…，P9-68），未覆盖旧程序。17:13:01 UTC启动固定版Demo，41.2169576秒完成；原资源保留。新 run phase09-dualmock-20261103T171411Z 用 doctor+judge 双 Mock 完整运行五场景 E1/E2。11基线通过，5症状和5恢复都在300秒内，10份采集均normal，收费生成请求0（P9-70–72）。OT03新SERVER选择器真实注入/恢复均通过；OT04冷却后基线等待8轮35.0503469秒才同轮通过，整次37.2926579秒，原件及全表已归档。
+
+只读原生指标快照不是query_range网格：5个GET均200，103条spanmetrics序列3989原生点、3886相邻间隔，中位59.997秒；uptime则为10秒左右，不能混称Prometheus scrape周期。OT04基线窗口内Charge/PlaceOrder成功累计76→76→78，错误未增，支持等待下一批已导出增量的解释，但不推断去重订单数或所有真实下单间隔（P9-73）。健康基线采用五分钟内同一轮全部通过，原因是Demo下单稀疏、业务span指标约一分钟一个原生样本；完整证据在phase-09-native-metrics.md/json。
+
+17:57–18:08 UTC免费时钟与网络检查通过，模型列表GET239/239，未调用生成接口。18:09:13 UTC真实entry核对88项全过：pilot2费用×10为USD0.271790/CNY0.149200，剩预算USD9.972821/CNY9.985080，官方DeepSeek余额¥5.66（P9-74、75）。继续使用原phase-09-openai/phase-09-deepseek账户，不重置；旧pilot/pilot2原报告、失败、费用和interrupted保留。
+
+按原授权直接启动新run phase09-formal-20261103T181204Z-terra，没有再试跑。18:54:45 UTC全部五场景done；10个Terra诊断主动提交且单模型normal，10个DeepSeek原评分成功、没有重评。E1（工具）/E2（工具+手册）各组件3/5，机制各2正确/2部分/1错误，coverage均0.75（P9-77）。逐槽统计、正式SQL快照、64个attempt与费用桥见phase-09-results-summary和formal-snapshot。
+
+正式账本USD0.325033、CNY0.196047；旧pilot并入项目累计USD0.352212、CNY0.210967，未知或未结预留0（P9-78）。美元按项目用量账本计；Key与其他用途共用、平台账单无法单独核对，币种不相加。正式症状/恢复/11基线逐次Known耗时见P9-80和formal-timing；OT02第一次采样即healthy仅0.0411223秒，不当41ms业务修复。
+
+只读完整诊断详情再次核对原证据：OT02严格组件cart->valkey-cart不等GTcart且未确认EmptyCart专属坏地址；OT04原get_trace截断而未找到下游地址；OT05返回未截断仍缺关键商品/状态。保留原机制与里程碑评分。EventStream曾出现在工具返回并进入后续模型历史，但可见响应和最终报告没有该词，不能推断内部无影响（P9-82）。阶段8与阶段9分表、分分母，描述性下降约32.3百分点，不作因果归因（P9-81）。
+
+18:55:56 UTC切回Mock，18:58:10 UTC仅stop本次28个Demo容器，只有新Mock医生/专用库运行。原21容器ID和挂载相同，阶段8原doctor卷及20测试项目/138测试卷保留，QQ未操作（P9-79）。本轮未执行删除、索引重建或系统设置调整。原证据独占逐字节复制到两组公开归档，保留TEMP到repo映射及hash，不改写原JSON路径；Python运行缓存由忽略规则排除，未删除（P9-83）。最终分支推送及CI另由GitHub检查核验，阶段9交Claude复核，不合main、不勾学习验收。
+
+
+最终离线索引核对第一次发现3份新增运行/账本快照仍沿用旧换行缓存；实际原件未变。仅补原字节属性并对三路径git add --renormalize，194份原始文件的Git索引字节/SHA全部匹配。将索引里的源复制到全新TEMP目录离线复算，phase9、phase8、comparison、validation全相同；未连接服务或重评。完整范围与初次问题见phase-09-final-index-integrity.json（P9-85）。最终相对链接、凭据和保护文件审计见P9-84，tools/agent的diff --stat为空。

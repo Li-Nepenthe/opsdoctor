@@ -1,0 +1,15 @@
+generation_attempts_since_phase09_preflight
+70
+account	currency	spent_micros
+phase-09-deepseek	CNY	210967
+phase-09-openai	USD	352212
+id	target	status	tokens_used
+phase09-dualmock-20261103T171411Z	otel-demo	completed	0
+phase09-formal-20261103T181204Z-terra	otel-demo	completed	822972
+phase09-pilot-20261103-terra	otel-demo	interrupted	0
+phase09-pilot2-20261103-terra	otel-demo	interrupted	66103
+run_id	slots	graded
+phase09-dualmock-20261103T171411Z	10	10
+phase09-formal-20261103T181204Z-terra	10	10
+phase09-pilot-20261103-terra	1	0
+phase09-pilot2-20261103-terra	1	1

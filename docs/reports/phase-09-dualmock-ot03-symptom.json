@@ -1,0 +1,12 @@
+{
+  "run_id": "phase09-dualmock-20261103T171411Z",
+  "scenario": "OT03",
+  "iteration": 1,
+  "kind": "symptom",
+  "start_utc": "2026-11-03T17:33:47.8062784Z",
+  "passed_utc": "2026-11-03T17:36:22.9599081Z",
+  "monotonic_elapsed_known": true,
+  "elapsed_ns": 155157663700,
+  "elapsed_seconds": 155.1576637,
+  "polls": 32
+}

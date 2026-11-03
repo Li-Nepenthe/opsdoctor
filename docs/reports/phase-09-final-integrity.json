@@ -1,0 +1,42 @@
+{
+  "kind": "phase09-final-source-and-original-evidence-integrity",
+  "checked_at_utc": "2026-11-03T19:19:12.344414+00:00",
+  "status": "passed",
+  "tested_source_commit": "ac71f3063d25e1e49692ac481bc0552e9f882822",
+  "checks": {
+    "tested_runtime_source_hashes_unchanged": true,
+    "only_git_attributes_changed_in_tested_file_hashes": true,
+    "protected_user_file_hashes_unchanged": true,
+    "frozen_paths_unchanged_from_main": true,
+    "no_runtime_change_since_paid_source_ac71f30": true,
+    "pilot2_artifacts_unchanged_since_ac71f30": true,
+    "phase-09-dualmock-evidence_all_mapped_hashes_and_sizes_match": true,
+    "phase-09-formal-evidence_all_mapped_hashes_and_sizes_match": true,
+    "five_original_native_responses_match_utf8_hashes": true,
+    "formal_snapshot_capture_and_accepted_integrity": true,
+    "formal_completed_no_interruption": true,
+    "resume_original_line13_unchanged": true,
+    "old_learning_only_original_user_edit": true,
+    "branch_and_main_pinned": true
+  },
+  "archives": [
+    {
+      "path": "docs/reports/phase-09-dualmock-evidence/manifest.json",
+      "sha256": "ec382431b53a41dd75eef78b40a975669e9e667c4cbafa3f9e4181ed76807f49",
+      "mapped_files": 92,
+      "mismatches": []
+    },
+    {
+      "path": "docs/reports/phase-09-formal-evidence/manifest.json",
+      "sha256": "66beadbbcdbc58f66667800337a424eaaae857793db21ec9784c1d0081e30829",
+      "mapped_files": 89,
+      "mismatches": []
+    }
+  ],
+  "protected_files_sha256": {
+    "docs/learn/phase-00-foundation.md": "dc0d4d5288d5d140e800f7e412680a1f0ab3ad0188026ecc1906ffd730ec306a",
+    "internal/shop/app/inventoryservice/app.go": "72265f52b1fa90182d0ea44bba08936e913d3963cdf6b7fea20854e164aab1a5"
+  },
+  "runtime_changes_after_tested_commit": [],
+  "notes": "Offline verification only. New .gitattributes preserves original evidence bytes; .gitignore excludes generated Python cache without deleting it. Git index byte verification and release credential/link audit are separate final records. No model calls or Docker operations."
+}

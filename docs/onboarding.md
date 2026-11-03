@@ -2,7 +2,7 @@
 
 OpsDoctor 可以与被诊断系统分开部署。你提供数据源的固定地址、独立凭据和一份架构说明，医生通过现有只读适配器查看证据，不需要复制你的业务源码，也不要求你的服务使用 Go。
 
-本文使用[独立医生 Compose](../deploy/doctor/compose.yaml)和[环境变量示例](../deploy/doctor/standalone.env.example)。它只启动医生及医生自己的 MySQL，不启动 shop、压测、故障注入或监控栈。这个独立基座已经用 otel-demo 完成 Mock（用固定脚本代替模型回答）启动、登录和实际只读查询验证，具体条件与原件见第 5 节和台账 P9-25–P9-27；本文的虚构 warehouse 仍是配置示例，尚未实际部署。Mock 接线验证不代表真实模型诊断完成；真实模型须另行配置并获得付费授权。
+本文使用[独立医生 Compose](../deploy/doctor/compose.yaml)和[环境变量示例](../deploy/doctor/standalone.env.example)。它只启动医生及医生自己的 MySQL，不启动 shop、压测、故障注入或监控栈。这个独立基座已经用 otel-demo 完成 Mock（用固定脚本代替模型回答）启动、登录和实际只读查询验证，具体条件与原件见第 5 节和台账 P9-25–P9-27；本文的虚构 warehouse 仍是配置示例，尚未实际部署。早期 Mock 接线验证与后续模型成绩分开留证；同一独立部署已在固定 Demo 上完成五场景 E1/E2 正式矩阵，结果和限制见[正式结果](reports/phase-09-results-summary.md)及 P9-77。本文的命令继续默认 Mock，真实模型须另行配置并获得付费授权。
 
 ## 1. 先准备两个目录和两类凭据
 
@@ -317,5 +317,7 @@ MCP 工具调用不需要医生调用大模型，但客户端自己发起的模�
 | P9-29 | 后续仅临时恢复 Prometheus，读取保留的一小时 span 指标，取得非空响应 | P9-26 的 `up` 当时非空、当前业务健康，或付费前的新鲜基线已确认 |
 | [Jaeger 搜索](reports/phase-09-jaeger-prefix-search.json)、[详情](reports/phase-09-jaeger-prefix-get.json) | Demo 的 `/jaeger/ui` 接线已由独立医生的真实 Search/Get 工具验证 | 已完成模型诊断、故障定位或根因评分 |
 | [逐诊断审计检查](reports/phase-09-collection-checks.json)、[Jaeger 接线检查](reports/phase-09-jaeger-prefix-checks.json) | Mock 验证采集正常、受影响和未知样本分流，并保留原诊断与费用 | 所有未来窗口都正常，或阶段 8 历史结果要按新门槛重算 |
+
+后续完整实测：独立医生和专用库与 Demo 同时运行、shop 全停止，真实双 Mock 矩阵通过后，新正式批次亦已完成（P9-72、P9-77）。两组各 5 份 normal 报告、5 份有效评分，组件均 3/5、机制各 2 正确/2 部分/1 错误，不能据此承诺任意新系统都能准确定位。净接入总工时未单独测量，以上仅报告各自边界内的分段耗时。当前医生已回 Mock、Demo 已 stop，原数据保留（P9-79）。
 
 实测数字和原件统一从[数据台账](数据台账.md#阶段-9开源靶场泛化测试进行中)追溯。接入完成后，应为自己的独立启动、实际来源查询、告警通知和 MCP 调用分别留证；结果不足时明确缺什么，不把日志空结果、Mock 脚本输出或健康检查当成真实诊断能力。

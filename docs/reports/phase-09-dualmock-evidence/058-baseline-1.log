@@ -1,0 +1,28 @@
+{
+  "run_id": "phase09-dualmock-20261103T171411Z",
+  "scenario": "OT01",
+  "iteration": 1,
+  "kind": "baseline",
+  "phase": "post-cool",
+  "scenarios": [
+    "OT01",
+    "OT02",
+    "OT03",
+    "OT04",
+    "OT05"
+  ],
+  "start_utc": "2026-11-03T17:24:43.1934255Z",
+  "finished_utc": "2026-11-03T17:24:45.3050095Z",
+  "passed_utc": "2026-11-03T17:24:45.3050095Z",
+  "monotonic_elapsed_known": true,
+  "elapsed_ns": 2111638900,
+  "elapsed_seconds": 2.1116389,
+  "health_start_utc": "2026-11-03T17:24:45.2965655Z",
+  "health_finished_utc": "2026-11-03T17:24:45.3018342Z",
+  "health_monotonic_elapsed_known": true,
+  "health_elapsed_ns": 5268900,
+  "health_elapsed_seconds": 0.0052689,
+  "polls": 1,
+  "queries": 5,
+  "status": "passed"
+}

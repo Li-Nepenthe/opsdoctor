@@ -1,0 +1,28 @@
+{
+  "run_id": "phase09-formal-20261103T181204Z-terra",
+  "scenario": "OT01",
+  "iteration": 1,
+  "kind": "baseline",
+  "phase": "pre-inject",
+  "scenarios": [
+    "OT01",
+    "OT02",
+    "OT03",
+    "OT04",
+    "OT05"
+  ],
+  "start_utc": "2026-11-03T18:16:09.4199531Z",
+  "finished_utc": "2026-11-03T18:16:21.9464236Z",
+  "passed_utc": "2026-11-03T18:16:21.9464236Z",
+  "monotonic_elapsed_known": true,
+  "elapsed_ns": 12526791100,
+  "elapsed_seconds": 12.5267911,
+  "health_start_utc": "2026-11-03T18:16:11.9285697Z",
+  "health_finished_utc": "2026-11-03T18:16:21.9442853Z",
+  "health_monotonic_elapsed_known": true,
+  "health_elapsed_ns": 10015972000,
+  "health_elapsed_seconds": 10.015972,
+  "polls": 3,
+  "queries": 15,
+  "status": "passed"
+}

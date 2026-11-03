@@ -25,3 +25,18 @@ docs/reports/phase-09-scenario-window-amendment.json -text -whitespace
 docs/reports/phase-09-payment-span-discovery.json -text -whitespace
 docs/reports/phase-09-checkout-background-error-spans.json -text -whitespace
 docs/reports/phase-09-preformal-*.json -text -whitespace
+# 两次完整矩阵的证据含原始字节指纹，跨平台提交也保留原换行。
+docs/reports/phase-09-dualmock-*.json -text -whitespace
+docs/reports/phase-09-formal-*.json -text -whitespace
+docs/reports/phase-09-formal-*.jsonl -text -whitespace
+docs/reports/phase-09-native-metrics.json -text -whitespace
+docs/reports/phase-09-dualmock-evidence/* -text -whitespace
+docs/reports/phase-09-formal-evidence/* -text -whitespace
+# 公开的原始导出和离线复算输入同样按原件核对 SHA。
+docs/reports/phase-09-formal-results.md -text -whitespace
+docs/reports/phase-09-ci-baseline-wait.json -text -whitespace
+docs/reports/phase-09-failure-analysis.json -text -whitespace
+docs/reports/phase-09-results-summary.json -text -whitespace
+docs/reports/phase-09-results-summary.py -text -whitespace
+docs/reports/phase-09-dualmock-start-database.tsv -text -whitespace
+docs/reports/phase-09-final-* -text -whitespace

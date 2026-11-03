@@ -1,0 +1,60 @@
+{
+  "checked_at_utc": "2026-11-03T17:12:47.323777+00:00",
+  "host_free_bytes": 17391161344,
+  "disk_free_bytes": 733943914496,
+  "docker_limit_bytes": 16294768640,
+  "docker_free_output": [
+    "total        used        free      shared  buff/cache   available",
+    "Mem:    16294768640  1149939712  5889024000    26759168  9255804928 14866644992",
+    "Swap:    4294967296     1396736  4293570560"
+  ],
+  "docker_disk_output": [
+    "Filesystem           1-blocks       Used Available Use% Mounted on",
+    "/dev/sdd             1081101176832 125459083264 900649738240  12% /mnt/docker-desktop-disk"
+  ],
+  "running_before": [
+    {
+      "Command": "\"/app/server\"",
+      "CreatedAt": "2026-11-03 02:56:51 -0800 PST",
+      "HealthStatus": "healthy",
+      "ID": "dadfd28f26b3",
+      "Image": "opsdoctor/doctor:phase09-20261102.4",
+      "Labels": "com.docker.compose.config-hash=076d05c6baf1052388eb54e8bc24e423ac8caabe4fc430242b6f7096f572614c,com.docker.compose.container-number=1,com.docker.compose.depends_on=doctor-mysql:service_healthy:false,com.docker.compose.image=sha256:c08fd7dded72cc9b31862cd8fb5e97b8e065ad1d73820c199bb28101c1983746,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=D:\\Code\\GO项目\\opsdoctor\\deploy\\doctor\\compose.yaml,D:\\Code\\GO项目\\opsdoctor\\deploy\\opentelemetry\\doctor.phase09.yaml,com.docker.compose.project.environment_file=D:\\Code\\GO项目\\opsdoctor\\.env.phase09-doctor,com.docker.compose.project.working_dir=D:\\Code\\GO项目\\opsdoctor\\deploy\\doctor,com.docker.compose.project=opsdoctor-phase09-doctor,com.docker.compose.replace=opsdoctor-phase09-doctor,com.docker.compose.service=doctor,com.docker.compose.version=5.6.1,desktop.docker.io/mounts/0/Source=C:/Users/Nepenthe/AppData/Local/Temp/opsdoctor-phase09/standalone-targets,desktop.docker.io/mounts/0/SourceKind=hostFile,desktop.docker.io/mounts/0/Target=/etc/doctor/targets,desktop.docker.io/mounts/1/Source=D:\\Code\\GO项目\\opsdoctor\\docs\\runbooks,desktop.docker.io/mounts/1/SourceKind=hostFile,desktop.docker.io/mounts/1/Target=/etc/doctor/runbooks,desktop.docker.io/ports.scheme=v2,desktop.docker.io/ports/8090/tcp=127.0.0.1:8090",
+      "LocalVolumes": "0",
+      "Mounts": "/run/desktop/m…,/run/desktop/m…",
+      "Names": "opsdoctor-phase09-doctor",
+      "Networks": "opsdoctor-phase09-doctor_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "127.0.0.1:8090->8090/tcp",
+      "RunningFor": "6 hours ago",
+      "Size": "20.5kB (virtual 49.6MB)",
+      "State": "running",
+      "Status": "Up 6 hours (healthy)"
+    },
+    {
+      "Command": "\"docker-entrypoint.s…\"",
+      "CreatedAt": "2026-11-02 21:51:12 -0800 PST",
+      "HealthStatus": "healthy",
+      "ID": "8514f0462dfa",
+      "Image": "mysql:8.4.13",
+      "Labels": "com.docker.compose.config-hash=3812f68f7c5dbb1e19a315a95c76074706114f4a51b92ca1830ad1a3d63ce921,com.docker.compose.container-number=1,com.docker.compose.depends_on=,com.docker.compose.image=sha256:2068651a18ac6048578647ea57b940ca2daed3f504ebe7fba6a93beeb39aaa1f,com.docker.compose.oneoff=False,com.docker.compose.project.config_files=D:\\Code\\GO项目\\opsdoctor\\deploy\\doctor\\compose.yaml,D:\\Code\\GO项目\\opsdoctor\\deploy\\opentelemetry\\doctor.phase09.yaml,com.docker.compose.project.environment_file=D:\\Code\\GO项目\\opsdoctor\\.env.phase09-doctor,com.docker.compose.project.working_dir=D:\\Code\\GO项目\\opsdoctor\\deploy\\doctor,com.docker.compose.project=opsdoctor-phase09-doctor,com.docker.compose.service=doctor-mysql,com.docker.compose.version=5.6.1,desktop.docker.io/ports.scheme=v2,desktop.docker.io/ports/3306/tcp=127.0.0.1:3309",
+      "LocalVolumes": "1",
+      "Mounts": "opsdoctor-phas…",
+      "Names": "opsdoctor-phase09-doctor-mysql",
+      "Networks": "opsdoctor-phase09-doctor_default",
+      "Platform": {
+        "architecture": "amd64",
+        "os": "linux"
+      },
+      "Ports": "127.0.0.1:3309->3306/tcp",
+      "RunningFor": "11 hours ago",
+      "Size": "32.8kB (virtual 865MB)",
+      "State": "running",
+      "Status": "Up 11 hours (healthy)"
+    }
+  ],
+  "settings_changed": false
+}

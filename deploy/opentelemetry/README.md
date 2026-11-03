@@ -104,9 +104,9 @@ docker compose --env-file .env.phase09-doctor -p opsdoctor-phase09-doctor -f dep
 
 当前独立医生镜像为 `phase09-20261102.4`，包含 P9-21 的级别大小写补丁及 P9-38 的 Jaeger 安全路径前缀接线。工具仍传大写 INFO，OpenSearch 可以匹配实际小写 info；服务和 trace 仍精确匹配。早先同一医生注册两个系统并查询两个日志后端的事实保留在 P9-8、P9-9；本次独立实例按追加要求只选择 otel-demo，不能把旧双系统菜单当作新实例的菜单。
 
-实际独立部署从准备私有配置、配置验证、构建到健康为 33.696456 秒，到登录和菜单为 33.8045 秒，医生内 `SHOP_` 环境变量为 0（P9-25）。这是已有本机源码与镜像条件下的计时，不含开发、Demo 恢复或诊断。恢复 Demo 后，仅新双服务与 Demo 运行，目标仅 otel-demo、菜单 8 个只读工具；`query_metrics` 的 `up` 查询为 `status=ok`，但返回 0 条序列，不能写成非空指标验证。`search_logs` 按 frontend、INFO 和关键词返回 5 条（P9-26），原件见[独立查询记录](../../docs/reports/phase-09-standalone-queries.json)。这次没有运行整轮注入、Mock 诊断和评分，更没有付费诊断。
+实际独立部署从准备私有配置、配置验证、构建到健康为 33.696456 秒，到登录和菜单为 33.8045 秒，医生内 `SHOP_` 环境变量为 0（P9-25）。这是已有本机源码与镜像条件下的计时，不含开发、Demo 恢复或诊断。恢复 Demo 后，仅新双服务与 Demo 运行，目标仅 otel-demo、菜单 8 个只读工具；`query_metrics` 的 `up` 查询为 `status=ok`，但返回 0 条序列，不能写成非空指标验证。`search_logs` 按 frontend、INFO 和关键词返回 5 条（P9-26），原件见[独立查询记录](../../docs/reports/phase-09-standalone-queries.json)。这一早期接线检查尚未运行整轮诊断；后续完整双 Mock 和付费正式结果另见下文，不能混用测量边界。
 
-原医生容器保持停止；原 doctor-mysql 在新双服务健康并完成旧账核对后仅执行 `stop`，卷和原数据保留。复验结束也已停止 Demo，当前仅保留新医生与新库运行，资源核对见 P9-27。需要停止新医生时，继续使用同一组配置并保留数据：
+原医生容器保持停止；原 doctor-mysql 在新双服务健康并完成旧账核对后仅执行 `stop`，卷和原数据保留。早期复验资源见 P9-27；本阶段最终同样仅保留新 Mock 医生与新库，Demo 全部 stop，资源复核见 P9-79。需要停止新医生时，继续使用同一组配置并保留数据：
 
 ```text
 docker compose --env-file .env.phase09-doctor -p opsdoctor-phase09-doctor -f deploy/doctor/compose.yaml -f deploy/opentelemetry/doctor.phase09.yaml stop
@@ -116,10 +116,20 @@ docker compose --env-file .env.phase09-doctor -p opsdoctor-phase09-doctor -f dep
 
 医生只读取接入配置和[系统说明书](../doctor/targets/otel-demo.profile.md)，按固定地址查 Prometheus、Jaeger 和 OpenSearch。它不持有 Demo 的开关接口、场景文件或 Docker socket。PostgreSQL、Valkey 直查与 pprof 按数据源缺失降级。
 
-评测器在宿主机读取[独立场景目录](../../eval/scenarios/otel-demo/README.md)，通过官方开关接口注入和恢复。它保存原始开关配置，恢复后读回确认；新的批次编号与两个预算账户都和阶段 8 分开。提示、工具、通用手册及评分保持阶段 8 冻结版本。独立部署及隔离适配的检查另见台账 P9-24–P9-28。采集修复已获Claude审核通过；后续首次试跑因采集起点审计异常在模型创建前中断，已恢复并暂停（P9-41）；正式诊断和结果尚未发生，不能把这些部署与只读查询写成泛化成绩。
+评测器在宿主机读取[独立场景目录](../../eval/scenarios/otel-demo/README.md)，通过官方开关接口注入和恢复。它保存原始开关配置，恢复后读回确认；新的批次编号与两个预算账户都和阶段 8 分开。提示、工具、通用手册及评分保持阶段 8 冻结版本。独立部署及隔离适配的检查另见台账 P9-24–P9-28。采集修复已获 Claude 审核通过；首次试跑因采集起点审计异常在模型创建前中断（P9-41），第二次试跑因评委格式失败停止（P9-53）。两次原失败及费用保留；后续新正式批次结果单列如下。
 
-## 最新正式前置规则与当前停点
+## 正式前置规则与最终结果
 
-用户后续撤回“评分必须成功才继续”：已返回且计量可确认、但冻结校验拒收的评分失败保留为缺失，不重评；新run累计第三份仍停，API/预算/采集/时限和基础设施等其他停点保留。OT03判定仅限定实际PaymentService/Charge SERVER，五个within和阶段9恢复等待为5m，[2m]和其他判据保持原样，见台账P9-58/59。
+用户撤回“评分必须成功才继续”：已返回且计量可确认、但冻结校验拒收的评分失败保留为缺失，不重评；新 run 累计第三份仍停，API、预算、采集、时限和基础设施等其他停点保留。OT03 判定仅限定免费实查的 PaymentService/Charge SERVER，五个 within 和阶段 9 恢复等待为 5m，[2m] 和其他判据保持原样（P9-58、P9-59）。
 
-先用已有对应开关off历史每30秒回放，再在真实Demo上以新run运行医生Mock和judge.Mock的五场景E1/E2完整流程，最后CI通过才直接正式、不再试跑。当前[历史报告](../../docs/reports/phase-09-historical-baseline-replay.md)中的OT03/OT04未100%（P9-60/61），所以真实双Mock矩阵与正式批次均未启动；这项停点不能用单元Mock通过替代。新计时helper仅通过单元验证，没有新的症状或恢复耗时实测。Demo已经stop，医生与新库保持Mock，不删除原资源（P9-62–64）。
+[历史回放](../../docs/reports/phase-09-historical-baseline-replay.md)未全通过，原失败保留。用户随后仅批准健康基线改成每 5 秒一轮、5 分钟内同一轮五场景全部通过，开关/开放期/谓词不改，查询报错立即停。本轮实测的业务 spanmetrics 原生间隔中位 59.997 秒，已完成调用计数曾出现平台；因此等待方式处理的是 Demo 下单稀疏、业务指标约一分钟一个样本的问题，不是放宽错误条件（P9-67、P9-73）。原生证据与推断边界见[专项报告](../../docs/reports/phase-09-native-metrics.md)。
+
+运行代码 ac71f30 的 [CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/41679143036)通过后，真实 Demo 上的新双 Mock 五场景 E1/E2 完整结束，11 次基线通过、各 5 次症状和恢复都在 5 分钟内、10 个诊断采集窗均 normal，模型生成费用为零（P9-69、P9-72）。[逐次计时表](../../docs/reports/phase-09-dualmock-timing.md)区分健康等待和整次基线调用。
+
+重新核对 pilot2 实际费用乘 10、两账户剩余额度与官方 DeepSeek 余额 ¥5.66 后，88 项门槛通过，直接启动新正式 run `phase09-formal-20261103T181204Z-terra`（P9-75）。Terra 医生、DeepSeek 评委、v8.0/v1.1/rubric-v1.1 均保持冻结，没有再试跑或重评。
+
+正式五场景 E1/E2 全部结束，10 份 normal 报告和 10 份有效评分；两组各组件 3/5、机制正确/部分/错误 2/2/1、证据覆盖均值 0.75（P9-77）。[正式结果与阶段 8 并列](../../docs/reports/phase-09-results-summary.md)，[失败分析](../../docs/reports/phase-09-failure-analysis.md)保留未查明机制及工具返回截断的边界，不外推生产准确率。
+
+正式账本 USD $0.325033、CNY ¥0.196047，项目累计 USD $0.352212、CNY ¥0.210967，两个账户各在原 10 上限内（P9-78）。美元按项目用量账本计；Key 与其他用途共用、平台账单无法单独核对。两币种不相加。
+
+正式收尾已将医生切回 Mock、comparison 关闭，仅 stop 本次 Demo 全部 28 个容器。当前仅独立医生和专用库运行，原容器/卷、20 个测试项目和 138 个测试卷保留（P9-79）。[最终资源](../../docs/reports/phase-09-final-runtime.json)与[正式计时](../../docs/reports/phase-09-formal-timing.md)可复查。阶段 9 等待 Claude 验收，未合并 main，学习验收不代勾。

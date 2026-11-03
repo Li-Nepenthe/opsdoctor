@@ -1,0 +1,25 @@
+{
+  "run_id": "phase09-formal-20261103T181204Z-terra",
+  "created_at_utc": "2026-11-03T18:12:04.537342+00:00",
+  "doctor_model": "gpt-6.1-terra",
+  "judge_model": "deepseek-flash",
+  "scenarios": [
+    "OT01",
+    "OT02",
+    "OT03",
+    "OT04",
+    "OT05"
+  ],
+  "groups": [
+    "E1",
+    "E2"
+  ],
+  "iterations": 1,
+  "allow_paid": true,
+  "tested_commit": "ac71f3063d25e1e49692ac481bc0552e9f882822",
+  "entry_gate": "phase-09-dualmock-entry-gate.json",
+  "prior_mock_run": "phase09-dualmock-20261103T171411Z",
+  "USD_cap_micros": 10000000,
+  "CNY_cap_micros": 10000000,
+  "accounts_reset": false
+}

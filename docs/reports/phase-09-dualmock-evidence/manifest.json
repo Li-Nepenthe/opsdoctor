@@ -1,0 +1,754 @@
+{
+  "kind": "phase09_dualmock_gate_evidence_archive",
+  "archived_at_utc": "2026-11-03T18:15:08.160367+00:00",
+  "run_id": "phase09-dualmock-20261103T171411Z",
+  "source_gate": {
+    "repository_path": "docs/reports/phase-09-dualmock-entry-gate.json",
+    "bytes": 153133,
+    "sha256": "235c5e3b69cf2afa2f7956df6ab5ecf58a86e0625305bb395e417ff477f58538",
+    "unchanged": true
+  },
+  "scope": "双Mock完整流程及入口检查证据，不是泛化成绩，不重评既存诊断。",
+  "copy_method": "所有源先核字节数及SHA256；目的文件以xb独占新建，逐字节复制后再次核对；不改原Gate内路径。",
+  "gate_evidence_files": 91,
+  "gate_evidence_bytes": 230800,
+  "helper_sha256": "4de408760c32755a2b513be9872c2017f936566e8baa9f7e35a55ff8d5bb1897",
+  "login_token_persisted": false,
+  "files": [
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\001-batch-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/001-batch-stdout.log",
+      "bytes": 6143,
+      "sha256": "44eac127807c5750fc6ce5f81530a88fc731e799967b9374fe440314875ca0c2",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\002-batch-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/002-batch-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\003-trials-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/003-trials-stdout.log",
+      "bytes": 745,
+      "sha256": "dc72e71a76a25847044e9c70f832be7fc448562b536fdcb88f636fe3cbbcac78",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\004-trials-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/004-trials-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\005-slots-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/005-slots-stdout.log",
+      "bytes": 45787,
+      "sha256": "8199e2d0690f11c15659a5912515f07386b8bf5c87ad81be32a07d7898d3f216",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\006-slots-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/006-slots-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\007-dualmock-attempts-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/007-dualmock-attempts-stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\008-dualmock-attempts-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/008-dualmock-attempts-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\009-interruptions-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/009-interruptions-stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\010-interruptions-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/010-interruptions-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\011-dualmock-diagnoses-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/011-dualmock-diagnoses-stdout.log",
+      "bytes": 2900,
+      "sha256": "8628d01f8b71211ae1d3e976277552f1e6b0b203a3826d9656eb0cea50e43f8f",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\012-dualmock-diagnoses-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/012-dualmock-diagnoses-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\013-accounts-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/013-accounts-stdout.log",
+      "bytes": 192,
+      "sha256": "bba5d5bfd80bb68dc90abd20c06f1a95645d08b8483a74c4b553d9f53b366c9a",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\014-accounts-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/014-accounts-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\015-pilot2-cost-attempts-only-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/015-pilot2-cost-attempts-only-stdout.log",
+      "bytes": 1059,
+      "sha256": "c1e99fe205b1de61380587c39ad69b6c08396a6c5fbc157b473166fd970a7f6a",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\016-pilot2-cost-attempts-only-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/016-pilot2-cost-attempts-only-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\017-collector-0.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.log",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/017-collector-0.log",
+      "bytes": 3145,
+      "sha256": "dfd4a2b5fa327ed149ea73e88247f9fade1a73f50f119cf58332b00432d2b3b6",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\018-collector-start-0.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.start.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/018-collector-start-0.log",
+      "bytes": 643,
+      "sha256": "ea6b9f71d57ef07b1e5bb0f64c9f498184ff35268d9ac9b82afbda88bbf86066",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\019-collector-audit-0.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.audit.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/019-collector-audit-0.log",
+      "bytes": 599,
+      "sha256": "59feebda2fd0c6bf8e20d472c1c5a24eef6dfd145a5b6c345975b3af8ed7c691",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\020-collector-summary-0.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.summary.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/020-collector-summary-0.log",
+      "bytes": 1663,
+      "sha256": "ad4f8b7cc4a5b6a7a1b977381894553ebcf269513902bc93d38c3c0e7548220f",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\021-collector-1.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.log",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/021-collector-1.log",
+      "bytes": 8329,
+      "sha256": "f0b1f3473cce1e04ffe989dee7508dc2349c7172024cec581060388d68af5685",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\022-collector-start-1.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.start.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/022-collector-start-1.log",
+      "bytes": 644,
+      "sha256": "f01761402ea9cc7a90e2973063cc07da85d18f5188276410e197b6cb94b8a2f0",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\023-collector-audit-1.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.audit.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/023-collector-audit-1.log",
+      "bytes": 598,
+      "sha256": "500be67969163f564dc5bd7b081b88d479201b9f6e9130d9ce1841effee9c954",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\024-collector-summary-1.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.summary.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/024-collector-summary-1.log",
+      "bytes": 1662,
+      "sha256": "956b46f3f469708ad15b900bfc515971d2c1df9d7a4ec2dc2e73ad004a03b2a7",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\025-collector-2.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.log",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/025-collector-2.log",
+      "bytes": 6897,
+      "sha256": "1c28807fe5e7cb49ce225e82792167a8392b1d4397eda49127de4e4216ad60d2",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\026-collector-start-2.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.start.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/026-collector-start-2.log",
+      "bytes": 642,
+      "sha256": "6dd9ef38c0967bd8df1bdd1ca9e547a1b7a35906971f8a615ff4263bec3484db",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\027-collector-audit-2.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.audit.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/027-collector-audit-2.log",
+      "bytes": 598,
+      "sha256": "a1d49e3b54cc355282baacc8f8a1e5ad565d3f32eaa860c06cfad06b9d3eb951",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\028-collector-summary-2.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.summary.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/028-collector-summary-2.log",
+      "bytes": 1662,
+      "sha256": "bd0382f55fd29a9140e37ebb8687103302387b82c7515783684759d3ec926ddd",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\029-collector-3.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.log",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/029-collector-3.log",
+      "bytes": 8353,
+      "sha256": "f3f1586872d417bafd8648476b6adfab8df997db20d8f8acd481d1e44ebf7ba6",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\030-collector-start-3.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.start.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/030-collector-start-3.log",
+      "bytes": 645,
+      "sha256": "31d4989dc0599620bb865f50a6ec4b2d344b2b384fbfc36bbebfb6c648015664",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\031-collector-audit-3.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.audit.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/031-collector-audit-3.log",
+      "bytes": 599,
+      "sha256": "6d191c189ee80eaaa4870ead2e16798defc123f91eda281cb2982d3e0499c55d",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\032-collector-summary-3.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.summary.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/032-collector-summary-3.log",
+      "bytes": 1663,
+      "sha256": "1e6e1845eb3c460150d8ad2c7bbd74e78bcfe06dabec5f7a953ba1eb06e138fa",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\033-collector-4.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.log",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/033-collector-4.log",
+      "bytes": 6553,
+      "sha256": "a899f1e9fff2e5d328680ca125e0abab9a030e6dd44578bd2cdb332958c9f36d",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\034-collector-start-4.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.start.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/034-collector-start-4.log",
+      "bytes": 645,
+      "sha256": "5f99ca15436c082644c824fbe935c167568e300644069ebde8d9f0d38bfdae92",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\035-collector-audit-4.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.audit.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/035-collector-audit-4.log",
+      "bytes": 599,
+      "sha256": "cc0e0b30002eaf41a3adad9503154d999fb88b8f5e768c6f2964921e294bd368",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\036-collector-summary-4.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.summary.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/036-collector-summary-4.log",
+      "bytes": 1663,
+      "sha256": "02beb4a21ecd01b5bd321895eb19937b62785274d2bab9193930826b078bdd80",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\037-collector-5.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.log",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/037-collector-5.log",
+      "bytes": 8354,
+      "sha256": "360d8b6bbd47f61ee05d7872816ab806d33a127bdd30abc191937743566caf8f",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\038-collector-start-5.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.start.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/038-collector-start-5.log",
+      "bytes": 644,
+      "sha256": "83fa25fdb894b9446929d430d96bf65839dbab40de89b2271d266db58fc08f57",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\039-collector-audit-5.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.audit.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/039-collector-audit-5.log",
+      "bytes": 599,
+      "sha256": "9011228033c799b7d455fd963e6edaea8f32d455e190a9de3a5058fc0029b270",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\040-collector-summary-5.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.summary.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/040-collector-summary-5.log",
+      "bytes": 1663,
+      "sha256": "83ebe2150a0f61dd312413b1d8edda986dba639a71607c0669eee6de86f819c7",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\041-collector-6.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.log",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/041-collector-6.log",
+      "bytes": 5841,
+      "sha256": "8cc617f00a20c945375cdfe56efa9b0a41878689c29476435ac42d04bbe0a06b",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\042-collector-start-6.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.start.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/042-collector-start-6.log",
+      "bytes": 643,
+      "sha256": "8f6ff103bca6e7207aed848df4b86125d862436bc33027f759845c892fe2c63a",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\043-collector-audit-6.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.audit.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/043-collector-audit-6.log",
+      "bytes": 599,
+      "sha256": "5ee4b0f5b911564118679675ca1e041150ab8b8cd12b0071410ca1f1094a8856",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\044-collector-summary-6.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.summary.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/044-collector-summary-6.log",
+      "bytes": 1663,
+      "sha256": "c7ad2718b2be038075be29ba508e071c96830eba67581467b538f1e9779e3d47",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\045-collector-7.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.log",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/045-collector-7.log",
+      "bytes": 7613,
+      "sha256": "bad62eb3758d013838d90e415692a9cd4dbd02385aa1a46e875b5d62842938ad",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\046-collector-start-7.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.start.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/046-collector-start-7.log",
+      "bytes": 672,
+      "sha256": "3c0d0211fadc7468de15d585ad043f51aa52b1405d4e757ecdb363c133832e4a",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\047-collector-audit-7.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.audit.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/047-collector-audit-7.log",
+      "bytes": 598,
+      "sha256": "4a9a94b2ed701096e0803b6ebab20afa41b664d9bc1f1d9b09ece3223623f8dd",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\048-collector-summary-7.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.summary.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/048-collector-summary-7.log",
+      "bytes": 1661,
+      "sha256": "da634f67f7f089999db581a9eb6e6c670440bbcd3062e53c2255dafbb3f150a4",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\049-collector-8.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.log",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/049-collector-8.log",
+      "bytes": 6953,
+      "sha256": "4b086cba876360953ec806f2a58283c0b8fc33cb368353e76d5d02aaf9cf01d5",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\050-collector-start-8.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.start.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/050-collector-start-8.log",
+      "bytes": 644,
+      "sha256": "ed6646459a0338e76ea0abddab9c319e6dfb1700565bf6073ab61cbc9160f19b",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\051-collector-audit-8.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.audit.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/051-collector-audit-8.log",
+      "bytes": 598,
+      "sha256": "03b346355e7bcd1cafa22b7bf803c3b83471620a18a9c8f32c70184aaa031726",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\052-collector-summary-8.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.summary.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/052-collector-summary-8.log",
+      "bytes": 1662,
+      "sha256": "0511f9cb9bd63d4d42d6c16e6dda0f1dfd8987ce2cd67db45f69b32988a41cb7",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\053-collector-9.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.log",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/053-collector-9.log",
+      "bytes": 7587,
+      "sha256": "e7640950c663430dd91ee0a8225e34a23f1f46bb42c6d387785c24227cdba794",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\054-collector-start-9.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.start.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/054-collector-start-9.log",
+      "bytes": 671,
+      "sha256": "a0e5674067b013de57a072eba2436efffa04cc051e52b1d804dc5d34efb098ad",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\055-collector-audit-9.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.audit.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/055-collector-audit-9.log",
+      "bytes": 599,
+      "sha256": "cf43cd2f49bb2dae2fb40b3727d9645f9055194c96d266bfdf331e864f0ac6eb",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\056-collector-summary-9.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.summary.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/056-collector-summary-9.log",
+      "bytes": 1663,
+      "sha256": "71ff429c9180a057fe65820f2b3717645d6582e779fed981d99c49fb519cdc49",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\057-baseline-0.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-freeze-20261103T171613.642715500Z.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/057-baseline-0.log",
+      "bytes": 727,
+      "sha256": "8082a968ebfd1975b88e939c3bec24f1740b3b6d275ae5c39942bed790846257",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\058-baseline-1.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T172443.193425500Z.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/058-baseline-1.log",
+      "bytes": 734,
+      "sha256": "a139f371c1a2834628256ac3d49aa36ca75a6897bff0672afc327da523dfacac",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\059-baseline-2.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T173343.674115100Z.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/059-baseline-2.log",
+      "bytes": 734,
+      "sha256": "a15eae9bc55463fcef3b50ff7ff53d7a3250a4915f464938798f6a3945010366",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\060-baseline-3.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T174144.026020600Z.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/060-baseline-3.log",
+      "bytes": 734,
+      "sha256": "5873c50fb9ad1bd11256b41bd2dc84005995381d03e9969fd0a8ce4fbb5749dd",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\061-baseline-4.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T174744.172507000Z.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/061-baseline-4.log",
+      "bytes": 739,
+      "sha256": "e5d8d63880a3b3d6b61f68f19b47b609facb5eedec0637f71ba0dfe21ae6736f",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\062-baseline-5.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T175544.537395000Z.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/062-baseline-5.log",
+      "bytes": 733,
+      "sha256": "c6ab7819dd1ccbcc4b2c2effe40242df43e26daedf2d3544700b60260fdd775d",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\063-baseline-6.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T171734.723379000Z.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/063-baseline-6.log",
+      "bytes": 733,
+      "sha256": "47b4b5363a9b1075fcbb1a25164ebd766a2f3c3be2fdf5a8961b8cef84d278e0",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\064-baseline-7.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T172445.355977700Z.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/064-baseline-7.log",
+      "bytes": 733,
+      "sha256": "7db37513b6804aaa47f0f66c93a97468d73fb74e4db0336c9cbe6cccc1ca11ae",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\065-baseline-8.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T173345.738582400Z.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/065-baseline-8.log",
+      "bytes": 734,
+      "sha256": "82ff9590987b3af28d43702b9a390cba1b98945d7c9da984a4fea9dc422b91dd",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\066-baseline-9.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T174146.190017400Z.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/066-baseline-9.log",
+      "bytes": 735,
+      "sha256": "8766e8c0f6a10097c43461bcc719fbc6a8e0f940cdb2e5722670ecfd67d4781d",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\067-baseline-10.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T174821.517069700Z.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/067-baseline-10.log",
+      "bytes": 734,
+      "sha256": "6e46a8be13792ee3c4e97e49707399a376461c7c0a6d5ce3ae34d76adb56396e",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\068-OT01-recovery-original.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT01-1.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/068-OT01-recovery-original.log",
+      "bytes": 11034,
+      "sha256": "532d40982e81f3269bdc01f134deb019c773e1fe50f0279b6c7c373b67243e64",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\069-OT01-restored-proof.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT01-1.json.restored",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/069-OT01-restored-proof.log",
+      "bytes": 132,
+      "sha256": "85727809cf7fa68846cfced23b7c91704a67fb938b2a1e08c2ca64b410a903d7",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\070-OT01-symptom.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT01-1.symptom-observed.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/070-OT01-symptom.log",
+      "bytes": 319,
+      "sha256": "050d7049f7ddae77a8bea4b35754667d2e4623910f52060406431621929f8626",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\071-OT01-recovery.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT01-1.recovery-observed.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/071-OT01-recovery.log",
+      "bytes": 320,
+      "sha256": "8956aa6a12622cdd9876c117ddf429d6dee10f6afb0c9b83aa9ece2d2c42b367",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\072-OT02-recovery-original.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT02-1.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/072-OT02-recovery-original.log",
+      "bytes": 11037,
+      "sha256": "fa69d6df199fa530ebc45df23838ed867e49f685af0816a03ea837f8c74e0748",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\073-OT02-restored-proof.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT02-1.json.restored",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/073-OT02-restored-proof.log",
+      "bytes": 132,
+      "sha256": "134d261917701c11520df3f2c9340d0682ac7bdc298e42da2b532e271277a8c7",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\074-OT02-symptom.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT02-1.symptom-observed.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/074-OT02-symptom.log",
+      "bytes": 321,
+      "sha256": "7e70b2ffe533f880a78294b90821eb0a0f5ab8e43262d175b5f33cacb5249dea",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\075-OT02-recovery.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT02-1.recovery-observed.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/075-OT02-recovery.log",
+      "bytes": 319,
+      "sha256": "900eee59837f92aaf2fd60394504fbbac5d22276c12059276e2afbbb9c60bbd9",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\076-OT03-recovery-original.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT03-1.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/076-OT03-recovery-original.log",
+      "bytes": 11037,
+      "sha256": "6dfb42c47ee87357894359d1128568130af553a2f02b02ea8ca4da95eb55bb08",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\077-OT03-restored-proof.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT03-1.json.restored",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/077-OT03-restored-proof.log",
+      "bytes": 132,
+      "sha256": "fad134448290cb0b8ea3f6769d0d781c87adf8bf7dafd67a8095765e5bdb6147",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\078-OT03-symptom.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT03-1.symptom-observed.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/078-OT03-symptom.log",
+      "bytes": 321,
+      "sha256": "912e02c6ce8bfd6924ecd091ef8e9ebcf1e9c48fda426fb916b433d80a821fc3",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\079-OT03-recovery.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT03-1.recovery-observed.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/079-OT03-recovery.log",
+      "bytes": 320,
+      "sha256": "501c51a459959663bf02fd78521cba1b21e9db35724dcf359ada87808b4865fc",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\080-OT04-recovery-original.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT04-1.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/080-OT04-recovery-original.log",
+      "bytes": 11035,
+      "sha256": "6cf3fff7948fb384258d32ad8bdae8dd4e45066424108a4d4e0496134839c6e3",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\081-OT04-restored-proof.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT04-1.json.restored",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/081-OT04-restored-proof.log",
+      "bytes": 132,
+      "sha256": "a7b54825490c64bf31d60c13cb859f8564b46096339b9ed4d2ea9a19e083efa0",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\082-OT04-symptom.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT04-1.symptom-observed.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/082-OT04-symptom.log",
+      "bytes": 318,
+      "sha256": "cc78a0ccf6a9fd15b8e6e86241c49800d8f970ff5f3b876ceeeccb86cc159c64",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\083-OT04-recovery.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT04-1.recovery-observed.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/083-OT04-recovery.log",
+      "bytes": 320,
+      "sha256": "42ff3503c6a98a99986a05d8a0871ccb4edba91a51127fbbbf57e9e3397e483c",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\084-OT05-recovery-original.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT05-1.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/084-OT05-recovery-original.log",
+      "bytes": 11035,
+      "sha256": "2e3eafbb0ccef6367e171a74141eec4a580f32317701bf359b5d5f3847583e1f",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\085-OT05-restored-proof.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT05-1.json.restored",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/085-OT05-restored-proof.log",
+      "bytes": 132,
+      "sha256": "c49069cb938abd7ac3191ba9325b00b17cf70641f54ddd41f5497771a63c8344",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\086-OT05-symptom.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT05-1.symptom-observed.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/086-OT05-symptom.log",
+      "bytes": 321,
+      "sha256": "ca668cc6a397732e264d0d6690afb5d0beb5b4895b64e0e1217a45f704d1f926",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\087-OT05-recovery.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT05-1.recovery-observed.json",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/087-OT05-recovery.log",
+      "bytes": 322,
+      "sha256": "d4b9d3192d3d46f46ed9ad6e421ba68cb89901c6965f36fba610482a2c3d21d4",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\088-doctor-runtime.log",
+      "capture_origin": "fixed HTTP endpoint http://127.0.0.1:8090/api/v1/status",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/088-doctor-runtime.log",
+      "bytes": 407,
+      "sha256": "80c645843df1e20620700dfc53beeb47a1f578da1375dda00553df30c143ec37",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\089-doctor-targets.log",
+      "capture_origin": "fixed HTTP endpoint http://127.0.0.1:8090/api/v1/targets",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/089-doctor-targets.log",
+      "bytes": 4209,
+      "sha256": "e1fb63be3db53835514deb7924eb68816ba0a8fc16524c9e55a3bab61b6ab1b1",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\090-current-original-flags.log",
+      "capture_origin": "fixed HTTP endpoint http://127.0.0.1:18080/api/read",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/090-current-original-flags.log",
+      "bytes": 3387,
+      "sha256": "c0f6ac8ac14bcaae3551d8a356ff109067fdfaefe052e0820370d5a3b542c047",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\091-deepseek-free-balance.log",
+      "capture_origin": "fixed HTTP endpoint https://api.deepseek.com/user/balance",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/091-deepseek-free-balance.log",
+      "bytes": 133,
+      "sha256": "c4bf1a869105d6fe99fa5eb9e453b73c3ad0003c7cf709895e2cfee7e2a46e5a",
+      "kind": "gate_evidence"
+    },
+    {
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gate.py",
+      "repository_path": "docs/reports/phase-09-dualmock-evidence/gate-helper.py",
+      "bytes": 29892,
+      "sha256": "4de408760c32755a2b513be9872c2017f936566e8baa9f7e35a55ff8d5bb1897",
+      "kind": "executed_gate_helper_snapshot"
+    }
+  ]
+}

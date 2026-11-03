@@ -1,0 +1,28 @@
+{
+  "run_id": "phase09-dualmock-20261103T171411Z",
+  "scenario": "",
+  "iteration": 0,
+  "kind": "baseline",
+  "phase": "freeze",
+  "scenarios": [
+    "OT01",
+    "OT02",
+    "OT03",
+    "OT04",
+    "OT05"
+  ],
+  "start_utc": "2026-11-03T17:16:13.6427155Z",
+  "finished_utc": "2026-11-03T17:16:16.1029266Z",
+  "passed_utc": "2026-11-03T17:16:16.1029266Z",
+  "monotonic_elapsed_known": true,
+  "elapsed_ns": 2460275100,
+  "elapsed_seconds": 2.4602751,
+  "health_start_utc": "2026-11-03T17:16:16.0932716Z",
+  "health_finished_utc": "2026-11-03T17:16:16.0997431Z",
+  "health_monotonic_elapsed_known": true,
+  "health_elapsed_ns": 6471700,
+  "health_elapsed_seconds": 0.0064717,
+  "polls": 1,
+  "queries": 5,
+  "status": "passed"
+}

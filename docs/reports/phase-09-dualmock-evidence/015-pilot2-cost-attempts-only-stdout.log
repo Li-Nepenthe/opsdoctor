@@ -1,0 +1,6 @@
+{"id": "af0390cb17eecbb7cdb99d89431d4d61", "status": "ok", "account": "phase-09-openai", "currency": "USD", "settled_at": "2026-11-03 10:55:22.444065", "charged_micros": 6146}
+{"id": "ebd4c7768d4a0562e14e2596ad6e920a", "status": "ok", "account": "phase-09-openai", "currency": "USD", "settled_at": "2026-11-03 10:55:27.094860", "charged_micros": 3017}
+{"id": "7fb897d7861054d5b657a0a3c68dc986", "status": "ok", "account": "phase-09-openai", "currency": "USD", "settled_at": "2026-11-03 10:55:33.097357", "charged_micros": 9426}
+{"id": "68a9e66fa5d3ae2d6627a93ee426e71c", "status": "ok", "account": "phase-09-openai", "currency": "USD", "settled_at": "2026-11-03 10:55:40.344223", "charged_micros": 3477}
+{"id": "3c95f2a3b6194197003df753f56072d5", "status": "ok", "account": "phase-09-openai", "currency": "USD", "settled_at": "2026-11-03 10:55:48.342252", "charged_micros": 5113}
+{"id": "154950629781b2aa9f425cfc0c7f9fa9", "status": "ok", "account": "phase-09-deepseek", "currency": "CNY", "settled_at": "2026-11-03 10:55:54.093331", "charged_micros": 14920}

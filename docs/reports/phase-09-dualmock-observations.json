@@ -1,0 +1,698 @@
+{
+  "kind": "phase09-dualmock-file-observations",
+  "run_id": "phase09-dualmock-20261103T171411Z",
+  "observed_at_utc": "2026-11-03T17:56:50.656806+00:00",
+  "archived_at_utc": "2026-11-03T17:56:50.683Z",
+  "scope": "Only original TEMP baseline/timing/collector summary files were read. This is not a database, judgement, budget, or paid-entry approval.",
+  "counts": {
+    "baseline_records": 11,
+    "baseline_status_passed": 11,
+    "symptom_records": 5,
+    "recovery_records": 5,
+    "collector_summary_records": 10,
+    "collector_summary_normal": 10
+  },
+  "database_queried": false,
+  "budget_queried": false,
+  "entry_gate_evaluated": false,
+  "records": [
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-freeze-20261103T171613.642715500Z.json",
+      "sha256": "8082a968ebfd1975b88e939c3bec24f1740b3b6d275ae5c39942bed790846257",
+      "bytes": 727,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "",
+        "iteration": 0,
+        "kind": "baseline",
+        "phase": "freeze",
+        "start_utc": "2026-11-03T17:16:13.6427155Z",
+        "finished_utc": "2026-11-03T17:16:16.1029266Z",
+        "passed_utc": "2026-11-03T17:16:16.1029266Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.4602751,
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0064717,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T172443.193425500Z.json",
+      "sha256": "a139f371c1a2834628256ac3d49aa36ca75a6897bff0672afc327da523dfacac",
+      "bytes": 734,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT01",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "start_utc": "2026-11-03T17:24:43.1934255Z",
+        "finished_utc": "2026-11-03T17:24:45.3050095Z",
+        "passed_utc": "2026-11-03T17:24:45.3050095Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.1116389,
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0052689,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T173343.674115100Z.json",
+      "sha256": "a15eae9bc55463fcef3b50ff7ff53d7a3250a4915f464938798f6a3945010366",
+      "bytes": 734,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT02",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "start_utc": "2026-11-03T17:33:43.6741151Z",
+        "finished_utc": "2026-11-03T17:33:45.6802615Z",
+        "passed_utc": "2026-11-03T17:33:45.6802615Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.0061986,
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0060006,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T174144.026020600Z.json",
+      "sha256": "5873c50fb9ad1bd11256b41bd2dc84005995381d03e9969fd0a8ce4fbb5749dd",
+      "bytes": 734,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT03",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "start_utc": "2026-11-03T17:41:44.0260206Z",
+        "finished_utc": "2026-11-03T17:41:46.1375323Z",
+        "passed_utc": "2026-11-03T17:41:46.1375323Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.1115666,
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0061881,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T174744.172507000Z.json",
+      "sha256": "e5d8d63880a3b3d6b61f68f19b47b609facb5eedec0637f71ba0dfe21ae6736f",
+      "bytes": 739,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT04",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "start_utc": "2026-11-03T17:47:44.172507Z",
+        "finished_utc": "2026-11-03T17:48:21.465288Z",
+        "passed_utc": "2026-11-03T17:48:21.465288Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 37.2926579,
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 35.0503469,
+        "polls": 8,
+        "queries": 40
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T175544.537395000Z.json",
+      "sha256": "c6ab7819dd1ccbcc4b2c2effe40242df43e26daedf2d3544700b60260fdd775d",
+      "bytes": 733,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT05",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "post-cool",
+        "start_utc": "2026-11-03T17:55:44.537395Z",
+        "finished_utc": "2026-11-03T17:55:46.7459981Z",
+        "passed_utc": "2026-11-03T17:55:46.7459981Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.2086596,
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0053335,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T171734.723379000Z.json",
+      "sha256": "47b4b5363a9b1075fcbb1a25164ebd766a2f3c3be2fdf5a8961b8cef84d278e0",
+      "bytes": 733,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT01",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "start_utc": "2026-11-03T17:17:34.723379Z",
+        "finished_utc": "2026-11-03T17:17:37.1147906Z",
+        "passed_utc": "2026-11-03T17:17:37.1147906Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.3914738,
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0058558,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T172445.355977700Z.json",
+      "sha256": "7db37513b6804aaa47f0f66c93a97468d73fb74e4db0336c9cbe6cccc1ca11ae",
+      "bytes": 733,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT02",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "start_utc": "2026-11-03T17:24:45.3559777Z",
+        "finished_utc": "2026-11-03T17:24:47.420496Z",
+        "passed_utc": "2026-11-03T17:24:47.420496Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.0645719,
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0053754,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T173345.738582400Z.json",
+      "sha256": "82ff9590987b3af28d43702b9a390cba1b98945d7c9da984a4fea9dc422b91dd",
+      "bytes": 734,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT03",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "start_utc": "2026-11-03T17:33:45.7385824Z",
+        "finished_utc": "2026-11-03T17:33:47.7865301Z",
+        "passed_utc": "2026-11-03T17:33:47.7865301Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.048001,
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0045269,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T174146.190017400Z.json",
+      "sha256": "8766e8c0f6a10097c43461bcc719fbc6a8e0f940cdb2e5722670ecfd67d4781d",
+      "bytes": 735,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT04",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "start_utc": "2026-11-03T17:41:46.1900174Z",
+        "finished_utc": "2026-11-03T17:41:48.2537039Z",
+        "passed_utc": "2026-11-03T17:41:48.2537039Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.0637402,
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0053194,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T174821.517069700Z.json",
+      "sha256": "6e46a8be13792ee3c4e97e49707399a376461c7c0a6d5ce3ae34d76adb56396e",
+      "bytes": 734,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT05",
+        "iteration": 1,
+        "kind": "baseline",
+        "phase": "pre-inject",
+        "start_utc": "2026-11-03T17:48:21.5170697Z",
+        "finished_utc": "2026-11-03T17:48:23.8562834Z",
+        "passed_utc": "2026-11-03T17:48:23.8562834Z",
+        "status": "passed",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 2.339206,
+        "health_monotonic_elapsed_known": true,
+        "health_elapsed_seconds": 0.0064117,
+        "polls": 1,
+        "queries": 5
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT01-1.symptom-observed.json",
+      "sha256": "050d7049f7ddae77a8bea4b35754667d2e4623910f52060406431621929f8626",
+      "bytes": 319,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT01",
+        "iteration": 1,
+        "kind": "symptom",
+        "start_utc": "2026-11-03T17:17:37.12109Z",
+        "passed_utc": "2026-11-03T17:19:22.2448656Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 105.1265088,
+        "polls": 22
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT02-1.symptom-observed.json",
+      "sha256": "7e70b2ffe533f880a78294b90821eb0a0f5ab8e43262d175b5f33cacb5249dea",
+      "bytes": 321,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT02",
+        "iteration": 1,
+        "kind": "symptom",
+        "start_utc": "2026-11-03T17:24:47.4262589Z",
+        "passed_utc": "2026-11-03T17:28:22.5866976Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 215.1660329,
+        "polls": 44
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT03-1.symptom-observed.json",
+      "sha256": "912e02c6ce8bfd6924ecd091ef8e9ebcf1e9c48fda426fb916b433d80a821fc3",
+      "bytes": 321,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT03",
+        "iteration": 1,
+        "kind": "symptom",
+        "start_utc": "2026-11-03T17:33:47.8062784Z",
+        "passed_utc": "2026-11-03T17:36:22.9599081Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 155.1576637,
+        "polls": 32
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT04-1.symptom-observed.json",
+      "sha256": "cc78a0ccf6a9fd15b8e6e86241c49800d8f970ff5f3b876ceeeccb86cc159c64",
+      "bytes": 318,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT04",
+        "iteration": 1,
+        "kind": "symptom",
+        "start_utc": "2026-11-03T17:41:48.2614237Z",
+        "passed_utc": "2026-11-03T17:42:23.4119954Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 35.1504692,
+        "polls": 8
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT05-1.symptom-observed.json",
+      "sha256": "ca668cc6a397732e264d0d6690afb5d0beb5b4895b64e0e1217a45f704d1f926",
+      "bytes": 321,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT05",
+        "iteration": 1,
+        "kind": "symptom",
+        "start_utc": "2026-11-03T17:48:23.8632195Z",
+        "passed_utc": "2026-11-03T17:50:24.0281955Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 120.1656012,
+        "polls": 25
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT01-1.recovery-observed.json",
+      "sha256": "8956aa6a12622cdd9876c117ddf429d6dee10f6afb0c9b83aa9ece2d2c42b367",
+      "bytes": 320,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT01",
+        "iteration": 1,
+        "kind": "recovery",
+        "start_utc": "2026-11-03T17:19:37.9919509Z",
+        "passed_utc": "2026-11-03T17:21:23.103317Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 105.114099,
+        "polls": 22
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT02-1.recovery-observed.json",
+      "sha256": "900eee59837f92aaf2fd60394504fbbac5d22276c12059276e2afbbb9c60bbd9",
+      "bytes": 319,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT02",
+        "iteration": 1,
+        "kind": "recovery",
+        "start_utc": "2026-11-03T17:28:38.5245815Z",
+        "passed_utc": "2026-11-03T17:29:23.5973606Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 45.073951,
+        "polls": 10
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT03-1.recovery-observed.json",
+      "sha256": "501c51a459959663bf02fd78521cba1b21e9db35724dcf359ada87808b4865fc",
+      "bytes": 320,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT03",
+        "iteration": 1,
+        "kind": "recovery",
+        "start_utc": "2026-11-03T17:36:38.8671698Z",
+        "passed_utc": "2026-11-03T17:37:23.9390464Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 45.0730484,
+        "polls": 10
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT04-1.recovery-observed.json",
+      "sha256": "42ff3503c6a98a99986a05d8a0871ccb4edba91a51127fbbbf57e9e3397e483c",
+      "bytes": 320,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT04",
+        "iteration": 1,
+        "kind": "recovery",
+        "start_utc": "2026-11-03T17:42:38.9807963Z",
+        "passed_utc": "2026-11-03T17:43:24.0592449Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 45.0782999,
+        "polls": 10
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT05-1.recovery-observed.json",
+      "sha256": "d4b9d3192d3d46f46ed9ad6e421ba68cb89901c6965f36fba610482a2c3d21d4",
+      "bytes": 322,
+      "data": {
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "scenario": "OT05",
+        "iteration": 1,
+        "kind": "recovery",
+        "start_utc": "2026-11-03T17:50:39.3654332Z",
+        "passed_utc": "2026-11-03T17:52:24.4636528Z",
+        "monotonic_elapsed_known": true,
+        "elapsed_seconds": 105.1009101,
+        "polls": 22
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.summary.json",
+      "sha256": "956b46f3f469708ad15b900bfc515971d2c1df9d7a4ec2dc2e73ad004a03b2a7",
+      "bytes": 1662,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "ab364013a301428046892d2880369797",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "mock-script-v1"
+      },
+      "scenario": "OT01",
+      "group": "E1",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T17:19:31.5633393Z",
+        "window_end": "2026-11-03T17:19:37.621628Z",
+        "raw_bytes": 8329,
+        "sha256": "f0b1f3473cce1e04ffe989dee7508dc2349c7172024cec581060388d68af5685",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.summary.json",
+      "sha256": "ad4f8b7cc4a5b6a7a1b977381894553ebcf269513902bc93d38c3c0e7548220f",
+      "bytes": 1663,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "8be984a759ab406faa358259edf8593b",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "mock-script-v1"
+      },
+      "scenario": "OT01",
+      "group": "E2",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T17:19:23.9568513Z",
+        "window_end": "2026-11-03T17:19:30.0298976Z",
+        "raw_bytes": 3145,
+        "sha256": "dfd4a2b5fa327ed149ea73e88247f9fade1a73f50f119cf58332b00432d2b3b6",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.summary.json",
+      "sha256": "1e6e1845eb3c460150d8ad2c7bbd74e78bcfe06dabec5f7a953ba1eb06e138fa",
+      "bytes": 1663,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "404fdd221c405b9f068f57d63a37ce2d",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "mock-script-v1"
+      },
+      "scenario": "OT02",
+      "group": "E1",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T17:28:32.0593644Z",
+        "window_end": "2026-11-03T17:28:38.1090609Z",
+        "raw_bytes": 8353,
+        "sha256": "f3f1586872d417bafd8648476b6adfab8df997db20d8f8acd481d1e44ebf7ba6",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.summary.json",
+      "sha256": "bd0382f55fd29a9140e37ebb8687103302387b82c7515783684759d3ec926ddd",
+      "bytes": 1662,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "37ca2611599337264b0135a9fff567cd",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "mock-script-v1"
+      },
+      "scenario": "OT02",
+      "group": "E2",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T17:28:24.253479Z",
+        "window_end": "2026-11-03T17:28:30.3161228Z",
+        "raw_bytes": 6897,
+        "sha256": "1c28807fe5e7cb49ce225e82792167a8392b1d4397eda49127de4e4216ad60d2",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.summary.json",
+      "sha256": "83ebe2150a0f61dd312413b1d8edda986dba639a71607c0669eee6de86f819c7",
+      "bytes": 1663,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "f9cad8097300ca64874d14683479b18f",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "mock-script-v1"
+      },
+      "scenario": "OT03",
+      "group": "E1",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T17:36:32.3706646Z",
+        "window_end": "2026-11-03T17:36:38.4301791Z",
+        "raw_bytes": 8354,
+        "sha256": "360d8b6bbd47f61ee05d7872816ab806d33a127bdd30abc191937743566caf8f",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.summary.json",
+      "sha256": "02beb4a21ecd01b5bd321895eb19937b62785274d2bab9193930826b078bdd80",
+      "bytes": 1663,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "0965899b633aa341c4d4da434cc789e2",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "mock-script-v1"
+      },
+      "scenario": "OT03",
+      "group": "E2",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T17:36:24.6219495Z",
+        "window_end": "2026-11-03T17:36:30.6939747Z",
+        "raw_bytes": 6553,
+        "sha256": "a899f1e9fff2e5d328680ca125e0abab9a030e6dd44578bd2cdb332958c9f36d",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.summary.json",
+      "sha256": "da634f67f7f089999db581a9eb6e6c670440bbcd3062e53c2255dafbb3f150a4",
+      "bytes": 1661,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "4bfbeeb14cbd10c629a38b9acbcef5ff",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "mock-script-v1"
+      },
+      "scenario": "OT04",
+      "group": "E1",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T17:42:32.613821Z",
+        "window_end": "2026-11-03T17:42:38.6514961Z",
+        "raw_bytes": 7613,
+        "sha256": "bad62eb3758d013838d90e415692a9cd4dbd02385aa1a46e875b5d62842938ad",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.summary.json",
+      "sha256": "c7ad2718b2be038075be29ba508e071c96830eba67581467b538f1e9779e3d47",
+      "bytes": 1663,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "3653f0617738ad0f632fb9f54db0b648",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "mock-script-v1"
+      },
+      "scenario": "OT04",
+      "group": "E2",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T17:42:25.1447469Z",
+        "window_end": "2026-11-03T17:42:31.2262014Z",
+        "raw_bytes": 5841,
+        "sha256": "8cc617f00a20c945375cdfe56efa9b0a41878689c29476435ac42d04bbe0a06b",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.summary.json",
+      "sha256": "71ff429c9180a057fe65820f2b3717645d6582e779fed981d99c49fb519cdc49",
+      "bytes": 1663,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "2f44fe8d29a738026fd86eb964faa8af",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "mock-script-v1"
+      },
+      "scenario": "OT05",
+      "group": "E1",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T17:50:32.9747653Z",
+        "window_end": "2026-11-03T17:50:39.0305107Z",
+        "raw_bytes": 7587,
+        "sha256": "e7640950c663430dd91ee0a8225e34a23f1f46bb42c6d387785c24227cdba794",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.summary.json",
+      "sha256": "0511f9cb9bd63d4d42d6c16e6dda0f1dfd8987ce2cd67db45f69b32988a41cb7",
+      "bytes": 1662,
+      "data": {
+        "status": "succeeded",
+        "error": "",
+        "diagnosis_id": "73eaebdeab352de86372fb31fa85f663",
+        "data_quality": "normal",
+        "report_mode": "voluntary",
+        "model": "mock-script-v1"
+      },
+      "scenario": "OT05",
+      "group": "E2",
+      "audit": {
+        "status": "ok",
+        "error": null,
+        "window_start": "2026-11-03T17:50:25.5325677Z",
+        "window_end": "2026-11-03T17:50:31.601158Z",
+        "raw_bytes": 6953,
+        "sha256": "4b086cba876360953ec806f2a58283c0b8fc33cb368353e76d5d02aaf9cf01d5",
+        "dropping_data_events": 0,
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "mapper_error_occurrences": 0
+      }
+    }
+  ],
+  "limits": [
+    "The root reported session17242 exited0 and automatic finish succeeded; this watcher did not inspect process, database, grades, accounts, flags API, or Docker.",
+    "Each record contains the original file path, SHA256, byte length, and observed timing or collection-summary fields. No missing evidence was manufactured.",
+    "Collector raw SHA values here were copied from original summary metadata; this watcher did not independently revalidate the raw log files.",
+    "A transient incomplete JSON read was never classified as run failure; this final snapshot had no pending incomplete file."
+  ]
+}

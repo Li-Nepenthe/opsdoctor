@@ -1,0 +1,81 @@
+# 评测记录 phase09-dualmock-20261103T171411Z
+
+这张表来自接入系统 otel-demo。请按批次配置区分试跑和正式评测；每个场景样本很少，不能代表生产准确率。美元按项目用量账本计：每次请求实际 token 用量乘以 2026-10-29 核对过的官方单价；分档结算，未知请求保留预留。平台账单因 Key 与其他用途共用，无法单独核对。
+
+批次 token：0 / 10000000（含未确认预留）。
+
+## 采集正常样本
+
+| 场景 | 轮次 | 组 | 诊断 | 状态 | 组件一致 | 轮数 | 工具 | 输入 / 输出 token | 账本费用 | 耗时秒 | 提交方式 | 混合模型 |
+|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---:|---|---|
+| OT01 | 1 | E2 | 8be984a759ab406faa358259edf8593b | succeeded | false | 2 | 2 | 0 / 0 | USD 0.000000 | 0.085 | voluntary | false |
+| OT01 | 1 | E1 | ab364013a301428046892d2880369797 | succeeded | false | 2 | 2 | 0 / 0 | USD 0.000000 | 0.125 | voluntary | false |
+| OT02 | 1 | E2 | 37ca2611599337264b0135a9fff567cd | succeeded | false | 2 | 2 | 0 / 0 | USD 0.000000 | 0.065 | voluntary | false |
+| OT02 | 1 | E1 | 404fdd221c405b9f068f57d63a37ce2d | succeeded | false | 2 | 2 | 0 / 0 | USD 0.000000 | 0.057 | voluntary | false |
+| OT03 | 1 | E2 | 0965899b633aa341c4d4da434cc789e2 | succeeded | false | 2 | 2 | 0 / 0 | USD 0.000000 | 0.058 | voluntary | false |
+| OT03 | 1 | E1 | f9cad8097300ca64874d14683479b18f | succeeded | false | 2 | 2 | 0 / 0 | USD 0.000000 | 0.056 | voluntary | false |
+| OT04 | 1 | E2 | 3653f0617738ad0f632fb9f54db0b648 | succeeded | false | 2 | 2 | 0 / 0 | USD 0.000000 | 0.065 | voluntary | false |
+| OT04 | 1 | E1 | 4bfbeeb14cbd10c629a38b9acbcef5ff | succeeded | false | 2 | 2 | 0 / 0 | USD 0.000000 | 0.070 | voluntary | false |
+| OT05 | 1 | E2 | 73eaebdeab352de86372fb31fa85f663 | succeeded | false | 2 | 2 | 0 / 0 | USD 0.000000 | 0.066 | voluntary | false |
+| OT05 | 1 | E1 | 2f44fe8d29a738026fd86eb964faa8af | succeeded | false | 2 | 2 | 0 / 0 | USD 0.000000 | 0.052 | voluntary | false |
+
+## 采集受影响样本（不计入正常统计）
+
+| 场景 | 轮次 | 组 | 诊断 | 状态 | 组件一致 | 轮数 | 工具 | 输入 / 输出 token | 账本费用 | 耗时秒 | 提交方式 | 混合模型 |
+|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---:|---|---|
+
+## 采集质量未知样本（不计入正常统计）
+
+| 场景 | 轮次 | 组 | 诊断 | 状态 | 组件一致 | 轮数 | 工具 | 输入 / 输出 token | 账本费用 | 耗时秒 | 提交方式 | 混合模型 |
+|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---:|---|---|
+
+## 采集窗口审计
+
+normal 需要完整且成功的窗口审计。affected 表示已观察到最终丢弃或映射错误；unknown 表示没有审计或审计无法确认。原诊断及全部费用仍保留，受影响或未知样本的评分如已存在，也只作原始记录。
+
+| 槽位 | 采集质量 | 窗口 UTC | 最终丢弃事件 | OpenSearch 日志 dropped_items | mapper 行 / 次数 | 各信号 dropped_items / 事件 | 原始字节 | SHA256 | 原始日志路径 | 审计状态 / 容器 / 错误 |
+|---|---|---|---|---|---|---|---|---|---|---|
+| phase09-dualmock-20261103T171411Z/OT01/1/primary-E2 | normal | 2026-11-03T17:19:23.9568513Z → 2026-11-03T17:19:30.0298976Z | 0 | 0 | 0 / 0 | {"dropped_items":{},"dropping_data_events":{}} | 3145 | dfd4a2b5fa327ed149ea73e88247f9fade1a73f50f119cf58332b00432d2b3b6 | C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.log | ok 6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c  |
+| phase09-dualmock-20261103T171411Z/OT01/1/primary-E1 | normal | 2026-11-03T17:19:31.5633393Z → 2026-11-03T17:19:37.621628Z | 0 | 0 | 0 / 0 | {"dropped_items":{},"dropping_data_events":{}} | 8329 | f0b1f3473cce1e04ffe989dee7508dc2349c7172024cec581060388d68af5685 | C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.log | ok 6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c  |
+| phase09-dualmock-20261103T171411Z/OT02/1/primary-E2 | normal | 2026-11-03T17:28:24.253479Z → 2026-11-03T17:28:30.3161228Z | 0 | 0 | 0 / 0 | {"dropped_items":{},"dropping_data_events":{}} | 6897 | 1c28807fe5e7cb49ce225e82792167a8392b1d4397eda49127de4e4216ad60d2 | C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.log | ok 6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c  |
+| phase09-dualmock-20261103T171411Z/OT02/1/primary-E1 | normal | 2026-11-03T17:28:32.0593644Z → 2026-11-03T17:28:38.1090609Z | 0 | 0 | 0 / 0 | {"dropped_items":{},"dropping_data_events":{}} | 8353 | f3f1586872d417bafd8648476b6adfab8df997db20d8f8acd481d1e44ebf7ba6 | C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.log | ok 6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c  |
+| phase09-dualmock-20261103T171411Z/OT03/1/primary-E2 | normal | 2026-11-03T17:36:24.6219495Z → 2026-11-03T17:36:30.6939747Z | 0 | 0 | 0 / 0 | {"dropped_items":{},"dropping_data_events":{}} | 6553 | a899f1e9fff2e5d328680ca125e0abab9a030e6dd44578bd2cdb332958c9f36d | C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.log | ok 6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c  |
+| phase09-dualmock-20261103T171411Z/OT03/1/primary-E1 | normal | 2026-11-03T17:36:32.3706646Z → 2026-11-03T17:36:38.4301791Z | 0 | 0 | 0 / 0 | {"dropped_items":{},"dropping_data_events":{}} | 8354 | 360d8b6bbd47f61ee05d7872816ab806d33a127bdd30abc191937743566caf8f | C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.log | ok 6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c  |
+| phase09-dualmock-20261103T171411Z/OT04/1/primary-E2 | normal | 2026-11-03T17:42:25.1447469Z → 2026-11-03T17:42:31.2262014Z | 0 | 0 | 0 / 0 | {"dropped_items":{},"dropping_data_events":{}} | 5841 | 8cc617f00a20c945375cdfe56efa9b0a41878689c29476435ac42d04bbe0a06b | C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.log | ok 6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c  |
+| phase09-dualmock-20261103T171411Z/OT04/1/primary-E1 | normal | 2026-11-03T17:42:32.613821Z → 2026-11-03T17:42:38.6514961Z | 0 | 0 | 0 / 0 | {"dropped_items":{},"dropping_data_events":{}} | 7613 | bad62eb3758d013838d90e415692a9cd4dbd02385aa1a46e875b5d62842938ad | C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.log | ok 6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c  |
+| phase09-dualmock-20261103T171411Z/OT05/1/primary-E2 | normal | 2026-11-03T17:50:25.5325677Z → 2026-11-03T17:50:31.601158Z | 0 | 0 | 0 / 0 | {"dropped_items":{},"dropping_data_events":{}} | 6953 | 4b086cba876360953ec806f2a58283c0b8fc33cb368353e76d5d02aaf9cf01d5 | C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.log | ok 6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c  |
+| phase09-dualmock-20261103T171411Z/OT05/1/primary-E1 | normal | 2026-11-03T17:50:32.9747653Z → 2026-11-03T17:50:39.0305107Z | 0 | 0 | 0 / 0 | {"dropped_items":{},"dropping_data_events":{}} | 7587 | e7640950c663430dd91ee0a8225e34a23f1f46bb42c6d387785c24227cdba794 | C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.log | ok 6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c  |
+
+## 分层结果
+
+每格为平均值 [最小, 最大] n=有效样本数。阶段 9 只有采集窗口审计正常的样本参与质量、耗时、工具与单次成本统计；受影响和无法验证的样本仍保留全部医生及评委费用。组件一致记 1，否则 0；机制正确/部分/错误记 1/0.5/0。基础设施失败和混合模型仍排除，评分失败不填零。样本很少，以下不是生产准确率。
+
+| 场景 | 组 | 模型 | 组件一致 | 机制 | 证据覆盖 | 轮数 | 工具数 | 秒 | 医生单次账本 | 全部医生费用（含排除项） | 评委费用 | 可靠性 / 混合 / 未完成 | 采集受影响 / 采集未知 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| OT01 | E1 | mock-script-v1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 2.000 [2.000, 2.000] n=1 | 2.000 [2.000, 2.000] n=1 | 0.125 [0.125, 0.125] n=1 | USD 0.000 [0.000, 0.000] n=1 | USD 0.000000 | CNY 0.000000 | 0 / 0 / 0 | 0 / 0 |
+| OT01 | E2 | mock-script-v1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 2.000 [2.000, 2.000] n=1 | 2.000 [2.000, 2.000] n=1 | 0.085 [0.085, 0.085] n=1 | USD 0.000 [0.000, 0.000] n=1 | USD 0.000000 | CNY 0.000000 | 0 / 0 / 0 | 0 / 0 |
+| OT02 | E1 | mock-script-v1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 2.000 [2.000, 2.000] n=1 | 2.000 [2.000, 2.000] n=1 | 0.057 [0.057, 0.057] n=1 | USD 0.000 [0.000, 0.000] n=1 | USD 0.000000 | CNY 0.000000 | 0 / 0 / 0 | 0 / 0 |
+| OT02 | E2 | mock-script-v1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 2.000 [2.000, 2.000] n=1 | 2.000 [2.000, 2.000] n=1 | 0.065 [0.065, 0.065] n=1 | USD 0.000 [0.000, 0.000] n=1 | USD 0.000000 | CNY 0.000000 | 0 / 0 / 0 | 0 / 0 |
+| OT03 | E1 | mock-script-v1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 2.000 [2.000, 2.000] n=1 | 2.000 [2.000, 2.000] n=1 | 0.056 [0.056, 0.056] n=1 | USD 0.000 [0.000, 0.000] n=1 | USD 0.000000 | CNY 0.000000 | 0 / 0 / 0 | 0 / 0 |
+| OT03 | E2 | mock-script-v1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 2.000 [2.000, 2.000] n=1 | 2.000 [2.000, 2.000] n=1 | 0.058 [0.058, 0.058] n=1 | USD 0.000 [0.000, 0.000] n=1 | USD 0.000000 | CNY 0.000000 | 0 / 0 / 0 | 0 / 0 |
+| OT04 | E1 | mock-script-v1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 2.000 [2.000, 2.000] n=1 | 2.000 [2.000, 2.000] n=1 | 0.070 [0.070, 0.070] n=1 | USD 0.000 [0.000, 0.000] n=1 | USD 0.000000 | CNY 0.000000 | 0 / 0 / 0 | 0 / 0 |
+| OT04 | E2 | mock-script-v1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 2.000 [2.000, 2.000] n=1 | 2.000 [2.000, 2.000] n=1 | 0.065 [0.065, 0.065] n=1 | USD 0.000 [0.000, 0.000] n=1 | USD 0.000000 | CNY 0.000000 | 0 / 0 / 0 | 0 / 0 |
+| OT05 | E1 | mock-script-v1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 2.000 [2.000, 2.000] n=1 | 2.000 [2.000, 2.000] n=1 | 0.052 [0.052, 0.052] n=1 | USD 0.000 [0.000, 0.000] n=1 | USD 0.000000 | CNY 0.000000 | 0 / 0 / 0 | 0 / 0 |
+| OT05 | E2 | mock-script-v1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 0.000 [0.000, 0.000] n=1 | 2.000 [2.000, 2.000] n=1 | 2.000 [2.000, 2.000] n=1 | 0.066 [0.066, 0.066] n=1 | USD 0.000 [0.000, 0.000] n=1 | USD 0.000000 | CNY 0.000000 | 0 / 0 / 0 | 0 / 0 |
+
+## 评分与失败明细
+
+以下是原始结论与评委理由；评委也是模型，未经独立复核，不能视为标准答案。格式、预算、可靠性和评分失败分别显示。推理错误、工具不足、数据缺失以及评分有误的最终分类，需要结合原步骤逐条核对。
+
+| 槽位 | 医生错误 / 预算原因 | 机制 / 评分状态 | 评分理由 | 证据覆盖 | 评委账本 | S12 实际暴露 | 写提议 / 执行 |
+|---|---|---|---|---|---|---|---|
+| phase09-dualmock-20261103T171411Z/OT01/1/primary-E2 |   | incorrect | Mock 模式，不是真实评分 | 0.000 | CNY 0.000000 | false | 0 / 0 |
+| phase09-dualmock-20261103T171411Z/OT01/1/primary-E1 |   | incorrect | Mock 模式，不是真实评分 | 0.000 | CNY 0.000000 | false | 0 / 0 |
+| phase09-dualmock-20261103T171411Z/OT02/1/primary-E2 |   | incorrect | Mock 模式，不是真实评分 | 0.000 | CNY 0.000000 | false | 0 / 0 |
+| phase09-dualmock-20261103T171411Z/OT02/1/primary-E1 |   | incorrect | Mock 模式，不是真实评分 | 0.000 | CNY 0.000000 | false | 0 / 0 |
+| phase09-dualmock-20261103T171411Z/OT03/1/primary-E2 |   | incorrect | Mock 模式，不是真实评分 | 0.000 | CNY 0.000000 | false | 0 / 0 |
+| phase09-dualmock-20261103T171411Z/OT03/1/primary-E1 |   | incorrect | Mock 模式，不是真实评分 | 0.000 | CNY 0.000000 | false | 0 / 0 |
+| phase09-dualmock-20261103T171411Z/OT04/1/primary-E2 |   | incorrect | Mock 模式，不是真实评分 | 0.000 | CNY 0.000000 | false | 0 / 0 |
+| phase09-dualmock-20261103T171411Z/OT04/1/primary-E1 |   | incorrect | Mock 模式，不是真实评分 | 0.000 | CNY 0.000000 | false | 0 / 0 |
+| phase09-dualmock-20261103T171411Z/OT05/1/primary-E2 |   | incorrect | Mock 模式，不是真实评分 | 0.000 | CNY 0.000000 | false | 0 / 0 |
+| phase09-dualmock-20261103T171411Z/OT05/1/primary-E1 |   | incorrect | Mock 模式，不是真实评分 | 0.000 | CNY 0.000000 | false | 0 / 0 |

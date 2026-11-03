@@ -181,9 +181,13 @@ flowchart LR
 
 [结果导出](../internal/eval/report/markdown.go)把 `data_quality` 分成 `normal`、`affected`、`unknown`。已观察到任一信号最终丢弃或 mapper 错误时为 affected；不能完整核对证据时为 unknown。后两类先保存诊断和费用，再停止评分及后续槽位，不自动补跑，并从正常组件、机制、覆盖率、耗时等聚合和正常报告抽样中排除。原诊断、已有评分与所有费用仍可追溯。阶段 8 历史记录保持原口径，不追溯要求新增窗口审计。实现与边界的 Mock 回归见[采集检查](reports/phase-09-collection-checks.json)及[Jaeger 接线后的检查](reports/phase-09-jaeger-prefix-checks.json)，各轮保留当时的源码身份。
 
-Demo 的 span 指标实际按一分钟间隔到达，原一分钟 increase 窗口会没有足够样本；场景验证窗口已改为两分钟，五个健康条件均返回样本，见台账 P9-7、[原空结果](reports/phase-09-baseline-verified.json)与[修订后检查](reports/phase-09-baseline-two-minute.json)。这只修正宿主机的场景验证条件，不是医生提示、工具、手册或评分调整，也不是五场故障注入通过的证明。
+Demo 的 span 指标实际按一分钟间隔到达，原一分钟 increase 窗口会没有足够样本；场景验证窗口已改为两分钟，五个健康条件均返回样本，见台账 P9-7、[原空结果](reports/phase-09-baseline-verified.json)与[修订后检查](reports/phase-09-baseline-two-minute.json)。这是当时宿主机场景验证窗口的接通证据，没有据此宣称故障注入通过。后续真实双Mock与正式批次各自留档，见P9-72、P9-77。
 
-后续开跑前，OT01 的服务级健康条件又包含了 flagd EventStream 的 CLIENT span。用户只批准将[OT01](../eval/scenarios/otel-demo/OT01.yaml)的症状判定与健康判定限定到 `span_kind="SPAN_KIND_SERVER"`、`span_name="oteldemo.AdService/GetAds"`；发给医生的 `symptoms`、标准答案与证据里程碑保持冻结。原健康失败、同窗影子查询和其他字段哈希断言都保存在[修订审计](reports/phase-09-ot01-baseline-amendment.json)。这项范围修订不说明 EventStream 的错误原因或稳定性，其独立观察结论仍待后续记录。
+后续开跑前，OT01 的服务级健康条件又包含了 flagd EventStream 的 CLIENT span。用户只批准将[OT01](../eval/scenarios/otel-demo/OT01.yaml)的症状判定与健康判定限定到 `span_kind="SPAN_KIND_SERVER"`、`span_name="oteldemo.AdService/GetAds"`；发给医生的 `symptoms`、标准答案与证据里程碑保持冻结。原健康失败、同窗影子查询和其他字段哈希断言都保存在[修订审计](reports/phase-09-ot01-baseline-amendment.json)。这项范围修订不说明EventStream已修好；其背景调查、其他服务覆盖与有限样本结论见P9-37、P9-42，噪声原样保留给医生。OT03按同原则限定支付Charge SERVER，限定审计见P9-59。
+
+阶段9的健康基线由[独立helper](../internal/eval/runner/generalization_baseline.go)在宿主机核对：资源、完整开关、健康、故障开放期保持原顺序；仅健康部分每五秒一轮、最多五分钟，同一轮全部场景通过才继续，查询报错立即停止。原因是Demo下单稀疏、业务span指标约一分钟一个原生样本，本轮实测中位59.997秒，计数平台会使单次有调用判定不成立（P9-67、P9-73）。原PromQL的两分钟窗口、必须有调用且无错误均未改。整次调用与健康轮询分别用单调时钟记时，freeze、注入前和冷却后各有独占证据，失败也保留。
+
+评分拒收与API异常分开：已确认返回并计量、但冻结校验拒收的评分保持缺失、不重评；同一阶段9新run前两份继续恢复冷却，累计第三份停止。API有限重试后失败、返回/费用未知、预算不足和所有采集/执行异常仍停止；judge、scoring与旧阶段8流程不改（P9-58）。本次正式五场E1/E2十份报告及十份原评分均完成，Collector全normal，具体效果与低分见[正式导出](reports/phase-09-formal-results.md)和P9-77，不把协议通过等同于根因查明。
 
 中断后续读原轮次和槽位，保存过的输入、终态与首次盲评编号不覆盖。正常可靠性失败与格式、推理和预算失败分开；指定校时取消的补跑是经用户批准的单独例外，不推广成随意重跑。评测时写审批会被拒绝，执行器也再次拦截；恢复由宿主机评测器完成。见 [结果存储](../internal/doctor/store/eval_results.go)、[可靠性分类](../internal/doctor/store/eval_reliability.go)、[版本修订审计](reports/phase-08-execution-versions.json)。
 
@@ -213,6 +217,6 @@ worker 当前管理健康探针只调用数据库 Ping，不能证明 Kafka 已�
 
 ## 当前取舍
 
-采用单实例医生加 MySQL，减少分布式调度和消息基础设施的复杂度；代价是没有高可用。原生页面和 SSE 足够展示诊断过程，代价是没有复杂前端交互。通用手册用本地关键词检索，容易审计和冻结，代价是检索覆盖有限。工具接口已容纳第二日志实现，并读取真实外部日志；陌生系统上的诊断泛化仍未完成评测。
+采用单实例医生加 MySQL，减少分布式调度和消息基础设施的复杂度；代价是没有高可用。原生页面和 SSE 足够展示诊断过程，代价是没有复杂前端交互。通用手册用本地关键词检索，容易审计和冻结，代价是检索覆盖有限。工具接口已容纳Loki/OpenSearch两个实现，第二系统已通过独立部署与五场E1/E2实测；两组组件严格一致各3/5、机制正确各2/5（P9-77）。这些是小样本结果，不能推到多数系统或生产可靠性。
 
 故障实验与评测既是项目能力，也是约束：它能解释这套靶场中为什么判断成功或失败，尚不能支持对陌生系统、长期生产运行或安全攻击的宽泛结论。

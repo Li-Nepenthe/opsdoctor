@@ -1,0 +1,331 @@
+{
+  "measured_at_utc": "2026-11-03T17:17:05.737854+00:00",
+  "running_containers": [
+    {
+      "name": "opsdoctor-phase09-doctor",
+      "id": "dadfd28f26b3d57451f11736807842eeab20fadb3981b4fdfd47c936d11d35c0",
+      "image": "opsdoctor/doctor:phase09-20261102.4"
+    },
+    {
+      "name": "opsdoctor-phase09-doctor-mysql",
+      "id": "8514f0462dfa03b0e715051676f7ce72c0566510c3964e0b04508c156d115cb1",
+      "image": "mysql:8.4.13"
+    },
+    {
+      "name": "opsdoctor-otel-demo-frontend-proxy",
+      "id": "8ec0418c73ff7046b6e8e5f399604a56d92ca7e4ea079e57a1e5675a0dba3a5e",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-frontend-proxy"
+    },
+    {
+      "name": "opsdoctor-otel-demo-load-generator",
+      "id": "929321cfb76e20c2899b26967b3a6daf85986104a4fc435f06d67726301aa8fe",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-load-generator"
+    },
+    {
+      "name": "opsdoctor-otel-demo-frontend",
+      "id": "0531452a917581e2222b742f532f2233e827cd6910cfaa2fde749dc27fd234b2",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-frontend"
+    },
+    {
+      "name": "opsdoctor-otel-demo-checkout",
+      "id": "be33b82176edf618fc77141bebb0341e43796d8bb6928011eced4489f9e2b6ae",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-checkout"
+    },
+    {
+      "name": "opsdoctor-otel-demo-recommendation",
+      "id": "5d3ee1c1782d45bf9124e079ab7211391a3f0ba6d3a0634be670f51078de74a7",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-recommendation"
+    },
+    {
+      "name": "opsdoctor-otel-demo-fraud-detection",
+      "id": "698b5f2a399b1568bd5f8c505a37dd757746e65489008b7883a7483428fab7fd",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-fraud-detection"
+    },
+    {
+      "name": "opsdoctor-otel-demo-product-catalog",
+      "id": "c1dbda475d7828dedf3895fbad44d71247e82cb92dfd0397790604e5934b92c1",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-product-catalog"
+    },
+    {
+      "name": "opsdoctor-otel-demo-flagd-ui",
+      "id": "25ecc6e80ab22e49e8eb31f9908088bdd510f6803482b3b474e8d18a7fae3785",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-flagd-ui"
+    },
+    {
+      "name": "opsdoctor-otel-demo-accounting",
+      "id": "8f6e159bbfff2030414297f63824cc8b217acef25d7d20e127700b9c9e9febcb",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-accounting"
+    },
+    {
+      "name": "opsdoctor-otel-demo-payment",
+      "id": "76859effb95bec725c015e539af14c7395ce67c6d134497d0dd8131a0b0c62ed",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-payment"
+    },
+    {
+      "name": "opsdoctor-otel-demo-shipping",
+      "id": "020f26b08a9bee9447403d0c5497b71d785412d75df46cae2eade7f9d6a9ac48",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-shipping"
+    },
+    {
+      "name": "opsdoctor-otel-demo-ad",
+      "id": "6e89131f98c16fe63aba90a9fbf013d352ebcf36ce6103b878ab351f174730c3",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-ad"
+    },
+    {
+      "name": "opsdoctor-otel-demo-cart",
+      "id": "eb7c1656fe6f5bcdc6e5c90ecdd48aa8d2e0aba0f9e712fb12b151095a622fb8",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-cart"
+    },
+    {
+      "name": "opsdoctor-otel-demo-kafka",
+      "id": "3e0f6790fd8d451c723efabf85edb8c0fd6726d647640d68c49b62ef735b731c",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-kafka"
+    },
+    {
+      "name": "opsdoctor-otel-demo-flagd",
+      "id": "08ce5ff43006a574d51beb36caf37c7bc80964f56e32db0bb47c7249a340a9db",
+      "image": "ghcr.io/open-feature/flagd:v0.16.0"
+    },
+    {
+      "name": "opsdoctor-otel-demo-quote",
+      "id": "dfd1a868d85eb79330a89a1b8a7dc69cb654d26384db55533242e97a678e2e31",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-quote"
+    },
+    {
+      "name": "opsdoctor-otel-demo-image-provider",
+      "id": "b873c1d64ae73545c22c72802c9e0fdec9e910a41c6395bec20923b647e43064",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-image-provider"
+    },
+    {
+      "name": "opsdoctor-otel-demo-email",
+      "id": "c8b8448941c07ef206e7325c41e95562fa24a704f3cebb354b197b37670ab986",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-email"
+    },
+    {
+      "name": "opsdoctor-otel-demo-currency",
+      "id": "9cc5b5c89aa7309bb3a7a8cd8891f11409584cfac661fab02c0e1254b439e3a9",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-currency"
+    },
+    {
+      "name": "opsdoctor-otel-demo-otel-collector",
+      "id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+      "image": "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.159.0"
+    },
+    {
+      "name": "opsdoctor-otel-demo-opamp-server",
+      "id": "b6cfa0b681a3cd07ccb037e9f0c793fc235c70c5bbcc34de3184a07dfe2f0008",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-opamp-server"
+    },
+    {
+      "name": "opsdoctor-otel-demo-telemetry-docs",
+      "id": "8674e73141d2e8cfb2ffc268cabda051b99c75a0ffe67d2286f63e358afbbc56",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-telemetry-docs"
+    },
+    {
+      "name": "opsdoctor-otel-demo-grafana",
+      "id": "c78aa32ce85c5b356dfeb956adda565b4dd54011e79ae282f875a86bb1cc81f8",
+      "image": "grafana/grafana:13.1.0"
+    },
+    {
+      "name": "opsdoctor-otel-demo-astronomy-db",
+      "id": "a31d37f6844e960c74c7c29567b170065874e6775ba07d4a76bb7ddddc07d5c8",
+      "image": "postgres:18.4"
+    },
+    {
+      "name": "opsdoctor-otel-demo-jaeger",
+      "id": "db434256a44ec91c9de1b52fca613575ee6edcec6cb581c903536d1fc3aeed21",
+      "image": "quay.io/jaegertracing/jaeger:2.19.0"
+    },
+    {
+      "name": "opsdoctor-otel-demo-valkey-cart",
+      "id": "7d1a737f76790a8399224848a5f358190b52eb59cc714013bff63c0bdde536b1",
+      "image": "ghcr.io/valkey-io/valkey:9.0.4-alpine3.23"
+    },
+    {
+      "name": "opsdoctor-otel-demo-prometheus",
+      "id": "d1776f37fc06ab2cbd54fdf14ab28d386cbc2c3f16b0151edd7cf67affd46a2b",
+      "image": "quay.io/prometheus/prometheus:v3.13.1"
+    },
+    {
+      "name": "opsdoctor-otel-demo-opensearch",
+      "id": "6511e5875e5fdf7696f71badf3228c38b4476f6e3d78eb69fa0141292b89d3f3",
+      "image": "ghcr.io/open-telemetry/demo:3.1.0-opensearch"
+    }
+  ],
+  "demo_containers": 28,
+  "demo_running": 28,
+  "original_containers": [
+    {
+      "name": "opsdoctor-loadgen-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-order-service-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-alertmanager-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-kafka-exporter-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-order-worker-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-inventory-service-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-mysqld-exporter-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-doctor-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-alloy-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-redis-exporter-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-shop-mysql-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-kafka-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-doctor-mysql-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-prometheus-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-jaeger-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-redis-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-loki-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "opsdoctor-grafana-1",
+      "same_id_and_mount_names": true,
+      "current_state": "created"
+    },
+    {
+      "name": "opsdoctor-toxiproxy-1",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "qq-astrbot",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    },
+    {
+      "name": "qq-napcat",
+      "same_id_and_mount_names": true,
+      "current_state": "exited"
+    }
+  ],
+  "all_original_ids_and_mount_names_match_phase10_baseline": true,
+  "removed_original_volume_names": [],
+  "retained_phase10_projects": 20,
+  "retained_phase10_test_volumes": 138,
+  "missing_phase10_test_volumes": [],
+  "original_doctor_volume_present": true,
+  "qq_containers": [
+    {
+      "name": "qq-astrbot",
+      "id": "5d46d63526c93f165c097f1aa1c25669eceeef8b8248c74b3c348d22bdd29104",
+      "state": "exited"
+    },
+    {
+      "name": "qq-napcat",
+      "id": "20050fcdf5b5d81e642f9d4d2a5370684d062d0d056e393041a2ddd797844f4d",
+      "state": "exited"
+    }
+  ],
+  "available_doctor_and_database": [
+    {
+      "name": "opsdoctor-phase09-doctor",
+      "id": "dadfd28f26b3d57451f11736807842eeab20fadb3981b4fdfd47c936d11d35c0",
+      "image": "opsdoctor/doctor:phase09-20261102.4",
+      "started_at": "2026-11-03T10:56:52.11690966Z",
+      "status": "running",
+      "safe_configuration": {
+        "EVAL_COMPARISON_TOTAL_CNY": "10",
+        "LLM_TOTAL_BUDGET": "10",
+        "EVAL_COMPARISON_ENABLED": "false",
+        "LLM_BUDGET_ACCOUNT": "phase-09-openai",
+        "LLM_PROVIDER": "mock",
+        "EVAL_COMPARISON_ACCOUNT": "phase-09-deepseek"
+      },
+      "mounts": [
+        {
+          "name": null,
+          "destination": "/etc/doctor/runbooks",
+          "type": "bind"
+        },
+        {
+          "name": null,
+          "destination": "/etc/doctor/targets",
+          "type": "bind"
+        }
+      ]
+    },
+    {
+      "name": "opsdoctor-phase09-doctor-mysql",
+      "id": "8514f0462dfa03b0e715051676f7ce72c0566510c3964e0b04508c156d115cb1",
+      "image": "mysql:8.4.13",
+      "started_at": "2026-11-03T05:51:13.352158038Z",
+      "status": "running",
+      "safe_configuration": {},
+      "mounts": [
+        {
+          "name": "opsdoctor-phase09-doctor_doctor-state",
+          "destination": "/var/lib/mysql",
+          "type": "volume"
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "At the start of the authorized dual-Mock run, only the new Demo and independent Mock doctor pair are running; containers, indexes and volumes retained.",
+    "Original container IDs and mount names compare against stage10 retained baseline; runtime state is listed separately, not claimed unchanged.",
+    "No data byte-for-byte comparison or historical registry tag claim."
+  ]
+}

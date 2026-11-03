@@ -1,0 +1,37 @@
+{
+  "started_at_utc": "2026-11-03T17:58:33.142604+00:00",
+  "finished_at_utc": "2026-11-03T18:08:33.176676+00:00",
+  "passed": true,
+  "exit_code": 0,
+  "summary": {
+    "type": "summary",
+    "started_utc": "2026-11-03T17:58:33.199181265Z",
+    "finished_utc": "2026-11-03T18:08:33.165064177Z",
+    "elapsed_ms": 600003,
+    "sampling_window_seconds": 600,
+    "interval_seconds": 5,
+    "attempts": 239,
+    "successes": 239,
+    "failures": 0,
+    "providers": {
+      "deepseek": {
+        "attempts": 120,
+        "successes": 120,
+        "failures": 0
+      },
+      "openai": {
+        "attempts": 119,
+        "successes": 119,
+        "failures": 0
+      }
+    },
+    "completed": true
+  },
+  "raw_path": "docs\\reports\\phase-09-formal-free-network.jsonl",
+  "raw_sha256": "b373d552d57d7133814ed1af054e09fbe89075fe17c77f348570bb7889bd4e99",
+  "source_sha256": "77478d69af9941045eae96d79c7c587831efb90cb5410d576a68ee6271ba9cf6",
+  "binary_sha256": "8159d3a173791c1445c661049164112cf7bd7876bf9b969a5927c187492b7182",
+  "stderr_bytes": 0,
+  "no_model_generation": true,
+  "note": "GET model lists only, original ten-minute parallel/default-transport probe; no application retries. Old helpers and outputs retained."
+}

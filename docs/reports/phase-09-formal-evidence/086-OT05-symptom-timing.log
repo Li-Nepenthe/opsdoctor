@@ -1,0 +1,12 @@
+{
+  "run_id": "phase09-formal-20261103T181204Z-terra",
+  "scenario": "OT05",
+  "iteration": 1,
+  "kind": "symptom",
+  "start_utc": "2026-11-03T18:47:40.1866945Z",
+  "passed_utc": "2026-11-03T18:48:25.3074676Z",
+  "monotonic_elapsed_known": true,
+  "elapsed_ns": 45121928200,
+  "elapsed_seconds": 45.1219282,
+  "polls": 10
+}

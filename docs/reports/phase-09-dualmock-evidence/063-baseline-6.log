@@ -1,0 +1,28 @@
+{
+  "run_id": "phase09-dualmock-20261103T171411Z",
+  "scenario": "OT01",
+  "iteration": 1,
+  "kind": "baseline",
+  "phase": "pre-inject",
+  "scenarios": [
+    "OT01",
+    "OT02",
+    "OT03",
+    "OT04",
+    "OT05"
+  ],
+  "start_utc": "2026-11-03T17:17:34.723379Z",
+  "finished_utc": "2026-11-03T17:17:37.1147906Z",
+  "passed_utc": "2026-11-03T17:17:37.1147906Z",
+  "monotonic_elapsed_known": true,
+  "elapsed_ns": 2391473800,
+  "elapsed_seconds": 2.3914738,
+  "health_start_utc": "2026-11-03T17:17:37.1073633Z",
+  "health_finished_utc": "2026-11-03T17:17:37.113219Z",
+  "health_monotonic_elapsed_known": true,
+  "health_elapsed_ns": 5855800,
+  "health_elapsed_seconds": 0.0058558,
+  "polls": 1,
+  "queries": 5,
+  "status": "passed"
+}

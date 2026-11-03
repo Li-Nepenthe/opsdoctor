@@ -1,0 +1,28 @@
+{
+  "run_id": "phase09-formal-20261103T181204Z-terra",
+  "scenario": "OT01",
+  "iteration": 1,
+  "kind": "baseline",
+  "phase": "post-cool",
+  "scenarios": [
+    "OT01",
+    "OT02",
+    "OT03",
+    "OT04",
+    "OT05"
+  ],
+  "start_utc": "2026-11-03T18:23:33.3447347Z",
+  "finished_utc": "2026-11-03T18:23:35.3252376Z",
+  "passed_utc": "2026-11-03T18:23:35.3252376Z",
+  "monotonic_elapsed_known": true,
+  "elapsed_ns": 1980553600,
+  "elapsed_seconds": 1.9805536,
+  "health_start_utc": "2026-11-03T18:23:35.3167212Z",
+  "health_finished_utc": "2026-11-03T18:23:35.3220298Z",
+  "health_monotonic_elapsed_known": true,
+  "health_elapsed_ns": 5308700,
+  "health_elapsed_seconds": 0.0053087,
+  "polls": 1,
+  "queries": 5,
+  "status": "passed"
+}

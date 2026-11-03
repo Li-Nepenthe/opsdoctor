@@ -1,0 +1,20 @@
+{
+  "recorded_at_utc": "2026-11-03T16:57:06.293198+00:00",
+  "tested_commit": "ac71f3063d25e1e49692ac481bc0552e9f882822",
+  "command": "go build -o %TEMP%/opsdoctor-phase09/eval-baseline-wait.exe ./cmd/eval",
+  "binary_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eval-baseline-wait.exe",
+  "binary_sha256": "9bfe5a04392f4a90c31bb852a4189634c2611dd567e0ed6e5982b834d59cd7fc",
+  "source_matches_baseline_wait_checks": true,
+  "build_metadata": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\eval-baseline-wait.exe: go1.27.1\n\tpath\tgithub.com/Li-Nepenthe/opsdoctor/cmd/eval\n\tmod\tgithub.com/Li-Nepenthe/opsdoctor\tv0.0.0-20261103165527-ac71f3063d25+dirty\t\n\tdep\tfilippo.io/edwards25519\tv1.2.0\th1:crnVqOiS4jqYleHd9vaKZ+HKtHfllngJIiOpNpoJsjo=\n\tdep\tgithub.com/XSAM/otelsql\tv0.44.0\th1:KxCiv26Fh4okTPlgROE2BWk+lgi20pdgMGxuSwgbRls=\n\tdep\tgithub.com/cespare/xxhash/v2\tv2.3.0\th1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=\n\tdep\tgithub.com/go-logr/logr\tv1.4.4\th1:tG4xh9yMsRCAiodLVTxyrkzSZ9+o0L1Kg/+cPVcbP/8=\n\tdep\tgithub.com/go-logr/stdr\tv1.2.2\th1:hSWxHoqTgW2S2qGc0LTAI563KZ5YKYRhT3MFKZMbjag=\n\tdep\tgithub.com/go-sql-driver/mysql\tv1.10.1\th1:arlSnNLq6a5yxGxV7qg9lF4j0C+KwD6NbQyKr9QL6ME=\n\tdep\tgithub.com/goccy/go-yaml\tv1.19.2\th1:PmFC1S6h8ljIz6gMRBopkjP1TVT7xuwrButHID66PoM=\n\tdep\tgithub.com/google/jsonschema-go\tv0.4.3\th1:/DBOLZTfDow7pe2GmaJNhltueGTtDKICi8V8p+DQPd0=\n\tdep\tgithub.com/modelcontextprotocol/go-sdk\tv1.8.0\th1:KIvahhYqwtbeniWVPs3TcXEA7b8jEtwfBpOTAI+Urx4=\n\tdep\tgithub.com/redis/go-redis/v9\tv9.23.0\th1:/TTVdJa8BRNsybwwGGnmiYktHNlUXtbOQxlWpHBPL3s=\n\tdep\tgithub.com/segmentio/asm\tv1.1.3\th1:WM03sfUOENvvKexOLp+pCqgb/WDjsi7EK8gIsICtzhc=\n\tdep\tgithub.com/segmentio/encoding\tv0.5.4\th1:OW1VRern8Nw6ITAtwSZ7Idrl3MXCFwXHPgqESYfvNt0=\n\tdep\tgithub.com/yosida95/uritemplate/v3\tv3.0.2\th1:Ed3Oyj9yrmi9087+NczuL5BwkIc4wvTb5zIM+UJPGz4=\n\tdep\tgo.opentelemetry.io/auto/sdk\tv1.2.1\th1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=\n\tdep\tgo.opentelemetry.io/otel\tv1.47.0\th1:j7ALJ/zgkS7Z6aeJW09p8VC9804bC+PpeTfCD4XPnOM=\n\tdep\tgo.opentelemetry.io/otel/log\tv1.47.0\th1:cOTS1CcLbSQeZKanGJ+0JpF/+t4PELi3O3bbl2lqCcI=\n\tdep\tgo.opentelemetry.io/otel/metric\tv1.47.0\th1:4PptaldXx3Eat1XjMZ68pPJEs5wrhlemctZE9a3UdWY=\n\tdep\tgo.opentelemetry.io/otel/trace\tv1.47.0\th1:JOjX/Oci8K94QHddo+bbfya/Ai/nf6/dt9ZfrFNWSrM=\n\tdep\tgo.uber.org/atomic\tv1.12.0\th1:BvcXdFKuviU4fTL/f+SxdQ5qJX/Jix8pAkgdUcb3XOE=\n\tdep\tgolang.org/x/oauth2\tv0.37.0\th1:JUlcxA8oAtauLfiH8FX2/FkAWHAdi0QtGCGc+hofE98=\n\tdep\tgolang.org/x/sync\tv0.24.0\th1:iqiDrGoDgyuvAKrhLQthUEzU/R378N78gXbBjxed7oA=\n\tdep\tgolang.org/x/sys\tv0.49.0\th1:XbzkgYJHdqh/8m2Uu0W/dQv8nktxx4BFHp1M0gROTXA=\n\tdep\tgolang.org/x/time\tv0.16.0\th1:vMb6ptszcQMkcwiRTAuNNU50gom6++Q/6gY2hDM6VDE=\n\tbuild\t-buildmode=exe\n\tbuild\t-compiler=gc\n\tbuild\tCGO_ENABLED=1\n\tbuild\tCGO_CFLAGS=\n\tbuild\tCGO_CPPFLAGS=\n\tbuild\tCGO_CXXFLAGS=\n\tbuild\tCGO_LDFLAGS=\n\tbuild\tGOARCH=amd64\n\tbuild\tGOOS=windows\n\tbuild\tGOAMD64=v1\n\tbuild\tvcs=git\n\tbuild\tvcs.revision=ac71f3063d25e1e49692ac481bc0552e9f882822\n\tbuild\tvcs.time=2026-11-03T16:55:27Z\n\tbuild\tvcs.modified=true\n",
+  "temporary_helpers_sha256": {
+    "mock-control-baseline-wait.py": "e96cd7c0be133002088103e0e65a4c81ce8e2f7c3b14645c3f55d630a57ca783",
+    "paid-control-baseline-wait.py": "eec08e7893bca967aacf344fb31d0845865c213d300f958b84a336350713b316",
+    "run-eval-with-log-baseline-wait.py": "a76c3266d534a86f9a4fbfc3d9558509933feb1b19ada15653539804ca650eb3"
+  },
+  "no_container_or_model_requests": true,
+  "notes": [
+    "Old eval.exe and old helper files retained.",
+    "Mock helper rejects paid parameters and strips all model API keys from eval child environment.",
+    "Build metadata may mark modified because the two user-owned working-tree changes are deliberately preserved."
+  ]
+}

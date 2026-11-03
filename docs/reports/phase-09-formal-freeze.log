@@ -1,0 +1,2 @@
+eval arguments: freeze --run phase09-formal-20261103T181204Z-terra --model gpt-6.1-terra --scenarios OT01,OT02,OT03,OT04,OT05 --groups E1,E2 --iterations 1
+阶段 9 批次 phase09-formal-20261103T181204Z-terra 已冻结：5 次注入，组 E1,E2；自动诊断已暂停，本命令没有调用模型。

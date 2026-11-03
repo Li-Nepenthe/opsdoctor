@@ -15,3 +15,6 @@ coverage.*
 .opsdoctor-chaos.json
 # 校时事件先在本机追加，再将审核过的公开数字写入数据台账。
 .opsdoctor-clock-events.jsonl
+# 离线统计脚本的 Python 字节码属于本机缓存，不是实验原件。
+__pycache__/
+*.py[cod]

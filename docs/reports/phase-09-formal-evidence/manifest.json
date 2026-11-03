@@ -1,0 +1,729 @@
+{
+  "kind": "phase09_formal_evidence_archive",
+  "run_id": "phase09-formal-20261103T181204Z-terra",
+  "archived_at_utc": "2026-11-03T19:04:55.289878+00:00",
+  "source_snapshot": {
+    "repository_path": "docs/reports/phase-09-formal-snapshot.json",
+    "bytes": 375727,
+    "sha256": "667b913d6c33ca0a5f1aa1611660ba22cd8a376ca342bcae036fcea00b50a067",
+    "unchanged": true
+  },
+  "method": "All snapshot-listed sources verified against original bytes/SHA256 before O_EXCL copy; destination bytes rechecked. Source snapshot paths and fields unchanged.",
+  "snapshot_evidence_files": 87,
+  "snapshot_evidence_bytes": 559868,
+  "helper_sha256": "3c14c9dc2288329f17b18e8c6e582db895a75676d57a7f70cbeb62381bf58ccd",
+  "login_or_api_key_required_for_archive": false,
+  "model_or_regrading_calls_during_archive": 0,
+  "files": [
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/001-batch_before-stdout.log",
+      "bytes": 6249,
+      "sha256": "620a95b97c38e25dcc76b2c00f656d17dcc36b6ac476b289c3deb5350f42ef7b",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\001-batch_before-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/002-batch_before-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\002-batch_before-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/003-trials-stdout.log",
+      "bytes": 1220,
+      "sha256": "57c8f52b75cc6ca823fec6a20f96b3c9967f62a9e4c599ba5dc9f8b444e3ccd4",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\003-trials-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/004-trials-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\004-trials-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/005-slots-stdout.log",
+      "bytes": 96209,
+      "sha256": "4c0b7903ad6b1dd1d52272cfeb4f00598ad4b1a10bf4e74e1de78729ec3ee794",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\005-slots-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/006-slots-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\006-slots-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/007-attempts-stdout.log",
+      "bytes": 42573,
+      "sha256": "00e39e5761b4e104ae114a62dbe62c4cb89926df529564210b5cc7fb6628330f",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\007-attempts-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/008-attempts-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\008-attempts-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/009-diagnoses-stdout.log",
+      "bytes": 7280,
+      "sha256": "f5f65915c858566aba6c06400c2c3dd9a73f7e4b92152c27abbf7ba134a6243f",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\009-diagnoses-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/010-diagnoses-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\010-diagnoses-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/011-accounts-stdout.log",
+      "bytes": 194,
+      "sha256": "0e161986c6d172e041ccfa5998a7b800f7490e357e0437099b1d57f6aec74b50",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\011-accounts-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/012-accounts-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\012-accounts-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/013-interruptions-stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\013-interruptions-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/014-interruptions-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\014-interruptions-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/015-batch_after-stdout.log",
+      "bytes": 6249,
+      "sha256": "620a95b97c38e25dcc76b2c00f656d17dcc36b6ac476b289c3deb5350f42ef7b",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\015-batch_after-stdout.log",
+      "capture_origin": "fixed new doctor DB UTF8 SELECT",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/016-batch_after-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\016-batch_after-stderr.log",
+      "capture_origin": "fixed new doctor DB stderr",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/017-5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c-collector-raw.log",
+      "bytes": 23718,
+      "sha256": "1b1b70856392ce82e8fb18cb6d3499996a192f5f17eefffcfedb51440047264a",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\017-5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c-collector-raw.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c.log",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/018-5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c-start.log",
+      "bytes": 648,
+      "sha256": "91298799971ec7c1894188a62b1149e7fe4515efb90d6484bcab7d4532c6fb8d",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\018-5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c-start.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c.start.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/019-5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c-audit.log",
+      "bytes": 599,
+      "sha256": "f7750685ea52879647b895f4738b3fddd04eaff1f67beab08c60c00b1c2cbc52",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\019-5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c-audit.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c.audit.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/020-5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c-summary.log",
+      "bytes": 2985,
+      "sha256": "32b442bd515f585969d781576ebc8f3cfe94f7381fe1fbc6897e786a08c28763",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\020-5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c-summary.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5e94a7d978b57ed6f51b8ebf2443f41b9ecbac0c27c2e75f922259217209c68c.summary.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/021-9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585-collector-raw.log",
+      "bytes": 29798,
+      "sha256": "7b6789cfd288b9580f7a594243b802dc1982517518a30660335551202b0d4ba5",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\021-9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585-collector-raw.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585.log",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/022-9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585-start.log",
+      "bytes": 675,
+      "sha256": "7767477530b9131bdbe2fd653ee53c89ba2b6e0e9ab58c549c05c92aee488a15",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\022-9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585-start.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585.start.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/023-9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585-audit.log",
+      "bytes": 600,
+      "sha256": "05db1aff35ac010dff33d5cdcfab923f0cf991eb1954d8aecb20a9f104dbfc41",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\023-9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585-audit.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585.audit.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/024-9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585-summary.log",
+      "bytes": 3133,
+      "sha256": "fc4fdbed4bf6614775455eff7b9fb812d93f2646c40c15590af1736bd58ac9ed",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\024-9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585-summary.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\9dd32fe03984e68770951b83fd0d0a513fa03ca993c712f8f168ebde33cde585.summary.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/025-5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba-collector-raw.log",
+      "bytes": 28749,
+      "sha256": "ba796a65ec835c868c03145e190355436479372d952a2d9b561fe2eeadc66cbc",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\025-5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba-collector-raw.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba.log",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/026-5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba-start.log",
+      "bytes": 673,
+      "sha256": "4c0c01099beedec39f0549817fc99fae853efa2b4bf9681069e57e5cbca9dfd9",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\026-5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba-start.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba.start.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/027-5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba-audit.log",
+      "bytes": 600,
+      "sha256": "de0647cf0fe5e421b0860854943469e16f7a3cf97d8b1fa3793692dbf50c6e95",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\027-5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba-audit.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba.audit.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/028-5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba-summary.log",
+      "bytes": 3456,
+      "sha256": "fe2ff755d668707e58c43718d7c966d2d19a65b68d0ba8b5219b6449755f29cf",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\028-5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba-summary.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5649a880b5869770fa9e00c4c85cb8aefe4919a4315e5c4cf85f154c2df25eba.summary.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/029-f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6-collector-raw.log",
+      "bytes": 23693,
+      "sha256": "bcc6f163c5d93c2ab69a1e165692ccb9ba22ae98212330a88fbaf05566c101dd",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\029-f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6-collector-raw.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6.log",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/030-f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6-start.log",
+      "bytes": 648,
+      "sha256": "9a6b7703e7a74ef67eefacccef7a71bd419403f6117237fd6a8fb097ee4a7099",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\030-f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6-start.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6.start.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/031-f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6-audit.log",
+      "bytes": 600,
+      "sha256": "cf2b8c665cb1963cf7fa10b5b5625d17132041336a0400f83b5e0a036753dc48",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\031-f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6-audit.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6.audit.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/032-f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6-summary.log",
+      "bytes": 3663,
+      "sha256": "190ba3eacc7d624a7abe11097846101397558488abc32e463873c7af5c234cea",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\032-f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6-summary.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f27f37896138ca041c359fc4eb1c2627ba6d2f152a969ae7bc2015bcc9e9bce6.summary.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/033-c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072-collector-raw.log",
+      "bytes": 24693,
+      "sha256": "a9b27deafa23a6ad946477ae268c0e0d16138ce49fcb278a5293c6994933d4fc",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\033-c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072-collector-raw.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072.log",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/034-c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072-start.log",
+      "bytes": 675,
+      "sha256": "d9bee785eda5512021a3b10bdeec9c90498ecdaa3356482e83a839fab05c7d4e",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\034-c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072-start.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072.start.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/035-c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072-audit.log",
+      "bytes": 600,
+      "sha256": "26631286ab721431ce619e9edc152662a1c6587a3776cabc3a81f06747103b6d",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\035-c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072-audit.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072.audit.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/036-c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072-summary.log",
+      "bytes": 3164,
+      "sha256": "2b2608f24ce8c120ec928c3222bcc36ba27786e99473f6f71f95f67cd5d6ecf7",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\036-c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072-summary.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0ea54c48cc538d78ccd7034a90a62379e264fba41f504b732da6aed35764072.summary.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/037-f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e-collector-raw.log",
+      "bytes": 29086,
+      "sha256": "65d73b89c23815d52edd5bb62dbbce998fe9186e02e607e5c3df0e97c2f4dbb9",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\037-f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e-collector-raw.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e.log",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/038-f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e-start.log",
+      "bytes": 675,
+      "sha256": "98b123f57dba6bf085e6f1523948fc6e3f4c9128f3dbfd18bf1e077931a7c66d",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\038-f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e-start.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e.start.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/039-f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e-audit.log",
+      "bytes": 600,
+      "sha256": "c8189a666c6f513a76fa4d4a636f0418bbeb1cf6f41b8269194f93fbc89eb4bf",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\039-f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e-audit.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e.audit.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/040-f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e-summary.log",
+      "bytes": 3107,
+      "sha256": "a723fb47ca4ff122eaf86d1cd20b85a7eac09a12fb37aedff848b17dd26f1778",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\040-f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e-summary.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f11a72e2b28e2aa37fd8b8c9ed93853e03b959c66621024352750ca8a6ec302e.summary.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/041-bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0-collector-raw.log",
+      "bytes": 31603,
+      "sha256": "e6b3bffe15b0dde79b9f976a219761a8a498aef50ad95383feeaec1561e21aac",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\041-bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0-collector-raw.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0.log",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/042-bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0-start.log",
+      "bytes": 647,
+      "sha256": "af9cf1427405a994659c49d94fc6c709b93634f7a414cf2461e2d4b5aef3f30e",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\042-bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0-start.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0.start.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/043-bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0-audit.log",
+      "bytes": 598,
+      "sha256": "34cb4ed54b5fbd4958e2debd2bd654579f21caf5f3617640c89ad43909d9a974",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\043-bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0-audit.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0.audit.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/044-bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0-summary.log",
+      "bytes": 3113,
+      "sha256": "be9c804be09632e550649387fae9f37d27ff1f2a3d51cbf0390fe59d16d73baf",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\044-bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0-summary.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\bec05ca0b9765349b03dbdf6cc4f7e93f8d39c3edd5212becfc250891b0c64b0.summary.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/045-c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3-collector-raw.log",
+      "bytes": 27638,
+      "sha256": "8b9453a334e8123aa7ce0f939d1618e4798f7f900ec8ec983322b57cfad0175d",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\045-c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3-collector-raw.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3.log",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/046-c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3-start.log",
+      "bytes": 675,
+      "sha256": "75d927830697afd4de0d37d7cf800566ea68680f32c02de978c960b1f1db6503",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\046-c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3-start.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3.start.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/047-c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3-audit.log",
+      "bytes": 600,
+      "sha256": "6b75dbe9350757c9b1f15760bffd98f094e0c9ea2e4a4a35307b8c35ef552fc9",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\047-c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3-audit.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3.audit.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/048-c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3-summary.log",
+      "bytes": 3232,
+      "sha256": "e4446edbb0b0ccf10c24aad51fc4a841f98960fabe3814c4dfffc9849679d38c",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\048-c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3-summary.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c9cada8ee1664cdf081d827f0a475b5f6c9028c15acd24209f23eac3ad86c3b3.summary.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/049-3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2-collector-raw.log",
+      "bytes": 33614,
+      "sha256": "b252a483667d6becb755e7cd2e94ae0d4a3ce85d928de8907682b9a896229286",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\049-3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2-collector-raw.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2.log",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/050-3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2-start.log",
+      "bytes": 675,
+      "sha256": "7a41df7c2cbd4afcefe69d305449746406e92f23032e4df9af7d08d7446de721",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\050-3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2-start.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2.start.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/051-3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2-audit.log",
+      "bytes": 600,
+      "sha256": "99c0c233c241816bd7a1e8069be007c14929645af6c0e91c823eb9ff60b7c4dc",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\051-3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2-audit.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2.audit.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/052-3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2-summary.log",
+      "bytes": 3708,
+      "sha256": "0420bba26c71013cfe0e2a12437d63c6811b19cdc25781d884a2fc1f97553d4f",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\052-3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2-summary.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\3cd0091b60d5d6eb37a6c2713c620f30851c299ca963e49f549e17d1c567d5b2.summary.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/053-2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8-collector-raw.log",
+      "bytes": 33904,
+      "sha256": "6a0ccef26de877e8a20690cfc49d9878dbdd3ea0647ba16abc4ff0d144e6a1de",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\053-2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8-collector-raw.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8.log",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/054-2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8-start.log",
+      "bytes": 673,
+      "sha256": "b817cc24528ce5228a0ff8f7971422216c3a8884fef631284d345cd1c2878ee2",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\054-2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8-start.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8.start.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/055-2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8-audit.log",
+      "bytes": 600,
+      "sha256": "a964302cfd6f7ea9b2ba9781300139cbdef35393d28da3393587bf59fa261bce",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\055-2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8-audit.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8.audit.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/056-2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8-summary.log",
+      "bytes": 3955,
+      "sha256": "dfdbc790ad53bb251a1e7df2f5cd3399b94a78b005527436f3ee66e401d98033",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\056-2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8-summary.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\2352ea4b8d6175fe63ee405d1dee3874728b905f27a06d30404c883505dd73e8.summary.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/057-baseline-freeze-20261103T181339.783272700Z.log",
+      "bytes": 731,
+      "sha256": "7408d22a75a44c259a0661f949aab82784f3a2d3fc5bc203ef14bb4b0ad47812",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\057-baseline-freeze-20261103T181339.783272700Z.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-freeze-20261103T181339.783272700Z.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/058-baseline-post-cool-20261103T182333.344734700Z.log",
+      "bytes": 738,
+      "sha256": "acd84fc5cab106f017b49699731236eddfce6c174232839c949859938bc940e2",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\058-baseline-post-cool-20261103T182333.344734700Z.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T182333.344734700Z.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/059-baseline-post-cool-20261103T183228.787352300Z.log",
+      "bytes": 739,
+      "sha256": "72b81c94c35bac572f717a4641995228167b9fcc9e195587ad292b3ea9f7d765",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\059-baseline-post-cool-20261103T183228.787352300Z.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T183228.787352300Z.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/060-baseline-post-cool-20261103T183932.663666300Z.log",
+      "bytes": 746,
+      "sha256": "d09d0fe4822fc50300e0f3d3ec77871964660dd10dc3965f47e23090057c8bbe",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\060-baseline-post-cool-20261103T183932.663666300Z.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T183932.663666300Z.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/061-baseline-post-cool-20261103T184735.552364100Z.log",
+      "bytes": 738,
+      "sha256": "059a6a3124f39455f1d75fcfc1ebb10a99202aa082108ab430d9f2080e90305e",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\061-baseline-post-cool-20261103T184735.552364100Z.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T184735.552364100Z.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/062-baseline-post-cool-20261103T185443.386043800Z.log",
+      "bytes": 738,
+      "sha256": "107c23206ac255dff0d7d1769a68c718ec705e25786d48cff346924a6c39d300",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\062-baseline-post-cool-20261103T185443.386043800Z.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-post-cool-20261103T185443.386043800Z.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/063-baseline-pre-inject-20261103T181609.419953100Z.log",
+      "bytes": 746,
+      "sha256": "846025c0ab2491c6241107719812b6abe12b400800e0793ab9971a8cbcb5dae1",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\063-baseline-pre-inject-20261103T181609.419953100Z.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T181609.419953100Z.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/064-baseline-pre-inject-20261103T182335.382548000Z.log",
+      "bytes": 738,
+      "sha256": "05eed23efa4e920df0cf7ceec5b53313868c8387013a3e2d87b0b91fcd8cdfc9",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\064-baseline-pre-inject-20261103T182335.382548000Z.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T182335.382548000Z.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/065-baseline-pre-inject-20261103T183230.477825500Z.log",
+      "bytes": 739,
+      "sha256": "1cfcf7056f2498e53f592335562db09725641a0c9abf20ff0a60911b8eb214d8",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\065-baseline-pre-inject-20261103T183230.477825500Z.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T183230.477825500Z.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/066-baseline-pre-inject-20261103T184025.173271900Z.log",
+      "bytes": 738,
+      "sha256": "f7288366492bf8507a30a50211b916810d48b605ed96a886b608efe23f1f1e5c",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\066-baseline-pre-inject-20261103T184025.173271900Z.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T184025.173271900Z.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/067-baseline-pre-inject-20261103T184738.102522700Z.log",
+      "bytes": 736,
+      "sha256": "95d0f3c95035e1cfd68a88b8872c33b1ad46e34073e387f49d358ea92e525e5c",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\067-baseline-pre-inject-20261103T184738.102522700Z.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\baseline-pre-inject-20261103T184738.102522700Z.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/068-OT01-original-flags.log",
+      "bytes": 11039,
+      "sha256": "60928bef48be613b8af404e9829769f00aa24f53ed0ae3d3e5049bbe2108a727",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\068-OT01-original-flags.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT01-1.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/069-OT01-restored-proof.log",
+      "bytes": 132,
+      "sha256": "377fa4e984e54542f0988c7b4440d3b9fa1f5860595392aec4ae672024327ad6",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\069-OT01-restored-proof.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT01-1.json.restored",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/070-OT01-symptom-timing.log",
+      "bytes": 323,
+      "sha256": "61c565ba051d1a912930ecaa4c2c4ec162715e2b9cf4d8f63e7a86647dcae10b",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\070-OT01-symptom-timing.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT01-1.symptom-observed.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/071-OT01-recovery-timing.log",
+      "bytes": 324,
+      "sha256": "12ab82b5cb63bb1f3ea0914e0333c53ff213f977663e2da27f85839fe2cb1aa7",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\071-OT01-recovery-timing.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT01-1.recovery-observed.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/072-OT02-original-flags.log",
+      "bytes": 11041,
+      "sha256": "0029c6c99f06ca820bde59cd594eac15065d7c4f5a7609e93090320e972d7d48",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\072-OT02-original-flags.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT02-1.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/073-OT02-restored-proof.log",
+      "bytes": 132,
+      "sha256": "54b36ef02485729a48bd4d90853ae6fbdf201125931d193959648056573b27f0",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\073-OT02-restored-proof.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT02-1.json.restored",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/074-OT02-symptom-timing.log",
+      "bytes": 325,
+      "sha256": "3fb97c82c6927e13a196918d953eef653ccb1b0fe68b6cc1f470a4fc34359b64",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\074-OT02-symptom-timing.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT02-1.symptom-observed.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/075-OT02-recovery-timing.log",
+      "bytes": 319,
+      "sha256": "574eed98646a13e6055e48793436c0ca6a522e3c323c11fea07e4bde42e9dac5",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\075-OT02-recovery-timing.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT02-1.recovery-observed.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/076-OT03-original-flags.log",
+      "bytes": 11041,
+      "sha256": "b52eda6949149e9a1569359964988030dc199b33a32b18a31f4e6879114ad9c8",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\076-OT03-original-flags.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT03-1.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/077-OT03-restored-proof.log",
+      "bytes": 132,
+      "sha256": "6e99d68dccba4a410cbdc0a3c7331e2544a87704d94af838bf16b9f038fac178",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\077-OT03-restored-proof.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT03-1.json.restored",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/078-OT03-symptom-timing.log",
+      "bytes": 322,
+      "sha256": "8797981bf7a7578dbaba43c319e0cd37050736df2a59a0cc06470b72bc7312db",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\078-OT03-symptom-timing.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT03-1.symptom-observed.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/079-OT03-recovery-timing.log",
+      "bytes": 326,
+      "sha256": "800df9c50b5c908adbbc0138b06d4a887e5028c9368a057b845ee6f858bb92cb",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\079-OT03-recovery-timing.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT03-1.recovery-observed.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/080-OT04-original-flags.log",
+      "bytes": 11039,
+      "sha256": "319ecbcba61f5f38a79327e829896edd7268878f3cc52b1a2952e55e33aa876d",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\080-OT04-original-flags.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT04-1.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/081-OT04-restored-proof.log",
+      "bytes": 132,
+      "sha256": "7fc459fa30af212437bdcdde645bf6308ce009c80a13ab6e46edb6f3ce155b31",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\081-OT04-restored-proof.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT04-1.json.restored",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/082-OT04-symptom-timing.log",
+      "bytes": 323,
+      "sha256": "6d225e828eae3b2b1340886931ad495e7f1039d91dc50946153e3426b3920a44",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\082-OT04-symptom-timing.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT04-1.symptom-observed.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/083-OT04-recovery-timing.log",
+      "bytes": 324,
+      "sha256": "63c191f6f87c92a186525fbf476fddc84397cc25121801b4a14bc541553fdd50",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\083-OT04-recovery-timing.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT04-1.recovery-observed.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/084-OT05-original-flags.log",
+      "bytes": 11039,
+      "sha256": "3f26f590286e064efe0427271e455df4c98cf10b7c54ae3c0a510b47006de607",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\084-OT05-original-flags.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT05-1.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/085-OT05-restored-proof.log",
+      "bytes": 132,
+      "sha256": "1f45fa8428b75f58dba5edf7f36f40f6dd87e0e7b50acba544bdaba43585c7a5",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\085-OT05-restored-proof.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT05-1.json.restored",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/086-OT05-symptom-timing.log",
+      "bytes": 323,
+      "sha256": "4bfc2f0dda2a01817f4acdf2ae465059768a8786769df9068d906a57a321aecd",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\086-OT05-symptom-timing.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT05-1.symptom-observed.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/087-OT05-recovery-timing.log",
+      "bytes": 326,
+      "sha256": "615d2750040664d1162701de2340df7ab7a82908636d106a7bf46d0a3516db16",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshots\\phase09-formal-20261103T181204Z-terra-20261103T185654847577Z.json.evidence\\087-OT05-recovery-timing.log",
+      "capture_origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-formal-20261103T181204Z-terra\\OT05-1.recovery-observed.json",
+      "kind": "snapshot_evidence"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-evidence/snapshot-helper.py",
+      "bytes": 35098,
+      "sha256": "3c14c9dc2288329f17b18e8c6e582db895a75676d57a7f70cbeb62381bf58ccd",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-snapshot.py",
+      "kind": "executed_snapshot_helper"
+    },
+    {
+      "repository_path": "docs/reports/phase-09-formal-observations.json",
+      "bytes": 31599,
+      "sha256": "bd950a35a0e8f3512a08247352f266be5395d9c588eca6f39217aaa1fdf0215a",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\formal-observations.json",
+      "kind": "original_file_observations"
+    }
+  ]
+}

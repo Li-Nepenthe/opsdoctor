@@ -1,0 +1,81 @@
+Demo OT01/1 state=pending
+原始开关已保存：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-dualmock-20261103T171411Z\OT01-1.json；现在注入。
+Demo OT01/1 state=injecting
+Demo OT01/1 state=verifying
+Demo OT01/1 state=diagnosing
+位置1：phase09-dualmock-20261103T171411Z/OT01/1/primary-E2 diagnosis=8be984a759ab406faa358259edf8593b；宿主保存Collector窗口
+diagnosis=8be984a759ab406faa358259edf8593b status=pending
+diagnosis=8be984a759ab406faa358259edf8593b status=succeeded
+phase09-dualmock-20261103T171411Z/OT01/1/primary-E2 status=succeeded data_quality=normal collector_raw=C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.log sha256=dfd4a2b5fa327ed149ea73e88247f9fade1a73f50f119cf58332b00432d2b3b6
+位置2：phase09-dualmock-20261103T171411Z/OT01/1/primary-E1 diagnosis=ab364013a301428046892d2880369797；宿主保存Collector窗口
+diagnosis=ab364013a301428046892d2880369797 status=pending
+diagnosis=ab364013a301428046892d2880369797 status=succeeded
+phase09-dualmock-20261103T171411Z/OT01/1/primary-E1 status=succeeded data_quality=normal collector_raw=C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.log sha256=f0b1f3473cce1e04ffe989dee7508dc2349c7172024cec581060388d68af5685
+Demo OT01/1 state=restoring
+Demo 原始开关已恢复并读回确认；恢复文件保留：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-dualmock-20261103T171411Z\OT01-1.json
+Demo OT01/1 state=cooling
+Demo OT02/1 state=pending
+原始开关已保存：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-dualmock-20261103T171411Z\OT02-1.json；现在注入。
+Demo OT02/1 state=injecting
+Demo OT02/1 state=verifying
+Demo OT02/1 state=diagnosing
+位置1：phase09-dualmock-20261103T171411Z/OT02/1/primary-E2 diagnosis=37ca2611599337264b0135a9fff567cd；宿主保存Collector窗口
+diagnosis=37ca2611599337264b0135a9fff567cd status=pending
+diagnosis=37ca2611599337264b0135a9fff567cd status=succeeded
+phase09-dualmock-20261103T171411Z/OT02/1/primary-E2 status=succeeded data_quality=normal collector_raw=C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.log sha256=1c28807fe5e7cb49ce225e82792167a8392b1d4397eda49127de4e4216ad60d2
+位置2：phase09-dualmock-20261103T171411Z/OT02/1/primary-E1 diagnosis=404fdd221c405b9f068f57d63a37ce2d；宿主保存Collector窗口
+diagnosis=404fdd221c405b9f068f57d63a37ce2d status=pending
+diagnosis=404fdd221c405b9f068f57d63a37ce2d status=succeeded
+phase09-dualmock-20261103T171411Z/OT02/1/primary-E1 status=succeeded data_quality=normal collector_raw=C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.log sha256=f3f1586872d417bafd8648476b6adfab8df997db20d8f8acd481d1e44ebf7ba6
+Demo OT02/1 state=restoring
+Demo 原始开关已恢复并读回确认；恢复文件保留：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-dualmock-20261103T171411Z\OT02-1.json
+Demo OT02/1 state=cooling
+Demo OT03/1 state=pending
+原始开关已保存：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-dualmock-20261103T171411Z\OT03-1.json；现在注入。
+Demo OT03/1 state=injecting
+Demo OT03/1 state=verifying
+Demo OT03/1 state=diagnosing
+位置1：phase09-dualmock-20261103T171411Z/OT03/1/primary-E2 diagnosis=0965899b633aa341c4d4da434cc789e2；宿主保存Collector窗口
+diagnosis=0965899b633aa341c4d4da434cc789e2 status=pending
+diagnosis=0965899b633aa341c4d4da434cc789e2 status=succeeded
+phase09-dualmock-20261103T171411Z/OT03/1/primary-E2 status=succeeded data_quality=normal collector_raw=C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.log sha256=a899f1e9fff2e5d328680ca125e0abab9a030e6dd44578bd2cdb332958c9f36d
+位置2：phase09-dualmock-20261103T171411Z/OT03/1/primary-E1 diagnosis=f9cad8097300ca64874d14683479b18f；宿主保存Collector窗口
+diagnosis=f9cad8097300ca64874d14683479b18f status=pending
+diagnosis=f9cad8097300ca64874d14683479b18f status=succeeded
+phase09-dualmock-20261103T171411Z/OT03/1/primary-E1 status=succeeded data_quality=normal collector_raw=C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.log sha256=360d8b6bbd47f61ee05d7872816ab806d33a127bdd30abc191937743566caf8f
+Demo OT03/1 state=restoring
+Demo 原始开关已恢复并读回确认；恢复文件保留：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-dualmock-20261103T171411Z\OT03-1.json
+Demo OT03/1 state=cooling
+Demo OT04/1 state=pending
+原始开关已保存：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-dualmock-20261103T171411Z\OT04-1.json；现在注入。
+Demo OT04/1 state=injecting
+Demo OT04/1 state=verifying
+Demo OT04/1 state=diagnosing
+位置1：phase09-dualmock-20261103T171411Z/OT04/1/primary-E2 diagnosis=3653f0617738ad0f632fb9f54db0b648；宿主保存Collector窗口
+diagnosis=3653f0617738ad0f632fb9f54db0b648 status=pending
+diagnosis=3653f0617738ad0f632fb9f54db0b648 status=succeeded
+phase09-dualmock-20261103T171411Z/OT04/1/primary-E2 status=succeeded data_quality=normal collector_raw=C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.log sha256=8cc617f00a20c945375cdfe56efa9b0a41878689c29476435ac42d04bbe0a06b
+位置2：phase09-dualmock-20261103T171411Z/OT04/1/primary-E1 diagnosis=4bfbeeb14cbd10c629a38b9acbcef5ff；宿主保存Collector窗口
+diagnosis=4bfbeeb14cbd10c629a38b9acbcef5ff status=pending
+diagnosis=4bfbeeb14cbd10c629a38b9acbcef5ff status=succeeded
+phase09-dualmock-20261103T171411Z/OT04/1/primary-E1 status=succeeded data_quality=normal collector_raw=C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.log sha256=bad62eb3758d013838d90e415692a9cd4dbd02385aa1a46e875b5d62842938ad
+Demo OT04/1 state=restoring
+Demo 原始开关已恢复并读回确认；恢复文件保留：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-dualmock-20261103T171411Z\OT04-1.json
+Demo OT04/1 state=cooling
+Demo OT05/1 state=pending
+原始开关已保存：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-dualmock-20261103T171411Z\OT05-1.json；现在注入。
+Demo OT05/1 state=injecting
+Demo OT05/1 state=verifying
+Demo OT05/1 state=diagnosing
+位置1：phase09-dualmock-20261103T171411Z/OT05/1/primary-E2 diagnosis=73eaebdeab352de86372fb31fa85f663；宿主保存Collector窗口
+diagnosis=73eaebdeab352de86372fb31fa85f663 status=pending
+diagnosis=73eaebdeab352de86372fb31fa85f663 status=succeeded
+phase09-dualmock-20261103T171411Z/OT05/1/primary-E2 status=succeeded data_quality=normal collector_raw=C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.log sha256=4b086cba876360953ec806f2a58283c0b8fc33cb368353e76d5d02aaf9cf01d5
+位置2：phase09-dualmock-20261103T171411Z/OT05/1/primary-E1 diagnosis=2f44fe8d29a738026fd86eb964faa8af；宿主保存Collector窗口
+diagnosis=2f44fe8d29a738026fd86eb964faa8af status=pending
+diagnosis=2f44fe8d29a738026fd86eb964faa8af status=succeeded
+phase09-dualmock-20261103T171411Z/OT05/1/primary-E1 status=succeeded data_quality=normal collector_raw=C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.log sha256=e7640950c663430dd91ee0a8225e34a23f1f46bb42c6d387785c24227cdba794
+Demo OT05/1 state=restoring
+Demo 原始开关已恢复并读回确认；恢复文件保留：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-dualmock-20261103T171411Z\OT05-1.json
+Demo OT05/1 state=cooling
+评测模式已退出，自动告警诊断恢复；真实验收结束后还需将本机和运行中的医生切回 Mock。

@@ -1,0 +1,13 @@
+{
+  "started_at_utc": "2026-11-03T17:57:01.722389+00:00",
+  "finished_at_utc": "2026-11-03T17:58:01.816231+00:00",
+  "elapsed_seconds": 60.09538320000138,
+  "samples": 61,
+  "intervals": 60,
+  "max_correction_ns": 2623730,
+  "events_over_100ms": [],
+  "passed": true,
+  "raw_path": "docs\\reports\\phase-09-formal-free-clock.jsonl",
+  "raw_sha256": "71b9c3035595968a5e7c0ae145299744246bf0fcbf41c57162e17a1c9df83c30",
+  "note": "One streaming --clock-samples call; original clockcheck policy, no model request. Main evaluator retains its own continuously shared Monitor."
+}

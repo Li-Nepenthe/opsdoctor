@@ -1,0 +1,3770 @@
+{
+  "checked_at_utc": "2026-11-03T18:09:13.697200Z",
+  "run_id": "phase09-dualmock-20261103T171411Z",
+  "allow_formal": true,
+  "checks": {
+    "one_dualmock_batch": true,
+    "batch_completed": true,
+    "batch_no_real_tokens": true,
+    "frozen_matrix": true,
+    "five_done_trials": true,
+    "ten_original_slots": true,
+    "unique_saved_diagnoses": true,
+    "no_interruptions": true,
+    "no_paid_mock_attempts": true,
+    "all_twenty_mock_terminal": true,
+    "mock_doctor_0": true,
+    "mock_judge_0": true,
+    "collector_normal_0": true,
+    "collector_originals_0": true,
+    "mock_doctor_1": true,
+    "mock_judge_1": true,
+    "collector_normal_1": true,
+    "collector_originals_1": true,
+    "mock_doctor_2": true,
+    "mock_judge_2": true,
+    "collector_normal_2": true,
+    "collector_originals_2": true,
+    "mock_doctor_3": true,
+    "mock_judge_3": true,
+    "collector_normal_3": true,
+    "collector_originals_3": true,
+    "mock_doctor_4": true,
+    "mock_judge_4": true,
+    "collector_normal_4": true,
+    "collector_originals_4": true,
+    "mock_doctor_5": true,
+    "mock_judge_5": true,
+    "collector_normal_5": true,
+    "collector_originals_5": true,
+    "mock_doctor_6": true,
+    "mock_judge_6": true,
+    "collector_normal_6": true,
+    "collector_originals_6": true,
+    "mock_doctor_7": true,
+    "mock_judge_7": true,
+    "collector_normal_7": true,
+    "collector_originals_7": true,
+    "mock_doctor_8": true,
+    "mock_judge_8": true,
+    "collector_normal_8": true,
+    "collector_originals_8": true,
+    "mock_doctor_9": true,
+    "mock_judge_9": true,
+    "collector_normal_9": true,
+    "collector_originals_9": true,
+    "eleven_baseline_files": true,
+    "baseline_phase_coverage": true,
+    "baseline_observed_0": true,
+    "baseline_observed_1": true,
+    "baseline_observed_2": true,
+    "baseline_observed_3": true,
+    "baseline_observed_4": true,
+    "baseline_observed_5": true,
+    "baseline_observed_6": true,
+    "baseline_observed_7": true,
+    "baseline_observed_8": true,
+    "baseline_observed_9": true,
+    "baseline_observed_10": true,
+    "frozen_original_flags_present": true,
+    "OT01_original_restore": true,
+    "OT01_symptom_timing": true,
+    "OT01_recovery_timing": true,
+    "OT02_original_restore": true,
+    "OT02_symptom_timing": true,
+    "OT02_recovery_timing": true,
+    "OT03_original_restore": true,
+    "OT03_symptom_timing": true,
+    "OT03_recovery_timing": true,
+    "OT04_original_restore": true,
+    "OT04_symptom_timing": true,
+    "OT04_recovery_timing": true,
+    "OT05_original_restore": true,
+    "OT05_symptom_timing": true,
+    "OT05_recovery_timing": true,
+    "exact_symptom_recovery_counts": true,
+    "current_runtime_still_mock": true,
+    "mock_target_restored_and_finished": true,
+    "current_flags_equal_frozen_original": true,
+    "pilot_cost_source_six_attempts": true,
+    "original_project_accounts": true,
+    "formal_usd_affordable": true,
+    "formal_cny_project_affordable": true,
+    "formal_cny_supplier_affordable": true
+  },
+  "reasons": [],
+  "helper_sha256": "4de408760c32755a2b513be9872c2017f936566e8baa9f7e35a55ff8d5bb1897",
+  "model_calls": 0,
+  "currency_note": "USD按项目用量账本计；Key与其他用途共用，平台账单无法单独核对。两币种不相加。",
+  "policy": "Only new dual-Mock and current budgets/balance gate formal. Old pilot2 grade_ok/trial.done gates were withdrawn. Its original failure/cost/data are not modified or regraded.",
+  "timing_note": "Only original monotonic files supply durations. Baseline full-call elapsed is not capped; health_elapsed and symptom/recovery elapsed must each be <=300s. No DB/UTC subtraction.",
+  "snapshot": {
+    "batch": [
+      {
+        "id": "phase09-dualmock-20261103T171411Z",
+        "config": {
+          "kind": "generalization",
+          "flagd": "http://127.0.0.1:18080",
+          "orders": [
+            {
+              "scenario": "OT01",
+              "iteration": 1,
+              "configurations": [
+                {
+                  "group": "E2",
+                  "model": "mock-script-v1",
+                  "account": "phase-09-openai",
+                  "profile": "primary",
+                  "currency": "USD",
+                  "provider": "mock"
+                },
+                {
+                  "group": "E1",
+                  "model": "mock-script-v1",
+                  "account": "phase-09-openai",
+                  "profile": "primary",
+                  "currency": "USD",
+                  "provider": "mock"
+                }
+              ]
+            },
+            {
+              "scenario": "OT02",
+              "iteration": 1,
+              "configurations": [
+                {
+                  "group": "E2",
+                  "model": "mock-script-v1",
+                  "account": "phase-09-openai",
+                  "profile": "primary",
+                  "currency": "USD",
+                  "provider": "mock"
+                },
+                {
+                  "group": "E1",
+                  "model": "mock-script-v1",
+                  "account": "phase-09-openai",
+                  "profile": "primary",
+                  "currency": "USD",
+                  "provider": "mock"
+                }
+              ]
+            },
+            {
+              "scenario": "OT03",
+              "iteration": 1,
+              "configurations": [
+                {
+                  "group": "E2",
+                  "model": "mock-script-v1",
+                  "account": "phase-09-openai",
+                  "profile": "primary",
+                  "currency": "USD",
+                  "provider": "mock"
+                },
+                {
+                  "group": "E1",
+                  "model": "mock-script-v1",
+                  "account": "phase-09-openai",
+                  "profile": "primary",
+                  "currency": "USD",
+                  "provider": "mock"
+                }
+              ]
+            },
+            {
+              "scenario": "OT04",
+              "iteration": 1,
+              "configurations": [
+                {
+                  "group": "E2",
+                  "model": "mock-script-v1",
+                  "account": "phase-09-openai",
+                  "profile": "primary",
+                  "currency": "USD",
+                  "provider": "mock"
+                },
+                {
+                  "group": "E1",
+                  "model": "mock-script-v1",
+                  "account": "phase-09-openai",
+                  "profile": "primary",
+                  "currency": "USD",
+                  "provider": "mock"
+                }
+              ]
+            },
+            {
+              "scenario": "OT05",
+              "iteration": 1,
+              "configurations": [
+                {
+                  "group": "E2",
+                  "model": "mock-script-v1",
+                  "account": "phase-09-openai",
+                  "profile": "primary",
+                  "currency": "USD",
+                  "provider": "mock"
+                },
+                {
+                  "group": "E1",
+                  "model": "mock-script-v1",
+                  "account": "phase-09-openai",
+                  "profile": "primary",
+                  "currency": "USD",
+                  "provider": "mock"
+                }
+              ]
+            }
+          ],
+          "versions": {
+            "kind": "pilot",
+            "cases": [
+              "OT01",
+              "OT02",
+              "OT03",
+              "OT04",
+              "OT05"
+            ],
+            "group": "E1",
+            "model": "mock-script-v1",
+            "commit": "ac71f3063d25e1e49692ac481bc0552e9f882822",
+            "source_hash": "b02dd00dfebe46d0d6a028fd55fe0b854099f996210f7b9d363280c7aa6e85b3",
+            "runbooks_hash": "d86e159673bf5351743b10ec737f4b52b7281b1cad525e4c09c17c4897790f54",
+            "prompt_version": "v8.0"
+          },
+          "iterations": 1,
+          "prometheus": "http://127.0.0.1:19090",
+          "rubric_hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+          "baseline_flags": {
+            "flags": {
+              "adFailure": {
+                "state": "ENABLED",
+                "variants": {
+                  "on": true,
+                  "off": false
+                },
+                "description": "Fail ad service",
+                "defaultVariant": "off"
+              },
+              "adHighCpu": {
+                "state": "ENABLED",
+                "variants": {
+                  "on": true,
+                  "off": false
+                },
+                "description": "Triggers high cpu load in the ad service",
+                "defaultVariant": "off"
+              },
+              "adManualGc": {
+                "state": "ENABLED",
+                "variants": {
+                  "on": true,
+                  "off": false
+                },
+                "description": "Triggers full manual garbage collections in the ad service",
+                "defaultVariant": "off"
+              },
+              "emitRawPii": {
+                "state": "ENABLED",
+                "metadata": {
+                  "schedulable": false
+                },
+                "variants": {
+                  "on": true,
+                  "off": false
+                },
+                "description": "Emit raw PII attributes (user.email, demo.payment.card_number, demo.payment.card_cvv) from checkout and payment for the collector redaction example. Not a failure scenario -- controls PII emission, independent of collector-side redaction which always runs.",
+                "defaultVariant": "off"
+              },
+              "cartFailure": {
+                "state": "ENABLED",
+                "variants": {
+                  "10%": 0.1,
+                  "25%": 0.25,
+                  "50%": 0.5,
+                  "75%": 0.75,
+                  "90%": 0.9,
+                  "off": 0,
+                  "100%": 1
+                },
+                "description": "Fail cart service n% of the time",
+                "defaultVariant": "off"
+              },
+              "imageSlowLoad": {
+                "state": "ENABLED",
+                "variants": {
+                  "off": 0,
+                  "5sec": 5000,
+                  "10sec": 10000
+                },
+                "description": "slow loading images in the frontend",
+                "defaultVariant": "off"
+              },
+              "aiRunawayAgent": {
+                "state": "ENABLED",
+                "variants": {
+                  "on": 20,
+                  "off": 0
+                },
+                "description": "forces the agent to keep looping tool calls until it hits its recursion limit",
+                "defaultVariant": "off"
+              },
+              "aiSlowResponse": {
+                "state": "ENABLED",
+                "variants": {
+                  "off": 0,
+                  "5sec": 5000,
+                  "10sec": 10000
+                },
+                "description": "slow LLM responses in the agent service",
+                "defaultVariant": "off"
+              },
+              "paymentFailure": {
+                "state": "ENABLED",
+                "variants": {
+                  "10%": 0.1,
+                  "25%": 0.25,
+                  "50%": 0.5,
+                  "75%": 0.75,
+                  "90%": 0.95,
+                  "off": 0,
+                  "100%": 1
+                },
+                "description": "Fail payment service charge requests n%",
+                "defaultVariant": "off"
+              },
+              "emailMemoryLeak": {
+                "state": "ENABLED",
+                "variants": {
+                  "1x": 1,
+                  "10x": 10,
+                  "off": 0,
+                  "100x": 100,
+                  "1000x": 1000,
+                  "10000x": 10000
+                },
+                "description": "Memory leak in the email service.",
+                "defaultVariant": "off"
+              },
+              "kafkaQueueProblems": {
+                "state": "ENABLED",
+                "variants": {
+                  "on": 100,
+                  "off": 0
+                },
+                "description": "Overloads Kafka queue while simultaneously introducing a consumer side delay leading to a lag spike",
+                "defaultVariant": "off"
+              },
+              "paymentUnreachable": {
+                "state": "ENABLED",
+                "variants": {
+                  "on": true,
+                  "off": false
+                },
+                "description": "Payment service is unavailable",
+                "defaultVariant": "off"
+              },
+              "failedReadinessProbe": {
+                "state": "ENABLED",
+                "variants": {
+                  "on": true,
+                  "off": false
+                },
+                "description": "readiness probe failure for cart service",
+                "defaultVariant": "off"
+              },
+              "intlShippingSlowdown": {
+                "state": "ENABLED",
+                "variants": {
+                  "off": 0,
+                  "5sec": 5,
+                  "10sec": 10
+                },
+                "description": "Delays international shipping responses to simulate overseas shipping delay",
+                "defaultVariant": "off"
+              },
+              "productCatalogFailure": {
+                "state": "ENABLED",
+                "variants": {
+                  "on": true,
+                  "off": false
+                },
+                "targeting": {
+                  "if": [
+                    {
+                      "==": [
+                        {
+                          "var": "product_id"
+                        },
+                        "OLJCESPC7Z"
+                      ]
+                    },
+                    "off",
+                    "off"
+                  ]
+                },
+                "description": "Fail product catalog service on a specific product",
+                "defaultVariant": "off"
+              },
+              "loadGeneratorFloodHomepage": {
+                "state": "ENABLED",
+                "variants": {
+                  "on": 100,
+                  "off": 0
+                },
+                "description": "Flood the frontend with a large amount of requests.",
+                "defaultVariant": "off"
+              },
+              "recommendationCacheFailure": {
+                "state": "ENABLED",
+                "variants": {
+                  "on": true,
+                  "off": false
+                },
+                "description": "Fail recommendation service cache",
+                "defaultVariant": "off"
+              },
+              "productCatalogLockContention": {
+                "state": "ENABLED",
+                "variants": {
+                  "on": true,
+                  "off": false
+                },
+                "description": "Trigger lock contention on the product catalog database",
+                "defaultVariant": "off"
+              }
+            }
+          },
+          "rubric_version": "rubric-v1.1",
+          "scenario_directory": "eval/scenarios/otel-demo"
+        },
+        "status": "completed",
+        "target": "otel-demo",
+        "token_limit": 10000000,
+        "tokens_used": 0,
+        "stopped_reason": ""
+      }
+    ],
+    "trials": [
+      {
+        "state": "done",
+        "scenario": "OT01",
+        "iteration": 1,
+        "restored_at": "2026-11-03 17:19:37.995618",
+        "fault_started_at": "2026-11-03 17:17:37.121090"
+      },
+      {
+        "state": "done",
+        "scenario": "OT02",
+        "iteration": 1,
+        "restored_at": "2026-11-03 17:28:38.527919",
+        "fault_started_at": "2026-11-03 17:24:47.426258"
+      },
+      {
+        "state": "done",
+        "scenario": "OT03",
+        "iteration": 1,
+        "restored_at": "2026-11-03 17:36:38.869414",
+        "fault_started_at": "2026-11-03 17:33:47.806278"
+      },
+      {
+        "state": "done",
+        "scenario": "OT04",
+        "iteration": 1,
+        "restored_at": "2026-11-03 17:42:38.982962",
+        "fault_started_at": "2026-11-03 17:41:48.261423"
+      },
+      {
+        "state": "done",
+        "scenario": "OT05",
+        "iteration": 1,
+        "restored_at": "2026-11-03 17:50:39.367783",
+        "fault_started_at": "2026-11-03 17:48:23.863219"
+      }
+    ],
+    "slots": [
+      {
+        "group": "E2",
+        "input": {
+          "alerts": [],
+          "symptoms": "广告查询出现间歇性错误，请结合本次时间范围内的指标、调用链和日志定位原因及影响范围。",
+          "fault_started_at": "2026-11-03T17:17:37.12109Z"
+        },
+        "judge": {
+          "error": "",
+          "model": "mock-judge-v1",
+          "status": "succeeded",
+          "provider": "mock"
+        },
+        "doctor": {
+          "error": "",
+          "model": "mock-script-v1",
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "status": "succeeded",
+          "provider": "mock",
+          "report_mode": "voluntary",
+          "budget_reason": ""
+        },
+        "result": {
+          "error": "",
+          "model": "mock-script-v1",
+          "tools": 2,
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "rounds": 2,
+          "status": "succeeded",
+          "seconds": 0.085,
+          "currency": "USD",
+          "component": "unknown",
+          "cost_micros": 0,
+          "mixed_model": false,
+          "report_mode": "voluntary",
+          "data_quality": "normal",
+          "diagnosis_id": "8be984a759ab406faa358259edf8593b",
+          "input_tokens": 0,
+          "actual_models": [
+            "mock-script-v1"
+          ],
+          "budget_reason": "",
+          "output_tokens": 0,
+          "duration_known": true,
+          "collector_audit": {
+            "sha256": "dfd4a2b5fa327ed149ea73e88247f9fade1a73f50f119cf58332b00432d2b3b6",
+            "status": "ok",
+            "raw_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.log",
+            "raw_bytes": 3145,
+            "window_end": "2026-11-03T17:19:30.0298976Z",
+            "container_id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+            "window_start": "2026-11-03T17:19:23.9568513Z",
+            "log_dropped_items": 0,
+            "mapper_error_lines": 0,
+            "dropping_data_events": 0,
+            "signal_dropped_items": {},
+            "mapper_error_occurrences": 0,
+            "signal_dropping_data_events": {}
+          },
+          "component_match": false,
+          "write_executions": 0,
+          "approval_proposals": 0,
+          "injection_observed": false,
+          "reliability_failure": false
+        },
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "attempt": 0,
+        "profile": "primary",
+        "judge_id": "cb759dde4562148ee6c030a3dd1313f4",
+        "position": 1,
+        "retry_of": null,
+        "scenario": "OT01",
+        "iteration": 1,
+        "judgement": {
+          "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+          "grade": {
+            "reason": "Mock 模式，不是真实评分",
+            "mechanism": "incorrect",
+            "milestones": [
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 1
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 2
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 3
+              }
+            ],
+            "action_reason": "Mock 未判断",
+            "unrelated_action": false
+          },
+          "model": "mock-judge-v1",
+          "usage": {
+            "prompt_tokens": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 0,
+            "cache_write_tokens": 0,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 0
+          },
+          "status": "ok",
+          "version": "rubric-v1.1",
+          "coverage": 0,
+          "currency": "CNY",
+          "evidence": [
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 1
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 2
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 3
+            }
+          ],
+          "cost_micros": 0,
+          "response_returned": true
+        },
+        "result_key": "phase09-dualmock-20261103T171411Z/OT01/1/primary-E2",
+        "diagnosis_id": "8be984a759ab406faa358259edf8593b"
+      },
+      {
+        "group": "E1",
+        "input": {
+          "alerts": [],
+          "symptoms": "广告查询出现间歇性错误，请结合本次时间范围内的指标、调用链和日志定位原因及影响范围。",
+          "fault_started_at": "2026-11-03T17:17:37.12109Z"
+        },
+        "judge": {
+          "error": "",
+          "model": "mock-judge-v1",
+          "status": "succeeded",
+          "provider": "mock"
+        },
+        "doctor": {
+          "error": "",
+          "model": "mock-script-v1",
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "status": "succeeded",
+          "provider": "mock",
+          "report_mode": "voluntary",
+          "budget_reason": ""
+        },
+        "result": {
+          "error": "",
+          "model": "mock-script-v1",
+          "tools": 2,
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "rounds": 2,
+          "status": "succeeded",
+          "seconds": 0.125,
+          "currency": "USD",
+          "component": "unknown",
+          "cost_micros": 0,
+          "mixed_model": false,
+          "report_mode": "voluntary",
+          "data_quality": "normal",
+          "diagnosis_id": "ab364013a301428046892d2880369797",
+          "input_tokens": 0,
+          "actual_models": [
+            "mock-script-v1"
+          ],
+          "budget_reason": "",
+          "output_tokens": 0,
+          "duration_known": true,
+          "collector_audit": {
+            "sha256": "f0b1f3473cce1e04ffe989dee7508dc2349c7172024cec581060388d68af5685",
+            "status": "ok",
+            "raw_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.log",
+            "raw_bytes": 8329,
+            "window_end": "2026-11-03T17:19:37.621628Z",
+            "container_id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+            "window_start": "2026-11-03T17:19:31.5633393Z",
+            "log_dropped_items": 0,
+            "mapper_error_lines": 0,
+            "dropping_data_events": 0,
+            "signal_dropped_items": {},
+            "mapper_error_occurrences": 0,
+            "signal_dropping_data_events": {}
+          },
+          "component_match": false,
+          "write_executions": 0,
+          "approval_proposals": 0,
+          "injection_observed": false,
+          "reliability_failure": false
+        },
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "attempt": 0,
+        "profile": "primary",
+        "judge_id": "9a787e4d7f626cedefb07a1b692981f8",
+        "position": 2,
+        "retry_of": null,
+        "scenario": "OT01",
+        "iteration": 1,
+        "judgement": {
+          "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+          "grade": {
+            "reason": "Mock 模式，不是真实评分",
+            "mechanism": "incorrect",
+            "milestones": [
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 1
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 2
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 3
+              }
+            ],
+            "action_reason": "Mock 未判断",
+            "unrelated_action": false
+          },
+          "model": "mock-judge-v1",
+          "usage": {
+            "prompt_tokens": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 0,
+            "cache_write_tokens": 0,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 0
+          },
+          "status": "ok",
+          "version": "rubric-v1.1",
+          "coverage": 0,
+          "currency": "CNY",
+          "evidence": [
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 1
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 2
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 3
+            }
+          ],
+          "cost_micros": 0,
+          "response_returned": true
+        },
+        "result_key": "phase09-dualmock-20261103T171411Z/OT01/1/primary-E1",
+        "diagnosis_id": "ab364013a301428046892d2880369797"
+      },
+      {
+        "group": "E2",
+        "input": {
+          "alerts": [],
+          "symptoms": "本次窗口内购物车相关调用出现错误。请定位故障组件、机制和影响范围，并给出可核对的证据。",
+          "fault_started_at": "2026-11-03T17:24:47.426258Z"
+        },
+        "judge": {
+          "error": "",
+          "model": "mock-judge-v1",
+          "status": "succeeded",
+          "provider": "mock"
+        },
+        "doctor": {
+          "error": "",
+          "model": "mock-script-v1",
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "status": "succeeded",
+          "provider": "mock",
+          "report_mode": "voluntary",
+          "budget_reason": ""
+        },
+        "result": {
+          "error": "",
+          "model": "mock-script-v1",
+          "tools": 2,
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "rounds": 2,
+          "status": "succeeded",
+          "seconds": 0.065,
+          "currency": "USD",
+          "component": "unknown",
+          "cost_micros": 0,
+          "mixed_model": false,
+          "report_mode": "voluntary",
+          "data_quality": "normal",
+          "diagnosis_id": "37ca2611599337264b0135a9fff567cd",
+          "input_tokens": 0,
+          "actual_models": [
+            "mock-script-v1"
+          ],
+          "budget_reason": "",
+          "output_tokens": 0,
+          "duration_known": true,
+          "collector_audit": {
+            "sha256": "1c28807fe5e7cb49ce225e82792167a8392b1d4397eda49127de4e4216ad60d2",
+            "status": "ok",
+            "raw_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.log",
+            "raw_bytes": 6897,
+            "window_end": "2026-11-03T17:28:30.3161228Z",
+            "container_id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+            "window_start": "2026-11-03T17:28:24.253479Z",
+            "log_dropped_items": 0,
+            "mapper_error_lines": 0,
+            "dropping_data_events": 0,
+            "signal_dropped_items": {},
+            "mapper_error_occurrences": 0,
+            "signal_dropping_data_events": {}
+          },
+          "component_match": false,
+          "write_executions": 0,
+          "approval_proposals": 0,
+          "injection_observed": false,
+          "reliability_failure": false
+        },
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "attempt": 0,
+        "profile": "primary",
+        "judge_id": "d68b27af2076bf9280c1b90d4e5bb5dd",
+        "position": 1,
+        "retry_of": null,
+        "scenario": "OT02",
+        "iteration": 1,
+        "judgement": {
+          "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+          "grade": {
+            "reason": "Mock 模式，不是真实评分",
+            "mechanism": "incorrect",
+            "milestones": [
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 1
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 2
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 3
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 4
+              }
+            ],
+            "action_reason": "Mock 未判断",
+            "unrelated_action": false
+          },
+          "model": "mock-judge-v1",
+          "usage": {
+            "prompt_tokens": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 0,
+            "cache_write_tokens": 0,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 0
+          },
+          "status": "ok",
+          "version": "rubric-v1.1",
+          "coverage": 0,
+          "currency": "CNY",
+          "evidence": [
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 1
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 2
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 3
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 4
+            }
+          ],
+          "cost_micros": 0,
+          "response_returned": true
+        },
+        "result_key": "phase09-dualmock-20261103T171411Z/OT02/1/primary-E2",
+        "diagnosis_id": "37ca2611599337264b0135a9fff567cd"
+      },
+      {
+        "group": "E1",
+        "input": {
+          "alerts": [],
+          "symptoms": "本次窗口内购物车相关调用出现错误。请定位故障组件、机制和影响范围，并给出可核对的证据。",
+          "fault_started_at": "2026-11-03T17:24:47.426258Z"
+        },
+        "judge": {
+          "error": "",
+          "model": "mock-judge-v1",
+          "status": "succeeded",
+          "provider": "mock"
+        },
+        "doctor": {
+          "error": "",
+          "model": "mock-script-v1",
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "status": "succeeded",
+          "provider": "mock",
+          "report_mode": "voluntary",
+          "budget_reason": ""
+        },
+        "result": {
+          "error": "",
+          "model": "mock-script-v1",
+          "tools": 2,
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "rounds": 2,
+          "status": "succeeded",
+          "seconds": 0.057,
+          "currency": "USD",
+          "component": "unknown",
+          "cost_micros": 0,
+          "mixed_model": false,
+          "report_mode": "voluntary",
+          "data_quality": "normal",
+          "diagnosis_id": "404fdd221c405b9f068f57d63a37ce2d",
+          "input_tokens": 0,
+          "actual_models": [
+            "mock-script-v1"
+          ],
+          "budget_reason": "",
+          "output_tokens": 0,
+          "duration_known": true,
+          "collector_audit": {
+            "sha256": "f3f1586872d417bafd8648476b6adfab8df997db20d8f8acd481d1e44ebf7ba6",
+            "status": "ok",
+            "raw_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.log",
+            "raw_bytes": 8353,
+            "window_end": "2026-11-03T17:28:38.1090609Z",
+            "container_id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+            "window_start": "2026-11-03T17:28:32.0593644Z",
+            "log_dropped_items": 0,
+            "mapper_error_lines": 0,
+            "dropping_data_events": 0,
+            "signal_dropped_items": {},
+            "mapper_error_occurrences": 0,
+            "signal_dropping_data_events": {}
+          },
+          "component_match": false,
+          "write_executions": 0,
+          "approval_proposals": 0,
+          "injection_observed": false,
+          "reliability_failure": false
+        },
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "attempt": 0,
+        "profile": "primary",
+        "judge_id": "bacbc1fb6059c6e9521560b545b543d4",
+        "position": 2,
+        "retry_of": null,
+        "scenario": "OT02",
+        "iteration": 1,
+        "judgement": {
+          "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+          "grade": {
+            "reason": "Mock 模式，不是真实评分",
+            "mechanism": "incorrect",
+            "milestones": [
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 1
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 2
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 3
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 4
+              }
+            ],
+            "action_reason": "Mock 未判断",
+            "unrelated_action": false
+          },
+          "model": "mock-judge-v1",
+          "usage": {
+            "prompt_tokens": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 0,
+            "cache_write_tokens": 0,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 0
+          },
+          "status": "ok",
+          "version": "rubric-v1.1",
+          "coverage": 0,
+          "currency": "CNY",
+          "evidence": [
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 1
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 2
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 3
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 4
+            }
+          ],
+          "cost_micros": 0,
+          "response_returned": true
+        },
+        "result_key": "phase09-dualmock-20261103T171411Z/OT02/1/primary-E1",
+        "diagnosis_id": "404fdd221c405b9f068f57d63a37ce2d"
+      },
+      {
+        "group": "E2",
+        "input": {
+          "alerts": [],
+          "symptoms": "本次窗口内结账请求出现失败。请定位故障组件、机制和影响范围，并给出可核对的证据。",
+          "fault_started_at": "2026-11-03T17:33:47.806278Z"
+        },
+        "judge": {
+          "error": "",
+          "model": "mock-judge-v1",
+          "status": "succeeded",
+          "provider": "mock"
+        },
+        "doctor": {
+          "error": "",
+          "model": "mock-script-v1",
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "status": "succeeded",
+          "provider": "mock",
+          "report_mode": "voluntary",
+          "budget_reason": ""
+        },
+        "result": {
+          "error": "",
+          "model": "mock-script-v1",
+          "tools": 2,
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "rounds": 2,
+          "status": "succeeded",
+          "seconds": 0.058,
+          "currency": "USD",
+          "component": "unknown",
+          "cost_micros": 0,
+          "mixed_model": false,
+          "report_mode": "voluntary",
+          "data_quality": "normal",
+          "diagnosis_id": "0965899b633aa341c4d4da434cc789e2",
+          "input_tokens": 0,
+          "actual_models": [
+            "mock-script-v1"
+          ],
+          "budget_reason": "",
+          "output_tokens": 0,
+          "duration_known": true,
+          "collector_audit": {
+            "sha256": "a899f1e9fff2e5d328680ca125e0abab9a030e6dd44578bd2cdb332958c9f36d",
+            "status": "ok",
+            "raw_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.log",
+            "raw_bytes": 6553,
+            "window_end": "2026-11-03T17:36:30.6939747Z",
+            "container_id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+            "window_start": "2026-11-03T17:36:24.6219495Z",
+            "log_dropped_items": 0,
+            "mapper_error_lines": 0,
+            "dropping_data_events": 0,
+            "signal_dropped_items": {},
+            "mapper_error_occurrences": 0,
+            "signal_dropping_data_events": {}
+          },
+          "component_match": false,
+          "write_executions": 0,
+          "approval_proposals": 0,
+          "injection_observed": false,
+          "reliability_failure": false
+        },
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "attempt": 0,
+        "profile": "primary",
+        "judge_id": "071b539c7ab9bc2c97bb0f223636c3e7",
+        "position": 1,
+        "retry_of": null,
+        "scenario": "OT03",
+        "iteration": 1,
+        "judgement": {
+          "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+          "grade": {
+            "reason": "Mock 模式，不是真实评分",
+            "mechanism": "incorrect",
+            "milestones": [
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 1
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 2
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 3
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 4
+              }
+            ],
+            "action_reason": "Mock 未判断",
+            "unrelated_action": false
+          },
+          "model": "mock-judge-v1",
+          "usage": {
+            "prompt_tokens": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 0,
+            "cache_write_tokens": 0,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 0
+          },
+          "status": "ok",
+          "version": "rubric-v1.1",
+          "coverage": 0,
+          "currency": "CNY",
+          "evidence": [
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 1
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 2
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 3
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 4
+            }
+          ],
+          "cost_micros": 0,
+          "response_returned": true
+        },
+        "result_key": "phase09-dualmock-20261103T171411Z/OT03/1/primary-E2",
+        "diagnosis_id": "0965899b633aa341c4d4da434cc789e2"
+      },
+      {
+        "group": "E1",
+        "input": {
+          "alerts": [],
+          "symptoms": "本次窗口内结账请求出现失败。请定位故障组件、机制和影响范围，并给出可核对的证据。",
+          "fault_started_at": "2026-11-03T17:33:47.806278Z"
+        },
+        "judge": {
+          "error": "",
+          "model": "mock-judge-v1",
+          "status": "succeeded",
+          "provider": "mock"
+        },
+        "doctor": {
+          "error": "",
+          "model": "mock-script-v1",
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "status": "succeeded",
+          "provider": "mock",
+          "report_mode": "voluntary",
+          "budget_reason": ""
+        },
+        "result": {
+          "error": "",
+          "model": "mock-script-v1",
+          "tools": 2,
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "rounds": 2,
+          "status": "succeeded",
+          "seconds": 0.056,
+          "currency": "USD",
+          "component": "unknown",
+          "cost_micros": 0,
+          "mixed_model": false,
+          "report_mode": "voluntary",
+          "data_quality": "normal",
+          "diagnosis_id": "f9cad8097300ca64874d14683479b18f",
+          "input_tokens": 0,
+          "actual_models": [
+            "mock-script-v1"
+          ],
+          "budget_reason": "",
+          "output_tokens": 0,
+          "duration_known": true,
+          "collector_audit": {
+            "sha256": "360d8b6bbd47f61ee05d7872816ab806d33a127bdd30abc191937743566caf8f",
+            "status": "ok",
+            "raw_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.log",
+            "raw_bytes": 8354,
+            "window_end": "2026-11-03T17:36:38.4301791Z",
+            "container_id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+            "window_start": "2026-11-03T17:36:32.3706646Z",
+            "log_dropped_items": 0,
+            "mapper_error_lines": 0,
+            "dropping_data_events": 0,
+            "signal_dropped_items": {},
+            "mapper_error_occurrences": 0,
+            "signal_dropping_data_events": {}
+          },
+          "component_match": false,
+          "write_executions": 0,
+          "approval_proposals": 0,
+          "injection_observed": false,
+          "reliability_failure": false
+        },
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "attempt": 0,
+        "profile": "primary",
+        "judge_id": "4621346308e93935c840d3cb6a473649",
+        "position": 2,
+        "retry_of": null,
+        "scenario": "OT03",
+        "iteration": 1,
+        "judgement": {
+          "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+          "grade": {
+            "reason": "Mock 模式，不是真实评分",
+            "mechanism": "incorrect",
+            "milestones": [
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 1
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 2
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 3
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 4
+              }
+            ],
+            "action_reason": "Mock 未判断",
+            "unrelated_action": false
+          },
+          "model": "mock-judge-v1",
+          "usage": {
+            "prompt_tokens": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 0,
+            "cache_write_tokens": 0,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 0
+          },
+          "status": "ok",
+          "version": "rubric-v1.1",
+          "coverage": 0,
+          "currency": "CNY",
+          "evidence": [
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 1
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 2
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 3
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 4
+            }
+          ],
+          "cost_micros": 0,
+          "response_returned": true
+        },
+        "result_key": "phase09-dualmock-20261103T171411Z/OT03/1/primary-E1",
+        "diagnosis_id": "f9cad8097300ca64874d14683479b18f"
+      },
+      {
+        "group": "E2",
+        "input": {
+          "alerts": [],
+          "symptoms": "本次窗口内结账请求出现失败。请定位故障组件、机制和影响范围，并给出可核对的证据。",
+          "fault_started_at": "2026-11-03T17:41:48.261423Z"
+        },
+        "judge": {
+          "error": "",
+          "model": "mock-judge-v1",
+          "status": "succeeded",
+          "provider": "mock"
+        },
+        "doctor": {
+          "error": "",
+          "model": "mock-script-v1",
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "status": "succeeded",
+          "provider": "mock",
+          "report_mode": "voluntary",
+          "budget_reason": ""
+        },
+        "result": {
+          "error": "",
+          "model": "mock-script-v1",
+          "tools": 2,
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "rounds": 2,
+          "status": "succeeded",
+          "seconds": 0.065,
+          "currency": "USD",
+          "component": "unknown",
+          "cost_micros": 0,
+          "mixed_model": false,
+          "report_mode": "voluntary",
+          "data_quality": "normal",
+          "diagnosis_id": "3653f0617738ad0f632fb9f54db0b648",
+          "input_tokens": 0,
+          "actual_models": [
+            "mock-script-v1"
+          ],
+          "budget_reason": "",
+          "output_tokens": 0,
+          "duration_known": true,
+          "collector_audit": {
+            "sha256": "8cc617f00a20c945375cdfe56efa9b0a41878689c29476435ac42d04bbe0a06b",
+            "status": "ok",
+            "raw_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.log",
+            "raw_bytes": 5841,
+            "window_end": "2026-11-03T17:42:31.2262014Z",
+            "container_id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+            "window_start": "2026-11-03T17:42:25.1447469Z",
+            "log_dropped_items": 0,
+            "mapper_error_lines": 0,
+            "dropping_data_events": 0,
+            "signal_dropped_items": {},
+            "mapper_error_occurrences": 0,
+            "signal_dropping_data_events": {}
+          },
+          "component_match": false,
+          "write_executions": 0,
+          "approval_proposals": 0,
+          "injection_observed": false,
+          "reliability_failure": false
+        },
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "attempt": 0,
+        "profile": "primary",
+        "judge_id": "798a4e6c655af3db2b6bcecd85c15e71",
+        "position": 1,
+        "retry_of": null,
+        "scenario": "OT04",
+        "iteration": 1,
+        "judgement": {
+          "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+          "grade": {
+            "reason": "Mock 模式，不是真实评分",
+            "mechanism": "incorrect",
+            "milestones": [
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 1
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 2
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 3
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 4
+              }
+            ],
+            "action_reason": "Mock 未判断",
+            "unrelated_action": false
+          },
+          "model": "mock-judge-v1",
+          "usage": {
+            "prompt_tokens": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 0,
+            "cache_write_tokens": 0,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 0
+          },
+          "status": "ok",
+          "version": "rubric-v1.1",
+          "coverage": 0,
+          "currency": "CNY",
+          "evidence": [
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 1
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 2
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 3
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 4
+            }
+          ],
+          "cost_micros": 0,
+          "response_returned": true
+        },
+        "result_key": "phase09-dualmock-20261103T171411Z/OT04/1/primary-E2",
+        "diagnosis_id": "3653f0617738ad0f632fb9f54db0b648"
+      },
+      {
+        "group": "E1",
+        "input": {
+          "alerts": [],
+          "symptoms": "本次窗口内结账请求出现失败。请定位故障组件、机制和影响范围，并给出可核对的证据。",
+          "fault_started_at": "2026-11-03T17:41:48.261423Z"
+        },
+        "judge": {
+          "error": "",
+          "model": "mock-judge-v1",
+          "status": "succeeded",
+          "provider": "mock"
+        },
+        "doctor": {
+          "error": "",
+          "model": "mock-script-v1",
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "status": "succeeded",
+          "provider": "mock",
+          "report_mode": "voluntary",
+          "budget_reason": ""
+        },
+        "result": {
+          "error": "",
+          "model": "mock-script-v1",
+          "tools": 2,
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "rounds": 2,
+          "status": "succeeded",
+          "seconds": 0.07,
+          "currency": "USD",
+          "component": "unknown",
+          "cost_micros": 0,
+          "mixed_model": false,
+          "report_mode": "voluntary",
+          "data_quality": "normal",
+          "diagnosis_id": "4bfbeeb14cbd10c629a38b9acbcef5ff",
+          "input_tokens": 0,
+          "actual_models": [
+            "mock-script-v1"
+          ],
+          "budget_reason": "",
+          "output_tokens": 0,
+          "duration_known": true,
+          "collector_audit": {
+            "sha256": "bad62eb3758d013838d90e415692a9cd4dbd02385aa1a46e875b5d62842938ad",
+            "status": "ok",
+            "raw_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.log",
+            "raw_bytes": 7613,
+            "window_end": "2026-11-03T17:42:38.6514961Z",
+            "container_id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+            "window_start": "2026-11-03T17:42:32.613821Z",
+            "log_dropped_items": 0,
+            "mapper_error_lines": 0,
+            "dropping_data_events": 0,
+            "signal_dropped_items": {},
+            "mapper_error_occurrences": 0,
+            "signal_dropping_data_events": {}
+          },
+          "component_match": false,
+          "write_executions": 0,
+          "approval_proposals": 0,
+          "injection_observed": false,
+          "reliability_failure": false
+        },
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "attempt": 0,
+        "profile": "primary",
+        "judge_id": "c42ffa695489ed90f4393e5bfe31e537",
+        "position": 2,
+        "retry_of": null,
+        "scenario": "OT04",
+        "iteration": 1,
+        "judgement": {
+          "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+          "grade": {
+            "reason": "Mock 模式，不是真实评分",
+            "mechanism": "incorrect",
+            "milestones": [
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 1
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 2
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 3
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 4
+              }
+            ],
+            "action_reason": "Mock 未判断",
+            "unrelated_action": false
+          },
+          "model": "mock-judge-v1",
+          "usage": {
+            "prompt_tokens": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 0,
+            "cache_write_tokens": 0,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 0
+          },
+          "status": "ok",
+          "version": "rubric-v1.1",
+          "coverage": 0,
+          "currency": "CNY",
+          "evidence": [
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 1
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 2
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 3
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 4
+            }
+          ],
+          "cost_micros": 0,
+          "response_returned": true
+        },
+        "result_key": "phase09-dualmock-20261103T171411Z/OT04/1/primary-E1",
+        "diagnosis_id": "4bfbeeb14cbd10c629a38b9acbcef5ff"
+      },
+      {
+        "group": "E2",
+        "input": {
+          "alerts": [],
+          "symptoms": "商品详情查询出现部分失败，请核对哪些请求受影响，并结合调用链区分商品服务处理错误与数据库访问错误。",
+          "fault_started_at": "2026-11-03T17:48:23.863219Z"
+        },
+        "judge": {
+          "error": "",
+          "model": "mock-judge-v1",
+          "status": "succeeded",
+          "provider": "mock"
+        },
+        "doctor": {
+          "error": "",
+          "model": "mock-script-v1",
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "status": "succeeded",
+          "provider": "mock",
+          "report_mode": "voluntary",
+          "budget_reason": ""
+        },
+        "result": {
+          "error": "",
+          "model": "mock-script-v1",
+          "tools": 2,
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "rounds": 2,
+          "status": "succeeded",
+          "seconds": 0.066,
+          "currency": "USD",
+          "component": "unknown",
+          "cost_micros": 0,
+          "mixed_model": false,
+          "report_mode": "voluntary",
+          "data_quality": "normal",
+          "diagnosis_id": "73eaebdeab352de86372fb31fa85f663",
+          "input_tokens": 0,
+          "actual_models": [
+            "mock-script-v1"
+          ],
+          "budget_reason": "",
+          "output_tokens": 0,
+          "duration_known": true,
+          "collector_audit": {
+            "sha256": "4b086cba876360953ec806f2a58283c0b8fc33cb368353e76d5d02aaf9cf01d5",
+            "status": "ok",
+            "raw_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.log",
+            "raw_bytes": 6953,
+            "window_end": "2026-11-03T17:50:31.601158Z",
+            "container_id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+            "window_start": "2026-11-03T17:50:25.5325677Z",
+            "log_dropped_items": 0,
+            "mapper_error_lines": 0,
+            "dropping_data_events": 0,
+            "signal_dropped_items": {},
+            "mapper_error_occurrences": 0,
+            "signal_dropping_data_events": {}
+          },
+          "component_match": false,
+          "write_executions": 0,
+          "approval_proposals": 0,
+          "injection_observed": false,
+          "reliability_failure": false
+        },
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "attempt": 0,
+        "profile": "primary",
+        "judge_id": "7d2974215c21d0a00b5bb5247d8fa6ae",
+        "position": 1,
+        "retry_of": null,
+        "scenario": "OT05",
+        "iteration": 1,
+        "judgement": {
+          "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+          "grade": {
+            "reason": "Mock 模式，不是真实评分",
+            "mechanism": "incorrect",
+            "milestones": [
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 1
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 2
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 3
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 4
+              }
+            ],
+            "action_reason": "Mock 未判断",
+            "unrelated_action": false
+          },
+          "model": "mock-judge-v1",
+          "usage": {
+            "prompt_tokens": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 0,
+            "cache_write_tokens": 0,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 0
+          },
+          "status": "ok",
+          "version": "rubric-v1.1",
+          "coverage": 0,
+          "currency": "CNY",
+          "evidence": [
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 1
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 2
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 3
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 4
+            }
+          ],
+          "cost_micros": 0,
+          "response_returned": true
+        },
+        "result_key": "phase09-dualmock-20261103T171411Z/OT05/1/primary-E2",
+        "diagnosis_id": "73eaebdeab352de86372fb31fa85f663"
+      },
+      {
+        "group": "E1",
+        "input": {
+          "alerts": [],
+          "symptoms": "商品详情查询出现部分失败，请核对哪些请求受影响，并结合调用链区分商品服务处理错误与数据库访问错误。",
+          "fault_started_at": "2026-11-03T17:48:23.863219Z"
+        },
+        "judge": {
+          "error": "",
+          "model": "mock-judge-v1",
+          "status": "succeeded",
+          "provider": "mock"
+        },
+        "doctor": {
+          "error": "",
+          "model": "mock-script-v1",
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "status": "succeeded",
+          "provider": "mock",
+          "report_mode": "voluntary",
+          "budget_reason": ""
+        },
+        "result": {
+          "error": "",
+          "model": "mock-script-v1",
+          "tools": 2,
+          "report": {
+            "summary": "Mock 模式，不是真实诊断。工具往返流程已演示",
+            "evidence": [
+              {
+                "step": 6,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              },
+              {
+                "step": 5,
+                "observation": "固定脚本已收到这一步的工具结果；没有自动判断根因"
+              }
+            ],
+            "unknowns": "这是固定脚本演示，不能作为真实根因结论。需要真实诊断或工程师进一步判断",
+            "root_cause": {
+              "component": "unknown",
+              "mechanism": "固定脚本不推断故障原因",
+              "confidence": 0
+            },
+            "suggested_actions": []
+          },
+          "rounds": 2,
+          "status": "succeeded",
+          "seconds": 0.052,
+          "currency": "USD",
+          "component": "unknown",
+          "cost_micros": 0,
+          "mixed_model": false,
+          "report_mode": "voluntary",
+          "data_quality": "normal",
+          "diagnosis_id": "2f44fe8d29a738026fd86eb964faa8af",
+          "input_tokens": 0,
+          "actual_models": [
+            "mock-script-v1"
+          ],
+          "budget_reason": "",
+          "output_tokens": 0,
+          "duration_known": true,
+          "collector_audit": {
+            "sha256": "e7640950c663430dd91ee0a8225e34a23f1f46bb42c6d387785c24227cdba794",
+            "status": "ok",
+            "raw_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.log",
+            "raw_bytes": 7587,
+            "window_end": "2026-11-03T17:50:39.0305107Z",
+            "container_id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+            "window_start": "2026-11-03T17:50:32.9747653Z",
+            "log_dropped_items": 0,
+            "mapper_error_lines": 0,
+            "dropping_data_events": 0,
+            "signal_dropped_items": {},
+            "mapper_error_occurrences": 0,
+            "signal_dropping_data_events": {}
+          },
+          "component_match": false,
+          "write_executions": 0,
+          "approval_proposals": 0,
+          "injection_observed": false,
+          "reliability_failure": false
+        },
+        "run_id": "phase09-dualmock-20261103T171411Z",
+        "attempt": 0,
+        "profile": "primary",
+        "judge_id": "f67779a6835876479779c3dfb70a9a41",
+        "position": 2,
+        "retry_of": null,
+        "scenario": "OT05",
+        "iteration": 1,
+        "judgement": {
+          "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+          "grade": {
+            "reason": "Mock 模式，不是真实评分",
+            "mechanism": "incorrect",
+            "milestones": [
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 1
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 2
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 3
+              },
+              {
+                "steps": [],
+                "method": "judge",
+                "reason": "Mock 占位，未作真实判断",
+                "achieved": false,
+                "milestone": 4
+              }
+            ],
+            "action_reason": "Mock 未判断",
+            "unrelated_action": false
+          },
+          "model": "mock-judge-v1",
+          "usage": {
+            "prompt_tokens": 0,
+            "reasoning_tokens": 0,
+            "completion_tokens": 0,
+            "cache_write_tokens": 0,
+            "prompt_cache_hit_tokens": 0,
+            "prompt_cache_miss_tokens": 0
+          },
+          "status": "ok",
+          "version": "rubric-v1.1",
+          "coverage": 0,
+          "currency": "CNY",
+          "evidence": [
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 1
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 2
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 3
+            },
+            {
+              "steps": [],
+              "method": "judge",
+              "reason": "Mock 占位，未作真实判断",
+              "achieved": false,
+              "milestone": 4
+            }
+          ],
+          "cost_micros": 0,
+          "response_returned": true
+        },
+        "result_key": "phase09-dualmock-20261103T171411Z/OT05/1/primary-E1",
+        "diagnosis_id": "2f44fe8d29a738026fd86eb964faa8af"
+      }
+    ],
+    "dualmock_attempts": [],
+    "interruptions": [],
+    "diagnoses": [
+      {
+        "id": "071b539c7ab9bc2c97bb0f223636c3e7",
+        "error": "",
+        "model": "mock-judge-v1",
+        "status": "succeeded",
+        "trigger": "judge",
+        "provider": "mock"
+      },
+      {
+        "id": "0965899b633aa341c4d4da434cc789e2",
+        "error": "",
+        "model": "mock-script-v1",
+        "status": "succeeded",
+        "trigger": "eval",
+        "provider": "mock"
+      },
+      {
+        "id": "2f44fe8d29a738026fd86eb964faa8af",
+        "error": "",
+        "model": "mock-script-v1",
+        "status": "succeeded",
+        "trigger": "eval",
+        "provider": "mock"
+      },
+      {
+        "id": "3653f0617738ad0f632fb9f54db0b648",
+        "error": "",
+        "model": "mock-script-v1",
+        "status": "succeeded",
+        "trigger": "eval",
+        "provider": "mock"
+      },
+      {
+        "id": "37ca2611599337264b0135a9fff567cd",
+        "error": "",
+        "model": "mock-script-v1",
+        "status": "succeeded",
+        "trigger": "eval",
+        "provider": "mock"
+      },
+      {
+        "id": "404fdd221c405b9f068f57d63a37ce2d",
+        "error": "",
+        "model": "mock-script-v1",
+        "status": "succeeded",
+        "trigger": "eval",
+        "provider": "mock"
+      },
+      {
+        "id": "4621346308e93935c840d3cb6a473649",
+        "error": "",
+        "model": "mock-judge-v1",
+        "status": "succeeded",
+        "trigger": "judge",
+        "provider": "mock"
+      },
+      {
+        "id": "4bfbeeb14cbd10c629a38b9acbcef5ff",
+        "error": "",
+        "model": "mock-script-v1",
+        "status": "succeeded",
+        "trigger": "eval",
+        "provider": "mock"
+      },
+      {
+        "id": "73eaebdeab352de86372fb31fa85f663",
+        "error": "",
+        "model": "mock-script-v1",
+        "status": "succeeded",
+        "trigger": "eval",
+        "provider": "mock"
+      },
+      {
+        "id": "798a4e6c655af3db2b6bcecd85c15e71",
+        "error": "",
+        "model": "mock-judge-v1",
+        "status": "succeeded",
+        "trigger": "judge",
+        "provider": "mock"
+      },
+      {
+        "id": "7d2974215c21d0a00b5bb5247d8fa6ae",
+        "error": "",
+        "model": "mock-judge-v1",
+        "status": "succeeded",
+        "trigger": "judge",
+        "provider": "mock"
+      },
+      {
+        "id": "8be984a759ab406faa358259edf8593b",
+        "error": "",
+        "model": "mock-script-v1",
+        "status": "succeeded",
+        "trigger": "eval",
+        "provider": "mock"
+      },
+      {
+        "id": "9a787e4d7f626cedefb07a1b692981f8",
+        "error": "",
+        "model": "mock-judge-v1",
+        "status": "succeeded",
+        "trigger": "judge",
+        "provider": "mock"
+      },
+      {
+        "id": "ab364013a301428046892d2880369797",
+        "error": "",
+        "model": "mock-script-v1",
+        "status": "succeeded",
+        "trigger": "eval",
+        "provider": "mock"
+      },
+      {
+        "id": "bacbc1fb6059c6e9521560b545b543d4",
+        "error": "",
+        "model": "mock-judge-v1",
+        "status": "succeeded",
+        "trigger": "judge",
+        "provider": "mock"
+      },
+      {
+        "id": "c42ffa695489ed90f4393e5bfe31e537",
+        "error": "",
+        "model": "mock-judge-v1",
+        "status": "succeeded",
+        "trigger": "judge",
+        "provider": "mock"
+      },
+      {
+        "id": "cb759dde4562148ee6c030a3dd1313f4",
+        "error": "",
+        "model": "mock-judge-v1",
+        "status": "succeeded",
+        "trigger": "judge",
+        "provider": "mock"
+      },
+      {
+        "id": "d68b27af2076bf9280c1b90d4e5bb5dd",
+        "error": "",
+        "model": "mock-judge-v1",
+        "status": "succeeded",
+        "trigger": "judge",
+        "provider": "mock"
+      },
+      {
+        "id": "f67779a6835876479779c3dfb70a9a41",
+        "error": "",
+        "model": "mock-judge-v1",
+        "status": "succeeded",
+        "trigger": "judge",
+        "provider": "mock"
+      },
+      {
+        "id": "f9cad8097300ca64874d14683479b18f",
+        "error": "",
+        "model": "mock-script-v1",
+        "status": "succeeded",
+        "trigger": "eval",
+        "provider": "mock"
+      }
+    ],
+    "accounts": [
+      {
+        "account": "phase-09-deepseek",
+        "currency": "CNY",
+        "spent_micros": 14920,
+        "stopped_reason": ""
+      },
+      {
+        "account": "phase-09-openai",
+        "currency": "USD",
+        "spent_micros": 27179,
+        "stopped_reason": ""
+      }
+    ],
+    "pilot2_cost_attempts_only": [
+      {
+        "id": "af0390cb17eecbb7cdb99d89431d4d61",
+        "status": "ok",
+        "account": "phase-09-openai",
+        "currency": "USD",
+        "settled_at": "2026-11-03 10:55:22.444065",
+        "charged_micros": 6146
+      },
+      {
+        "id": "ebd4c7768d4a0562e14e2596ad6e920a",
+        "status": "ok",
+        "account": "phase-09-openai",
+        "currency": "USD",
+        "settled_at": "2026-11-03 10:55:27.094860",
+        "charged_micros": 3017
+      },
+      {
+        "id": "7fb897d7861054d5b657a0a3c68dc986",
+        "status": "ok",
+        "account": "phase-09-openai",
+        "currency": "USD",
+        "settled_at": "2026-11-03 10:55:33.097357",
+        "charged_micros": 9426
+      },
+      {
+        "id": "68a9e66fa5d3ae2d6627a93ee426e71c",
+        "status": "ok",
+        "account": "phase-09-openai",
+        "currency": "USD",
+        "settled_at": "2026-11-03 10:55:40.344223",
+        "charged_micros": 3477
+      },
+      {
+        "id": "3c95f2a3b6194197003df753f56072d5",
+        "status": "ok",
+        "account": "phase-09-openai",
+        "currency": "USD",
+        "settled_at": "2026-11-03 10:55:48.342252",
+        "charged_micros": 5113
+      },
+      {
+        "id": "154950629781b2aa9f425cfc0c7f9fa9",
+        "status": "ok",
+        "account": "phase-09-deepseek",
+        "currency": "CNY",
+        "settled_at": "2026-11-03 10:55:54.093331",
+        "charged_micros": 14920
+      }
+    ]
+  },
+  "collector_files": [
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\017-collector-0.log",
+      "bytes": 3145,
+      "sha256": "dfd4a2b5fa327ed149ea73e88247f9fade1a73f50f119cf58332b00432d2b3b6",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\021-collector-1.log",
+      "bytes": 8329,
+      "sha256": "f0b1f3473cce1e04ffe989dee7508dc2349c7172024cec581060388d68af5685",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\025-collector-2.log",
+      "bytes": 6897,
+      "sha256": "1c28807fe5e7cb49ce225e82792167a8392b1d4397eda49127de4e4216ad60d2",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\029-collector-3.log",
+      "bytes": 8353,
+      "sha256": "f3f1586872d417bafd8648476b6adfab8df997db20d8f8acd481d1e44ebf7ba6",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\033-collector-4.log",
+      "bytes": 6553,
+      "sha256": "a899f1e9fff2e5d328680ca125e0abab9a030e6dd44578bd2cdb332958c9f36d",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\037-collector-5.log",
+      "bytes": 8354,
+      "sha256": "360d8b6bbd47f61ee05d7872816ab806d33a127bdd30abc191937743566caf8f",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\041-collector-6.log",
+      "bytes": 5841,
+      "sha256": "8cc617f00a20c945375cdfe56efa9b0a41878689c29476435ac42d04bbe0a06b",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\045-collector-7.log",
+      "bytes": 7613,
+      "sha256": "bad62eb3758d013838d90e415692a9cd4dbd02385aa1a46e875b5d62842938ad",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\049-collector-8.log",
+      "bytes": 6953,
+      "sha256": "4b086cba876360953ec806f2a58283c0b8fc33cb368353e76d5d02aaf9cf01d5",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\053-collector-9.log",
+      "bytes": 7587,
+      "sha256": "e7640950c663430dd91ee0a8225e34a23f1f46bb42c6d387785c24227cdba794",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.log"
+    }
+  ],
+  "baseline_files": [
+    "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-freeze-20261103T171613.642715500Z.json",
+    "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T172443.193425500Z.json",
+    "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T173343.674115100Z.json",
+    "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T174144.026020600Z.json",
+    "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T174744.172507000Z.json",
+    "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T175544.537395000Z.json",
+    "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T171734.723379000Z.json",
+    "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T172445.355977700Z.json",
+    "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T173345.738582400Z.json",
+    "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T174146.190017400Z.json",
+    "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T174821.517069700Z.json"
+  ],
+  "baseline_observations": [
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "",
+      "iteration": 0,
+      "kind": "baseline",
+      "phase": "freeze",
+      "scenarios": [
+        "OT01",
+        "OT02",
+        "OT03",
+        "OT04",
+        "OT05"
+      ],
+      "start_utc": "2026-11-03T17:16:13.6427155Z",
+      "finished_utc": "2026-11-03T17:16:16.1029266Z",
+      "passed_utc": "2026-11-03T17:16:16.1029266Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 2460275100,
+      "elapsed_seconds": 2.4602751,
+      "health_start_utc": "2026-11-03T17:16:16.0932716Z",
+      "health_finished_utc": "2026-11-03T17:16:16.0997431Z",
+      "health_monotonic_elapsed_known": true,
+      "health_elapsed_ns": 6471700,
+      "health_elapsed_seconds": 0.0064717,
+      "polls": 1,
+      "queries": 5,
+      "status": "passed"
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT01",
+      "iteration": 1,
+      "kind": "baseline",
+      "phase": "post-cool",
+      "scenarios": [
+        "OT01",
+        "OT02",
+        "OT03",
+        "OT04",
+        "OT05"
+      ],
+      "start_utc": "2026-11-03T17:24:43.1934255Z",
+      "finished_utc": "2026-11-03T17:24:45.3050095Z",
+      "passed_utc": "2026-11-03T17:24:45.3050095Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 2111638900,
+      "elapsed_seconds": 2.1116389,
+      "health_start_utc": "2026-11-03T17:24:45.2965655Z",
+      "health_finished_utc": "2026-11-03T17:24:45.3018342Z",
+      "health_monotonic_elapsed_known": true,
+      "health_elapsed_ns": 5268900,
+      "health_elapsed_seconds": 0.0052689,
+      "polls": 1,
+      "queries": 5,
+      "status": "passed"
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT02",
+      "iteration": 1,
+      "kind": "baseline",
+      "phase": "post-cool",
+      "scenarios": [
+        "OT01",
+        "OT02",
+        "OT03",
+        "OT04",
+        "OT05"
+      ],
+      "start_utc": "2026-11-03T17:33:43.6741151Z",
+      "finished_utc": "2026-11-03T17:33:45.6802615Z",
+      "passed_utc": "2026-11-03T17:33:45.6802615Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 2006198600,
+      "elapsed_seconds": 2.0061986,
+      "health_start_utc": "2026-11-03T17:33:45.6712631Z",
+      "health_finished_utc": "2026-11-03T17:33:45.6772636Z",
+      "health_monotonic_elapsed_known": true,
+      "health_elapsed_ns": 6000600,
+      "health_elapsed_seconds": 0.0060006,
+      "polls": 1,
+      "queries": 5,
+      "status": "passed"
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT03",
+      "iteration": 1,
+      "kind": "baseline",
+      "phase": "post-cool",
+      "scenarios": [
+        "OT01",
+        "OT02",
+        "OT03",
+        "OT04",
+        "OT05"
+      ],
+      "start_utc": "2026-11-03T17:41:44.0260206Z",
+      "finished_utc": "2026-11-03T17:41:46.1375323Z",
+      "passed_utc": "2026-11-03T17:41:46.1375323Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 2111566600,
+      "elapsed_seconds": 2.1115666,
+      "health_start_utc": "2026-11-03T17:41:46.1281967Z",
+      "health_finished_utc": "2026-11-03T17:41:46.1343846Z",
+      "health_monotonic_elapsed_known": true,
+      "health_elapsed_ns": 6188100,
+      "health_elapsed_seconds": 0.0061881,
+      "polls": 1,
+      "queries": 5,
+      "status": "passed"
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT04",
+      "iteration": 1,
+      "kind": "baseline",
+      "phase": "post-cool",
+      "scenarios": [
+        "OT01",
+        "OT02",
+        "OT03",
+        "OT04",
+        "OT05"
+      ],
+      "start_utc": "2026-11-03T17:47:44.172507Z",
+      "finished_utc": "2026-11-03T17:48:21.465288Z",
+      "passed_utc": "2026-11-03T17:48:21.465288Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 37292657900,
+      "elapsed_seconds": 37.2926579,
+      "health_start_utc": "2026-11-03T17:47:46.4116338Z",
+      "health_finished_utc": "2026-11-03T17:48:21.4620963Z",
+      "health_monotonic_elapsed_known": true,
+      "health_elapsed_ns": 35050346900,
+      "health_elapsed_seconds": 35.0503469,
+      "polls": 8,
+      "queries": 40,
+      "status": "passed"
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT05",
+      "iteration": 1,
+      "kind": "baseline",
+      "phase": "post-cool",
+      "scenarios": [
+        "OT01",
+        "OT02",
+        "OT03",
+        "OT04",
+        "OT05"
+      ],
+      "start_utc": "2026-11-03T17:55:44.537395Z",
+      "finished_utc": "2026-11-03T17:55:46.7459981Z",
+      "passed_utc": "2026-11-03T17:55:46.7459981Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 2208659600,
+      "elapsed_seconds": 2.2086596,
+      "health_start_utc": "2026-11-03T17:55:46.7374771Z",
+      "health_finished_utc": "2026-11-03T17:55:46.7428105Z",
+      "health_monotonic_elapsed_known": true,
+      "health_elapsed_ns": 5333500,
+      "health_elapsed_seconds": 0.0053335,
+      "polls": 1,
+      "queries": 5,
+      "status": "passed"
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT01",
+      "iteration": 1,
+      "kind": "baseline",
+      "phase": "pre-inject",
+      "scenarios": [
+        "OT01",
+        "OT02",
+        "OT03",
+        "OT04",
+        "OT05"
+      ],
+      "start_utc": "2026-11-03T17:17:34.723379Z",
+      "finished_utc": "2026-11-03T17:17:37.1147906Z",
+      "passed_utc": "2026-11-03T17:17:37.1147906Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 2391473800,
+      "elapsed_seconds": 2.3914738,
+      "health_start_utc": "2026-11-03T17:17:37.1073633Z",
+      "health_finished_utc": "2026-11-03T17:17:37.113219Z",
+      "health_monotonic_elapsed_known": true,
+      "health_elapsed_ns": 5855800,
+      "health_elapsed_seconds": 0.0058558,
+      "polls": 1,
+      "queries": 5,
+      "status": "passed"
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT02",
+      "iteration": 1,
+      "kind": "baseline",
+      "phase": "pre-inject",
+      "scenarios": [
+        "OT01",
+        "OT02",
+        "OT03",
+        "OT04",
+        "OT05"
+      ],
+      "start_utc": "2026-11-03T17:24:45.3559777Z",
+      "finished_utc": "2026-11-03T17:24:47.420496Z",
+      "passed_utc": "2026-11-03T17:24:47.420496Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 2064571900,
+      "elapsed_seconds": 2.0645719,
+      "health_start_utc": "2026-11-03T17:24:47.4130181Z",
+      "health_finished_utc": "2026-11-03T17:24:47.4183933Z",
+      "health_monotonic_elapsed_known": true,
+      "health_elapsed_ns": 5375400,
+      "health_elapsed_seconds": 0.0053754,
+      "polls": 1,
+      "queries": 5,
+      "status": "passed"
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT03",
+      "iteration": 1,
+      "kind": "baseline",
+      "phase": "pre-inject",
+      "scenarios": [
+        "OT01",
+        "OT02",
+        "OT03",
+        "OT04",
+        "OT05"
+      ],
+      "start_utc": "2026-11-03T17:33:45.7385824Z",
+      "finished_utc": "2026-11-03T17:33:47.7865301Z",
+      "passed_utc": "2026-11-03T17:33:47.7865301Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 2048001000,
+      "elapsed_seconds": 2.048001,
+      "health_start_utc": "2026-11-03T17:33:47.7793684Z",
+      "health_finished_utc": "2026-11-03T17:33:47.7838952Z",
+      "health_monotonic_elapsed_known": true,
+      "health_elapsed_ns": 4526900,
+      "health_elapsed_seconds": 0.0045269,
+      "polls": 1,
+      "queries": 5,
+      "status": "passed"
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT04",
+      "iteration": 1,
+      "kind": "baseline",
+      "phase": "pre-inject",
+      "scenarios": [
+        "OT01",
+        "OT02",
+        "OT03",
+        "OT04",
+        "OT05"
+      ],
+      "start_utc": "2026-11-03T17:41:46.1900174Z",
+      "finished_utc": "2026-11-03T17:41:48.2537039Z",
+      "passed_utc": "2026-11-03T17:41:48.2537039Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 2063740200,
+      "elapsed_seconds": 2.0637402,
+      "health_start_utc": "2026-11-03T17:41:48.2456862Z",
+      "health_finished_utc": "2026-11-03T17:41:48.2510055Z",
+      "health_monotonic_elapsed_known": true,
+      "health_elapsed_ns": 5319400,
+      "health_elapsed_seconds": 0.0053194,
+      "polls": 1,
+      "queries": 5,
+      "status": "passed"
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT05",
+      "iteration": 1,
+      "kind": "baseline",
+      "phase": "pre-inject",
+      "scenarios": [
+        "OT01",
+        "OT02",
+        "OT03",
+        "OT04",
+        "OT05"
+      ],
+      "start_utc": "2026-11-03T17:48:21.5170697Z",
+      "finished_utc": "2026-11-03T17:48:23.8562834Z",
+      "passed_utc": "2026-11-03T17:48:23.8562834Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 2339206000,
+      "elapsed_seconds": 2.339206,
+      "health_start_utc": "2026-11-03T17:48:23.8477254Z",
+      "health_finished_utc": "2026-11-03T17:48:23.8541371Z",
+      "health_monotonic_elapsed_known": true,
+      "health_elapsed_ns": 6411700,
+      "health_elapsed_seconds": 0.0064117,
+      "polls": 1,
+      "queries": 5,
+      "status": "passed"
+    }
+  ],
+  "restoration_proofs": [
+    {
+      "original_sha256": "8cffd4a599064beac11b1680a2f9a3dad3a3a9647f91931a84d4db99446b938d",
+      "confirmed_at": "2026-11-03T17:19:37.9919509Z"
+    },
+    {
+      "original_sha256": "8cffd4a599064beac11b1680a2f9a3dad3a3a9647f91931a84d4db99446b938d",
+      "confirmed_at": "2026-11-03T17:28:38.5255829Z"
+    },
+    {
+      "original_sha256": "8cffd4a599064beac11b1680a2f9a3dad3a3a9647f91931a84d4db99446b938d",
+      "confirmed_at": "2026-11-03T17:36:38.8671698Z"
+    },
+    {
+      "original_sha256": "8cffd4a599064beac11b1680a2f9a3dad3a3a9647f91931a84d4db99446b938d",
+      "confirmed_at": "2026-11-03T17:42:38.9807963Z"
+    },
+    {
+      "original_sha256": "8cffd4a599064beac11b1680a2f9a3dad3a3a9647f91931a84d4db99446b938d",
+      "confirmed_at": "2026-11-03T17:50:39.3654332Z"
+    }
+  ],
+  "timing_observations": [
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT01",
+      "iteration": 1,
+      "kind": "symptom",
+      "start_utc": "2026-11-03T17:17:37.12109Z",
+      "passed_utc": "2026-11-03T17:19:22.2448656Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 105126508800,
+      "elapsed_seconds": 105.1265088,
+      "polls": 22
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT01",
+      "iteration": 1,
+      "kind": "recovery",
+      "start_utc": "2026-11-03T17:19:37.9919509Z",
+      "passed_utc": "2026-11-03T17:21:23.103317Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 105114099000,
+      "elapsed_seconds": 105.114099,
+      "polls": 22
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT02",
+      "iteration": 1,
+      "kind": "symptom",
+      "start_utc": "2026-11-03T17:24:47.4262589Z",
+      "passed_utc": "2026-11-03T17:28:22.5866976Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 215166032900,
+      "elapsed_seconds": 215.1660329,
+      "polls": 44
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT02",
+      "iteration": 1,
+      "kind": "recovery",
+      "start_utc": "2026-11-03T17:28:38.5245815Z",
+      "passed_utc": "2026-11-03T17:29:23.5973606Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 45073951000,
+      "elapsed_seconds": 45.073951,
+      "polls": 10
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT03",
+      "iteration": 1,
+      "kind": "symptom",
+      "start_utc": "2026-11-03T17:33:47.8062784Z",
+      "passed_utc": "2026-11-03T17:36:22.9599081Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 155157663700,
+      "elapsed_seconds": 155.1576637,
+      "polls": 32
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT03",
+      "iteration": 1,
+      "kind": "recovery",
+      "start_utc": "2026-11-03T17:36:38.8671698Z",
+      "passed_utc": "2026-11-03T17:37:23.9390464Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 45073048400,
+      "elapsed_seconds": 45.0730484,
+      "polls": 10
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT04",
+      "iteration": 1,
+      "kind": "symptom",
+      "start_utc": "2026-11-03T17:41:48.2614237Z",
+      "passed_utc": "2026-11-03T17:42:23.4119954Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 35150469200,
+      "elapsed_seconds": 35.1504692,
+      "polls": 8
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT04",
+      "iteration": 1,
+      "kind": "recovery",
+      "start_utc": "2026-11-03T17:42:38.9807963Z",
+      "passed_utc": "2026-11-03T17:43:24.0592449Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 45078299900,
+      "elapsed_seconds": 45.0782999,
+      "polls": 10
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT05",
+      "iteration": 1,
+      "kind": "symptom",
+      "start_utc": "2026-11-03T17:48:23.8632195Z",
+      "passed_utc": "2026-11-03T17:50:24.0281955Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 120165601200,
+      "elapsed_seconds": 120.1656012,
+      "polls": 25
+    },
+    {
+      "run_id": "phase09-dualmock-20261103T171411Z",
+      "scenario": "OT05",
+      "iteration": 1,
+      "kind": "recovery",
+      "start_utc": "2026-11-03T17:50:39.3654332Z",
+      "passed_utc": "2026-11-03T17:52:24.4636528Z",
+      "monotonic_elapsed_known": true,
+      "elapsed_ns": 105100910100,
+      "elapsed_seconds": 105.1009101,
+      "polls": 22
+    }
+  ],
+  "pilot_cost_micros_all_attempts": {
+    "USD": 27179,
+    "CNY": 14920
+  },
+  "forecast_formal_cost_micros_x10": {
+    "USD": 271790,
+    "CNY": 149200
+  },
+  "remaining_project_micros": {
+    "CNY": 9985080,
+    "USD": 9972821
+  },
+  "deepseek_balance": {
+    "is_available": true,
+    "balance_infos": [
+      {
+        "currency": "CNY",
+        "total_balance": "5.66",
+        "granted_balance": "0.00",
+        "topped_up_balance": "5.66"
+      }
+    ]
+  },
+  "finished_at_utc": "2026-11-03T18:09:14.803651Z",
+  "evidence": [
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\001-batch-stdout.log",
+      "bytes": 6143,
+      "sha256": "44eac127807c5750fc6ce5f81530a88fc731e799967b9374fe440314875ca0c2",
+      "origin": "fixed new doctor DB UTF8 SELECT"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\002-batch-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "fixed new doctor DB stderr"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\003-trials-stdout.log",
+      "bytes": 745,
+      "sha256": "dc72e71a76a25847044e9c70f832be7fc448562b536fdcb88f636fe3cbbcac78",
+      "origin": "fixed new doctor DB UTF8 SELECT"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\004-trials-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "fixed new doctor DB stderr"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\005-slots-stdout.log",
+      "bytes": 45787,
+      "sha256": "8199e2d0690f11c15659a5912515f07386b8bf5c87ad81be32a07d7898d3f216",
+      "origin": "fixed new doctor DB UTF8 SELECT"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\006-slots-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "fixed new doctor DB stderr"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\007-dualmock-attempts-stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "fixed new doctor DB UTF8 SELECT"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\008-dualmock-attempts-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "fixed new doctor DB stderr"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\009-interruptions-stdout.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "fixed new doctor DB UTF8 SELECT"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\010-interruptions-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "fixed new doctor DB stderr"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\011-dualmock-diagnoses-stdout.log",
+      "bytes": 2900,
+      "sha256": "8628d01f8b71211ae1d3e976277552f1e6b0b203a3826d9656eb0cea50e43f8f",
+      "origin": "fixed new doctor DB UTF8 SELECT"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\012-dualmock-diagnoses-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "fixed new doctor DB stderr"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\013-accounts-stdout.log",
+      "bytes": 192,
+      "sha256": "bba5d5bfd80bb68dc90abd20c06f1a95645d08b8483a74c4b553d9f53b366c9a",
+      "origin": "fixed new doctor DB UTF8 SELECT"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\014-accounts-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "fixed new doctor DB stderr"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\015-pilot2-cost-attempts-only-stdout.log",
+      "bytes": 1059,
+      "sha256": "c1e99fe205b1de61380587c39ad69b6c08396a6c5fbc157b473166fd970a7f6a",
+      "origin": "fixed new doctor DB UTF8 SELECT"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\016-pilot2-cost-attempts-only-stderr.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "origin": "fixed new doctor DB stderr"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\017-collector-0.log",
+      "bytes": 3145,
+      "sha256": "dfd4a2b5fa327ed149ea73e88247f9fade1a73f50f119cf58332b00432d2b3b6",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\018-collector-start-0.log",
+      "bytes": 643,
+      "sha256": "ea6b9f71d57ef07b1e5bb0f64c9f498184ff35268d9ac9b82afbda88bbf86066",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.start.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\019-collector-audit-0.log",
+      "bytes": 599,
+      "sha256": "59feebda2fd0c6bf8e20d472c1c5a24eef6dfd145a5b6c345975b3af8ed7c691",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.audit.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\020-collector-summary-0.log",
+      "bytes": 1663,
+      "sha256": "ad4f8b7cc4a5b6a7a1b977381894553ebcf269513902bc93d38c3c0e7548220f",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\352529afe66f67201c0d87fb14e3ffc6f3dee4f0d13bde4f71a8187ac2a8a650.summary.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\021-collector-1.log",
+      "bytes": 8329,
+      "sha256": "f0b1f3473cce1e04ffe989dee7508dc2349c7172024cec581060388d68af5685",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\022-collector-start-1.log",
+      "bytes": 644,
+      "sha256": "f01761402ea9cc7a90e2973063cc07da85d18f5188276410e197b6cb94b8a2f0",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.start.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\023-collector-audit-1.log",
+      "bytes": 598,
+      "sha256": "500be67969163f564dc5bd7b081b88d479201b9f6e9130d9ce1841effee9c954",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.audit.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\024-collector-summary-1.log",
+      "bytes": 1662,
+      "sha256": "956b46f3f469708ad15b900bfc515971d2c1df9d7a4ec2dc2e73ad004a03b2a7",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\ce1be5ac7219da539b730607ffa4bb75bcbf46473a4cc49870429f561b76563f.summary.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\025-collector-2.log",
+      "bytes": 6897,
+      "sha256": "1c28807fe5e7cb49ce225e82792167a8392b1d4397eda49127de4e4216ad60d2",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\026-collector-start-2.log",
+      "bytes": 642,
+      "sha256": "6dd9ef38c0967bd8df1bdd1ca9e547a1b7a35906971f8a615ff4263bec3484db",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.start.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\027-collector-audit-2.log",
+      "bytes": 598,
+      "sha256": "a1d49e3b54cc355282baacc8f8a1e5ad565d3f32eaa860c06cfad06b9d3eb951",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.audit.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\028-collector-summary-2.log",
+      "bytes": 1662,
+      "sha256": "bd0382f55fd29a9140e37ebb8687103302387b82c7515783684759d3ec926ddd",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\e4336cff83825b335fab01330db6f49372acaa499dfd00c298f88d93f517b994.summary.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\029-collector-3.log",
+      "bytes": 8353,
+      "sha256": "f3f1586872d417bafd8648476b6adfab8df997db20d8f8acd481d1e44ebf7ba6",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\030-collector-start-3.log",
+      "bytes": 645,
+      "sha256": "31d4989dc0599620bb865f50a6ec4b2d344b2b384fbfc36bbebfb6c648015664",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.start.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\031-collector-audit-3.log",
+      "bytes": 599,
+      "sha256": "6d191c189ee80eaaa4870ead2e16798defc123f91eda281cb2982d3e0499c55d",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.audit.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\032-collector-summary-3.log",
+      "bytes": 1663,
+      "sha256": "1e6e1845eb3c460150d8ad2c7bbd74e78bcfe06dabec5f7a953ba1eb06e138fa",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\7876c490a207a831920f90dd89ca8906558c37c0894309852f09c313d7427cdd.summary.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\033-collector-4.log",
+      "bytes": 6553,
+      "sha256": "a899f1e9fff2e5d328680ca125e0abab9a030e6dd44578bd2cdb332958c9f36d",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\034-collector-start-4.log",
+      "bytes": 645,
+      "sha256": "5f99ca15436c082644c824fbe935c167568e300644069ebde8d9f0d38bfdae92",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.start.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\035-collector-audit-4.log",
+      "bytes": 599,
+      "sha256": "cc0e0b30002eaf41a3adad9503154d999fb88b8f5e768c6f2964921e294bd368",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.audit.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\036-collector-summary-4.log",
+      "bytes": 1663,
+      "sha256": "02beb4a21ecd01b5bd321895eb19937b62785274d2bab9193930826b078bdd80",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\5823d3f0d43a8bc8d64e871d28dc800a9fde586af9c297462c5aba9b6b70e5a6.summary.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\037-collector-5.log",
+      "bytes": 8354,
+      "sha256": "360d8b6bbd47f61ee05d7872816ab806d33a127bdd30abc191937743566caf8f",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\038-collector-start-5.log",
+      "bytes": 644,
+      "sha256": "83fa25fdb894b9446929d430d96bf65839dbab40de89b2271d266db58fc08f57",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.start.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\039-collector-audit-5.log",
+      "bytes": 599,
+      "sha256": "9011228033c799b7d455fd963e6edaea8f32d455e190a9de3a5058fc0029b270",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.audit.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\040-collector-summary-5.log",
+      "bytes": 1663,
+      "sha256": "83ebe2150a0f61dd312413b1d8edda986dba639a71607c0669eee6de86f819c7",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\12a38ebc4d7b6a153c6b0f8f352cbd834a17531e781c4d3007e7d49952578500.summary.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\041-collector-6.log",
+      "bytes": 5841,
+      "sha256": "8cc617f00a20c945375cdfe56efa9b0a41878689c29476435ac42d04bbe0a06b",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\042-collector-start-6.log",
+      "bytes": 643,
+      "sha256": "8f6ff103bca6e7207aed848df4b86125d862436bc33027f759845c892fe2c63a",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.start.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\043-collector-audit-6.log",
+      "bytes": 599,
+      "sha256": "5ee4b0f5b911564118679675ca1e041150ab8b8cd12b0071410ca1f1094a8856",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.audit.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\044-collector-summary-6.log",
+      "bytes": 1663,
+      "sha256": "c7ad2718b2be038075be29ba508e071c96830eba67581467b538f1e9779e3d47",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\560b14a647f3f86947148e664857469e30b8991708003bc0d668de9ab39583f7.summary.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\045-collector-7.log",
+      "bytes": 7613,
+      "sha256": "bad62eb3758d013838d90e415692a9cd4dbd02385aa1a46e875b5d62842938ad",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\046-collector-start-7.log",
+      "bytes": 672,
+      "sha256": "3c0d0211fadc7468de15d585ad043f51aa52b1405d4e757ecdb363c133832e4a",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.start.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\047-collector-audit-7.log",
+      "bytes": 598,
+      "sha256": "4a9a94b2ed701096e0803b6ebab20afa41b664d9bc1f1d9b09ece3223623f8dd",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.audit.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\048-collector-summary-7.log",
+      "bytes": 1661,
+      "sha256": "da634f67f7f089999db581a9eb6e6c670440bbcd3062e53c2255dafbb3f150a4",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\c0496a1111e7741d3763eb7933970e592993818e61495d27113b0395fdf71bb1.summary.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\049-collector-8.log",
+      "bytes": 6953,
+      "sha256": "4b086cba876360953ec806f2a58283c0b8fc33cb368353e76d5d02aaf9cf01d5",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\050-collector-start-8.log",
+      "bytes": 644,
+      "sha256": "ed6646459a0338e76ea0abddab9c319e6dfb1700565bf6073ab61cbc9160f19b",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.start.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\051-collector-audit-8.log",
+      "bytes": 598,
+      "sha256": "03b346355e7bcd1cafa22b7bf803c3b83471620a18a9c8f32c70184aaa031726",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.audit.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\052-collector-summary-8.log",
+      "bytes": 1662,
+      "sha256": "0511f9cb9bd63d4d42d6c16e6dda0f1dfd8987ce2cd67db45f69b32988a41cb7",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\482bd18bcbc905798b35639760be8f1bc707ebcdb1b3e98d28383b34d755b2e6.summary.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\053-collector-9.log",
+      "bytes": 7587,
+      "sha256": "e7640950c663430dd91ee0a8225e34a23f1f46bb42c6d387785c24227cdba794",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.log"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\054-collector-start-9.log",
+      "bytes": 671,
+      "sha256": "a0e5674067b013de57a072eba2436efffa04cc051e52b1d804dc5d34efb098ad",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.start.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\055-collector-audit-9.log",
+      "bytes": 599,
+      "sha256": "cf43cd2f49bb2dae2fb40b3727d9645f9055194c96d266bfdf331e864f0ac6eb",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.audit.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\056-collector-summary-9.log",
+      "bytes": 1663,
+      "sha256": "71ff429c9180a057fe65820f2b3717645d6582e779fed981d99c49fb519cdc49",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\d66506cfd53b3ffc5864e78860cdc5200ff08024f7e5b02d43e5ea8396d72580.summary.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\057-baseline-0.log",
+      "bytes": 727,
+      "sha256": "8082a968ebfd1975b88e939c3bec24f1740b3b6d275ae5c39942bed790846257",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-freeze-20261103T171613.642715500Z.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\058-baseline-1.log",
+      "bytes": 734,
+      "sha256": "a139f371c1a2834628256ac3d49aa36ca75a6897bff0672afc327da523dfacac",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T172443.193425500Z.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\059-baseline-2.log",
+      "bytes": 734,
+      "sha256": "a15eae9bc55463fcef3b50ff7ff53d7a3250a4915f464938798f6a3945010366",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T173343.674115100Z.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\060-baseline-3.log",
+      "bytes": 734,
+      "sha256": "5873c50fb9ad1bd11256b41bd2dc84005995381d03e9969fd0a8ce4fbb5749dd",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T174144.026020600Z.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\061-baseline-4.log",
+      "bytes": 739,
+      "sha256": "e5d8d63880a3b3d6b61f68f19b47b609facb5eedec0637f71ba0dfe21ae6736f",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T174744.172507000Z.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\062-baseline-5.log",
+      "bytes": 733,
+      "sha256": "c6ab7819dd1ccbcc4b2c2effe40242df43e26daedf2d3544700b60260fdd775d",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-post-cool-20261103T175544.537395000Z.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\063-baseline-6.log",
+      "bytes": 733,
+      "sha256": "47b4b5363a9b1075fcbb1a25164ebd766a2f3c3be2fdf5a8961b8cef84d278e0",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T171734.723379000Z.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\064-baseline-7.log",
+      "bytes": 733,
+      "sha256": "7db37513b6804aaa47f0f66c93a97468d73fb74e4db0336c9cbe6cccc1ca11ae",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T172445.355977700Z.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\065-baseline-8.log",
+      "bytes": 734,
+      "sha256": "82ff9590987b3af28d43702b9a390cba1b98945d7c9da984a4fea9dc422b91dd",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T173345.738582400Z.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\066-baseline-9.log",
+      "bytes": 735,
+      "sha256": "8766e8c0f6a10097c43461bcc719fbc6a8e0f940cdb2e5722670ecfd67d4781d",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T174146.190017400Z.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\067-baseline-10.log",
+      "bytes": 734,
+      "sha256": "6e46a8be13792ee3c4e97e49707399a376461c7c0a6d5ce3ae34d76adb56396e",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\baseline-pre-inject-20261103T174821.517069700Z.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\068-OT01-recovery-original.log",
+      "bytes": 11034,
+      "sha256": "532d40982e81f3269bdc01f134deb019c773e1fe50f0279b6c7c373b67243e64",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT01-1.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\069-OT01-restored-proof.log",
+      "bytes": 132,
+      "sha256": "85727809cf7fa68846cfced23b7c91704a67fb938b2a1e08c2ca64b410a903d7",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT01-1.json.restored"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\070-OT01-symptom.log",
+      "bytes": 319,
+      "sha256": "050d7049f7ddae77a8bea4b35754667d2e4623910f52060406431621929f8626",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT01-1.symptom-observed.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\071-OT01-recovery.log",
+      "bytes": 320,
+      "sha256": "8956aa6a12622cdd9876c117ddf429d6dee10f6afb0c9b83aa9ece2d2c42b367",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT01-1.recovery-observed.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\072-OT02-recovery-original.log",
+      "bytes": 11037,
+      "sha256": "fa69d6df199fa530ebc45df23838ed867e49f685af0816a03ea837f8c74e0748",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT02-1.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\073-OT02-restored-proof.log",
+      "bytes": 132,
+      "sha256": "134d261917701c11520df3f2c9340d0682ac7bdc298e42da2b532e271277a8c7",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT02-1.json.restored"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\074-OT02-symptom.log",
+      "bytes": 321,
+      "sha256": "7e70b2ffe533f880a78294b90821eb0a0f5ab8e43262d175b5f33cacb5249dea",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT02-1.symptom-observed.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\075-OT02-recovery.log",
+      "bytes": 319,
+      "sha256": "900eee59837f92aaf2fd60394504fbbac5d22276c12059276e2afbbb9c60bbd9",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT02-1.recovery-observed.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\076-OT03-recovery-original.log",
+      "bytes": 11037,
+      "sha256": "6dfb42c47ee87357894359d1128568130af553a2f02b02ea8ca4da95eb55bb08",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT03-1.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\077-OT03-restored-proof.log",
+      "bytes": 132,
+      "sha256": "fad134448290cb0b8ea3f6769d0d781c87adf8bf7dafd67a8095765e5bdb6147",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT03-1.json.restored"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\078-OT03-symptom.log",
+      "bytes": 321,
+      "sha256": "912e02c6ce8bfd6924ecd091ef8e9ebcf1e9c48fda426fb916b433d80a821fc3",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT03-1.symptom-observed.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\079-OT03-recovery.log",
+      "bytes": 320,
+      "sha256": "501c51a459959663bf02fd78521cba1b21e9db35724dcf359ada87808b4865fc",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT03-1.recovery-observed.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\080-OT04-recovery-original.log",
+      "bytes": 11035,
+      "sha256": "6cf3fff7948fb384258d32ad8bdae8dd4e45066424108a4d4e0496134839c6e3",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT04-1.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\081-OT04-restored-proof.log",
+      "bytes": 132,
+      "sha256": "a7b54825490c64bf31d60c13cb859f8564b46096339b9ed4d2ea9a19e083efa0",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT04-1.json.restored"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\082-OT04-symptom.log",
+      "bytes": 318,
+      "sha256": "cc78a0ccf6a9fd15b8e6e86241c49800d8f970ff5f3b876ceeeccb86cc159c64",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT04-1.symptom-observed.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\083-OT04-recovery.log",
+      "bytes": 320,
+      "sha256": "42ff3503c6a98a99986a05d8a0871ccb4edba91a51127fbbbf57e9e3397e483c",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT04-1.recovery-observed.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\084-OT05-recovery-original.log",
+      "bytes": 11035,
+      "sha256": "2e3eafbb0ccef6367e171a74141eec4a580f32317701bf359b5d5f3847583e1f",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT05-1.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\085-OT05-restored-proof.log",
+      "bytes": 132,
+      "sha256": "c49069cb938abd7ac3191ba9325b00b17cf70641f54ddd41f5497771a63c8344",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT05-1.json.restored"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\086-OT05-symptom.log",
+      "bytes": 321,
+      "sha256": "ca668cc6a397732e264d0d6690afb5d0beb5b4895b64e0e1217a45f704d1f926",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT05-1.symptom-observed.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\087-OT05-recovery.log",
+      "bytes": 322,
+      "sha256": "d4b9d3192d3d46f46ed9ad6e421ba68cb89901c6965f36fba610482a2c3d21d4",
+      "origin": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\recovery\\phase09-dualmock-20261103T171411Z\\OT05-1.recovery-observed.json"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\088-doctor-runtime.log",
+      "bytes": 407,
+      "sha256": "80c645843df1e20620700dfc53beeb47a1f578da1375dda00553df30c143ec37",
+      "origin": "fixed HTTP endpoint http://127.0.0.1:8090/api/v1/status"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\089-doctor-targets.log",
+      "bytes": 4209,
+      "sha256": "e1fb63be3db53835514deb7924eb68816ba0a8fc16524c9e55a3bab61b6ab1b1",
+      "origin": "fixed HTTP endpoint http://127.0.0.1:8090/api/v1/targets"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\090-current-original-flags.log",
+      "bytes": 3387,
+      "sha256": "c0f6ac8ac14bcaae3551d8a356ff109067fdfaefe052e0820370d5a3b542c047",
+      "origin": "fixed HTTP endpoint http://127.0.0.1:18080/api/read"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\dualmock-entry-gates\\phase09-dualmock-20261103T171411Z-entry1.json.evidence\\091-deepseek-free-balance.log",
+      "bytes": 133,
+      "sha256": "c4bf1a869105d6fe99fa5eb9e453b73c3ad0003c7cf709895e2cfee7e2a46e5a",
+      "origin": "fixed HTTP endpoint https://api.deepseek.com/user/balance"
+    }
+  ]
+}
