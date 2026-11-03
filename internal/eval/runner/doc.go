@@ -5,6 +5,11 @@
 // export 读取已保存结果；calibrate 生成空白盲评表，不代填独立分数。
 //
 // 文件清单：
+//   - generalization.go：为第二系统建立独立批次、账户边界和冻结顺序。
+//   - generalization_scenario.go：加载官方故障定义，通过有界 HTTP 修改开关并核对指标。
+//   - generalization_run.go：保存每轮完整恢复文件，推进外部系统注入、诊断、恢复与冷却。
+//   - generalization_environment.go：按 Docker 实际上限检查外部实验内存，不套用 shop 的暂停线。
+//   - generalization_test.go：用假接口验证开关范围、独立账户、异常暂停、恢复快照和说明书哈希。
 //   - load.go：从冻结场景计算诊断期的精确流量，并持续核对实际参数。
 //   - load_test.go：遍历全部场景，验证流量、热点及未变基线的严格匹配。
 //   - execution.go：在命令、轮次和槽位执行前追加当时的代码版本。

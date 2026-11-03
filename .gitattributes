@@ -2,3 +2,6 @@
 * text=auto eol=lf
 *.png binary
 *.jpg binary
+# 阶段9的Collector原始日志与采样包含字节指纹，不能在检出/提交时转换换行。
+docs/reports/phase-09-*.log -text -whitespace
+docs/reports/phase-09-log-fix-samples.jsonl -text -whitespace

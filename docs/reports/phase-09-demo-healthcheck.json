@@ -1,0 +1,48 @@
+{
+  "first_attempt": {
+    "finished_utc": "2026-11-03T04:43:41.8614543Z",
+    "elapsed_seconds": 226.8840534,
+    "exit_code": 1
+  },
+  "payment_health": {
+    "Status": "unhealthy",
+    "FailingStreak": 24,
+    "Log": [
+      {
+        "Start": "2026-11-03T04:43:36.655175309Z",
+        "End": "2026-11-03T04:43:41.683300288Z",
+        "ExitCode": -1,
+        "Output": "Health check exceeded timeout (5s)"
+      },
+      {
+        "Start": "2026-11-03T04:43:46.684005135Z",
+        "End": "2026-11-03T04:43:51.711956116Z",
+        "ExitCode": -1,
+        "Output": "Health check exceeded timeout (5s)"
+      },
+      {
+        "Start": "2026-11-03T04:43:56.710676735Z",
+        "End": "2026-11-03T04:44:01.738424254Z",
+        "ExitCode": -1,
+        "Output": "Health check exceeded timeout (5s)"
+      },
+      {
+        "Start": "2026-11-03T04:44:06.73918446Z",
+        "End": "2026-11-03T04:44:11.774945715Z",
+        "ExitCode": -1,
+        "Output": "Health check exceeded timeout (5s)"
+      },
+      {
+        "Start": "2026-11-03T04:44:16.775438485Z",
+        "End": "2026-11-03T04:44:21.802948065Z",
+        "ExitCode": -1,
+        "Output": "Health check exceeded timeout (5s)"
+      }
+    ]
+  },
+  "payment_oom_killed": false,
+  "original_probe_elapsed_seconds": 8.438996,
+  "original_probe_exit": 0,
+  "probe_without_NODE_OPTIONS": "connected",
+  "fixed_timeout_seconds": 20
+}

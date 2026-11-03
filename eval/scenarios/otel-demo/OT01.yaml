@@ -1,0 +1,20 @@
+# 评测器读取本文件；医生只收到 symptoms，不能读取答案或注入开关。
+# 固定实现：https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/ad/src/main/java/oteldemo/AdService.java
+id: OT01
+title: 广告查询间歇性失败
+source_url: https://opentelemetry.io/docs/demo/feature-flags/
+flag: adFailure
+variant: "on"
+symptoms: 广告查询出现间歇性错误，请结合本次时间范围内的指标、调用链和日志定位原因及影响范围。
+symptom:
+  promql: 'sum(increase(traces_span_metrics_calls_total{service_name="ad",status_code="STATUS_CODE_ERROR"}[2m])) > 0'
+  within: 3m
+healthy_promql: '(sum(increase(traces_span_metrics_calls_total{service_name="ad",status_code="STATUS_CODE_ERROR"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name="ad"}[2m])) > 0'
+ground_truth:
+  component: ad
+  mechanism: intermittent_ad_request_failure
+  explanation: 广告服务在 GetAds 处理过程中随机约十分之一的请求抛出 UNAVAILABLE，由服务自身返回错误；不等于广告服务进程停止或网络整体断开。
+evidence_milestones:
+  - 指标或调用链显示广告请求在本次故障窗口出现错误
+  - 调用链把错误定位在 ad 的 GetAds 处理，而非只有上游请求失败
+  - 日志或调用链错误事件显示 GetAds 返回 UNAVAILABLE，且同一窗口仍有成功广告请求

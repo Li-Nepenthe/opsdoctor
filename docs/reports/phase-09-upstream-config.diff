@@ -1,0 +1,58 @@
+diff --git a/src/otel-collector/otelcol-config-extras.yml b/src/otel-collector/otelcol-config-extras.yml
+index d677e98..43511de 100644
+--- a/src/otel-collector/otelcol-config-extras.yml
++++ b/src/otel-collector/otelcol-config-extras.yml
+@@ -1,33 +1,20 @@
+-# Copyright The OpenTelemetry Authors
+-# SPDX-License-Identifier: Apache-2.0
+-
+-# Extras/customization layer for the OTel Collector.
+-# Override this file in your fork to add exporters for your own observability backend.
+-#
+-# This file is intentionally empty. It is always loaded last, giving forks
+-# a stable, well-defined seam to customize without touching upstream files.
+-#
+-# IMPORTANT: The OTel Collector merges config files but REPLACES arrays, not appends.
+-# If you want to keep the default observability stack alongside your own exporters,
+-# you must explicitly repeat the upstream exporter names in your pipeline definitions.
+-#
+-# Upstream exporter names (repeat these to keep them active):
+-#   traces:  otlp_grpc/jaeger, debug, span_metrics
+-#   metrics: otlp_http/prometheus, debug
+-#   logs:    opensearch, debug
+-#
+-# Example:
+-#
+-# exporters:
+-#   otlp_grpc/mybackend:
+-#     endpoint: https://ingest.mybackend.com
+-#
+-# service:
+-#   pipelines:
+-#     traces:
+-#       exporters: [otlp_grpc/jaeger, debug, span_metrics, otlp_grpc/mybackend]  # repeat upstream exporters
+-#     metrics:
+-#       receivers: [docker_stats, http_check/frontend-proxy, host_metrics, nginx, otlp, redis, span_metrics]
+-#       exporters: [otlp_http/prometheus, debug, otlp_grpc/mybackend]           # repeat upstream exporters
+-#     logs:
+-#       exporters: [opensearch, debug, otlp_grpc/mybackend]                     # repeat upstream exporters
++# 固定Demo 3.1.0的采集配置补丁，不改镜像、业务代码或医生行为。
++# 上游#3297报告同类text/object映射冲突，#3321用sanitize_logs做属性重命名。
++# https://github.com/open-telemetry/opentelemetry-demo/pull/3321
++# 当前main e6754e07e275834b16515c55d0a909b86778ecc6尚未处理http冲突。
++processors:
++  transform/sanitize_logs:
++    error_mode: ignore
++    # Collector合并配置时会替换数组，因此先保留3.1.0已有的scope两条语句。
++    log_statements:
++      - context: scope
++        statements:
++          - set(attributes["otelcol_signal"], attributes["otelcol.signal"]) where attributes["otelcol.signal"] != nil and not IsMap(attributes["otelcol.signal"])
++          - delete_key(attributes, "otelcol.signal") where attributes["otelcol_signal"] != nil
++      - context: log
++        statements:
++          # cart的结构化日志中http是端口文本，HTTP语义字段http.request.method却要求http为对象。
++          # 把全部http.前缀移到http_前缀，保留值与scalar http，旧索引也无需删除或重建。
++          # 例如http.request.method变为http_request.method；正文与医生使用的五个映射字段不变。
++          # 本固定版启用前已核对目标命名空间没有现存字段，见阶段9precondition证据。
++          - replace_all_patterns(attributes, "key", "^http[.]", "http_")

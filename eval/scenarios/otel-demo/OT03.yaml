@@ -1,0 +1,21 @@
+# 固定实现：https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/payment/charge.js
+# 错误传播：https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/payment/index.js
+id: OT03
+title: 支付处理返回业务错误
+source_url: https://opentelemetry.io/docs/demo/feature-flags/
+flag: paymentFailure
+variant: "100%"
+symptoms: 本次窗口内结账请求出现失败。请定位故障组件、机制和影响范围，并给出可核对的证据。
+symptom:
+  promql: 'sum(increase(traces_span_metrics_calls_total{service_name="payment",status_code="STATUS_CODE_ERROR"}[2m])) > 0'
+  within: 3m
+healthy_promql: '(sum(increase(traces_span_metrics_calls_total{service_name="payment",status_code="STATUS_CODE_ERROR"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name="payment"}[2m])) > 0'
+ground_truth:
+  component: payment
+  mechanism: charge_invalid_token_error
+  explanation: 请求已到达 payment 的 charge 处理，处理函数按配置比例返回 Invalid token 错误，并标记 gold 用户上下文；本场配置比例为全部请求。错误由 payment 返回并使上游 checkout 结账失败，与请求根本到不了支付服务不同。
+evidence_milestones:
+  - 指标或调用链显示本次结账及支付处理出现错误
+  - 找到 payment 的 charge 错误 span，证明请求已经到达支付服务
+  - 日志或错误事件包含 Payment request failed 与 Invalid token 信息
+  - 调用链显示 payment 错误向 checkout 传播，能够区别于支付地址无法连接

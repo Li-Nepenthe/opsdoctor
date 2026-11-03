@@ -9,6 +9,7 @@
 | [prometheus](prometheus/doc.go) | 一段时间的指标、当前告警、版本与启动时间 |
 | [jaeger](jaeger/doc.go) | 慢请求，以及一笔请求里的父子步骤 |
 | [loki](loki/doc.go) | 按服务、时间、关键词和trace ID筛选日志 |
+| [opensearch](opensearch/doc.go) | 用相同日志条件查询指定索引，字段名由接入配置提供 |
 | [mysqlinspect](mysqlinspect/doc.go) | 执行计划、索引、表估计、SQL模板统计、锁等待 |
 | [redisinspect](redisinspect/doc.go) | Redis运行状态和删去key/value的慢命令摘要 |
 | [pprof](pprof/doc.go) | 哪些函数栈上停着较多goroutine |

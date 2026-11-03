@@ -1,0 +1,6 @@
+=== RUN   TestIntegrationSearchLogs
+    integration_test.go:45: 按服务查询返回 10 条日志
+    integration_test.go:51: 按服务和关键词查询返回 10 条日志
+--- PASS: TestIntegrationSearchLogs (0.97s)
+PASS
+ok  	github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/opensearch	2.609s

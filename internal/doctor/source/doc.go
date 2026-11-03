@@ -13,6 +13,7 @@
 //   - query_error.go：让经过筛选的查询错误保留可供修正的线索。
 //   - select_test.go：验证执行计划工具接受的是单条简单 SELECT，而不是任意 SQL。
 //   - source.go：约定医生能从外部系统读取哪些证据。
+//   - log_contract_test.go：让 Loki 与 OpenSearch 跑同一张日志行为测试表。
 //
 // 阅读顺序：先读 source.go 的接口，再按需要进入对应适配器子包。
 package source

@@ -1,0 +1,23 @@
+# 固定实现：https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/product-catalog/main.go
+# 匹配条件：https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/flagd/demo.flagd.json
+id: OT05
+title: 部分商品详情查询失败
+source_url: https://opentelemetry.io/docs/demo/feature-flags/
+flag: productCatalogFailure
+variant: "on"
+# 只把原 targeting.if 的命中分支改为 on；保留商品 ID 条件及非命中分支。
+override_targeting: true
+symptoms: 商品详情查询出现部分失败，请核对哪些请求受影响，并结合调用链区分商品服务处理错误与数据库访问错误。
+symptom:
+  promql: 'sum(increase(traces_span_metrics_calls_total{service_name="product-catalog",status_code="STATUS_CODE_ERROR"}[2m])) > 0'
+  within: 3m
+healthy_promql: '(sum(increase(traces_span_metrics_calls_total{service_name="product-catalog",status_code="STATUS_CODE_ERROR"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name="product-catalog"}[2m])) > 0'
+ground_truth:
+  component: product-catalog
+  mechanism: product_specific_get_product_error
+  explanation: 公开开关按 product_id 匹配 OLJCESPC7Z，只有该商品的 GetProduct 在查询 PostgreSQL 之前直接返回 Internal。其他商品仍可查询；不应把它解释成全库不可用或所有商品不存在。
+evidence_milestones:
+  - 指标或调用链显示本次 product-catalog 请求出现错误
+  - 失败 GetProduct 的商品属性定位到 OLJCESPC7Z
+  - 调用链错误事件显示服务处理主动返回 Internal，错误发生在商品 SQL 查询之前
+  - 对照同窗口其他商品的成功查询，确认故障具有商品范围而非全库范围

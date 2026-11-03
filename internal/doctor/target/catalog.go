@@ -28,6 +28,7 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/jaeger"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/loki"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/mysqlinspect"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/opensearch"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/pprof"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/prometheus"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/redisinspect"
@@ -142,6 +143,10 @@ func credentials(configs []Config, lookup func(string) (string, bool)) (map[stri
 				return nil, fmt.Errorf("系统 %s 缺少环境变量 %s", config.Name, name)
 			}
 			values[name] = value
+			// OpenSearch 密码不单独代表账号；下面由地址和用户名统一检查身份。
+			if config.OpenSearch != nil && name == config.OpenSearch.PasswordEnv {
+				continue
+			}
 			identity, err := credentialIdentity(config, name, value)
 			if err != nil {
 				return nil, err
@@ -157,6 +162,9 @@ func credentials(configs []Config, lookup func(string) (string, bool)) (map[stri
 
 // credentialIdentity 不包含密码；只要主机和用户名一样，就已经是同一个账号。
 func credentialIdentity(config Config, name, value string) (string, error) {
+	if config.OpenSearch != nil && name == config.OpenSearch.UsernameEnv {
+		return "opensearch:" + strings.TrimRight(config.OpenSearch.URL, "/") + ":" + value, nil
+	}
 	// 令牌按完整值比较；数据库按地址和用户名比较，不能靠换密码绕过账号隔离。
 	switch name {
 	case config.AlertTokenEnv, config.MCPTokenEnv, config.Ops.TokenEnv:
@@ -198,7 +206,7 @@ func build(config Config, profile string, values map[string]string) (_ *System, 
 		}
 	}()
 	deps := tools.Dependencies{Profile: profile}
-	if err := system.bindHTTP(config, &deps); err != nil {
+	if err := system.bindHTTP(config, values, &deps); err != nil {
 		return nil, err
 	}
 	if err := system.bindNative(config, values, &deps); err != nil {
@@ -212,7 +220,7 @@ func build(config Config, profile string, values map[string]string) (_ *System, 
 }
 
 // bindHTTP 装配指标、调用链和日志查询，关闭函数与客户端一起登记。
-func (system *System) bindHTTP(config Config, deps *tools.Dependencies) error {
+func (system *System) bindHTTP(config Config, values map[string]string, deps *tools.Dependencies) error {
 	// 每个客户端单独创建并登记关闭函数；一个系统不能借用另一个系统的连接。
 	if config.Prometheus != "" {
 		client, err := prometheus.New(config.Prometheus)
@@ -232,6 +240,15 @@ func (system *System) bindHTTP(config Config, deps *tools.Dependencies) error {
 	}
 	if config.Loki != "" {
 		client, err := loki.New(config.Loki)
+		if err != nil {
+			return err
+		}
+		deps.Logs = client
+		system.closers = append(system.closers, func() error { client.Close(); return nil })
+	}
+	if config.OpenSearch != nil {
+		value := config.OpenSearch
+		client, err := opensearch.New(opensearch.Config{URL: value.URL, Index: value.Index, Fields: value.Fields, Username: values[value.UsernameEnv], Password: values[value.PasswordEnv]})
 		if err != nil {
 			return err
 		}

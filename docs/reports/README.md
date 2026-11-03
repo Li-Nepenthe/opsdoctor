@@ -15,7 +15,8 @@
 | 阶段 6：Agent 与实时页面 | [phase-06-agent](phase-06-agent.md) |
 | 阶段 7：审批、恢复与安全 | [phase-07-reliability](phase-07-reliability.md)（[代码清单](phase-07-code-inventory.md)） |
 | 阶段 8：评测 | [phase-08-eval](phase-08-eval.md)（已由 Claude 验收并合并；学习验收留给用户） |
-| 阶段 10：收尾展示 | [phase-10-showcase](phase-10-showcase.md)（工程交付完成，等 Claude 验收；阶段 9 推迟） |
+| 阶段 9：陌生系统接入 | [phase-09-generalization](phase-09-generalization.md)（进行中）；[采集修复专项审核](phase-09-logging-fix.md) |
+| 阶段 10：收尾展示 | [phase-10-showcase](phase-10-showcase.md)（Claude 已验收并合并，学习验收留给用户） |
 
 注意：汇报书里写的行号是写报告时的版本，后来代码改过，行号可能对不上。找当前代码请用[代码地图](../代码地图.md)。
 

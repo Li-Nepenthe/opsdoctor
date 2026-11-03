@@ -1,0 +1,26 @@
+{
+  "status": "passed",
+  "scope": "Raw captured evidence matches staged Git blob bytes; no line-ending conversion.",
+  "files": [
+    {
+      "file": "docs/reports/phase-09-collector-after-fix.log",
+      "git_index_bytes": 609311,
+      "sha256": "aefd7cae491edff383abdac553c29499477cf6d03fdf6ac26a7d2264f442c806",
+      "matches_original_capture": true
+    },
+    {
+      "file": "docs/reports/phase-09-collector-after-fix-continuation.log",
+      "git_index_bytes": 138689,
+      "sha256": "714ee0cff1bc1abbefbbbc3fa1f4ec1b9ebd3894f9d8eabfc6816f4a4640719a",
+      "matches_original_capture": true
+    },
+    {
+      "file": "docs/reports/phase-09-log-fix-samples.jsonl",
+      "git_index_bytes": 75962,
+      "sha256": "e7127dba4298bfae50a204c80de7ebb3588eab28383bf6da2f61cf5b11b84285",
+      "matches_original_capture": true
+    }
+  ],
+  "reconstructed_extended_sha256": "bd0c78301a6e959d6daf1e90a234ce2fb1ca99250627c47cccb9ccc103dd6129",
+  "reconstructed_extended_bytes": 748000
+}

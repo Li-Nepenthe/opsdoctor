@@ -11,6 +11,7 @@
 //   - catalog.go：为每个系统分别创建数据源和工具注册表。
 //   - catalog_test.go：证明两个系统的工具和告警令牌不会串用。
 //   - config.go：读取一个目录里的全部系统配置，并检查系统之间有没有共用凭据。
+//   - opensearch_test.go：检查第二日志后端的配置、装配与跨系统隔离。
 //
 // 阅读顺序：Config → readConfigs → Load → build → System。
 package target

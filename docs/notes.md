@@ -1,5 +1,19 @@
 # 实测记录
 
+<a id="phase-09"></a>
+
+## 2026-11-02：阶段 9 开始与资源核验
+
+用户确认阶段 10 已由 Claude 验收并合并 `main`（231ee48），明确授权开始阶段 9，不以阶段 10 学习验收为前提。从该提交建立 `phase-09-generalization`。两处用户文件的 SHA-256 与阶段 10 开工时相同，继续保留且不暂存、不提交；阶段 0–8 学习材料不改。
+
+用户补充替代原阶段 9 三次费用停点：不做完整 Mock 彩排；单元测试和 CI 仍只用 Mock。Terra 先做 1–2 个场景的 E1 各一次，确认注入、日志和评分后，可以在同一授权内继续 E1/E2 正式批次。新美元账户 `phase-09-openai` 上限 $10，新人民币账户 `phase-09-deepseek` 上限 ¥10，评委继续 DeepSeek 和 rubric-v1.1。异常或预计超限时停止。美元按项目用量账本计，Key 与其他用途共用，平台账单无法单独核对。
+
+第一次沙箱资源查询因 CIM、Docker 配置与 WSL 访问权限失败；对用户已授权的只读核验使用提权后成功。Docker Desktop 当时未运行，启动后确认所有原容器仍为 Created/Exited，运行数为零。没有删除资源、没有更改 Docker/WSL 设置、没有操作 QQ 容器。
+
+`Get-CimInstance Win32_OperatingSystem`、`Win32_LogicalDisk`、`docker info`、`docker system df`、`docker compose ls --all`、`docker volume ls`、`wsl -d docker-desktop -- free -b` 和 `df -B1 /mnt/docker-desktop-disk` 的可复核快照见[资源证据](reports/phase-09-preflight.json)。WSL 实际内存上限 16294768640 字节，记录时 available 为 15055646720 字节；D 盘空闲 754055700480 字节，Docker 数据盘内部 available 为 917787267072 字节。未发现用户 `.wslconfig`，以上限实测值为准。资源足以继续，不需要清理阶段 10 的 20 个测试项目和 138 个测试卷；原医生卷 `opsdoctor_doctor-mysql-data` 存在。
+
+官方 Demo 固定 3.1.0，源码提交 `dedc0178918e260823323b8d95005a8cb924b007`，克隆到本机 `TEMP/opsdoctor-phase09/opentelemetry-demo`。上游 `.env` 中 `DEMO_VERSION=latest` 和 `IMAGE_VERSION=3.0.0` 由仓库内的 `deploy/opentelemetry/versions.env` 覆盖为 3.1.0。其 Compose 把容器和网络名写死，新增覆盖文件显式使用 `opsdoctor-otel-demo` 名称，替换全部发布端口，仅将必要入口绑定到回环地址。四层 Compose 加本项目覆盖文件的 `config --images` 已确认镜像均为固定版本。官方日志索引与字段仅作为接入预期，实际启动后还要查询确认。
+
 <a id="phase-10"></a>
 
 ## 2026-11-02：阶段 10 开始与费用口径
@@ -1742,3 +1756,15 @@ DeepSeek用完调查轮数，首次收尾提交多了root_cause.confidence_note�
 11月2日首次归档提交fc7023c的CI41447608555在7分17秒后失败。格式、静态、架构、Mock race与另一构建版本编译均通过；空环境启动时order-worker退出1，其余依赖健康。现有诊断只输出MySQL最后100行，没有worker或Kafka日志，根因不能确认。原失败日志保存于本机opsdoctor-phase08-cross/ci-41447608555-full.txt，GitHub原运行保留。随后仅扩大CI失败诊断，收集MySQL、worker和Kafka各最后100行再复验；不改业务启动逻辑、评分或真实结果。
 
 收尾将整仓Markdown页内锚点也纳入检查，发现阶段5、8学习材料仍链接已迁走的README章节，改到operations对应同名章节；未改学习正文或冻结材料。完成运行代码c246734的CI41466035640全绿，首次269.488秒，五独立新卷均通过消费与三服务日志；旧364a889的CI也全绿且未测隔离Loki的范围另存。报告、学习、台账、进度与文件清单统一按最终事实收尾；学习验收保持未勾，阶段9推迟。本轮最终归档的凭据、大小写、文件与锚点检查见phase-10-release-audit.json，提交推送后只等待文档归档HEAD的CI，不再改代码或开始新阶段。
+
+真实OpenSearch `_cat/indices` 发现 `otel-logs-2026-11-03`，`_mapping` 确认 `resource.service.name.keyword`、`severity.text.keyword`、`traceId.keyword` 可作精确条件，`body` 为正文，`observedTimestamp` 为date。实际_source的resource使用包含点号的键，适配器fieldValue已兼容；schema证据在 reports/phase-09-opensearch-schema.json。显式启用TestIntegrationSearchLogs，race下按ad服务查到3条、加关键词查到1条。未调用付费模型。
+
+首次Demo启动在payment健康检查等待：原5秒探测连续超时，业务日志已显示监听50051，OOM=false、容器实际内存53.91MiB。临时对一次只读探测清空NODE_OPTIONS后连接成功；用原命令再独立执行也成功，单调耗时8.438996秒。镜像的NODE_OPTIONS会先加载自动遥测模块；因此本机覆盖只将相同TCP探测timeout改为20秒，重试次数和业务逻辑不改。首次up日志和耗时原样保留在TEMP/opsdoctor-phase09/demo-up.*。另发现上游.env中OTEL_RESOURCE_ATTRIBUTES已在加载时展开service.version=3.0.0，后加载IMAGE_VERSION不会回填；versions.env显式固定派生属性为3.1.0，避免镜像标签与运行元数据不一致。这些调整都在付费试跑和冻结前完成。
+
+用户于本轮选择先修复采集配置，要求按dropped_items量化、参照上游并核对main、固定版本且不重建索引/卷、修复验证后交Claude审核，审核通过之前不付费。已查询上游main固定快照e6754e07e275834b16515c55d0a909b86778ecc6，全部Collector配置没有http修复。#3297实际报告source/source.address冲突，#3321在scope层重命名otelcol.signal，二者是同类先例，并非已提供http补丁。
+
+源码与实查确定：cart的ASP.NET启动日志模板把http端口保存为字符串8080，既有OpenSearch mapping因此将attributes.http定为text；frontend的API请求日志带http.request.method等点属性，OpenSearch要把http当对象时拒绝这些记录。保留索引，在已有sanitize_logs中增加一条日志级通用规则replace_all_patterns(attributes, "key", "^http[.]", "http_")。启用前真实mapping没有attributes.http_目标字段；固定0.159.0支持该函数。新配置只复制到本次Demo克隆的extras文件，保留上游scope两条语句，不改正文、服务、级别、时间、trace ID及其他管道。配置validate成功后，于05:04:46.894786114 UTC仅stop/start新Collector；其容器ID和索引UUID4Vc81FNnQEOVppU8gd17sw保持，未重建索引或卷。开始修复后连续观察，付费继续暂停。
+
+Loki对照时原Alloy没有创建时COMPOSE_PROJECT_NAME环境项，初次工具查询0条。自动审查拒绝了停止原Alloy并替代职责的动作（操作未执行），理由是原容器保护要求；采用其建议的安全方案新增独立采集器，不改变原Alloy配置。实查Loki返回2条。验证完成后，先停止新增采集器，再结合P9-1初始运行数0和本轮临时启动时间证据，仅stop本轮临时启动的7个shop容器，恢复未运行状态，审查通过。原doctor容器未启动或重建，doctor-mysql保持可用。随后Demo恢复，同一医生实例查询OpenSearch返回5条，未切换医生配置或重启医生。
+
+Codex以实际HTTP MCP客户端执行initialize、读取真实16工具菜单，再独立发出tools/call(service_topology,{})并读取4086字节结果；mcp_audit新增37f697ee04caa8684b849119b4fcf09a、shop/service_topology/ok。该调用由Codex发起，不是Go SDK测试客户端，也不是Codex桌面原生MCP插件配置；仅证明一次真实Agent只读协议调用。文档中旧称mcp_audits应以实际表名mcp_audit为准。本阶段生成模型请求仍为0。

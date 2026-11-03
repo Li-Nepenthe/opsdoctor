@@ -11,6 +11,7 @@
 //   - eval_calibration.go：保存第一次抽中的二十份编号，不填写人的评分。
 //   - eval_listing.go：提供页面的批次列表，复用相同的结果查询。
 //   - eval_trials.go：保存整轮注入、恢复、冷却进度与追加的暂停原因。
+//   - eval_generalization_test.go：证明外部系统编号只能用于阶段 9 独立批次。
 //   - eval_trials_integration_test.go：证明中断续读不会回退、跳过或覆盖故障轮次。
 //   - eval_judge.go：保存独立的评委收费归属，恢复已有回复并固定评分结果。
 //   - eval_lock.go：用数据库连接锁拒绝重复启动，连接丢失时取消评测。

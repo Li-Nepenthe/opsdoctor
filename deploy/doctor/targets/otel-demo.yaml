@@ -1,0 +1,20 @@
+# 与shop一起加载。这里只描述固定数据源，不提供故障开关或实验答案。
+name: otel-demo
+profile: otel-demo.profile.md
+alert_token_env: OTEL_DEMO_ALERT_TOKEN
+# 本次实验直接提交症状，未配置外部Alertmanager推送；保留独立恢复观察窗口。
+alert_recovery_window: 3m
+# 医生在原网络中运行，通过Docker Desktop宿主网关访问第二套独立项目的回环映射。
+prometheus: http://host.docker.internal:19090
+jaeger: http://host.docker.internal:19686
+opensearch:
+  url: http://host.docker.internal:19200
+  index: otel-logs-*
+  # 来自3.1.0真实_mapping，完整证据见阶段9schema记录。
+  fields:
+    service: resource.service.name.keyword
+    level: severity.text.keyword
+    message: body
+    timestamp: observedTimestamp
+    trace_id: traceId.keyword
+# PostgreSQL、Valkey直查与pprof没有接入，对应工具不注册；没有写操作或MCP令牌。

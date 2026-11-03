@@ -1,0 +1,59 @@
+{
+  "measured_at_utc": "2026-11-03T04:31:50.9024385Z",
+  "source_commit": "231ee487eab16e16c84f1964caea75deb989f82c",
+  "host_memory_total_bytes": 33396543488,
+  "host_memory_free_bytes": 16657387520,
+  "host_disks": [
+    {
+      "DeviceID": "C:",
+      "Size": 496381161472,
+      "FreeSpace": 324709593088
+    },
+    {
+      "DeviceID": "D:",
+      "Size": 1503256375296,
+      "FreeSpace": 754055700480
+    },
+    {
+      "DeviceID": "F:",
+      "Size": 2000363188224,
+      "FreeSpace": 1678026366976
+    }
+  ],
+  "docker_version": "29.9.2",
+  "docker_memory_limit_bytes": 16294768640,
+  "wsl_free_output": [
+    "              total        used        free      shared  buff/cache   available",
+    "Mem:    16294768640  1005355008 14238908416    27967488  1050505216 15055646720",
+    "Swap:    4294967296           0  4294967296"
+  ],
+  "docker_disk_output": [
+    "Filesystem           1-blocks       Used Available Use% Mounted on",
+    "/dev/sdd             1081101176832 108321554432 917787267072  11% /mnt/docker-desktop-disk"
+  ],
+  "wslconfig_present": false,
+  "docker_data_path": "D:\\Docker\\DockerDesktopWSL\\disk\\docker_data.vhdx",
+  "docker_system_df": [
+    "TYPE            TOTAL     ACTIVE    SIZE      RECLAIMABLE",
+    "Images          56        28        13GB      1.886GB (14%)",
+    "Containers      306       0         276.5MB   276.5MB (100%)",
+    "Local Volumes   214       204       64.47GB   0B (0%)",
+    "Build Cache     328       0         62.06GB   3.831GB"
+  ],
+  "compose_projects": 22,
+  "phase10_test_projects": 20,
+  "total_volumes": 214,
+  "phase10_test_volumes": 138,
+  "running_containers": 0,
+  "original_doctor_volume_present": true,
+  "user_preserved_files": [
+    {
+      "Path": "D:\\Code\\GO项目\\opsdoctor\\docs\\learn\\phase-00-foundation.md",
+      "Hash": "DC0D4D5288D5D140E800F7E412680A1F0AB3AD0188026ECC1906FFD730EC306A"
+    },
+    {
+      "Path": "D:\\Code\\GO项目\\opsdoctor\\internal\\shop\\app\\inventoryservice\\app.go",
+      "Hash": "72265F52B1FA90182D0EA44BBA08936E913D3963CDF6B7FEA20854E164AAB1A5"
+    }
+  ]
+}

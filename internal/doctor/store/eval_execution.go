@@ -25,7 +25,7 @@ func (store *Store) RecordEvalExecution(ctx context.Context, runID, scenario str
 	if !slices.Contains([]string{"run", "matrix", "slot", "pending", "injecting", "verifying", "diagnosing", "restoring", "cooling"}, operation) || len(key) > 128 {
 		return fmt.Errorf("执行审计操作不合法")
 	}
-	if operation != "run" && (!regexp.MustCompile(`^S(0[1-9]|1[0-3])$`).MatchString(scenario) || iteration < 1 || iteration > 3) {
+	if operation != "run" && !validEvalTrial(runID, scenario, iteration) {
 		return fmt.Errorf("执行审计轮次不合法")
 	}
 	_, err := store.database.ExecContext(ctx, "INSERT INTO eval_execution_audits(run_id,scenario,iteration,operation,result_key,versions) VALUES(?,?,?,?,?,?)", runID, scenario, iteration, operation, key, versions)

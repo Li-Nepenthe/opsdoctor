@@ -19,6 +19,7 @@
 | [alloy](alloy/README.md) | 从各容器收集日志，送到 Loki | 阶段 3 |
 | [grafana](grafana/README.md) | 看板：把指标、调用链、日志放在一个页面里看 | 阶段 3 |
 | [toxiproxy](toxiproxy/README.md) | 转发三条真实链路，供宿主机实验工具调整延迟 | 阶段 4 |
+| [opentelemetry](opentelemetry/README.md) | 固定版外部靶场的隔离部署，和 shop 串行运行 | 阶段 9 |
 
 ## 从哪里开始读
 

@@ -20,6 +20,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/source/opensearch"
 	"github.com/goccy/go-yaml"
 )
 
@@ -36,9 +37,19 @@ type Config struct {
 	Prometheus          string            `yaml:"prometheus"`             // 指标后端根地址。
 	Jaeger              string            `yaml:"jaeger"`                 // 调用链查询根地址。
 	Loki                string            `yaml:"loki"`                   // 日志查询根地址。
+	OpenSearch          *openSearchConfig `yaml:"opensearch"`             // 第二种日志后端；与 Loki 只能配置一个。
 	MySQLDSNEnv         string            `yaml:"mysql_readonly_dsn_env"` // 只读 MySQL 连接配置的变量名。
 	RedisURLEnv         string            `yaml:"redis_readonly_url_env"` // 只读 Redis 连接配置的变量名。
 	Pprof               map[string]string `yaml:"pprof"`                  // 服务名到堆栈端点的固定映射。
+}
+
+// openSearchConfig 把公开地址与凭据变量名分开；账号只有在环境变量里才有真实值。
+type openSearchConfig struct {
+	URL         string            `yaml:"url"`          // 固定 HTTP(S) 根地址。
+	Index       string            `yaml:"index"`        // 一个日志索引，或明确前缀的通配符。
+	Fields      opensearch.Fields `yaml:"fields"`       // 实际索引的字段名，由接入时检查 mapping 后填写。
+	UsernameEnv string            `yaml:"username_env"` // 安全插件开启时填写只读用户名的环境变量。
+	PasswordEnv string            `yaml:"password_env"` // 与用户名成对提供，禁止把密码写进 YAML。
 }
 
 // readConfigs 按文件名顺序读取全部 YAML，目录为空也报错，避免“启动成功但什么都接不上”。
@@ -120,6 +131,9 @@ func validateConfigs(configs []Config) error {
 		if config.AlertTokenEnv == "" || !strings.HasSuffix(config.Profile, ".profile.md") {
 			return fmt.Errorf("系统 %s 缺少告警令牌变量或 .profile.md 说明文件", config.Name)
 		}
+		if err := config.validateLogs(); err != nil {
+			return fmt.Errorf("系统 %s：%w", config.Name, err)
+		}
 		// 不能用全局默认掩盖缺项：每个系统的告警持续时间可能不同。
 		window, err := time.ParseDuration(config.AlertRecoveryWindow)
 		if err != nil || window <= 0 || window > 24*time.Hour {
@@ -136,5 +150,24 @@ func validateConfigs(configs []Config) error {
 
 // variables 只包含本阶段真正使用的凭据，不提前向医生传递写账号。
 func (config Config) variables() []string {
-	return []string{config.AlertTokenEnv, config.MySQLDSNEnv, config.RedisURLEnv, config.MCPTokenEnv, config.MySQLDDLEnv, config.Ops.TokenEnv}
+	values := []string{config.AlertTokenEnv, config.MySQLDSNEnv, config.RedisURLEnv, config.MCPTokenEnv, config.MySQLDDLEnv, config.Ops.TokenEnv}
+	if config.OpenSearch != nil {
+		values = append(values, config.OpenSearch.UsernameEnv, config.OpenSearch.PasswordEnv)
+	}
+	return values
+}
+
+// validateLogs 在创建任何客户端前检查二选一规则，不能由装配顺序决定实际日志来源。
+func (config Config) validateLogs() error {
+	if config.OpenSearch == nil {
+		return nil
+	}
+	if config.Loki != "" {
+		return fmt.Errorf("loki 和 opensearch 只能二选一")
+	}
+	value := config.OpenSearch
+	if (value.UsernameEnv == "") != (value.PasswordEnv == "") {
+		return fmt.Errorf("opensearch.username_env 和 password_env 必须成对提供")
+	}
+	return (opensearch.Config{URL: value.URL, Index: value.Index, Fields: value.Fields}).Validate()
 }

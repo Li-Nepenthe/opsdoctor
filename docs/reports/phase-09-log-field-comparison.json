@@ -1,0 +1,79 @@
+{
+  "before_file": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\opensearch-mapping-before-fix.json",
+  "after_source": "GET /otel-logs-*/_mapping",
+  "fields": {
+    "resource.service.name.keyword": {
+      "before": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "after": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "exactly_equal": true
+    },
+    "severity.text.keyword": {
+      "before": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "after": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "exactly_equal": true
+    },
+    "body": {
+      "before": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "after": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "exactly_equal": true
+    },
+    "observedTimestamp": {
+      "before": {
+        "type": "date"
+      },
+      "after": {
+        "type": "date"
+      },
+      "exactly_equal": true
+    },
+    "traceId.keyword": {
+      "before": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "after": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "exactly_equal": true
+    }
+  },
+  "new_http_method_mapping": {
+    "type": "text",
+    "fields": {
+      "keyword": {
+        "type": "keyword",
+        "ignore_above": 256
+      }
+    }
+  },
+  "all_five_exactly_equal": true
+}

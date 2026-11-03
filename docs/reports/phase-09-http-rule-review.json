@@ -1,0 +1,154 @@
+{
+  "measured_at_utc": "2026-11-03T05:06:31.325332+00:00",
+  "candidate_path": "D:\\Code\\GO项目\\opsdoctor\\deploy\\opentelemetry\\otelcol-config-extras.phase09.yaml",
+  "candidate_sha256": "aa7c47d36cc26ecc6a28f315e5835f7a22fe10309c65e7928ed030b9770699e9",
+  "rule": "replace_all_patterns(attributes, \"key\", \"^http[.]\", \"http_\")",
+  "pure_regex_examples": [
+    {
+      "before": "http",
+      "after": "http"
+    },
+    {
+      "before": "https",
+      "after": "https"
+    },
+    {
+      "before": "http.request.method",
+      "after": "http_request.method"
+    },
+    {
+      "before": "http.response.status_code",
+      "after": "http_response.status_code"
+    }
+  ],
+  "original_scope_rules_unchanged": true,
+  "before_scope_rule_count": 2,
+  "candidate_scope_rule_count": 2,
+  "postfix_search_request": {
+    "size": 3,
+    "query": {
+      "bool": {
+        "filter": [
+          {
+            "term": {
+              "resource.service.name.keyword": "frontend"
+            }
+          },
+          {
+            "range": {
+              "observedTimestamp": {
+                "gte": "2026-11-03T05:04:46.894786114Z"
+              }
+            }
+          },
+          {
+            "exists": {
+              "field": "attributes.http_request.method"
+            }
+          }
+        ]
+      }
+    },
+    "sort": [
+      {
+        "observedTimestamp": "desc"
+      }
+    ],
+    "_source": [
+      "resource.service.name",
+      "attributes",
+      "observedTimestamp",
+      "body",
+      "severity",
+      "traceId"
+    ]
+  },
+  "postfix_search_status": {
+    "timed_out": false,
+    "shards": {
+      "total": 1,
+      "successful": 1,
+      "skipped": 0,
+      "failed": 0
+    },
+    "total": {
+      "value": 333,
+      "relation": "eq"
+    }
+  },
+  "postfix_samples": [
+    {
+      "index": "otel-logs-2026-11-03",
+      "observedTimestamp": "2026-11-03T05:06:30.186007906Z",
+      "service": "frontend",
+      "body": "API request completed",
+      "http_request.method": "POST",
+      "http_response.status_code": 200,
+      "original_dotted_http_keys": [],
+      "has_traceId": true
+    },
+    {
+      "index": "otel-logs-2026-11-03",
+      "observedTimestamp": "2026-11-03T05:06:30.186047109Z",
+      "service": "frontend",
+      "body": "API request completed",
+      "http_request.method": "GET",
+      "http_response.status_code": 200,
+      "original_dotted_http_keys": [],
+      "has_traceId": true
+    },
+    {
+      "index": "otel-logs-2026-11-03",
+      "observedTimestamp": "2026-11-03T05:06:30.186066511Z",
+      "service": "frontend",
+      "body": "API request completed",
+      "http_request.method": "GET",
+      "http_response.status_code": 200,
+      "original_dotted_http_keys": [],
+      "has_traceId": true
+    }
+  ],
+  "index_identity": [
+    {
+      "index": "otel-logs-2026-11-03",
+      "uuid": "4Vc81FNnQEOVppU8gd17sw",
+      "docs.count": "28869"
+    }
+  ],
+  "current_mapping": [
+    {
+      "index": "otel-logs-2026-11-03",
+      "scalar_http_mapping": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "renamed_request_mapping": {
+        "properties": {
+          "method": {
+            "type": "text",
+            "fields": {
+              "keyword": {
+                "type": "keyword",
+                "ignore_above": 256
+              }
+            }
+          }
+        }
+      },
+      "renamed_response_mapping": {
+        "properties": {
+          "status_code": {
+            "type": "long"
+          }
+        }
+      }
+    }
+  ],
+  "judgement": "候选规则确实覆盖当前已证冲突：保留scalar http，将frontend的http.request.method改到http_request.method，并已在原索引查到实际新记录。仅验证当前源字段组合；不声称避免未来任意属性命名冲突。",
+  "constraints": "只读读取配置、OpenSearch样本和mapping；没有注入故障或调用模型。"
+}

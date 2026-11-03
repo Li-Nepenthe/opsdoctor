@@ -1,0 +1,59 @@
+{
+  "measured_at_utc": "2026-11-03T04:40:51.7912849Z",
+  "demo_version": "3.1.0",
+  "upstream_commit": "dedc0178918e260823323b8d95005a8cb924b007",
+  "indices": {
+    "index": null,
+    "health": null,
+    "status": null,
+    "docs.count": null
+  },
+  "fields": {
+    "service": "resource.service.name.keyword",
+    "level": "severity.text.keyword",
+    "message": "body",
+    "timestamp": "observedTimestamp",
+    "trace_id": "traceId.keyword"
+  },
+  "mapping": {
+    "service": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "level": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "message": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "timestamp": {
+      "type": "date"
+    },
+    "trace_id": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    }
+  }
+}

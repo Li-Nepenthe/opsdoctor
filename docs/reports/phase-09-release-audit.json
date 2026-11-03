@@ -1,0 +1,28 @@
+{
+  "status": "passed",
+  "base_commit": "231ee487eab16e16c84f1964caea75deb989f82c",
+  "branch": "phase-09-generalization",
+  "markdown_files": 113,
+  "relative_targets_checked": 4930,
+  "markdown_fragments_checked": 158,
+  "missing_targets": [],
+  "wrong_case_targets": [],
+  "missing_anchors": [],
+  "own_files_scanned": 119,
+  "known_credential_matches": [],
+  "credential_pattern_matches": [],
+  "protected_user_files_sha256": {
+    "docs/learn/phase-00-foundation.md": "dc0d4d5288d5d140e800f7e412680a1f0ab3ad0188026ecc1906ffd730ec306a",
+    "internal/shop/app/inventoryservice/app.go": "72265f52b1fa90182d0ea44bba08936e913d3963cdf6b7fea20854e164aab1a5"
+  },
+  "protected_user_files_staged": false,
+  "frozen_paths_unchanged_from_main": [
+    "internal/doctor/tools",
+    "internal/doctor/agent",
+    "docs/runbooks",
+    "internal/eval/judge",
+    "internal/eval/scoring"
+  ],
+  "old_learning_materials_unchanged_except_preserved_user_edit": true,
+  "notes": "Read-only scan of tracked and untracked repository Markdown, exact path case and GitHub-style heading/HTML anchors; fenced and inline code examples excluded. Credential values are never printed. Local full Go checks: phase-09-checks.json."
+}

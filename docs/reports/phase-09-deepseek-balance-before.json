@@ -1,0 +1,14 @@
+{
+  "measured_at_utc": "2026-11-03T04:33:11.6753312Z",
+  "endpoint": "https://api.deepseek.com/user/balance",
+  "is_available": true,
+  "balance_infos": [
+    {
+      "currency": "CNY",
+      "total_balance": "1.71",
+      "granted_balance": "0.00",
+      "topped_up_balance": "1.71"
+    }
+  ],
+  "generation_requests": 0
+}

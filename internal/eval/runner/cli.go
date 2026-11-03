@@ -46,6 +46,10 @@ type command struct {
 // RunCLI 先解析命令再连接依赖，拼错参数不会触发任何模型任务。
 func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.Writer) error {
 	ctx = context.WithValue(ctx, clockMonitorKey{}, clockcheck.NewMonitor(recordClockEvent))
+	// 第二个系统有自己的故障开关和账户，不能误走 shop 的注入与预算路径。
+	if len(args) > 0 && args[0] == "generalization" {
+		return runGeneralizationCLI(ctx, args[1:], reader, output)
+	}
 	// 校时检查不用数据库、登录令牌或模型 Key，环境故障时也能单独运行。
 	// 只输出秒级时间戳；失败时沿用正式评测的拦截原因。
 	if len(args) > 0 && args[0] == "check-clock" {
@@ -337,7 +341,7 @@ func waitDiagnosis(parent context.Context, id string, repository *store.Store, c
 			return repository.Detail(ctx, id)
 		}
 		if !time.Now().Before(nextMemory) {
-			if _, err = memoryBytes(ctx); err != nil {
+			if _, err = diagnosisMemory(ctx); err != nil {
 				return store.Detail{}, err
 			}
 			nextMemory = time.Now().Add(15 * time.Second)

@@ -32,7 +32,7 @@ func inspectClock(parent context.Context, evidence io.Writer) error {
 	ctx, cancel := context.WithTimeout(parent, 75*time.Second)
 	defer cancel()
 	// 复用镜像内已有程序的纯采样入口，不给医生 Docker 权限，也不临时下载工具。
-	command := exec.CommandContext(ctx, "docker", "compose", "--env-file", ".env", "-f", "deploy/docker-compose.yml", "exec", "-T", "doctor", "/app/server", "--clock-samples")
+	command := exec.CommandContext(ctx, "docker", clockSampleArguments(parent)...)
 	output, err := command.StdoutPipe()
 	if err != nil {
 		return fmt.Errorf("无法读取容器时钟，评测暂停")

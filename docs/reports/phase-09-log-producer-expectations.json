@@ -1,0 +1,92 @@
+{
+  "fixed_demo_tag": "3.1.0",
+  "fixed_demo_commit": "dedc0178918e260823323b8d95005a8cb924b007",
+  "matrix_source_file": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\opentelemetry-demo\\test\\telemetry\\services.py",
+  "matrix_source_sha256": "b38f22a4f0d2904e421a841f20d2399fe6752120ce7b12dc6c97b8c3ad4f6133",
+  "matrix_source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py",
+  "service_expectations": {
+    "accounting": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "ad": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "cart": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "checkout": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "currency": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "email": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "fraud-detection": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "frontend": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "frontend-proxy": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "image-provider": {
+      "expected_otlp_logs": false,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py",
+      "note": "Official SIGNAL_MATRIX logs=False. Nginx template configures traces and local access logging, without an OTLP log exporter. Keep measured 0 visible; exclude from expected OTLP producer denominator.",
+      "nginx_source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/image-provider/nginx.conf.template"
+    },
+    "load-generator": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "payment": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "product-catalog": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "quote": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "recommendation": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "shipping": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "kafka": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "otelcol-contrib": {
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/otel-collector/otelcol-config.yml#L274",
+      "note": "Collector internal telemetry.logs is exported through OTLP to itself."
+    }
+  },
+  "excluded_infrastructure": [
+    "prometheus",
+    "jaeger",
+    "grafana"
+  ],
+  "exclusion_reason": "These infrastructure containers have no configured OTLP log producer into the observed logs receiver; this is not an all-container stdout ingestion pipeline.",
+  "email_validation_note": "A single post-restart email record was produced by the parent agent controlled local /send_order_confirmation test (order_id P9-EMAIL-LOG-CHECK), not by a proven successful checkout.",
+  "health_scope_note": "Log ingestion verification does not establish healthy checkout/shipping or fault-evaluation readiness."
+}

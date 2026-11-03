@@ -1,0 +1,537 @@
+{
+  "schema_version": "phase09-log-observation-v1",
+  "scope": "扩展窗口P9-18；与首十分钟P9-14分开，不覆盖其数值。只读观察，无Docker变更或模型生成调用。",
+  "original_capture_directory": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact",
+  "completion": {
+    "collector_inspect_unchanged": true,
+    "collector_inspect": {
+      "id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+      "image_id": "sha256:1f2c54a30e713fac6b3ae77a1ec84010c2007e29ced8ec666214fc2f6739c1cc",
+      "image_tag": "ghcr.io/open-telemetry/opentelemetry-collector-releases/opentelemetry-collector-contrib:0.159.0",
+      "started_at": "2026-11-03T05:04:46.894786114Z",
+      "status": "running",
+      "restart_count": 0
+    },
+    "actual_service_samples": 20,
+    "failed_or_timed_out_search_snapshots": [],
+    "sample_checks": [
+      {
+        "file": "after-20261103T050446894786114Z-sample-001-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-002-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-003-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-004-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-005-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-006-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-007-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-008-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-009-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-010-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-011-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-012-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-013-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-014-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-015-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-016-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-017-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-018-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-019-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      },
+      {
+        "file": "after-20261103T050446894786114Z-sample-020-search.json",
+        "timed_out": false,
+        "failed_shards": 0
+      }
+    ],
+    "snapshots": [
+      {
+        "label": "minimum10m",
+        "summary_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\after-20261103T050446894786114Z-minimum10m-summary.json",
+        "raw_log_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\after-20261103T050446894786114Z-minimum10m-collector.log",
+        "raw_log_sha256": "aefd7cae491edff383abdac553c29499477cf6d03fdf6ac26a7d2264f442c806",
+        "raw_bytes": 609311,
+        "raw_lines": 1733,
+        "window_start": "2026-11-03T05:04:46.894786114Z",
+        "window_end": "2026-11-03T05:14:47.000000000Z",
+        "exact_window_seconds": "600.105213886",
+        "final_drop_events": 0,
+        "reported_logs_opensearch_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "drop_parse_failures": [],
+        "expected_producer_coverage": [
+          17,
+          17
+        ],
+        "total_indexed_records": {
+          "value": 19876,
+          "relation": "eq"
+        },
+        "renamed_http_method_records": 1884
+      },
+      {
+        "label": "extended",
+        "summary_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\after-20261103T050446894786114Z-extended-summary.json",
+        "raw_log_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\after-20261103T050446894786114Z-extended-collector.log",
+        "raw_log_sha256": "bd0c78301a6e959d6daf1e90a234ce2fb1ca99250627c47cccb9ccc103dd6129",
+        "raw_bytes": 748000,
+        "raw_lines": 2128,
+        "window_start": "2026-11-03T05:04:46.894786114Z",
+        "window_end": "2026-11-03T05:17:07.909028Z",
+        "exact_window_seconds": "741.014241886",
+        "final_drop_events": 0,
+        "reported_logs_opensearch_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "drop_parse_failures": [],
+        "expected_producer_coverage": [
+          17,
+          17
+        ],
+        "total_indexed_records": {
+          "value": 24737,
+          "relation": "eq"
+        },
+        "renamed_http_method_records": 2359
+      }
+    ]
+  },
+  "extended_window": {
+    "source_log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\after-20261103T050446894786114Z-extended-collector.log",
+    "sha256": "bd0c78301a6e959d6daf1e90a234ce2fb1ca99250627c47cccb9ccc103dd6129",
+    "bytes": 748000,
+    "lines": 2128,
+    "first_visible_utc": "2026-11-03T05:04:47.216127218Z",
+    "last_visible_utc": "2026-11-03T05:17:02.339760075Z",
+    "final_drop_event_count": 0,
+    "dropped_items_reported_sum": 0,
+    "logs_opensearch_final_drop_events": 0,
+    "logs_opensearch_dropped_items_reported_sum": 0,
+    "by_signal_exporter": [],
+    "mapper_error_log_lines": [],
+    "retry_events": [
+      {
+        "line": 56,
+        "time_utc": "2026-11-03T05:04:52.646488191Z",
+        "message": "Exporting failed. Will retry the request after interval.",
+        "exporter": "otlp_grpc/jaeger",
+        "signal": "traces",
+        "dropped_items": null,
+        "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+      },
+      {
+        "line": 57,
+        "time_utc": "2026-11-03T05:04:52.868131751Z",
+        "message": "Exporting failed. Will retry the request after interval.",
+        "exporter": "otlp_grpc/jaeger",
+        "signal": "traces",
+        "dropped_items": null,
+        "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+      },
+      {
+        "line": 58,
+        "time_utc": "2026-11-03T05:04:53.444168448Z",
+        "message": "Exporting failed. Will retry the request after interval.",
+        "exporter": "otlp_grpc/jaeger",
+        "signal": "traces",
+        "dropped_items": null,
+        "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+      },
+      {
+        "line": 59,
+        "time_utc": "2026-11-03T05:04:54.059103744Z",
+        "message": "Exporting failed. Will retry the request after interval.",
+        "exporter": "otlp_grpc/jaeger",
+        "signal": "traces",
+        "dropped_items": null,
+        "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+      },
+      {
+        "line": 60,
+        "time_utc": "2026-11-03T05:04:54.525604221Z",
+        "message": "Exporting failed. Will retry the request after interval.",
+        "exporter": "otlp_grpc/jaeger",
+        "signal": "traces",
+        "dropped_items": null,
+        "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+      },
+      {
+        "line": 61,
+        "time_utc": "2026-11-03T05:04:54.801626648Z",
+        "message": "Exporting failed. Will retry the request after interval.",
+        "exporter": "otlp_grpc/jaeger",
+        "signal": "traces",
+        "dropped_items": null,
+        "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+      },
+      {
+        "line": 62,
+        "time_utc": "2026-11-03T05:04:55.297809013Z",
+        "message": "Exporting failed. Will retry the request after interval.",
+        "exporter": "otlp_grpc/jaeger",
+        "signal": "traces",
+        "dropped_items": null,
+        "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+      },
+      {
+        "line": 63,
+        "time_utc": "2026-11-03T05:04:56.050781774Z",
+        "message": "Exporting failed. Will retry the request after interval.",
+        "exporter": "otlp_grpc/jaeger",
+        "signal": "traces",
+        "dropped_items": null,
+        "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+      },
+      {
+        "line": 64,
+        "time_utc": "2026-11-03T05:04:56.583872328Z",
+        "message": "Exporting failed. Will retry the request after interval.",
+        "exporter": "otlp_grpc/jaeger",
+        "signal": "traces",
+        "dropped_items": null,
+        "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+      },
+      {
+        "line": 65,
+        "time_utc": "2026-11-03T05:04:56.810017051Z",
+        "message": "Exporting failed. Will retry the request after interval.",
+        "exporter": "otlp_grpc/jaeger",
+        "signal": "traces",
+        "dropped_items": null,
+        "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+      }
+    ],
+    "final_drop_events": [],
+    "drop_event_parse_failures": [],
+    "count_semantics": "Exact sum of dropped_items reported by FINAL Exporting failed. Dropping data. events, kept separately from retries. On partial OpenSearch bulk failure this is affected request size, not a proven count of unique lost documents.",
+    "window_start_inclusive_utc": "2026-11-03T05:04:46.894786114Z",
+    "window_end_exclusive_utc": "2026-11-03T05:17:07.909028Z",
+    "exact_window_seconds": "741.014241886",
+    "snapshot_generated_at_utc": "2026-11-03T05:17:18.920788Z",
+    "capture_command": [
+      "docker",
+      "logs",
+      "--timestamps",
+      "--since",
+      "2026-11-03T05:04:46.894786114Z",
+      "--until",
+      "2026-11-03T05:17:07.909028Z",
+      "opsdoctor-otel-demo-otel-collector"
+    ],
+    "service_counts": {
+      "accounting": {
+        "count": 16,
+        "latest_observed_utc": "2026-11-03T05:17:03.102Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "ad": {
+        "count": 225,
+        "latest_observed_utc": "2026-11-03T05:17:02.817Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "cart": {
+        "count": 929,
+        "latest_observed_utc": "2026-11-03T05:17:04.193Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "checkout": {
+        "count": 133,
+        "latest_observed_utc": "2026-11-03T05:17:01.701Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "currency": {
+        "count": 696,
+        "latest_observed_utc": "2026-11-03T05:17:05.820Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "email": {
+        "count": 13,
+        "latest_observed_utc": "2026-11-03T05:17:01.085Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "fraud-detection": {
+        "count": 16,
+        "latest_observed_utc": "2026-11-03T05:17:00.832Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "frontend": {
+        "count": 2384,
+        "latest_observed_utc": "2026-11-03T05:17:06.050Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "frontend-proxy": {
+        "count": 11206,
+        "latest_observed_utc": "2026-11-03T05:17:06.932Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "image-provider": {
+        "count": 0,
+        "latest_observed_utc": null,
+        "expected_otlp_logs": false,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "load-generator": {
+        "count": 1198,
+        "latest_observed_utc": "2026-11-03T05:17:05.308Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "payment": {
+        "count": 42,
+        "latest_observed_utc": "2026-11-03T05:17:01.701Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "product-catalog": {
+        "count": 3644,
+        "latest_observed_utc": "2026-11-03T05:17:06.454Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "quote": {
+        "count": 115,
+        "latest_observed_utc": "2026-11-03T05:17:01.904Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "recommendation": {
+        "count": 1196,
+        "latest_observed_utc": "2026-11-03T05:17:06.050Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "shipping": {
+        "count": 250,
+        "latest_observed_utc": "2026-11-03T05:17:02.214Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "kafka": {
+        "count": 570,
+        "latest_observed_utc": "2026-11-03T05:17:00.831Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+      },
+      "otelcol-contrib": {
+        "count": 2104,
+        "latest_observed_utc": "2026-11-03T05:17:02.817Z",
+        "expected_otlp_logs": true,
+        "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/otel-collector/otelcol-config.yml#L274"
+      }
+    },
+    "expected_otlp_producers": 17,
+    "covered_otlp_producers": 17,
+    "missing_expected_otlp_producers": [],
+    "excluded_candidate_image_provider": {
+      "count": 0,
+      "latest_observed_utc": null,
+      "expected_otlp_logs": false,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "excluded_unconfigured_infrastructure": [
+      "prometheus",
+      "jaeger",
+      "grafana"
+    ],
+    "email_controlled_validation_records": 1,
+    "email_controlled_validation_note": "A single post-restart email record was produced by the parent agent controlled local /send_order_confirmation test (order_id P9-EMAIL-LOG-CHECK), not by a proven successful checkout.",
+    "indices": [
+      {
+        "index": "otel-logs-2026-11-03",
+        "uuid": "4Vc81FNnQEOVppU8gd17sw",
+        "docs.count": "50470"
+      }
+    ],
+    "index_uuid_unchanged": true,
+    "five_field_mapping_comparison": {
+      "resource.service.name.keyword": {
+        "before": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "after": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "exactly_equal": true
+      },
+      "severity.text.keyword": {
+        "before": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "after": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "exactly_equal": true
+      },
+      "body": {
+        "before": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "after": {
+          "type": "text",
+          "fields": {
+            "keyword": {
+              "type": "keyword",
+              "ignore_above": 256
+            }
+          }
+        },
+        "exactly_equal": true
+      },
+      "observedTimestamp": {
+        "before": {
+          "type": "date"
+        },
+        "after": {
+          "type": "date"
+        },
+        "exactly_equal": true
+      },
+      "traceId.keyword": {
+        "before": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "after": {
+          "type": "keyword",
+          "ignore_above": 256
+        },
+        "exactly_equal": true
+      }
+    },
+    "all_five_fields_exactly_equal": true,
+    "new_http_request_method_mapping": {
+      "type": "text",
+      "fields": {
+        "keyword": {
+          "type": "keyword",
+          "ignore_above": 256
+        }
+      }
+    },
+    "new_http_request_method_records_in_window": 2359,
+    "total_indexed_records_in_window": {
+      "value": 24737,
+      "relation": "eq"
+    },
+    "unlisted_actual_log_services": {},
+    "limitations": [
+      "0 final drop events means no final loss reported by Collector in this retained window, not a proof of zero silent loss upstream.",
+      "Producer coverage proves indexed post-restart records, not end-to-end completeness or healthy checkout/shipping.",
+      "image-provider logs=False in the fixed official matrix; its measured zero remains visible and is excluded from the OTLP producer denominator.",
+      "One identified email event is an explicit controlled local validation and is not claimed as normal checkout success."
+    ]
+  },
+  "archive": {
+    "minimum_window_summary": "phase-09-log-fix-after.json",
+    "minimum_raw_file": "phase-09-collector-after-fix.log",
+    "minimum_raw_sha256": "aefd7cae491edff383abdac553c29499477cf6d03fdf6ac26a7d2264f442c806",
+    "minimum_raw_bytes": 609311,
+    "continuation_raw_file": "phase-09-collector-after-fix-continuation.log",
+    "continuation_raw_sha256": "714ee0cff1bc1abbefbbbc3fa1f4ec1b9ebd3894f9d8eabfc6816f4a4640719a",
+    "continuation_raw_bytes": 138689,
+    "continuation_window_start_inclusive_utc": "2026-11-03T05:14:47.000000000Z",
+    "continuation_window_end_exclusive_utc": "2026-11-03T05:17:07.909028Z",
+    "reconstruction": "Concatenate the raw bytes of minimum_raw_file and continuation_raw_file, in that order, without newline conversion.",
+    "reconstructed_extended_sha256": "bd0c78301a6e959d6daf1e90a234ce2fb1ca99250627c47cccb9ccc103dd6129",
+    "reconstructed_extended_bytes": 748000,
+    "reconstruction_matches_original_extended": true,
+    "samples_file": "phase-09-log-fix-samples.jsonl",
+    "samples_sha256": "e7127dba4298bfae50a204c80de7ebb3588eab28383bf6da2f61cf5b11b84285",
+    "samples_bytes": 75962,
+    "actual_service_samples": 20,
+    "sample_first_utc": "2026-11-03T05:07:07.992448Z",
+    "sample_last_utc": "2026-11-03T05:17:01.627740Z",
+    "sample_cadence_note": "Target cadence was 30 seconds; actual query timestamps are preserved. Docker log capture and query latency caused scheduling drift. The monitor ran from 05:07:07.909028Z through 05:17:07.909028Z.",
+    "per_sample_original_response_note": "samples_file preserves the original observer JSONL. The search_raw_file fields name original TEMP captures; repeated full mappings and per-sample raw search files are not additionally duplicated in this minimal archive."
+  }
+}

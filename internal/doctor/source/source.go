@@ -29,7 +29,7 @@ type TraceSource interface {
 	Get(context.Context, string) (Trace, error)          // 参数只是 trace ID，不能是 URL。
 }
 
-// LogSource 接受结构化条件；适配器自己拼查询语言，不让调用者直接写 LogQL。
+// LogSource 接受结构化条件；适配器自己拼查询语言，不让调用者直接写 LogQL 或查询 DSL。
 type LogSource interface {
 	Search(context.Context, LogQuery) ([]LogEntry, error) // 条数、时间和关键词都有上限。
 }
@@ -128,7 +128,7 @@ type LogQuery struct {
 
 // LogEntry 保留原始日志文本。里面的文字只能作为证据，不能改变工具的行为。
 type LogEntry struct {
-	Time    string `json:"time_ns"` // Loki 的 Unix 纳秒字符串，不转浮点以免损失精度。
+	Time    string `json:"time_ns"` // 统一成 Unix 纳秒字符串，不转浮点以免损失精度。
 	Service string `json:"service"` // 来源服务。
 	Line    string `json:"line"`    // 工具统一限制最终输出大小。
 }

@@ -10,6 +10,7 @@
 
 - 搭建订单、库存与消息消费链路，实现条件扣减、Redis 请求幂等、事务内消费去重、超时与熔断；真实 MySQL 下并发争抢库存时，100 次扣减中 50 次成功、50 次库存不足，最终库存为 0（P1-1）。
 - 接通指标、调用链、结构化日志与症状告警；实现工具查证、证据引用校验、诊断预算和 SSE 实时页面，将受限修复转成必须人工决定的审批单，并以保存的参数执行。通过 Mock 杀进程测试验证查证、换模型、待审批、过时拒绝、写到一半等 5 类恢复路径（P7-14）。
+- 通过 MCP 向外部 Agent 开放 16 个只读工具，每次调用都有审计；先用官方 Go SDK 客户端验证，再由 Codex 实际发送 MCP 协议请求，调用 `service_topology` 并核对数据库审计（P7-8、P9-10）。
 - 构建故障注入、配对评测和失败留档流程：自建靶场 S01–S13 各运行 3 次，比较 Terra E0–E3 与 DeepSeek E1；完成 39 轮、195 份报告，保留 14 份评分失败及原取消记录（P8-191）。
 - 对固定盲评样本开展只读复核：**DeepSeek 评委与 Claude 交叉评分的一致率**为 17/20（85%）；去掉 E0 后为 12/15（80%）（P8-199、P8-201）。未做人工校准；两个模型可能有共同偏差。
 
@@ -27,6 +28,8 @@
 |---|---|---|
 | 并发库存 100 次争抢 50 件，50 成功、50 失败、余量 0 | [P1-1](数据台账.md#阶段-1库存服务) | `54bd24f`；[库存集成测试](../internal/shop/inventory/repository_integration_test.go)、[阶段 1 汇报](reports/phase-01-inventory.md) |
 | 5 类杀进程恢复路径 | [P7-14](数据台账.md#阶段-7审批断点恢复与安全) | 阶段 7 验收提交 `6a22664`；[recoverycheck](../tools/recoverycheck/doc.go)、[阶段 7 汇报](reports/phase-07-reliability.md)；测试使用 Mock 和专用库 |
+| MCP 16 个只读工具、service_topology 成功及 1 条 ok 审计 | [P7-8](数据台账.md#阶段-7审批断点恢复与安全) | 官方 Go SDK v1.8.0 客户端访问 `/mcp/shop`；[接入说明](mcp.md)；未据此声称真实 Agent 的完整诊断已验证 |
+| Codex 真实调用 service_topology、1 条新增 ok 审计 | [P9-10](数据台账.md#阶段-9开源靶场泛化测试进行中) | Codex 通过 PowerShell HTTP 传输完成 MCP 初始化、读取工具菜单与调用；[协议结果](reports/phase-09-codex-mcp-call.json)、[审计](reports/phase-09-codex-mcp-audit.tsv)，不是桌面原生 MCP 配置或完整诊断验证 |
 | 13 场景各 3 次、39 轮、195 报告、14 评分失败 | [P8-191](数据台账.md) | 冻结 `5e5d5a1`，提示 v8.0、手册 v1.1、评分 rubric-v1.1；[原清单](reports/phase-08-formal-manifest.json)、[完整结果](reports/phase-08-formal-results.md) |
 | 交叉评分 17/20 与 12/15 | [P8-199、P8-201](数据台账.md) | 上述冻结结果的固定样本；2026-11-02 离线计算，[逐项对照与复算](reports/phase-08-cross-scoring.md) |
 | 256 工作者、200 QPS、5 分钟、59998 请求、199.986 QPS、0 错误/未发出、P99 51ms | [P2-1](数据台账.md#阶段-2订单服务缓存与消息) | `4a46700`；[阶段 2 汇报](reports/phase-02-order.md)，单机内部网络、部分热缓存 |

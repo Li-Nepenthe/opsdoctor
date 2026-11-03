@@ -19,7 +19,11 @@ import (
 
 // Markdown 不在导出时重新评分，相同数据库快照应当生成相同的表格。
 func Markdown(output io.Writer, run store.EvalRun, rows []store.EvalResult) error {
-	if _, err := fmt.Fprintf(output, "# 评测记录 %s\n\n这张表来自自建靶场。请按批次配置区分试跑和正式评测；每个场景样本很少，不能代表生产准确率。美元按项目用量账本计：每次请求实际 token 用量乘以 2026-10-29 核对过的官方单价；分档结算，未知请求保留预留。平台账单因 Key 与其他用途共用，无法单独核对。\n\n批次 token：%d / %d（含未确认预留）。\n\n| 场景 | 轮次 | 组 | 诊断 | 状态 | 组件一致 | 轮数 | 工具 | 输入 / 输出 token | 账本费用 | 耗时秒 | 提交方式 | 混合模型 |\n|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---|---|\n", cell(run.ID), run.TokensUsed, run.TokenLimit); err != nil {
+	origin := "自建靶场"
+	if run.Target != "" && run.Target != "shop" {
+		origin = "接入系统 " + cell(run.Target)
+	}
+	if _, err := fmt.Fprintf(output, "# 评测记录 %s\n\n这张表来自%s。请按批次配置区分试跑和正式评测；每个场景样本很少，不能代表生产准确率。美元按项目用量账本计：每次请求实际 token 用量乘以 2026-10-29 核对过的官方单价；分档结算，未知请求保留预留。平台账单因 Key 与其他用途共用，无法单独核对。\n\n批次 token：%d / %d（含未确认预留）。\n\n| 场景 | 轮次 | 组 | 诊断 | 状态 | 组件一致 | 轮数 | 工具 | 输入 / 输出 token | 账本费用 | 耗时秒 | 提交方式 | 混合模型 |\n|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---:|---|---|\n", cell(run.ID), origin, run.TokensUsed, run.TokenLimit); err != nil {
 		return err
 	}
 	for _, row := range rows {

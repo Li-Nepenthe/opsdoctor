@@ -1,0 +1,10 @@
+{
+  "samples": 61,
+  "intervals": 60,
+  "max_abs_clock_correction_ns": 1569178,
+  "backward_beyond_one_second": 0,
+  "forward_beyond_five_seconds": 0,
+  "corrections_beyond_half_second": 0,
+  "events_beyond_100ms": 0,
+  "passed": true
+}

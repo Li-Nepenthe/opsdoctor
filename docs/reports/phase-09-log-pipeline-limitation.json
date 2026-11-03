@@ -1,0 +1,77 @@
+{
+  "measured_at_utc": "2026-11-03T04:51:18.7856098Z",
+  "symptom": "Collector拒收部分日志：attributes.http的text/object映射冲突",
+  "sampled_log_lines": 300,
+  "mapper_error_lines": 23,
+  "first_error_excerpt": "2026-11-03T04:50:31.137Z\terror\tinternal/queue_sender.go:62\tExporting failed. Dropping data.\t{\"resource\": {\"service.instance.id\": \"abea465d-1324-43f3-b288-6a3660218c70\", \"service.name\": \"otelcol-contrib\", \"service.version\": \"0.159.0\"}, \"otelcol.component.id\": \"opensearch\", \"otelcol.component.kind\": \"exporter\", \"otelcol.signal\": \"logs\", \"error\": \"not retryable error: Permanent error: {\\\"type\\\":\\\"mapper_parsing_exception\\\",\\\"reason\\\":\\\"Could not dynamically add mapping for field [http.request.method]. Existing mapping for [attributes.http] must be of type object but found [text].\\\",\\\"caused_by\\\":{\\\"type\\\":\\\"\\\",\\\"reason\\\":\\\"\\\",\\\"caused_by\\\":null}}\\nPermanent error: {\\\"type\\\":\\\"mapper_parsing_exception\\\",\\\"reason\\\":\\\"Could not dynamically add mapping for field [http.request.method]. Existing mapping for [attributes.http] must be of type object but found [text].\\\",\\\"caused_by\\\":{\\\"type\\\":\\\"\\\",\\\"reason\\\":\\\"\\\",\\\"caused_by\\\":null}}\\nPermanent error: {\\\"type\\\":\\\"mapper_parsing_exception\\\",\\\"reason\\\":\\\"Could not dynamically add mapping for field [http.request.method]. Existing mapping for [attributes.http] must be of type object but found [text].\\\",\\\"caused_by\\\":{\\\"type\\\":\\\"\\\",\\\"reason\\\":\\\"\\\",\\\"caused_by\\\":null}}\\nPermanent error: {\\\"type\\\":\\\"mapper_parsing_exception\\\",\\\"reason\\\":\\\"Could not dynamically add mapping for field [http.request.method]. Existing mapping for [attributes.http] must be of type object but found [text].\\\",\\\"caused_by\\\":{\\\"type\\\":\\\"\\\",\\\"reason\\\":\\\"\\\",\\\"caused_by\\\":null}}\\nPermanent error: {\\\"type\\\":\\\"mapper_parsing_exception\\\",\\\"reason\\\":\\\"Could not dynamically add mapping for field [http.request.method]. Existing mapping for [attributes.http] must be of type object but found [text].\\\",\\\"caused_by\\\":{\\\"type\\\":\\\"\\\",\\\"reason\\\":\\\"\\\",\\\"caused_by\\\":null}}\\nPermanent error: {\\\"type\\\":\\\"mapper_parsing_exception\\\",\\\"reason\\\":\\\"Could not dynamically add mapping for field [http.request.method]. Existing mapping for [attributes.http] must be of type object but found",
+  "index_services": [
+    {
+      "key": "frontend-proxy",
+      "doc_count": 5363
+    },
+    {
+      "key": "otelcol-contrib",
+      "doc_count": 1881
+    },
+    {
+      "key": "product-catalog",
+      "doc_count": 1717
+    },
+    {
+      "key": "kafka",
+      "doc_count": 1709
+    },
+    {
+      "key": "load-generator",
+      "doc_count": 654
+    },
+    {
+      "key": "recommendation",
+      "doc_count": 552
+    },
+    {
+      "key": "cart",
+      "doc_count": 471
+    },
+    {
+      "key": "currency",
+      "doc_count": 298
+    },
+    {
+      "key": "shipping",
+      "doc_count": 164
+    },
+    {
+      "key": "ad",
+      "doc_count": 121
+    },
+    {
+      "key": "checkout",
+      "doc_count": 75
+    },
+    {
+      "key": "quote",
+      "doc_count": 60
+    },
+    {
+      "key": "accounting",
+      "doc_count": 22
+    },
+    {
+      "key": "payment",
+      "doc_count": 22
+    },
+    {
+      "key": "fraud-detection",
+      "doc_count": 12
+    },
+    {
+      "key": "email",
+      "doc_count": 10
+    },
+    {
+      "key": "frontend",
+      "doc_count": 10
+    }
+  ]
+}

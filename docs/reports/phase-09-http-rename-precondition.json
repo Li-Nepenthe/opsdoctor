@@ -1,0 +1,13 @@
+{
+  "measured_at_utc": "2026-11-03T05:03:46.437515+00:00",
+  "indices": [
+    "otel-logs-2026-11-03"
+  ],
+  "existing_http_scalar_type": "text",
+  "candidate_target_fields": [],
+  "candidate_rule": "replace_all_patterns(attributes, \"key\", \"^http[.]\", \"http_\")",
+  "source_fields": [
+    "attributes.http",
+    "attributes.https"
+  ]
+}

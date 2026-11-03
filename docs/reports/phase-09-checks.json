@@ -1,0 +1,149 @@
+{
+  "started_at_utc": "2026-11-03T04:47:33.0240158Z",
+  "finished_at_utc": "2026-11-03T04:48:55.7035900Z",
+  "commit": "231ee487eab16e16c84f1964caea75deb989f82c",
+  "branch": "phase-09-generalization",
+  "checks": [
+    {
+      "check": "format",
+      "command": "gofmt -l cmd gen internal tools",
+      "started_at_utc": "2026-11-03T04:47:46.8218643Z",
+      "finished_at_utc": "2026-11-03T04:47:46.8889085Z",
+      "elapsed_seconds": 0.061,
+      "exit_code": 0,
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\format.log",
+      "mock_mode": "mock",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "unformatted_files": [],
+      "passed": true
+    },
+    {
+      "check": "vet",
+      "command": "go vet ./...",
+      "started_at_utc": "2026-11-03T04:47:54.1786418Z",
+      "finished_at_utc": "2026-11-03T04:47:55.8851111Z",
+      "elapsed_seconds": 1.7,
+      "exit_code": 0,
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\vet.log",
+      "mock_mode": "mock",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "passed": true
+    },
+    {
+      "check": "staticcheck",
+      "command": "staticcheck ./...",
+      "started_at_utc": "2026-11-03T04:47:52.6077091Z",
+      "finished_at_utc": "2026-11-03T04:47:55.9886525Z",
+      "elapsed_seconds": 3.375,
+      "exit_code": 0,
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\staticcheck.log",
+      "mock_mode": "mock",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "passed": true
+    },
+    {
+      "check": "commentcheck",
+      "command": "go run ./tools/commentcheck ./...",
+      "started_at_utc": "2026-11-03T04:47:47.3973834Z",
+      "finished_at_utc": "2026-11-03T04:47:47.5552211Z",
+      "elapsed_seconds": 0.148,
+      "exit_code": 0,
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\commentcheck.log",
+      "mock_mode": "mock",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "file_count": 441,
+      "passed": true
+    },
+    {
+      "check": "archcheck",
+      "command": "go run ./tools/archcheck ./...",
+      "started_at_utc": "2026-11-03T04:47:44.8413851Z",
+      "finished_at_utc": "2026-11-03T04:47:45.0393204Z",
+      "elapsed_seconds": 0.188,
+      "exit_code": 0,
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\archcheck.log",
+      "mock_mode": "mock",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "passed": true
+    },
+    {
+      "check": "race",
+      "command": "go test -race ./... -count=1 -timeout=180s -json",
+      "started_at_utc": "2026-11-03T04:48:05.4326491Z",
+      "finished_at_utc": "2026-11-03T04:48:33.4501191Z",
+      "elapsed_seconds": 28.001,
+      "exit_code": 0,
+      "log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\race.log",
+      "mock_mode": "mock",
+      "api_keys_present": false,
+      "test_env_count": 0,
+      "passed": true
+    }
+  ],
+  "test_statistics": {
+    "top_level_pass": 291,
+    "including_subtests_pass": 977,
+    "top_level_skip": 47,
+    "including_subtests_skip": 57,
+    "top_level_fail": 0,
+    "including_subtests_fail": 0,
+    "packages_pass": 58,
+    "packages_skip": 16,
+    "packages_fail": 0,
+    "packages_total": 74
+  },
+  "failed_tests": [],
+  "non_json_race_lines": [],
+  "protected_files": [
+    {
+      "path": "docs/learn/phase-00-foundation.md",
+      "before": "dc0d4d5288d5d140e800f7e412680a1f0ab3ad0188026ecc1906ffd730ec306a",
+      "after": "dc0d4d5288d5d140e800f7e412680a1f0ab3ad0188026ecc1906ffd730ec306a",
+      "unchanged": true
+    },
+    {
+      "path": "internal/shop/app/inventoryservice/app.go",
+      "before": "72265f52b1fa90182d0ea44bba08936e913d3963cdf6b7fea20854e164aab1a5",
+      "after": "72265f52b1fa90182d0ea44bba08936e913d3963cdf6b7fea20854e164aab1a5",
+      "unchanged": true
+    }
+  ],
+  "all_checks_passed": true,
+  "protected_files_unchanged": true,
+  "log_digests": [
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\vet.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\staticcheck.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\commentcheck.log",
+      "sha256": "86927a2a02c1d168ed2e83613ebbccd8a661b3a3661f4ffe7ba5f266c839fa39"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\archcheck.log",
+      "sha256": "6f89f945d2ff7e02f43841c8ea4a4aff50e454b163dadf5ca7b270d45e27225c"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\checks\\race.log",
+      "sha256": "4841754dc8602bc77cfa49acaf0da2d1605a227218968eb6ecdb2eb0c409273d"
+    }
+  ],
+  "notes": [
+    "TEST_* and LLM_API_KEY/DEEPSEEK_API_KEY removed in each isolated check process; LLM_PROVIDER=mock; CGO_ENABLED=1.",
+    "No Docker commands or model calls executed; external integration tests were intentionally skipped without TEST_*.",
+    "gofmt only listed files; no repository files were modified."
+  ]
+}

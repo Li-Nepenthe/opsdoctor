@@ -1,0 +1,32 @@
+[
+  {
+    "scenario": "OT01",
+    "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",status_code=\"STATUS_CODE_ERROR\"}[1m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"ad\"}[1m])) > 0",
+    "status": "success",
+    "result": []
+  },
+  {
+    "scenario": "OT02",
+    "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"cart\",status_code=\"STATUS_CODE_ERROR\"}[1m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"cart\"}[1m])) > 0",
+    "status": "success",
+    "result": []
+  },
+  {
+    "scenario": "OT03",
+    "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"payment\",status_code=\"STATUS_CODE_ERROR\"}[1m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"payment\"}[1m])) > 0",
+    "status": "success",
+    "result": []
+  },
+  {
+    "scenario": "OT04",
+    "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"checkout\",status_code=\"STATUS_CODE_ERROR\"}[1m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"checkout\"}[1m])) > 0",
+    "status": "success",
+    "result": []
+  },
+  {
+    "scenario": "OT05",
+    "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"product-catalog\",status_code=\"STATUS_CODE_ERROR\"}[1m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"product-catalog\"}[1m])) > 0",
+    "status": "success",
+    "result": []
+  }
+]

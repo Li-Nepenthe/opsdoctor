@@ -1,0 +1,101 @@
+# 阶段9只覆盖资源命名和入口地址，业务、故障开关及遥测配置沿用上游3.1.0。
+# !override替换整个端口列表，避免上游随机端口同时暴露到所有网卡。
+services:
+  accounting:
+    container_name: opsdoctor-otel-demo-accounting
+    ports: !override []
+  ad:
+    container_name: opsdoctor-otel-demo-ad
+    ports: !override []
+  astronomy-db:
+    container_name: opsdoctor-otel-demo-astronomy-db
+    ports: !override []
+  cart:
+    container_name: opsdoctor-otel-demo-cart
+    ports: !override []
+  checkout:
+    container_name: opsdoctor-otel-demo-checkout
+    ports: !override []
+  currency:
+    container_name: opsdoctor-otel-demo-currency
+    ports: !override []
+  email:
+    container_name: opsdoctor-otel-demo-email
+    ports: !override []
+  flagd:
+    container_name: opsdoctor-otel-demo-flagd
+    ports: !override []
+  flagd-ui:
+    container_name: opsdoctor-otel-demo-flagd-ui
+    ports: !override
+      - '127.0.0.1:18080:4000'
+  fraud-detection:
+    container_name: opsdoctor-otel-demo-fraud-detection
+    ports: !override []
+  frontend:
+    container_name: opsdoctor-otel-demo-frontend
+    ports: !override []
+  frontend-proxy:
+    container_name: opsdoctor-otel-demo-frontend-proxy
+    ports: !override
+      - '127.0.0.1:18000:8080'
+  grafana:
+    container_name: opsdoctor-otel-demo-grafana
+    ports: !override
+      - '127.0.0.1:13000:3000'
+  image-provider:
+    container_name: opsdoctor-otel-demo-image-provider
+    ports: !override []
+  jaeger:
+    container_name: opsdoctor-otel-demo-jaeger
+    ports: !override
+      - '127.0.0.1:19686:16686'
+  kafka:
+    container_name: opsdoctor-otel-demo-kafka
+    ports: !override []
+  load-generator:
+    container_name: opsdoctor-otel-demo-load-generator
+    ports: !override
+      - '127.0.0.1:18089:8089'
+  opamp-server:
+    container_name: opsdoctor-otel-demo-opamp-server
+    ports: !override []
+  opensearch:
+    container_name: opsdoctor-otel-demo-opensearch
+    ports: !override
+      - '127.0.0.1:19200:9200'
+  otel-collector:
+    container_name: opsdoctor-otel-demo-otel-collector
+    ports: !override []
+  payment:
+    container_name: opsdoctor-otel-demo-payment
+    ports: !override []
+    # Node健康探测也会加载镜像内的自动遥测模块；本机原命令实测8.439秒。
+    # 只为同一条TCP探测留出20秒，不改业务代码、重试次数或故障条件。
+    healthcheck:
+      timeout: 20s
+  product-catalog:
+    container_name: opsdoctor-otel-demo-product-catalog
+    ports: !override []
+  prometheus:
+    container_name: opsdoctor-otel-demo-prometheus
+    ports: !override
+      - '127.0.0.1:19090:9090'
+  quote:
+    container_name: opsdoctor-otel-demo-quote
+    ports: !override []
+  recommendation:
+    container_name: opsdoctor-otel-demo-recommendation
+    ports: !override []
+  shipping:
+    container_name: opsdoctor-otel-demo-shipping
+    ports: !override []
+  telemetry-docs:
+    container_name: opsdoctor-otel-demo-telemetry-docs
+    ports: !override []
+  valkey-cart:
+    container_name: opsdoctor-otel-demo-valkey-cart
+    ports: !override []
+networks:
+  default:
+    name: opsdoctor-otel-demo

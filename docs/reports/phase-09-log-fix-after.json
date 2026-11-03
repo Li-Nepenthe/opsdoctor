@@ -1,0 +1,344 @@
+{
+  "source_log": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\after-20261103T050446894786114Z-minimum10m-collector.log",
+  "sha256": "aefd7cae491edff383abdac553c29499477cf6d03fdf6ac26a7d2264f442c806",
+  "bytes": 609311,
+  "lines": 1733,
+  "first_visible_utc": "2026-11-03T05:04:47.216127218Z",
+  "last_visible_utc": "2026-11-03T05:14:42.517901176Z",
+  "final_drop_event_count": 0,
+  "dropped_items_reported_sum": 0,
+  "logs_opensearch_final_drop_events": 0,
+  "logs_opensearch_dropped_items_reported_sum": 0,
+  "by_signal_exporter": [],
+  "mapper_error_log_lines": [],
+  "retry_events": [
+    {
+      "line": 56,
+      "time_utc": "2026-11-03T05:04:52.646488191Z",
+      "message": "Exporting failed. Will retry the request after interval.",
+      "exporter": "otlp_grpc/jaeger",
+      "signal": "traces",
+      "dropped_items": null,
+      "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+    },
+    {
+      "line": 57,
+      "time_utc": "2026-11-03T05:04:52.868131751Z",
+      "message": "Exporting failed. Will retry the request after interval.",
+      "exporter": "otlp_grpc/jaeger",
+      "signal": "traces",
+      "dropped_items": null,
+      "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+    },
+    {
+      "line": 58,
+      "time_utc": "2026-11-03T05:04:53.444168448Z",
+      "message": "Exporting failed. Will retry the request after interval.",
+      "exporter": "otlp_grpc/jaeger",
+      "signal": "traces",
+      "dropped_items": null,
+      "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+    },
+    {
+      "line": 59,
+      "time_utc": "2026-11-03T05:04:54.059103744Z",
+      "message": "Exporting failed. Will retry the request after interval.",
+      "exporter": "otlp_grpc/jaeger",
+      "signal": "traces",
+      "dropped_items": null,
+      "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+    },
+    {
+      "line": 60,
+      "time_utc": "2026-11-03T05:04:54.525604221Z",
+      "message": "Exporting failed. Will retry the request after interval.",
+      "exporter": "otlp_grpc/jaeger",
+      "signal": "traces",
+      "dropped_items": null,
+      "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+    },
+    {
+      "line": 61,
+      "time_utc": "2026-11-03T05:04:54.801626648Z",
+      "message": "Exporting failed. Will retry the request after interval.",
+      "exporter": "otlp_grpc/jaeger",
+      "signal": "traces",
+      "dropped_items": null,
+      "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+    },
+    {
+      "line": 62,
+      "time_utc": "2026-11-03T05:04:55.297809013Z",
+      "message": "Exporting failed. Will retry the request after interval.",
+      "exporter": "otlp_grpc/jaeger",
+      "signal": "traces",
+      "dropped_items": null,
+      "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+    },
+    {
+      "line": 63,
+      "time_utc": "2026-11-03T05:04:56.050781774Z",
+      "message": "Exporting failed. Will retry the request after interval.",
+      "exporter": "otlp_grpc/jaeger",
+      "signal": "traces",
+      "dropped_items": null,
+      "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+    },
+    {
+      "line": 64,
+      "time_utc": "2026-11-03T05:04:56.583872328Z",
+      "message": "Exporting failed. Will retry the request after interval.",
+      "exporter": "otlp_grpc/jaeger",
+      "signal": "traces",
+      "dropped_items": null,
+      "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+    },
+    {
+      "line": 65,
+      "time_utc": "2026-11-03T05:04:56.810017051Z",
+      "message": "Exporting failed. Will retry the request after interval.",
+      "exporter": "otlp_grpc/jaeger",
+      "signal": "traces",
+      "dropped_items": null,
+      "error": "rpc error: code = DeadlineExceeded desc = context deadline exceeded"
+    }
+  ],
+  "final_drop_events": [],
+  "drop_event_parse_failures": [],
+  "count_semantics": "Exact sum of dropped_items reported by FINAL Exporting failed. Dropping data. events, kept separately from retries. On partial OpenSearch bulk failure this is affected request size, not a proven count of unique lost documents.",
+  "window_start_inclusive_utc": "2026-11-03T05:04:46.894786114Z",
+  "window_end_exclusive_utc": "2026-11-03T05:14:47.000000000Z",
+  "exact_window_seconds": "600.105213886",
+  "snapshot_generated_at_utc": "2026-11-03T05:15:01.145903Z",
+  "capture_command": [
+    "docker",
+    "logs",
+    "--timestamps",
+    "--since",
+    "2026-11-03T05:04:46.894786114Z",
+    "--until",
+    "2026-11-03T05:14:47.000000000Z",
+    "opsdoctor-otel-demo-otel-collector"
+  ],
+  "service_counts": {
+    "accounting": {
+      "count": 12,
+      "latest_observed_utc": "2026-11-03T05:14:22.916Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "ad": {
+      "count": 172,
+      "latest_observed_utc": "2026-11-03T05:14:46.723Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "cart": {
+      "count": 741,
+      "latest_observed_utc": "2026-11-03T05:14:44.177Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "checkout": {
+      "count": 109,
+      "latest_observed_utc": "2026-11-03T05:14:20.659Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "currency": {
+      "count": 573,
+      "latest_observed_utc": "2026-11-03T05:14:46.951Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "email": {
+      "count": 9,
+      "latest_observed_utc": "2026-11-03T05:14:19.935Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "fraud-detection": {
+      "count": 12,
+      "latest_observed_utc": "2026-11-03T05:14:19.935Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "frontend": {
+      "count": 1905,
+      "latest_observed_utc": "2026-11-03T05:14:46.951Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "frontend-proxy": {
+      "count": 8963,
+      "latest_observed_utc": "2026-11-03T05:14:46.951Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "image-provider": {
+      "count": 0,
+      "latest_observed_utc": null,
+      "expected_otlp_logs": false,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "load-generator": {
+      "count": 966,
+      "latest_observed_utc": "2026-11-03T05:14:45.047Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "payment": {
+      "count": 34,
+      "latest_observed_utc": "2026-11-03T05:14:20.660Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "product-catalog": {
+      "count": 2948,
+      "latest_observed_utc": "2026-11-03T05:14:46.310Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "quote": {
+      "count": 90,
+      "latest_observed_utc": "2026-11-03T05:14:46.951Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "recommendation": {
+      "count": 974,
+      "latest_observed_utc": "2026-11-03T05:14:46.950Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "shipping": {
+      "count": 194,
+      "latest_observed_utc": "2026-11-03T05:14:35.209Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "kafka": {
+      "count": 465,
+      "latest_observed_utc": "2026-11-03T05:14:45.876Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+    },
+    "otelcol-contrib": {
+      "count": 1709,
+      "latest_observed_utc": "2026-11-03T05:14:42.719Z",
+      "expected_otlp_logs": true,
+      "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/otel-collector/otelcol-config.yml#L274"
+    }
+  },
+  "expected_otlp_producers": 17,
+  "covered_otlp_producers": 17,
+  "missing_expected_otlp_producers": [],
+  "excluded_candidate_image_provider": {
+    "count": 0,
+    "latest_observed_utc": null,
+    "expected_otlp_logs": false,
+    "source_url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/test/telemetry/services.py"
+  },
+  "excluded_unconfigured_infrastructure": [
+    "prometheus",
+    "jaeger",
+    "grafana"
+  ],
+  "email_controlled_validation_records": 1,
+  "email_controlled_validation_note": "A single post-restart email record was produced by the parent agent controlled local /send_order_confirmation test (order_id P9-EMAIL-LOG-CHECK), not by a proven successful checkout.",
+  "indices": [
+    {
+      "index": "otel-logs-2026-11-03",
+      "uuid": "4Vc81FNnQEOVppU8gd17sw",
+      "docs.count": "45626"
+    }
+  ],
+  "index_uuid_unchanged": true,
+  "five_field_mapping_comparison": {
+    "resource.service.name.keyword": {
+      "before": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "after": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "exactly_equal": true
+    },
+    "severity.text.keyword": {
+      "before": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "after": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "exactly_equal": true
+    },
+    "body": {
+      "before": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "after": {
+        "type": "text",
+        "fields": {
+          "keyword": {
+            "type": "keyword",
+            "ignore_above": 256
+          }
+        }
+      },
+      "exactly_equal": true
+    },
+    "observedTimestamp": {
+      "before": {
+        "type": "date"
+      },
+      "after": {
+        "type": "date"
+      },
+      "exactly_equal": true
+    },
+    "traceId.keyword": {
+      "before": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "after": {
+        "type": "keyword",
+        "ignore_above": 256
+      },
+      "exactly_equal": true
+    }
+  },
+  "all_five_fields_exactly_equal": true,
+  "new_http_request_method_mapping": {
+    "type": "text",
+    "fields": {
+      "keyword": {
+        "type": "keyword",
+        "ignore_above": 256
+      }
+    }
+  },
+  "new_http_request_method_records_in_window": 1884,
+  "total_indexed_records_in_window": {
+    "value": 19876,
+    "relation": "eq"
+  },
+  "unlisted_actual_log_services": {},
+  "limitations": [
+    "0 final drop events means no final loss reported by Collector in this retained window, not a proof of zero silent loss upstream.",
+    "Producer coverage proves indexed post-restart records, not end-to-end completeness or healthy checkout/shipping.",
+    "image-provider logs=False in the fixed official matrix; its measured zero remains visible and is excluded from the OTLP producer denominator.",
+    "One identified email event is an explicit controlled local validation and is not claimed as normal checkout success."
+  ]
+}

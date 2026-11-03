@@ -13,6 +13,7 @@ import (
 	"context"
 	"fmt"
 	"regexp"
+	"strings"
 	"time"
 )
 
@@ -30,7 +31,7 @@ type EvalTrial struct {
 // EvalTrial 对相同位置只创建一次，返回原值而不是调用者猜测的状态。
 func (store *Store) EvalTrial(ctx context.Context, runID, scenario string, iteration int) (EvalTrial, error) {
 	value := EvalTrial{RunID: runID, Scenario: scenario, Iteration: iteration}
-	if !regexp.MustCompile(`^S(0[1-9]|1[0-3])$`).MatchString(scenario) || iteration < 1 || iteration > 3 {
+	if !validEvalTrial(runID, scenario, iteration) {
 		return value, fmt.Errorf("实验轮次不合法")
 	}
 	_, err := store.database.ExecContext(ctx, "INSERT INTO eval_trials(run_id,scenario,iteration) VALUES(?,?,?) ON DUPLICATE KEY UPDATE run_id=run_id", runID, scenario, iteration)
@@ -39,6 +40,17 @@ func (store *Store) EvalTrial(ctx context.Context, runID, scenario string, itera
 	}
 	err = store.database.QueryRowContext(ctx, "SELECT state,fault_started_at,restored_at,GREATEST(0,300-TIMESTAMPDIFF(SECOND,COALESCE(restored_at,UTC_TIMESTAMP(6)),UTC_TIMESTAMP(6))) FROM eval_trials WHERE run_id=? AND scenario=? AND iteration=?", runID, scenario, iteration).Scan(&value.State, &value.FaultStartedAt, &value.RestoredAt, &value.CooldownSeconds)
 	return value, err
+}
+
+// validEvalTrial 保留原 shop 编号；只有阶段 9 独立批次才允许外部系统的 OT 编号。
+func validEvalTrial(runID, scenario string, iteration int) bool {
+	if iteration < 1 || iteration > 3 {
+		return false
+	}
+	if regexp.MustCompile(`^S(0[1-9]|1[0-3])$`).MatchString(scenario) {
+		return true
+	}
+	return strings.HasPrefix(runID, "phase09-") && regexp.MustCompile(`^OT0[1-8]$`).MatchString(scenario)
 }
 
 // trialTransition 只允许相邻进度。失败不能直接跳到 done，把漏跑伪装成完成。

@@ -1,0 +1,9 @@
+{
+  "exit_code": 0,
+  "stdout_stderr_bytes": 0,
+  "command": "docker exec opsdoctor-otel-demo-otel-collector /otelcol-contrib validate --config=/etc/otelcol-config.yml --config=/etc/otelcol-config-full.yml --config=/etc/otelcol-config-observability.yml --config=/etc/otelcol-config-extras.yml --feature-gates=service.profilesSupport",
+  "collector_version": "0.159.0",
+  "config_sha256": "AA7C47D36CC26ECC6A28F315E5835F7A22FE10309C65E7928ED030B9770699E9",
+  "collector_started_utc": "2026-11-03T05:04:46.894786114Z",
+  "demo_commit": "dedc0178918e260823323b8d95005a8cb924b007"
+}

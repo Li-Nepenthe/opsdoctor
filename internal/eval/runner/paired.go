@@ -384,6 +384,9 @@ func executeSlot(ctx context.Context, options command, configuration pairedConfi
 	if strings.Contains(savedSummary.Error, string(llm.ErrEvaluationBudget)) {
 		return llm.ErrEvaluationBudget
 	}
+	if err := checkGeneralizationSummary(ctx, savedSummary, slot.Key); err != nil {
+		return err
+	}
 	if err := grader.gradeSlot(ctx, slot, scenario); err != nil {
 		return err
 	}

@@ -1,0 +1,21 @@
+# 固定实现：https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/cart/src/services/CartService.cs
+# 失败存储地址：https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/cart/src/Program.cs
+id: OT02
+title: 购物车清空操作失败
+source_url: https://opentelemetry.io/docs/demo/feature-flags/
+flag: cartFailure
+variant: "100%"
+symptoms: 本次窗口内购物车相关调用出现错误。请定位故障组件、机制和影响范围，并给出可核对的证据。
+symptom:
+  promql: 'sum(increase(traces_span_metrics_calls_total{service_name="cart",status_code="STATUS_CODE_ERROR"}[2m])) > 0'
+  within: 3m
+healthy_promql: '(sum(increase(traces_span_metrics_calls_total{service_name="cart",status_code="STATUS_CODE_ERROR"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name="cart"}[2m])) > 0'
+ground_truth:
+  component: cart
+  mechanism: empty_cart_uses_unreachable_store
+  explanation: cart 的 EmptyCart 被路由到使用 badhost:1234 的另一份 ValkeyCartStore，因连接不可达而失败；AddItem 和 GetCart 仍使用正常存储。checkout 忽略清空购物车的返回错误，因此不要求结账 HTTP 必然失败。
+evidence_milestones:
+  - 指标或调用链显示 cart 在本次窗口出现错误
+  - 调用链把异常缩小到 EmptyCart，而不是把所有购物车操作判为不可用
+  - 日志或错误事件显示购物车存储连接失败或无法访问 cart storage
+  - 对照同窗口的 AddItem 或 GetCart，发现正常存储访问仍能成功

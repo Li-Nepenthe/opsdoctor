@@ -65,7 +65,7 @@ func missingSources(config Config) []string {
 		name    string
 		present bool
 	}{
-		{"指标", config.Prometheus != ""}, {"调用链", config.Jaeger != ""}, {"日志", config.Loki != ""},
+		{"指标", config.Prometheus != ""}, {"调用链", config.Jaeger != ""}, {"日志", config.Loki != "" || config.OpenSearch != nil},
 		{"MySQL 检查", config.MySQLDSNEnv != ""}, {"Redis 检查", config.RedisURLEnv != ""}, {"goroutine 堆栈", len(config.Pprof) > 0},
 	} {
 		if !item.present {

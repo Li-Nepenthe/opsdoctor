@@ -1,0 +1,471 @@
+{
+  "title": "Collector attributes.http映射冲突：修复前只读量化（初始快照）",
+  "generated_at_utc": "2026-11-03T05:05:10.962319+00:00",
+  "status": "before_fix_readonly_snapshot_no_fault_injection_no_model_calls",
+  "capture": {
+    "captured_start_utc": "2026-11-03T05:00:10.209358+00:00",
+    "captured_end_utc": "2026-11-03T05:00:10.300473+00:00",
+    "command": [
+      "docker",
+      "logs",
+      "--timestamps",
+      "opsdoctor-otel-demo-otel-collector"
+    ],
+    "exit_code": 0,
+    "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\collector-before-fix.log",
+    "bytes": 1435185,
+    "sha256": "1e4d5f5ceea4e31af02fe10246d491c786ed70ecdf9bf1b89162c62d4de737da",
+    "stdout_stderr": "raw binary merged via stderr=STDOUT; no text decoding or PowerShell pipeline used"
+  },
+  "visible_window": {
+    "first_log_utc": "2026-11-03T04:40:10.080405485Z",
+    "last_log_utc": "2026-11-03T05:00:09.003373529Z",
+    "line_count": 3683,
+    "explicit_process_instances": [
+      {
+        "instance_id": "a89262d3-cd93-4602-b1aa-086142682332",
+        "first_visible_utc": "2026-11-03T04:40:10.080405485Z",
+        "last_visible_utc": "2026-11-03T04:44:33.241804680Z",
+        "ready_at_utc": "2026-11-03T04:40:10.388449280Z",
+        "shutdown_at_utc": [
+          "2026-11-03T04:44:33.241789179Z"
+        ]
+      },
+      {
+        "instance_id": "abea465d-1324-43f3-b288-6a3660218c70",
+        "first_visible_utc": "2026-11-03T04:44:59.117265192Z",
+        "last_visible_utc": "2026-11-03T04:51:33.217818426Z",
+        "ready_at_utc": "2026-11-03T04:44:59.366442299Z",
+        "shutdown_at_utc": [
+          "2026-11-03T04:51:33.217800324Z"
+        ]
+      },
+      {
+        "instance_id": "05d40613-c598-4add-9476-d263ae60b769",
+        "first_visible_utc": "2026-11-03T04:58:11.898592943Z",
+        "last_visible_utc": "2026-11-03T05:00:09.003289522Z",
+        "ready_at_utc": "2026-11-03T04:58:12.157347828Z",
+        "shutdown_at_utc": []
+      }
+    ],
+    "log_rotation": {
+      "Type": "json-file",
+      "Config": {
+        "max-file": "2",
+        "max-size": "5m"
+      }
+    },
+    "container_created": "2026-11-03T04:39:55.697344514Z",
+    "note": "docker logs只返回该容器当前保留日志，配置为json-file每份5m、最多2份。快照从首次可见启动日志开始，原样输出约1.44MB，未见从中途截断的迹象；不宣称能恢复已被轮转或已删除容器的历史。无instance_id的辅助日志没有算成新进程。"
+  },
+  "counts": {
+    "all_exporting_failed_messages": 220,
+    "final_drop_events": 197,
+    "by_signal_exporter_category": [
+      {
+        "signal": "metrics",
+        "exporter": "otlp_http/prometheus",
+        "category": "prometheus_otlp_http_500",
+        "drop_events": 4,
+        "dropped_items_reported_sum": 80,
+        "mapper_error_mentions": 0,
+        "first_drop_utc": "2026-11-03T04:41:10.615324115Z",
+        "last_drop_utc": "2026-11-03T04:44:10.606020798Z"
+      },
+      {
+        "signal": "logs",
+        "exporter": "opensearch",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 193,
+        "dropped_items_reported_sum": 4006,
+        "mapper_error_mentions": 1438,
+        "first_drop_utc": "2026-11-03T04:45:38.863759785Z",
+        "last_drop_utc": "2026-11-03T05:00:09.003289522Z"
+      }
+    ],
+    "by_process_signal_category": [
+      {
+        "instance_id": "a89262d3-cd93-4602-b1aa-086142682332",
+        "signal": "metrics",
+        "category": "prometheus_otlp_http_500",
+        "drop_events": 4,
+        "dropped_items_reported_sum": 80,
+        "mapper_error_mentions": 0,
+        "first_drop_utc": "2026-11-03T04:41:10.615324115Z",
+        "last_drop_utc": "2026-11-03T04:44:10.606020798Z"
+      },
+      {
+        "instance_id": "abea465d-1324-43f3-b288-6a3660218c70",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 157,
+        "dropped_items_reported_sum": 3298,
+        "mapper_error_mentions": 1169,
+        "first_drop_utc": "2026-11-03T04:45:38.863759785Z",
+        "last_drop_utc": "2026-11-03T04:51:23.228524964Z"
+      },
+      {
+        "instance_id": "05d40613-c598-4add-9476-d263ae60b769",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 36,
+        "dropped_items_reported_sum": 708,
+        "mapper_error_mentions": 269,
+        "first_drop_utc": "2026-11-03T04:58:51.938926726Z",
+        "last_drop_utc": "2026-11-03T05:00:09.003289522Z"
+      }
+    ],
+    "by_minute_signal_category": [
+      {
+        "minute_utc": "2026-11-03T04:41Z",
+        "signal": "metrics",
+        "category": "prometheus_otlp_http_500",
+        "drop_events": 1,
+        "dropped_items_reported_sum": 20,
+        "mapper_error_mentions": 0,
+        "first_drop_utc": "2026-11-03T04:41:10.615324115Z",
+        "last_drop_utc": "2026-11-03T04:41:10.615324115Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:42Z",
+        "signal": "metrics",
+        "category": "prometheus_otlp_http_500",
+        "drop_events": 1,
+        "dropped_items_reported_sum": 20,
+        "mapper_error_mentions": 0,
+        "first_drop_utc": "2026-11-03T04:42:10.610721447Z",
+        "last_drop_utc": "2026-11-03T04:42:10.610721447Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:43Z",
+        "signal": "metrics",
+        "category": "prometheus_otlp_http_500",
+        "drop_events": 1,
+        "dropped_items_reported_sum": 20,
+        "mapper_error_mentions": 0,
+        "first_drop_utc": "2026-11-03T04:43:10.607981088Z",
+        "last_drop_utc": "2026-11-03T04:43:10.607981088Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:44Z",
+        "signal": "metrics",
+        "category": "prometheus_otlp_http_500",
+        "drop_events": 1,
+        "dropped_items_reported_sum": 20,
+        "mapper_error_mentions": 0,
+        "first_drop_utc": "2026-11-03T04:44:10.606020798Z",
+        "last_drop_utc": "2026-11-03T04:44:10.606020798Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:45Z",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 12,
+        "dropped_items_reported_sum": 236,
+        "mapper_error_mentions": 72,
+        "first_drop_utc": "2026-11-03T04:45:38.863759785Z",
+        "last_drop_utc": "2026-11-03T04:45:59.147140051Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:46Z",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 26,
+        "dropped_items_reported_sum": 446,
+        "mapper_error_mentions": 194,
+        "first_drop_utc": "2026-11-03T04:46:01.955887780Z",
+        "last_drop_utc": "2026-11-03T04:46:59.693174499Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:47Z",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 27,
+        "dropped_items_reported_sum": 557,
+        "mapper_error_mentions": 212,
+        "first_drop_utc": "2026-11-03T04:47:01.897903361Z",
+        "last_drop_utc": "2026-11-03T04:47:59.424317381Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:48Z",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 27,
+        "dropped_items_reported_sum": 577,
+        "mapper_error_mentions": 200,
+        "first_drop_utc": "2026-11-03T04:48:03.423858296Z",
+        "last_drop_utc": "2026-11-03T04:48:59.335186537Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:49Z",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 28,
+        "dropped_items_reported_sum": 653,
+        "mapper_error_mentions": 213,
+        "first_drop_utc": "2026-11-03T04:49:00.977607782Z",
+        "last_drop_utc": "2026-11-03T04:49:59.104076046Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:50Z",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 28,
+        "dropped_items_reported_sum": 631,
+        "mapper_error_mentions": 203,
+        "first_drop_utc": "2026-11-03T04:50:01.852931656Z",
+        "last_drop_utc": "2026-11-03T04:50:59.352500811Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:51Z",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 9,
+        "dropped_items_reported_sum": 198,
+        "mapper_error_mentions": 75,
+        "first_drop_utc": "2026-11-03T04:51:02.510333321Z",
+        "last_drop_utc": "2026-11-03T04:51:23.228524964Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:58Z",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 4,
+        "dropped_items_reported_sum": 76,
+        "mapper_error_mentions": 31,
+        "first_drop_utc": "2026-11-03T04:58:51.938926726Z",
+        "last_drop_utc": "2026-11-03T04:58:59.938725207Z"
+      },
+      {
+        "minute_utc": "2026-11-03T04:59Z",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 28,
+        "dropped_items_reported_sum": 497,
+        "mapper_error_mentions": 200,
+        "first_drop_utc": "2026-11-03T04:59:01.965341136Z",
+        "last_drop_utc": "2026-11-03T04:59:59.662673996Z"
+      },
+      {
+        "minute_utc": "2026-11-03T05:00Z",
+        "signal": "logs",
+        "category": "attributes.http_text_vs_dotted_object",
+        "drop_events": 4,
+        "dropped_items_reported_sum": 135,
+        "mapper_error_mentions": 38,
+        "first_drop_utc": "2026-11-03T05:00:00.700673744Z",
+        "last_drop_utc": "2026-11-03T05:00:09.003289522Z"
+      }
+    ],
+    "retry_messages": 23,
+    "retry_messages_by_signal_exporter": [
+      {
+        "signal": "traces",
+        "exporter": "otlp_grpc/jaeger",
+        "messages": 16
+      },
+      {
+        "signal": "metrics",
+        "exporter": "otlp_http/prometheus",
+        "messages": 7
+      }
+    ],
+    "drop_event_parse_failures": []
+  },
+  "counting_semantics": {
+    "exact_reported_sum": "193个OpenSearch最终失败请求的dropped_items报告和为4006；4个Prometheus HTTP500最终失败请求另报80个metrics条目。信号不同，不把二者相加称为日志丢失。",
+    "partial_bulk_success": "Collector queue_sender在发送前保存整个req.ItemsCount，OpenSearch exporter逐条提交Bulk并在完成后汇总错误；单个Bulk可部分成功。因此4006是失败请求涉及条目数的准确报告和，不是已证明唯一丢失4006条日志。",
+    "per_item_errors": "193条OpenSearch错误中包含1438次mapper_parsing_exception单条失败原因，全部指http.request.method与attributes.http=text冲突。该计数与批次条目数分列，没有业务日志ID，不能宣称全局去重后的丢失条数。",
+    "retry_separation": "23条Will retry（Jaeger traces16、Prometheus metrics7）不计入最终丢弃事件或唯一丢失数；本次不使用send_failed累计指标作为唯一丢弃计数。",
+    "unknown": "混合请求没有逐条服务ID，无法按ad/cart/payment/checkout/product-catalog分摊4006，也无法算日志丢失率；故障尚未注入，无法量化5场景准确率或错误日志损失。"
+  },
+  "producer_attribution": {
+    "scalar_http": {
+      "service": "cart",
+      "attribute": "attributes.http",
+      "value": "8080",
+      "indexed_document_count": 3,
+      "mapping_type": "text",
+      "message_template": "Overriding HTTP_PORTS '{http}' and HTTPS_PORTS '{https}'. Binding to values defined by URLS instead '{urls}'.",
+      "observed_timestamps": [
+        "2026-11-03T04:40:17.205305288Z",
+        "2026-11-03T04:45:06.529269095Z",
+        "2026-11-03T04:58:19.012778531Z"
+      ],
+      "current_container_console_warning_lines_in_window": 2,
+      "note": "OpenSearch保留3条；当前cart容器是在04:44:43创建，现有Docker日志只看到后两条，不能把原容器日志缺失解释为无此前事件。"
+    },
+    "dotted_http": {
+      "service": "frontend",
+      "attribute": "http.request.method",
+      "producer_console_api_records_in_window": 1438,
+      "method_counts": {
+        "GET": 1327,
+        "POST": 111
+      },
+      "response_status_counts": {
+        "200": 1438
+      },
+      "messages": {
+        "API request completed": 1438
+      },
+      "retained_frontend_api_completed_documents_in_same_window": 0,
+      "retained_frontend_all_documents_in_same_window": 10,
+      "source": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/frontend/utils/telemetry/InstrumentationMiddleware.ts",
+      "attribution_limit": "源码与实际frontend控制台确认该服务产生点属性，且控制台记录数与单条mapper错误数吻合；Collector错误没有业务日志ID/服务字段，不能逐条关联或把4006批次报告条目按服务分摊。"
+    }
+  },
+  "retained_logs_fixed_window": {
+    "query_evidence": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\opensearch-retained-collector-window.json",
+    "response_timed_out": false,
+    "shards": {
+      "total": 1,
+      "successful": 1,
+      "skipped": 0,
+      "failed": 0
+    },
+    "total_visible_documents": {
+      "value": 17075,
+      "relation": "eq"
+    },
+    "by_service": {
+      "frontend-proxy": 6716,
+      "kafka": 2808,
+      "otelcol-contrib": 2312,
+      "product-catalog": 2113,
+      "load-generator": 870,
+      "recommendation": 681,
+      "cart": 593,
+      "currency": 366,
+      "shipping": 215,
+      "ad": 156,
+      "checkout": 88,
+      "quote": 73,
+      "accounting": 28,
+      "payment": 23,
+      "fraud-detection": 13,
+      "email": 10,
+      "frontend": 10
+    },
+    "note": "这是已有索引当前可见、观测时间落在快照窗口内的留存样本；不是采集总量或丢失率分母。"
+  },
+  "scenario_evidence_impact": [
+    {
+      "scenario": "OT01",
+      "component": "ad",
+      "retained_backend_log_documents_in_window": {
+        "ad": 156
+      },
+      "impact": "广告的指标/调用链与后端日志仍是取证来源；frontend API完成/失败这一路日志存在已证实缺口，可能削弱上游影响范围的交叉验证。尚未注入adFailure，无法量化该场景的错误日志损失或准确率影响。"
+    },
+    {
+      "scenario": "OT02",
+      "component": "cart",
+      "retained_backend_log_documents_in_window": {
+        "cart": 593
+      },
+      "impact": "cart启动日志的http占位字段形成冲突的text映射，但不能据此称cart日志全部丢失；已有cart日志留存。EmptyCart存储连接错误是否保留需修复后真实故障验证，混合batch报告无法分摊到cart。"
+    },
+    {
+      "scenario": "OT03",
+      "component": "payment",
+      "retained_backend_log_documents_in_window": {
+        "payment": 23,
+        "checkout": 88
+      },
+      "impact": "Payment request failed/Invalid token里程碑可从payment日志或span错误事件取得；当前仅证实健康期有payment/checkout日志，未验证故障时错误日志。frontend带http.request.method的API日志缺失会削弱结账HTTP症状的日志证据。"
+    },
+    {
+      "scenario": "OT04",
+      "component": "checkout->payment",
+      "retained_backend_log_documents_in_window": {
+        "checkout": 88,
+        "payment": 23
+      },
+      "impact": "badAddress/UNAVAILABLE需要checkout日志或调用链证明；未出现payment日志本身不能证明请求没有到达，尤其在已有日志缺口时。当前不能判断该场景里程碑损失了多少。"
+    },
+    {
+      "scenario": "OT05",
+      "component": "product-catalog",
+      "retained_backend_log_documents_in_window": {
+        "product-catalog": 2113
+      },
+      "impact": "商品服务日志已有留存，仍需用失败GetProduct和其他商品成功请求的调用链对照；frontend商品API的http属性日志已存在系统性缺失，不能凭日志空结果断言没有商品请求。尚未注入故障，无法量化场景失败日志损失。"
+    }
+  ],
+  "source_evidence": [
+    {
+      "url": "https://github.com/open-telemetry/opentelemetry-collector/blob/v0.159.0/exporter/exporterhelper/internal/queue_sender.go",
+      "local": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\upstream-queue_sender.go",
+      "meaning": "发送前计请求条目数，发送错误时输出dropped_items。"
+    },
+    {
+      "url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/exporter/opensearchexporter/log_bulk_indexer.go",
+      "local": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\upstream-log_bulk_indexer.go",
+      "meaning": "每条日志设置Bulk OnFailure；永久错误汇总，成功条目可已入索引。"
+    },
+    {
+      "url": "https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/v0.159.0/exporter/opensearchexporter/sso_log_exporter.go",
+      "local": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\upstream-sso_log_exporter.go",
+      "meaning": "提交全部日志、关闭Bulk后返回joinedError。"
+    },
+    {
+      "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/frontend/utils/telemetry/InstrumentationMiddleware.ts",
+      "meaning": "API完成与失败日志附http.request.method/http.response.status_code。"
+    },
+    {
+      "url": "https://github.com/open-telemetry/opentelemetry-demo/blob/3.1.0/src/cart/src/Program.cs",
+      "meaning": "cart把ILogger接到OpenTelemetry OTLP exporter，同时Console。"
+    },
+    {
+      "url": "https://github.com/dotnet/aspnetcore/blob/v10.0.12/src/Hosting/Hosting/src/Internal/HostingLoggerExtensions.cs",
+      "meaning": "相同HTTP_PORTS日志模板包含http/https/urls占位字段；运行中实际.NET精确补丁版本未核验，不把该tag说成实际运行时版本。"
+    }
+  ],
+  "evidence_files": [
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\collector-before-fix.log",
+      "sha256": "1e4d5f5ceea4e31af02fe10246d491c786ed70ecdf9bf1b89162c62d4de737da"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\collector-before-fix-capture.json",
+      "sha256": "073c8ea0400fccd17c80df3cd0e84e0b4a8eec569e2882f368f6312c4e8e13f3"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\collector-inspect-public.json",
+      "sha256": "30fec87cbfa7a62a65d07497d08911c8faa1ab383f101efb232e16edc810ef87"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\collector-drop-events-before-fix.json",
+      "sha256": "849f5da1b41f6ddd631b6ee59f8a492673aad93c5145257c7446156cf9599d6c"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\frontend-before-fix.log",
+      "sha256": "fe41c3760f108e0d841248e1602c1454d484c2d52bcff1c0a779a66529873dd1"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\frontend-producer-evidence-before-fix.json",
+      "sha256": "7220eeff87397d13cafcd859920441173278cc6902625416799f718ba8a305bc"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\cart-before-fix.log",
+      "sha256": "df9a38258c274b6a423aa75adfcfb6f5e6990f728b190dc1947dceff36ef17d4"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\cart-producer-evidence-before-fix.json",
+      "sha256": "5c6991e564376f921ac47993244efdb7ed88981dcaa9cc8ac9cc6a63b4088c94"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\opensearch-mapping-before-fix.json",
+      "sha256": "2baaa3ec7495bdefac6dda847ad2a9a9129e7fe0a30b507a89a32a3f864ca35e"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\opensearch-http-scalar-samples-before-fix.json",
+      "sha256": "b74f7d5a6c40ddc3b4fcfc0bf4cee3d5614b28fa6d4a7b1becb52743f4b01fd0"
+    },
+    {
+      "path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\opensearch-retained-collector-window.json",
+      "sha256": "13f95576d6377beff4374345c78d5d42aeae9bee0a897d41588f96f6f4e41be8"
+    }
+  ]
+}

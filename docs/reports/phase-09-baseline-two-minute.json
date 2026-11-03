@@ -1,0 +1,72 @@
+[
+  {
+    "scenario": "OT01",
+    "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"ad\"}[2m])) > 0",
+    "status": "success",
+    "result": [
+      {
+        "metric": {},
+        "value": [
+          1793681416.724,
+          "0"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario": "OT02",
+    "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"cart\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"cart\"}[2m])) > 0",
+    "status": "success",
+    "result": [
+      {
+        "metric": {},
+        "value": [
+          1793681416.746,
+          "0"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario": "OT03",
+    "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"payment\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"payment\"}[2m])) > 0",
+    "status": "success",
+    "result": [
+      {
+        "metric": {},
+        "value": [
+          1793681416.75,
+          "0"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario": "OT04",
+    "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"checkout\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"checkout\"}[2m])) > 0",
+    "status": "success",
+    "result": [
+      {
+        "metric": {},
+        "value": [
+          1793681416.752,
+          "0"
+        ]
+      }
+    ]
+  },
+  {
+    "scenario": "OT05",
+    "query": "(sum(increase(traces_span_metrics_calls_total{service_name=\"product-catalog\",status_code=\"STATUS_CODE_ERROR\"}[2m])) or vector(0)) == 0 and sum(increase(traces_span_metrics_calls_total{service_name=\"product-catalog\"}[2m])) > 0",
+    "status": "success",
+    "result": [
+      {
+        "metric": {},
+        "value": [
+          1793681416.754,
+          "0"
+        ]
+      }
+    ]
+  }
+]

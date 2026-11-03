@@ -1,0 +1,85 @@
+# 阶段9医生单独运行，避免重建原opsdoctor-doctor；仅复用原医生数据库网络。
+services:
+  doctor:
+    container_name: opsdoctor-phase09-doctor
+    build:
+      context: ../..
+      dockerfile: deploy/docker/go.Dockerfile
+      args:
+        CMD_NAME: doctor
+        APP_VERSION: phase09-20261102.1
+    image: opsdoctor/doctor:phase09-20261102.1
+    environment:
+      GIN_MODE: release
+      DOCTOR_ADDR: :8090
+      SHOP_MCP_TOKEN: ${SHOP_MCP_TOKEN:?set SHOP_MCP_TOKEN}
+      SHOP_OPS_TOKEN: ${SHOP_OPS_TOKEN:?请设置 shop 运维令牌}
+      SHOP_MYSQL_DDL_DSN: ${SHOP_MYSQL_DDL_DSN:?请设置 INDEX 专用 DSN}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      LLM_API_FORMAT: ${LLM_API_FORMAT:-responses}
+      LLM_MODEL: ${LLM_MODEL:-gpt-6.1-terra}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_TIMEOUT: ${LLM_TIMEOUT:-60s}
+      LLM_INPUT_PRICE_PER_MTOKEN: ${LLM_INPUT_PRICE_PER_MTOKEN:-1}
+      LLM_OUTPUT_PRICE_PER_MTOKEN: ${LLM_OUTPUT_PRICE_PER_MTOKEN:-5}
+      LLM_CACHE_HIT_PRICE_PER_MTOKEN: ${LLM_CACHE_HIT_PRICE_PER_MTOKEN:-0.05}
+      LLM_CACHE_WRITE_PRICE_PER_MTOKEN: ${LLM_CACHE_WRITE_PRICE_PER_MTOKEN:-1.25}
+      LLM_BUDGET_ACCOUNT: phase-09-openai
+      LLM_BUDGET_CURRENCY: USD
+      LLM_TOTAL_BUDGET: "10"
+      LLM_DIAGNOSIS_BUDGET: ${LLM_DIAGNOSIS_BUDGET:-0.30}
+      EVAL_COMPARISON_ENABLED: ${EVAL_COMPARISON_ENABLED:-false}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      EVAL_COMPARISON_BASE_URL: ${EVAL_COMPARISON_BASE_URL:-https://api.deepseek.com}
+      EVAL_COMPARISON_MODEL: ${EVAL_COMPARISON_MODEL:-deepseek-flash}
+      EVAL_COMPARISON_ACCOUNT: phase-09-deepseek
+      EVAL_COMPARISON_TOTAL_CNY: "10"
+      EVAL_COMPARISON_DIAGNOSIS_CNY: ${EVAL_COMPARISON_DIAGNOSIS_CNY:-0.30}
+      EVAL_COMPARISON_INPUT_PRICE: ${EVAL_COMPARISON_INPUT_PRICE:-2}
+      EVAL_COMPARISON_CACHE_HIT_PRICE: ${EVAL_COMPARISON_CACHE_HIT_PRICE:-0.04}
+      EVAL_DEEPSEEK_HOLIDAYS: ${EVAL_DEEPSEEK_HOLIDAYS:-none}
+      EVAL_COMPARISON_OUTPUT_PRICE: ${EVAL_COMPARISON_OUTPUT_PRICE:-8}
+      DOCTOR_LEASE_TTL: ${DOCTOR_LEASE_TTL:-30s}
+      DOCTOR_RESUME_MAX_AGE: ${DOCTOR_RESUME_MAX_AGE:-2m}
+      DOCTOR_MAX_CONCURRENT: ${DOCTOR_MAX_CONCURRENT:-2}
+      DOCTOR_MAX_CONCURRENT_PER_TARGET: ${DOCTOR_MAX_CONCURRENT_PER_TARGET:-1}
+      DOCTOR_ALERT_PENDING_MAX_AGE: ${DOCTOR_ALERT_PENDING_MAX_AGE:-5m}
+      DOCTOR_ALERT_SILENCE_TIMEOUT: ${DOCTOR_ALERT_SILENCE_TIMEOUT:-15m}
+      DOCTOR_COOKIE_SECURE: ${DOCTOR_COOKIE_SECURE:-false}
+      DOCTOR_MYSQL_DSN: "doctor:${DOCTOR_MYSQL_PASSWORD:?请设置医生数据库密码}@tcp(doctor-mysql:3306)/doctor?parseTime=true"
+      DOCTOR_ADMIN_EMAIL: ${DOCTOR_ADMIN_EMAIL:?请设置初始登录邮箱}
+      DOCTOR_ADMIN_PASSWORD: ${DOCTOR_ADMIN_PASSWORD:?请设置初始登录密码}
+      JWT_SECRET: ${JWT_SECRET:?请设置 JWT 密钥}
+      TARGETS_DIR: /etc/doctor/targets
+      DOCTOR_RUNBOOKS_DIR: /etc/doctor/runbooks
+      OTEL_DEMO_ALERT_TOKEN: ${OTEL_DEMO_ALERT_TOKEN:?请设置第二系统独立告警令牌}
+      SHOP_ALERT_TOKEN: ${SHOP_ALERT_TOKEN:?请设置 shop 告警令牌}
+      SHOP_MYSQL_RO_DSN: ${SHOP_MYSQL_RO_DSN:?请设置 shop 只读 DSN，容器主机名为 shop-mysql}
+      SHOP_REDIS_RO_URL: ${SHOP_REDIS_RO_URL:?请设置 shop 只读 URL，容器主机名为 redis}
+    # 只挂接入配置和通用手册，不挂仓库、实验场景、恢复记录或 Docker socket。
+    volumes: ["../doctor/targets:/etc/doctor/targets:ro", "../../docs/runbooks:/etc/doctor/runbooks:ro"]
+    read_only: true
+    # 免费网络预检程序临时复制到内存文件系统执行，不写只读根文件系统或业务卷。
+    tmpfs: ["/tmp:rw,exec,nosuid,size=32m,mode=1777"]
+    cap_drop: [ALL]
+    ports: ["127.0.0.1:8090:8090"]
+    networks: [original]
+    mem_limit: 256m
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '2'
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-T", "3", "-O", "/dev/null", "http://127.0.0.1:8090/health/ready"]
+      interval: 5s
+      timeout: 4s
+      retries: 24
+
+
+networks:
+  original:
+    external: true
+    name: opsdoctor_default

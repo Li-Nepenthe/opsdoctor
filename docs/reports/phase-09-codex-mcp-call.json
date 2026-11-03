@@ -1,0 +1,18 @@
+{
+  "measured_at_utc": "2026-11-03T04:54:11.2016192Z",
+  "client": "Codex-phase09-http",
+  "requested_tool": "service_topology",
+  "arguments": {},
+  "response": {
+    "jsonrpc": "2.0",
+    "id": 3,
+    "result": {
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"bytes\":4086,\"data\":{\"preview\":\"{\\\"profile\\\":\\\"# shop 的系统说明书\\\\n\\\\nshop 是一个小型电商系统。用户可以查商品、创建订单、查询订单详情，以及按用户分页查询订单。\\\\n\\\\n## 服务与调用关系\\\\n\\\\n- order-service 提供 HTTP 接口。`GET /products/:id` 查询商品；`POST /orders` 创建订单；`GET /orders/:id` 查询详情；`GET /orders` 按用户分页查询。\\\\n- inventory-service 提供 gRPC 的 GetStock、Deduct 和 Release。订单服务通过它查询实时库存、扣减库存和归还库存。\\\\n- order-worker 消费 Kafka 的 `order.created` 消息，在 MySQL 中更新商品累计销量。消费组名是 `order-worker`。\\\\n- 商品查询先读 Redis，未命中时由 order-service 查询 MySQL，再把结果写入缓存。商品缓存不保存实时库存；实时库存通过 gRPC 单独查询。\\\\n- 创建订单时，order-service 先通过库存服务扣减，再写入订单，最后发送消息。消息由 worker 异步消费。\\\\n\\\\n## MySQL 表\\\\n\\\\n业务库名为 `shop`。五张表的作用如下：\\\\n\\\\n| 表 | 内容与主要查找方式 |\\\\n|---|---|\\\\n| products | 商品名称、价格等基本信息，按商品 ID 查询 |\\\\n| stock | 每个商品的可用库存，按 sku_id 查询和更新；sku_id 的唯一索引用于定位对应商品行 |\\\\n| orders | 订单、用户、商品、数量与金额；主键用于查详情，user_id 与 created_at 的联合索引用于按用户取时间倒序的订单页 |\\\\n| product_sales | 按商品累计的已消费销量，sku_id 用于定位计数行 |\\\\n| processed_events | 已处理消息的 ID，用唯一约束避免同一消息重复计入销量 |\\\\n\\\\n## Redis 与消息\\\\n\\\\n商品缓存键使用 `product:\\\\u003c商品ID\\\\u003e`，正常有效期为十分钟加零到一分钟的随机增量。不存在的商品使用短期空值缓存。同一个商品的同时回源可以在进程内合并成一次查询。\\\\n\\\\n下单幂等记录使用 `idempotency:\\\\u003c幂等键\\\\u003e`，默认保存二十四小时。记录区分处理中、已完成与结果待核对。结果待核对时不自动重做。Redis 使用 DB 0，开启 AOF 持久化和 noeviction，避免淘汰尚在承诺期内的幂等记录。\\\\n\\\\n`order.created` 消息包含事件编号、订单号、商品编号、数量与时间。订单事务与消息发送不在同一个数据库事务中。订单已经提交但发送结果不确定时，服务会记录告警日志。\\\\n\\\\n## 可观测数据\\\\n\\\\n三个业务进程输出带 service、request_id、trace_id 等字段的 JSON 日志。Prometheus 保存接口耗时、数据库连接池、缓存、RPC 和消息等指标。Jaeger 保存调用链。Loki 保存日志。MySQL、Redis 和 Kafka exporter 提供中间件指标。\\\\n\\\\n三个业务进程的管理端口提供 `/metrics`、`/health` 和 Go 的 goroutine 堆栈接口。医生的地址由接入配置固定，不从工具参数中读取。\\\\n\\\\n## 时间预算与一致性\\\\n\\\\n库存查询有总超时预算，只对可安全重试的查询进行有限重试。扣减不会自动重试。商品详情在库存查询失败时仍可返回商品信息，并把库存标为暂不可用。订单已经提交后的消息发送使用独立且有限的收尾预算。\\\\n\\\\n调用链和日志是观测到的片段，采样或保留时间可能使部分请求缺失。判断一次业务操作是否完成，应结合数据库状态、消息消费和日志，不能单凭没有查到调用链就下结论。\\\\n\\\\n## 报告中的组件标识\\\\n\\\\n组件标识用于把自然语言结论对应到架构中的一个位置。服务直接用服务名；服务内的模块用“服务名:模块名”；表用“mysql:库名.表名”；调用链路用“调用方-\\\\u003e被调用方”。选择证据能支持的最具体位置。尚不能定位时用 unknown\"},\"duration_ms\":0,\"original_bytes\":7177,\"status\":\"ok\",\"summary\":\"已配置的架构说明；完整数据 7177 字节，下面只保留开头，不能视为全量\",\"tool\":\"service_topology\",\"truncated\":true}"
+        }
+      ]
+    }
+  }
+}

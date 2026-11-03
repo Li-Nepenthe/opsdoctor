@@ -1,0 +1,16 @@
+{
+  "captured_at_utc": "2026-11-03T05:04:45.050848+00:00",
+  "raw_log_bytes": 2099650,
+  "raw_log_sha256": "d4842ea39085af9d43286dbf8b51bf87d1efd1c5592a1193f8f8cca8427b86cb",
+  "raw_log_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\log-impact\\collector-final-before-fix.log",
+  "index_identity": {
+    "otel-logs-2026-11-03": {
+      "settings": {
+        "index": {
+          "creation_date": "1793680811335",
+          "uuid": "4Vc81FNnQEOVppU8gd17sw"
+        }
+      }
+    }
+  }
+}

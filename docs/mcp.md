@@ -36,8 +36,10 @@
 
 ## 怎么确认调用确实发生了
 
-医生把每次工具调用写进自己的 `mcp_audits` 表：开始时间、固定系统、工具名、脱敏参数摘要、结果状态和结束时间。先保存开始记录，再访问目标系统；审计不可写时不执行工具。未知工具和参数错误也会留下记录。进程中断时可能留下 `running`，它表示结果未知。
+医生把每次工具调用写进自己的 `mcp_audit` 表：开始时间、固定系统、工具名、脱敏参数摘要、结果状态和结束时间。先保存开始记录，再访问目标系统；审计不可写时不执行工具。未知工具和参数错误也会留下记录。进程中断时可能留下 `running`，它表示结果未知。
 
 阶段 7 已用官方 Go SDK 客户端连接本机医生：菜单有 16 个只读工具，`service_topology` 调用成功，数据库审计记录为 `shop / service_topology / ok`。完整参数与结果日志只保留脱敏内容，关键数字和来源见[数据台账](数据台账.md)。这证明的是实际协议调用，不是截图中手工拼出的假响应。
+
+阶段 9 又由 Codex 实际发起 MCP 初始化、读取上述菜单，再调用 `service_topology` 并读取结果。传输使用 PowerShell HTTP 请求，完整[协议结果](reports/phase-09-codex-mcp-call.json)和[新增审计](reports/phase-09-codex-mcp-audit.tsv)已留档，数字见台账 P9-10。这次由真实 Agent 使用只读入口；验证范围是一次工具调用，未配置桌面原生 MCP 插件，也没有另外调用付费模型。
 
 实现入口是 [mcpserver](../internal/doctor/mcpserver/doc.go)。客户端身份与系统隔离由 `TestTokenIsolation`、`TestClientBoundary` 验证；数据库保存由 `TestIntegrationMCPAudit` 验证。

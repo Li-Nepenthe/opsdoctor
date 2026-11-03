@@ -2,7 +2,7 @@
 
 OpsDoctor 把三件事放在同一个仓库：运行中的电商靶场、受权限约束的诊断医生、知道标准答案的故障注入与评测器。靶场产生真实症状，医生只能从观测数据取证，评测器独立比较结果。先看 [展示入口](../README.md)，运行命令见 [操作手册](operations.md)，找代码时从 [代码地图](代码地图.md) 进入。
 
-本文描述已经实现的系统。用户在 2026-10-30 决定为尽早投递先做阶段 10，阶段 9 推迟而非取消；2026-11-02 确认继续执行。因此当前真实接入对象只有 shop，日志后端只有 Loki，尚未用第二个真实系统验证泛化。
+本文描述已经实现的系统。阶段 10 已按用户确认合并 `main`（231ee48），阶段 9 于 2026-11-02 恢复实施。当前医生可同时登记 shop 和 OpenTelemetry Demo，日志有 Loki 与 OpenSearch 两个实现；OpenSearch 已查询真实 Demo 日志（台账 P9-3）。**尚未完成泛化评测**：采集修复已完成固定窗口验证（P9-14、P9-15），等待 Claude 审核，通过后才开始付费诊断。
 
 ## 总体结构
 
@@ -24,6 +24,8 @@ flowchart TD
     Agent <--> Model[Mock / 显式授权的真实模型]
     Agent --> Tools[绑定当前系统的工具]
     Tools --> Obs
+    Demo[OpenTelemetry Demo 独立项目] --> DemoObs[Prometheus / Jaeger / OpenSearch]
+    Tools -->|otel-demo 独立依赖| DemoObs
     Tools --> ReadOnly[MySQL / Redis / pprof 只读检查]
     Agent --> Approval[保存审批单]
     Human[已登录的人] -->|批准或拒绝| Approval
@@ -35,7 +37,9 @@ flowchart TD
     Eval -->|安排诊断并读取结果| Doctor
 ```
 
-图里的箭头表示数据流或调用，不表示跨越所有权限。Toxiproxy 位于订单到库存、库存到 MySQL、订单到 Redis 的链路中；它由宿主机注入器控制，医生没有这项权限。实际监听与映射以 [Compose](../deploy/docker-compose.yml) 为准，宿主机端口只绑定回环地址。
+图里的箭头表示数据流或调用，不表示跨越所有权限。Toxiproxy 位于订单到库存、库存到 MySQL、订单到 Redis 的链路中；它由宿主机注入器控制，医生没有这项权限。实际监听与映射以 [shop Compose](../deploy/docker-compose.yml)和[Demo 部署配置](../deploy/opentelemetry/README.md)为准，宿主机端口只绑定回环地址。两套靶场一次只运行一套。
+
+阶段 9 使用专用医生容器 `opsdoctor-phase09-doctor`，同一次启动加载 shop 与 otel-demo 两份接入配置。原 doctor 容器保留并停止，避免两个调度器同时领任务；专用医生连接原 doctor-mysql，继续保留 `opsdoctor_doctor-mysql-data` 中的历史数据。第二系统有独立的数据源与工具集，切换运行中的靶场不需要重启医生。[已登记目标证据](reports/phase-09-targets.json)与台账 P9-8 证明接入菜单已装配，不代表两个靶场同时运行。otel-demo 的 PostgreSQL、Valkey 直查与 pprof 没有接入，相应工具不注册。
 
 ## 代码怎样分工
 
@@ -69,9 +73,23 @@ Alloy 按 Docker 的 Compose 项目标签发现容器，随后只保留配置允
 
 告警描述症状，例如延迟、错误或积压，不在告警名里提前给出“缺索引”等答案。实际规则见 [Prometheus 规则说明](../deploy/prometheus/rules/README.md)。监控接口健康只说明接线的一部分；还要检查 exporter 是否能登录中间件，以及真实 trace 和日志能否查到。阶段 3 曾用这类端到端检查发现 gRPC DNS TXT 查询等待，见 [阶段 3 汇报](reports/phase-03-observability.md) 和台账 P3-18 至 P3-26。
 
-医生的数据源接口把“查什么”和“后端怎样表达”分开。[source](../internal/doctor/source/source.go) 定义统一类型，工具只依赖这些接口，具体适配器处理 Prometheus、Jaeger、Loki、MySQL、Redis 与 pprof 的格式。
+医生的数据源接口把“查什么”和“后端怎样表达”分开。[source](../internal/doctor/source/source.go) 定义统一类型，工具只依赖这些接口，具体适配器处理 Prometheus、Jaeger、Loki、OpenSearch、MySQL、Redis 与 pprof 的格式。
 
-**当前日志适配器只有 [Loki](../internal/doctor/source/loki/client.go)。** 工具传服务、级别、关键词和时间条件，适配器转义字符串后生成 LogQL，不接受模型给出的任意 LogQL。OpenSearch 适配器和两个后端的共用契约测试属于推迟的阶段 9，目前没有实现。也不支持 PostgreSQL、SkyWalking 和非 Go 服务的运行时分析。以后补做阶段 9 时，需要同步更新本文日志适配器说明、README 支持后端及限制、第二张结果表、简历草稿和数据台账。
+[Loki](../internal/doctor/source/loki/client.go)与[OpenSearch](../internal/doctor/source/opensearch/client.go)实现同一个 `LogSource`。工具仍传服务、级别、关键词、trace、时间和数量条件，不传后端地址、索引或完整查询语言。接入层按系统配置选择实现，同时填写 Loki 和 OpenSearch 会在启动时被拒绝。
+
+| 条件或边界 | Loki | OpenSearch |
+|---|---|---|
+| 查询表达 | 转义字符串后生成固定 LogQL | `json.Marshal` 编码固定查询 DSL，关键词只作为 JSON 值 |
+| 服务、级别、trace | 服务标签与 JSON 字段筛选 | 配置字段上的 term 精确匹配 |
+| 关键词、时间、顺序与上限 | 文本筛选，query_range 参数限定时间、倒序和数量 | match_phrase、range、sort 与 size |
+| 访问范围 | 固定 Loki 根地址的查询入口 | 固定根地址、指定索引的 `_search`，不跟随重定向 |
+| 返回结构 | 日志流转为统一条目 | hits 与 `_source` 转为同一条目，兼容点键与 keyword 子字段 |
+
+OpenSearch 直接使用标准库 `net/http`，没有引入产品客户端库。字段由[接入配置](../deploy/doctor/targets/otel-demo.yaml)提供，实际索引与映射保存在[字段证据](reports/phase-09-opensearch-schema.json)。[共用契约测试](../internal/doctor/source/log_contract_test.go)的同一张行为表分别运行两个实现，覆盖服务、级别、关键词、特殊字符、trace、时间、上限、空结果、组合条件与取消，10 项 × 2 个实现全部通过（P9-6；[检查记录](reports/phase-09-checks.json)）。产品测试另检查分片失败、字段缺失、凭据与响应边界；真实集成读取见台账 P9-3。
+
+上述承诺不等于任意文本的检索语义完全相同：Loki 子串筛选与 OpenSearch 分词短语匹配仍受各自产品语义影响。本次 Demo 禁用了 OpenSearch 安全插件，未验证生产账号授权；启用安全插件时应配置只读账号。仍不支持 PostgreSQL 直查、SkyWalking 和非 Go 服务的运行时分析。
+
+Demo 的 Collector 经 OTLP 接收日志并写入 OpenSearch，曾因 `attributes.http` 的 text/object 映射冲突拒收部分记录。固定版本的采集配置将日志属性键的 `http.` 前缀改成 `http_`，保留旧索引和原 scope 处理，不改变医生的五个映射字段。修复前报告计数、最小上游差异与固定十分钟观察见[专项报告](reports/phase-09-logging-fix.md)及台账 P9-13–P9-15。窗口内未报告最终日志丢弃，17/17 个预期 OTLP 源有日志；image-provider 官方未启用日志，Jaeger traces 仍有重试。结论限于本窗口，不能证明端到端无静默丢失；Claude 审核通过前不开始付费诊断。
 
 ## 核心流程一：告警 → 诊断 → 报告
 
@@ -151,6 +169,10 @@ flowchart LR
 
 冻结清单先保存代码哈希、提示、手册、评分与模型版本，以及各轮配置顺序。E0 没有查证工具，E1 使用完整工具，E2 增加通用手册检索，E3 去掉调用链工具；DeepSeek E1 在同一次故障上作为另一配置比较。顺序随机并留档，减少先后时间固定偏向某组的影响。医生不知道场景答案，评测器才读取它。见 [冻结清单](reports/phase-08-formal-manifest.json)、[配对执行](../internal/eval/runner/paired.go) 和 [自动流程](../internal/eval/runner/automatic.go)。
 
+上图的五配置是阶段 8 已完成实验。阶段 9 的[独立入口](../internal/eval/runner/generalization.go)复用轮次、槽位、评分和导出，只选择 E1/E2；[外部场景控制](../internal/eval/runner/generalization_scenario.go)通过官方控制接口保存、注入、读回与恢复完整配置，控制地址和标准答案不会交给医生。新批次、新美元与人民币账户分别保存，不能覆盖阶段 8 或合并两套系统的统计。目前只是实现与数据源验收，尚无付费诊断成绩。
+
+Demo 的 span 指标实际按一分钟间隔到达，原一分钟 increase 窗口会没有足够样本；场景验证窗口已改为两分钟，五个健康条件均返回样本，见台账 P9-7、[原空结果](reports/phase-09-baseline-verified.json)与[修订后检查](reports/phase-09-baseline-two-minute.json)。这只修正宿主机的场景验证条件，不是医生提示、工具、手册或评分调整，也不是五场故障注入通过的证明。
+
 中断后续读原轮次和槽位，保存过的输入、终态与首次盲评编号不覆盖。正常可靠性失败与格式、推理和预算失败分开；指定校时取消的补跑是经用户批准的单独例外，不推广成随意重跑。评测时写审批会被拒绝，执行器也再次拦截；恢复由宿主机评测器完成。见 [结果存储](../internal/doctor/store/eval_results.go)、[可靠性分类](../internal/doctor/store/eval_reliability.go)、[版本修订审计](reports/phase-08-execution-versions.json)。
 
 阶段 8 冻结代码始于 `5e5d5a1`，后续仅获准的基础设施修订为 `ca2ec68` 与 `89945fd`；提示 v8.0、手册 v1.1、评分 v1.1 保持冻结。正式自建靶场 S01–S13 每场景 3 次，195 份报告、181 份有效评分、14 份评分失败，另保留原取消；这些是台账 P8-38、P8-191、P8-194 的实验范围，不能称为生产准确率。S10 带工具的 12 份全部把连接池当根因，见 P8-149、P8-153、P8-157 和 [失败分析](reports/phase-08-failure-analysis.md)。
@@ -179,6 +201,6 @@ worker 当前管理健康探针只调用数据库 Ping，不能证明 Kafka 已�
 
 ## 当前取舍
 
-采用单实例医生加 MySQL，减少分布式调度和消息基础设施的复杂度；代价是没有高可用。原生页面和 SSE 足够展示诊断过程，代价是没有复杂前端交互。通用手册用本地关键词检索，容易审计和冻结，代价是检索覆盖有限。工具接口让后端差异留在适配器，但“换后端只改适配器”的真实外部验证仍待阶段 9。
+采用单实例医生加 MySQL，减少分布式调度和消息基础设施的复杂度；代价是没有高可用。原生页面和 SSE 足够展示诊断过程，代价是没有复杂前端交互。通用手册用本地关键词检索，容易审计和冻结，代价是检索覆盖有限。工具接口已容纳第二日志实现，并读取真实外部日志；陌生系统上的诊断泛化仍未完成评测。
 
 故障实验与评测既是项目能力，也是约束：它能解释这套靶场中为什么判断成功或失败，尚不能支持对陌生系统、长期生产运行或安全攻击的宽泛结论。

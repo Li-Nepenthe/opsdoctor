@@ -1,0 +1,25 @@
+# 原Alloy容器创建于项目名修复之前，缺少环境项；保留原容器，用独立采集器完成对照。
+services:
+  alloy:
+    image: grafana/alloy:v1.21.2
+    container_name: opsdoctor-phase09-alloy
+    command: [run, /etc/alloy/config.alloy, --storage.path=/tmp/alloy]
+    environment:
+      # 此采集器验证的是原shop项目，所以发现过滤明确指向opsdoctor。
+      COMPOSE_PROJECT_NAME: opsdoctor
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ../alloy/config.alloy:/etc/alloy/config.alloy:ro
+    read_only: true
+    tmpfs: ["/tmp:size=64m,mode=1777"]
+    mem_limit: 128m
+    networks: [original]
+    logging:
+      driver: json-file
+      options:
+        max-size: 5m
+        max-file: '2'
+networks:
+  original:
+    external: true
+    name: opsdoctor_default

@@ -6,7 +6,7 @@
 
 [快速开始](#快速开始) · [三分钟演示](#三分钟演示) · [评测结果](#评测结果) · [权限边界](#权限边界) · [架构详解](docs/architecture.md) · [完整运维命令](docs/operations.md) · [排查项目自身问题](docs/troubleshooting.md)
 
-阶段 0–8 和阶段 10 已完成工程验收，阶段 10 等待 Claude 审阅。用户于 2026-10-30 决定先做阶段 10，以便尽早投递；阶段 9 推迟，尚未做外部靶场泛化或 OpenSearch 适配。2026-11-02 确认阶段 8 已由 Claude 验收并合并到 `main`（`f851460`），学习验收仍由用户本人决定。当前状态见[进度看板](进度.md)。
+阶段 0–8 和阶段 10 已完成工程验收；用户于 2026-11-02 确认阶段 10 已由 Claude 验收并合并 `main`（`231ee48`），授权开始阶段 9。第二日志适配器已经读取 OpenTelemetry Demo 的真实 OpenSearch 日志（P9-3），**尚未完成泛化评测**。日志映射修复已通过固定十分钟观察（P9-14、P9-15），[采集修复材料](docs/reports/phase-09-logging-fix.md)等待 Claude 审核，通过后才开始付费诊断。学习验收仍由用户本人决定，当前状态见[进度看板](进度.md)。
 
 ## 架构
 
@@ -25,6 +25,8 @@ flowchart TD
     V --> A[Alertmanager]
     A --> D[doctor: 接收与去重 → Agent → 报告]
     D -->|只读工具| V
+    OT[外部靶场 OpenTelemetry Demo] --> OV[Prometheus / Jaeger / OpenSearch]
+    D -->|第二系统的独立只读数据源| OV
     D -->|受限只读账号| M
     D -->|申请有限修复| H[人工审批]
     H --> X[保存参数 → 执行 → 核对]
@@ -35,7 +37,7 @@ flowchart TD
     E[eval 注入 → 五配置配对 → 评分 → 恢复] --> C
 ```
 
-业务服务采用接口层 → 业务层 → 数据层；医生通过数据源接口接入观测系统。医生不导入靶场、注入器或标准答案，也不持有 Docker 权限。[两条核心流程与代码入口](docs/architecture.md)说明边界如何落到代码。
+业务服务采用接口层 → 业务层 → 数据层；医生通过数据源接口接入观测系统。阶段 9 的专用医生同时登记 shop 与 otel-demo，两套靶场串行运行，切换靶场不需要切换医生配置。医生不导入靶场、注入器或标准答案，也不持有 Docker 权限。[两条核心流程与代码入口](docs/architecture.md)说明边界如何落到代码。
 
 ## 快速开始
 
@@ -49,7 +51,7 @@ flowchart TD
 <summary>PowerShell</summary>
 
 ```powershell
-git clone --branch phase-10-showcase https://github.com/Li-Nepenthe/opsdoctor.git opsdoctor-fresh
+git clone --branch main https://github.com/Li-Nepenthe/opsdoctor.git opsdoctor-fresh
 Set-Location opsdoctor-fresh
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 $env:COMPOSE_PROJECT_NAME = 'opsdoctor-fresh'
@@ -81,7 +83,7 @@ Invoke-RestMethod http://127.0.0.1:8090/health/ready
 <summary>bash</summary>
 
 ```bash
-git clone --branch phase-10-showcase https://github.com/Li-Nepenthe/opsdoctor.git opsdoctor-fresh
+git clone --branch main https://github.com/Li-Nepenthe/opsdoctor.git opsdoctor-fresh
 cd opsdoctor-fresh
 test -f .env || cp .env.example .env
 # 显式覆盖终端与 .env 中的模式；本演示不需要模型密钥。
@@ -121,7 +123,7 @@ curl --fail http://127.0.0.1:8090/health/ready
 | 0:30–1:00 | 登录医生，确认 Mock 横幅，选 `shop`，输入“演示工具查证与报告流程”，发起诊断 | 模型选择这一步由固定脚本替代 |
 | 1:00–2:00 | 打开诊断详情，查看 `service_topology`、`list_firing_alerts` 的实际结果及引用步骤 | 工具、持久化、实时页面与报告校验仍走真实代码；Mock 不推断根因 |
 | 2:00–2:40 | 打开[阶段 8 真实报告摘录](docs/reports/phase-08-human-calibration.md#c15)，再看[S10 失败分析](docs/reports/phase-08-failure-analysis.md) | 展示冻结实测的成功与失败，无需再付费重跑 |
-| 2:40–3:00 | 解释下面的审批边界，并指出 S12 未暴露、未做人工校准和阶段 9 推迟 | 分清已经验证的能力与留下的缺口 |
+| 2:40–3:00 | 解释下面的审批边界，并指出 S12 未暴露、未做人工校准和泛化评测尚未完成 | 分清已经验证的能力与留下的缺口 |
 
 默认 Mock 没有写申请，现场不演示自动修复。已完成的页面批准建索引与 P99 对照见[阶段 7 汇报](docs/reports/phase-07-reliability.md)和[台账](docs/数据台账.md) P7-15–P7-17。
 
@@ -160,6 +162,17 @@ E0 只给告警与说明书；E1 使用完整工具；E2 增加通用手册检�
 
 费用分币种写，不相加：正式矩阵美元 **$3.221903，按项目用量账本计**；人民币 **¥6.230244**（含对比医生与评委、失败及不确定请求的保留预留；P8-190）。美元已知请求按每次实际 token 用量 × **2026-10-29 核对过的官方单价**计算，结果不确定的请求保留预留额；**平台账单因 Key 与其他用途共用，无法单独核对**。DeepSeek 余额净减少 ¥7.00，与人民币账本差 **¥0.769756 未归因**（P8-197），没有将差额全部归给本实验。
 
+### 外部靶场：独立结果表
+
+OpenTelemetry Demo 固定为 3.1.0，部署与接入说明见[第二系统配置](deploy/opentelemetry/README.md)。日志共用契约表的 **10 项 × 2 个实现**全部通过（P9-6），OpenSearch 真实集成查询已通过（P9-3）；这些是接口与数据源证据，不能代替诊断成绩。下面的结果与阶段 8 分表，当前没有准确率可报告。
+
+| 医生模型 / 组 | 状态 | 组件、机制与证据结果 |
+|---|---|---|
+| gpt-6.1-terra / E1 | 未运行，等待采集修复经 Claude 审核 | 尚无诊断结果 |
+| gpt-6.1-terra / E2 | 未运行，等待采集修复经 Claude 审核 | 尚无诊断结果 |
+
+暂停源于 Collector 的 `attributes.http` 文本/对象映射冲突，修复前的报告计数和历史缺口均保留（P9-13）。用户已选择先修复采集配置、交 Claude 审核后再评测。[专项报告](docs/reports/phase-09-logging-fix.md)附最小配置差异及固定窗口验证：未报告映射丢弃，17/17 个预期 OTLP 日志源有记录，官方不启用日志的 image-provider 单列例外（P9-14、P9-15）。提示 v8.0、工具、手册 v1.1 和 rubric-v1.1 未因此调整。
+
 ## 权限边界
 
 边界由 Go 代码与账号权限共同保证。模型只能提出工具请求，无法批准自己的申请。
@@ -193,13 +206,14 @@ S12 的攻击文字没有被医生实际读到；**防注入目前只有权限�
 
 ## 已知限制
 
-- 支持 **Prometheus、Jaeger、Loki**，以及 MySQL、Redis 和 Go pprof。**日志只支持 Loki**；阶段 9 尚未做，**不支持 OpenSearch、PostgreSQL、SkyWalking 和非 Go 服务的运行时分析**。外部靶场第二张结果表尚无数据。
+- 支持 **Prometheus、Jaeger、Loki、OpenSearch**，以及 MySQL、Redis 和 Go pprof。Loki 与 OpenSearch 实现同一个日志接口，单个系统只能选择一个日志后端；真实 Demo 日志查询见 P9-3 和[字段证据](docs/reports/phase-09-opensearch-schema.json)。仍不支持 PostgreSQL 直查、SkyWalking 和非 Go 服务的运行时分析。
+- **尚未完成泛化评测**。Demo 的日志映射修复已完成固定窗口验证，仍等 Claude 审核后才付费；历史日志缺口保留，零最终丢弃报告也不证明端到端无静默丢失。缺少 PostgreSQL、Valkey 直查与 pprof 的工具按接入配置降级；支持查询不等于已验证陌生系统的诊断效果。
 - 每个场景只跑少量重复。S10 暴露了把连接池排队后果当成根因的问题；评分协议失败、评委尺度差异和 S12 暴露缺口均保留，详见[失败分析](docs/reports/phase-08-failure-analysis.md)。
 - `CacheLoadsHigh` 的实验适用范围限定于已记录的一万活跃商品基线。默认五十万工作集曾持续误报；这项规则问题没有在展示阶段修改（P5-8）。
 - 靶场不做用户认证；库存扣减超时和补偿仍可能需要人工核对；订单与销量总量相同不等于逐笔绝对正确。
 - 本机 Compose 为单节点实验环境。医生没有生产审批人隔离、完整隐私治理和高可用；日志、trace 和历史 SQL 摘要也可能缺失或混入旧事件。
 
-补做阶段 9 时，应同步更新 README 的支持后端和限制、外部靶场第二张结果表、架构文档的日志适配器、简历草稿和数据台账；[决策记录](docs/decisions.md)保留顺序调整。
+阶段 9 的日志接口、共用契约与外部接入过程见[学习材料](docs/learn/phase-09-generalization.md)；[决策记录](docs/decisions.md)保留顺序调整与接入边界，后续诊断成绩只从[数据台账](docs/数据台账.md)更新。
 
 ## 相关项目与差异
 
