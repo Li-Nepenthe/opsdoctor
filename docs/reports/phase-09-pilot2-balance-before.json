@@ -1,0 +1,15 @@
+{
+  "checked_at_utc": "2026-11-03T08:48:45.204533+00:00",
+  "method": "GET /user/balance; no generation",
+  "response": {
+    "is_available": true,
+    "balance_infos": [
+      {
+        "currency": "CNY",
+        "total_balance": "5.68",
+        "granted_balance": "0.00",
+        "topped_up_balance": "5.68"
+      }
+    ]
+  }
+}

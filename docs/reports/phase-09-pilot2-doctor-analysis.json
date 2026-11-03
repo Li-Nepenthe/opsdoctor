@@ -1,0 +1,2233 @@
+{
+  "reviewed_at_utc": "2026-11-03T11:10:32.773769Z",
+  "review_kind": "read_only_factual_review_no_rescoring",
+  "source": {
+    "container": "opsdoctor-phase09-doctor-mysql",
+    "database": "doctor",
+    "diagnosis_id": "d6fa4da91a42bb7c184478f9c0fdcc05",
+    "run_id": "phase09-pilot2-20261103-terra",
+    "sql_mode": "START TRANSACTION READ ONLY; SELECT specified rows; ROLLBACK",
+    "readonly_snapshot_sha256": "dfbb727b934e433f2b122ec33e006f0717b4646c71c68be22a29055d01d88663",
+    "redaction": "数据库写入前已由医生仓储脱敏；导出再次按密钥形状与已知环境凭据遮盖，原记录未修改。",
+    "public_copy_scope": "诊断/报告、原工具参数及结果完整保留；非工具步骤重复请求args省略并列canonical SHA256，所有步骤元信息与result保留。"
+  },
+  "diagnosis": {
+    "id": "d6fa4da91a42bb7c184478f9c0fdcc05",
+    "error": "",
+    "input": {
+      "alerts": [],
+      "symptoms": "广告查询出现间歇性错误，请结合本次时间范围内的指标、调用链和日志定位原因及影响范围。",
+      "fault_started_at": "2026-11-03T10:52:38.48153Z"
+    },
+    "model": "gpt-6.1-terra",
+    "title": "评测 E1",
+    "report": {
+      "summary": "本次广告查询出现少量间歇性 UNAVAILABLE；已定位到 ad 的 GetAds 处理，但具体触发原因尚未确定。",
+      "evidence": [
+        {
+          "step": 33,
+          "observation": "故障开始后的近期窗口内，ad 有 3 条 GetAds Failed 日志，状态为 UNAVAILABLE，description 和 cause 均为空。"
+        },
+        {
+          "step": 30,
+          "observation": "ad GetAds 服务端 span 错误计数在查询窗口中由 0 增至 3；同时存在大量状态未标记为错误的调用。"
+        },
+        {
+          "step": 29,
+          "observation": "span 指标同时记录 ad 服务端和 frontend 的 GetAds 错误，说明影响到前端广告调用；两侧计数对应不同 span，不应相加。"
+        },
+        {
+          "step": 32,
+          "observation": "ad 的 GetAds RPC 指标出现状态码 14 和状态码 0；说明失败与成功请求并存。"
+        },
+        {
+          "step": 23,
+          "observation": "一条正常样本展示 load-generator 经 frontend-proxy、frontend /api/data 调用 ad GetAds 的路径；该样本本身不是失败链路。"
+        }
+      ],
+      "unknowns": "具体触发机制、失败请求的完整调用链、精确错误率及真实用户受影响范围未确认；不能据正常样本推断失败时的 HTTP 响应，也不能推断其他业务受损。查询窗口包含故障前五分钟，但所引三条失败日志均在故障开始之后。",
+      "root_cause": {
+        "component": "ad",
+        "mechanism": "ad 在处理 GetAds 时对部分请求返回 gRPC UNAVAILABLE，失败传播至 frontend 的广告调用；其余请求仍可成功。日志未提供错误描述或底层异常，不能确定故障注入、依赖或代码等具体原因。",
+        "confidence": 0.84
+      },
+      "suggested_actions": [
+        {
+          "args": {
+            "action": "检查 ad GetAds 的异常处理及故障注入或特性开关配置，结合失败请求的完整链路和日志确定触发条件；持续监测广告调用错误率。"
+          },
+          "risk": "只读检查风险低；若随后调整配置或代码，应评估对广告功能和其他实验的影响并履行变更审批。",
+          "tool": "manual"
+        }
+      ]
+    },
+    "rounds": 5,
+    "status": "succeeded",
+    "target": "otel-demo",
+    "trigger": "eval",
+    "currency": "USD",
+    "next_seq": 37,
+    "provider": "openai",
+    "tokens_in": 50506,
+    "created_at": "2026-11-03 10:55:16.682976",
+    "started_at": "2026-11-03 10:55:17.293167",
+    "tokens_out": 1323,
+    "tool_calls": 23,
+    "cost_micros": 27179,
+    "duration_ms": 31070,
+    "finished_at": "2026-11-03 10:55:48.388558",
+    "report_mode": "voluntary",
+    "budget_reason": "",
+    "prompt_version": "v8.0",
+    "cache_hit_tokens": 35474
+  },
+  "steps": [
+    {
+      "seq": 1,
+      "kind": "system",
+      "model": "",
+      "status": "running",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:17.294935",
+      "parent_seq": 0,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 0,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result_utf8_sha256": "160c14609d51e4652f2ca6ef6154603314a7ea1ce84407cd9636d1fd78d750da",
+      "result": {
+        "reason": "开始诊断",
+        "status": "running"
+      },
+      "args_omitted_from_public_copy": true,
+      "args_keys": [],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 2,
+      "kind": "system",
+      "model": "",
+      "status": "input_evidence",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:17.325401",
+      "parent_seq": 0,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 0,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result_utf8_sha256": "2a79ae3d2f7dab65c520965e449f38dbdcdfb05e3b64db2adbd0fecce1c27ad5",
+      "result": {
+        "alerts": [],
+        "fault_started_at": "2026-11-03T10:52:38.48153Z",
+        "symptoms": "广告查询出现间歇性错误，请结合本次时间范围内的指标、调用链和日志定位原因及影响范围。"
+      },
+      "args_omitted_from_public_copy": true,
+      "args_keys": [],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 3,
+      "kind": "system",
+      "model": "",
+      "status": "llm_pending",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:17.333444",
+      "parent_seq": 0,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 0,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "8a0c4638f413854fabc2b2b6e63d38069149ffa84190767081276a18ab2deba8",
+      "result_utf8_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": "",
+      "args_omitted_from_public_copy": true,
+      "args_keys": [
+        "max_tokens",
+        "messages",
+        "model",
+        "stream",
+        "thinking",
+        "tools"
+      ],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 4,
+      "kind": "llm",
+      "model": "gpt-6.1-terra",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 4373,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:22.476389",
+      "parent_seq": 0,
+      "tokens_out": 136,
+      "cost_micros": 6146,
+      "duration_ms": 5142,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "8a0c4638f413854fabc2b2b6e63d38069149ffa84190767081276a18ab2deba8",
+      "result_utf8_sha256": "0d5bf961e5e7e53561e440041659b97fab1b051a4820841762834de1d2b20fa6",
+      "result": {
+        "attempt_ids": [
+          "af0390cb17eecbb7cdb99d89431d4d61"
+        ],
+        "cost_micros": 6146,
+        "message": {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{}",
+                "name": "list_firing_alerts"
+              },
+              "id": "call_ebqhrvnauohNvRw4xGui49H3",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"level\":\"ERROR\",\"limit\":30,\"service\":\"ad\"}",
+                "name": "search_logs"
+              },
+              "id": "call_BJKvrqZOXibS21otgaqda1Sk",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"limit\":5,\"min_duration_ms\":200,\"service\":\"ad\"}",
+                "name": "search_traces"
+              },
+              "id": "call_Tj0txyp70rxFMEwYblpQs9j1",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"query\":\"count by (__name__) ({service_name=\\\"ad\\\",__name__=~\\\".*(duration|calls|request|error).*\\\"})\"}",
+                "name": "query_metrics"
+              },
+              "id": "call_0lJXJ8XrZQdkxtnv7wDSyBWm",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{}",
+                "name": "recent_changes"
+              },
+              "id": "call_HJKrSIv14pYPX0CqO0Zevoa3",
+              "type": "function"
+            }
+          ]
+        },
+        "model": "gpt-6.1-terra",
+        "usage": {
+          "cache_write_tokens": 4370,
+          "completion_tokens": 136,
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 4373,
+          "prompt_tokens": 4373,
+          "reasoning_tokens": 0
+        },
+        "usage_known": true
+      },
+      "args_omitted_from_public_copy": true,
+      "args_keys": [
+        "max_tokens",
+        "messages",
+        "model",
+        "stream",
+        "thinking",
+        "tools"
+      ],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 5,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "list_firing_alerts",
+      "created_at": "2026-11-03 10:55:22.499015",
+      "parent_seq": 4,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 5,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result_utf8_sha256": "cbf63b3e9c1958755a3c1b4242f5e39e69b4759660be66c81a4df1e9cc145e39",
+      "result": {
+        "bytes": 157,
+        "data": [],
+        "duration_ms": 5,
+        "original_bytes": 2,
+        "status": "ok",
+        "summary": "当前 0 条 firing 告警",
+        "tool": "list_firing_alerts",
+        "truncated": false
+      },
+      "args": {}
+    },
+    {
+      "seq": 6,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "query_metrics",
+      "created_at": "2026-11-03 10:55:22.501480",
+      "parent_seq": 4,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 6,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "7b8ca858233b808f0b0c37f8a9f64beb8852b4ce3197c02d2c8c8bad6544a23e",
+      "result_utf8_sha256": "6d15516e7c2a129354aaa926ec7e5c7a1b9029ef0061e52b09279c5776535ad2",
+      "result": {
+        "bytes": 2440,
+        "data": {
+          "limited": true,
+          "series": [
+            {
+              "labels": {
+                "__name__": "demo_ad_requests_total"
+              },
+              "last": "3",
+              "max": 3,
+              "min": 3,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "jvm_gc_duration_seconds_bucket"
+              },
+              "last": "10",
+              "max": 10,
+              "min": 10,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "jvm_gc_duration_seconds_count"
+              },
+              "last": "2",
+              "max": 2,
+              "min": 2,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "jvm_gc_duration_seconds_sum"
+              },
+              "last": "2",
+              "max": 2,
+              "min": 2,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "otel_sdk_exporter_operation_duration_seconds_bucket"
+              },
+              "last": "3",
+              "max": 3,
+              "min": 3,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "otel_sdk_exporter_operation_duration_seconds_count"
+              },
+              "last": "3",
+              "max": 3,
+              "min": 3,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "otel_sdk_exporter_operation_duration_seconds_sum"
+              },
+              "last": "3",
+              "max": 3,
+              "min": 3,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "otel_sdk_metric_reader_collection_duration_seconds_bucket"
+              },
+              "last": "1",
+              "max": 1,
+              "min": 1,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "otel_sdk_metric_reader_collection_duration_seconds_count"
+              },
+              "last": "1",
+              "max": 1,
+              "min": 1,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "otel_sdk_metric_reader_collection_duration_seconds_sum"
+              },
+              "last": "1",
+              "max": 1,
+              "min": 1,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "rpc_client_duration_milliseconds_bucket"
+              },
+              "last": "32",
+              "max": 32,
+              "min": 32,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "rpc_client_duration_milliseconds_count"
+              },
+              "last": "2",
+              "max": 2,
+              "min": 2,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "rpc_client_duration_milliseconds_sum"
+              },
+              "last": "2",
+              "max": 2,
+              "min": 2,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "rpc_client_request_size_bytes_bucket"
+              },
+              "last": "32",
+              "max": 32,
+              "min": 32,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "rpc_client_request_size_bytes_count"
+              },
+              "last": "2",
+              "max": 2,
+              "min": 2,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "rpc_client_request_size_bytes_sum"
+              },
+              "last": "2",
+              "max": 2,
+              "min": 2,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "rpc_server_duration_milliseconds_bucket"
+              },
+              "last": "32",
+              "max": 32,
+              "min": 16,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "rpc_server_duration_milliseconds_count"
+              },
+              "last": "2",
+              "max": 2,
+              "min": 1,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "rpc_server_duration_milliseconds_sum"
+              },
+              "last": "2",
+              "max": 2,
+              "min": 1,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "rpc_server_request_size_bytes_bucket"
+              },
+              "last": "32",
+              "max": 32,
+              "min": 16,
+              "points": 32
+            }
+          ]
+        },
+        "duration_ms": 6,
+        "original_bytes": 2152,
+        "status": "ok",
+        "summary": "20 条序列；展示最后值及范围内极值，limited 表示未取得全部数据；默认回看 465 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "query_metrics",
+        "truncated": false
+      },
+      "args": {
+        "query": "count by (__name__) ({service_name=\"ad\",__name__=~\".*(duration|calls|request|error).*\"})"
+      }
+    },
+    {
+      "seq": 7,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "search_traces",
+      "created_at": "2026-11-03 10:55:22.518143",
+      "parent_seq": 4,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 24,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "b357672517b7ec36517b4bad2926ef3f7d1542af3762db7af6e6b02d6667411b",
+      "result_utf8_sha256": "f595a481c5e32b494e9c9fa1e0d297f337f59fa3b7410375e040cdf6c38b1d4d",
+      "result": {
+        "bytes": 299,
+        "data": [],
+        "duration_ms": 24,
+        "original_bytes": 2,
+        "status": "ok",
+        "summary": "0 条调用链，每条只显示最慢五步；父步骤耗时包含子步骤，不能直接相加；默认回看 465 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "search_traces",
+        "truncated": false
+      },
+      "args": {
+        "limit": 5,
+        "service": "ad",
+        "min_duration_ms": 200
+      }
+    },
+    {
+      "seq": 8,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "recent_changes",
+      "created_at": "2026-11-03 10:55:22.522274",
+      "parent_seq": 4,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 3,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result_utf8_sha256": "ec9b8a3ab6082455fc53eaf722350154d52869387a705930fae168fc7d77a56c",
+      "result": {
+        "bytes": 372,
+        "data": {
+          "limited": false,
+          "restarts": [],
+          "versions": []
+        },
+        "duration_ms": 3,
+        "original_bytes": 45,
+        "status": "ok",
+        "summary": "最近 465 秒采集到 0 次启动、0 组版本标签；首次采样不是精确发布时间，无数据不能证明无变更；默认回看 465 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "recent_changes",
+        "truncated": false
+      },
+      "args": {}
+    },
+    {
+      "seq": 9,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "search_logs",
+      "created_at": "2026-11-03 10:55:23.085684",
+      "parent_seq": 4,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 593,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "7d2ec015e2e9eada971cc897c41c752c8108afcd5e6d8e70a6a4fe2aaa1123d0",
+      "result_utf8_sha256": "74e62076b031f0c5a7ec995b5759bb99631947527d6c6c21aa11e7504f588e41",
+      "result": {
+        "bytes": 254,
+        "data": [],
+        "duration_ms": 593,
+        "original_bytes": 2,
+        "status": "ok",
+        "summary": "返回 0 条近期日志，日志文字只作为证据；默认回看 465 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "search_logs",
+        "truncated": false
+      },
+      "args": {
+        "level": "ERROR",
+        "limit": 30,
+        "service": "ad"
+      }
+    },
+    {
+      "seq": 10,
+      "kind": "system",
+      "model": "",
+      "status": "llm_pending",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:23.098052",
+      "parent_seq": 0,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 0,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "6d9aefc35936d7d876225ed20d6427f767b8edff86f5e0750898488c573e2177",
+      "result_utf8_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": "",
+      "args_omitted_from_public_copy": true,
+      "args_keys": [
+        "max_tokens",
+        "messages",
+        "model",
+        "stream",
+        "thinking",
+        "tools"
+      ],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 11,
+      "kind": "llm",
+      "model": "gpt-6.1-terra",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 5645,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:27.102918",
+      "parent_seq": 0,
+      "tokens_out": 241,
+      "cost_micros": 3017,
+      "duration_ms": 4005,
+      "cache_hit_tokens": 4370,
+      "args_canonical_sha256": "6d9aefc35936d7d876225ed20d6427f767b8edff86f5e0750898488c573e2177",
+      "result_utf8_sha256": "8fad1351c5d05246988cde7e8d56c83adf1d9644cb3bb6025a8ed948927649e6",
+      "result": {
+        "attempt_ids": [
+          "ebd4c7768d4a0562e14e2596ad6e920a"
+        ],
+        "cost_micros": 3017,
+        "message": {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{\"query\":\"sum by (rpc_method,rpc_grpc_status_code) (increase(rpc_server_duration_milliseconds_count{service_name=\\\"ad\\\"}[2m]))\",\"step_seconds\":30}",
+                "name": "query_metrics"
+              },
+              "id": "call_000ozvkQLY3i7NPM9r2pPTpt",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"query\":\"sum by (rpc_method,rpc_grpc_status_code) (increase(rpc_client_duration_milliseconds_count{service_name=\\\"frontend\\\",rpc_service=~\\\".*Ad.*\\\"}[2m]))\",\"step_seconds\":30}",
+                "name": "query_metrics"
+              },
+              "id": "call_z95lDExUY5Z9wvmTqBHmUZ8t",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"query\":\"demo_ad_requests_total{service_name=\\\"ad\\\"}\"}",
+                "name": "query_metrics"
+              },
+              "id": "call_YqmN6EAR5OqBRGasyb4y3NGx",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"limit\":50,\"service\":\"ad\"}",
+                "name": "search_logs"
+              },
+              "id": "call_mxZYTaMY2iNhLteZdEgwTagR",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"keyword\":\"ad\",\"limit\":40,\"service\":\"frontend\"}",
+                "name": "search_logs"
+              },
+              "id": "call_SphBfMferTedUrGYpWkeN1e8",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"limit\":10,\"min_duration_ms\":0,\"service\":\"ad\"}",
+                "name": "search_traces"
+              },
+              "id": "call_MtS1xZJMvWpUqJm5bLBpVlxl",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"limit\":10,\"min_duration_ms\":0,\"service\":\"frontend\"}",
+                "name": "search_traces"
+              },
+              "id": "call_WxDGLQ86ff0r9R365CTYK2HU",
+              "type": "function"
+            }
+          ]
+        },
+        "model": "gpt-6.1-terra",
+        "usage": {
+          "cache_write_tokens": 1272,
+          "completion_tokens": 241,
+          "prompt_cache_hit_tokens": 4370,
+          "prompt_cache_miss_tokens": 1275,
+          "prompt_tokens": 5645,
+          "reasoning_tokens": 0
+        },
+        "usage_known": true
+      },
+      "args_omitted_from_public_copy": true,
+      "args_keys": [
+        "max_tokens",
+        "messages",
+        "model",
+        "stream",
+        "thinking",
+        "tools"
+      ],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 12,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "query_metrics",
+      "created_at": "2026-11-03 10:55:27.115982",
+      "parent_seq": 11,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 1,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "04377f7da9ef11724fcfff4ea8a7724e379d7151c828490f1e3d7092bc6d4211",
+      "result_utf8_sha256": "68300afd2abef1a1678c534f1ba0c006e25ba082103286c870972687dd4de473",
+      "result": {
+        "bytes": 313,
+        "data": {
+          "limited": false,
+          "series": []
+        },
+        "duration_ms": 1,
+        "original_bytes": 29,
+        "status": "ok",
+        "summary": "0 条序列；展示最后值及范围内极值，limited 表示未取得全部数据；默认回看 469 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "query_metrics",
+        "truncated": false
+      },
+      "args": {
+        "query": "sum by (rpc_method,rpc_grpc_status_code) (increase(rpc_client_duration_milliseconds_count{service_name=\"frontend\",rpc_service=~\".*Ad.*\"}[2m]))",
+        "step_seconds": 30
+      }
+    },
+    {
+      "seq": 13,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "query_metrics",
+      "created_at": "2026-11-03 10:55:27.116301",
+      "parent_seq": 11,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 1,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "3085f4c4e8f3e62a12a2e3dc96b26c0d3426e401964a37e33bc51c1133d7a96d",
+      "result_utf8_sha256": "91d8fa08c57273c9a8e3ecb71942c4207bddf3c059095b994bf9cab568b90105",
+      "result": {
+        "bytes": 1656,
+        "data": {
+          "limited": false,
+          "series": [
+            {
+              "labels": {
+                "__name__": "demo_ad_requests_total",
+                "demo_ad_request_type": "NOT_TARGETED",
+                "demo_ad_response_type": "RANDOM",
+                "host_name": "docker-desktop",
+                "instance": "381b28ce-55f5-44e4-9f9f-1ab6336c7c10",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "381b28ce-55f5-44e4-9f9f-1ab6336c7c10",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0"
+              },
+              "last": "8",
+              "max": 8,
+              "min": 3,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "demo_ad_requests_total",
+                "demo_ad_request_type": "TARGETED",
+                "demo_ad_response_type": "RANDOM",
+                "host_name": "docker-desktop",
+                "instance": "381b28ce-55f5-44e4-9f9f-1ab6336c7c10",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "381b28ce-55f5-44e4-9f9f-1ab6336c7c10",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0"
+              },
+              "last": "8",
+              "max": 8,
+              "min": 4,
+              "points": 32
+            },
+            {
+              "labels": {
+                "__name__": "demo_ad_requests_total",
+                "demo_ad_request_type": "TARGETED",
+                "demo_ad_response_type": "TARGETED",
+                "host_name": "docker-desktop",
+                "instance": "381b28ce-55f5-44e4-9f9f-1ab6336c7c10",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "381b28ce-55f5-44e4-9f9f-1ab6336c7c10",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0"
+              },
+              "last": "260",
+              "max": 260,
+              "min": 137,
+              "points": 32
+            }
+          ]
+        },
+        "duration_ms": 1,
+        "original_bytes": 1369,
+        "status": "ok",
+        "summary": "3 条序列；展示最后值及范围内极值，limited 表示未取得全部数据；默认回看 469 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "query_metrics",
+        "truncated": false
+      },
+      "args": {
+        "query": "demo_ad_requests_total{service_name=\"ad\"}"
+      }
+    },
+    {
+      "seq": 14,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "query_metrics",
+      "created_at": "2026-11-03 10:55:27.119110",
+      "parent_seq": 11,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 3,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "2b52d04a9cad72ba1c5c3a39729cd958f2d9fdb021ce258576f06fdb6f64244d",
+      "result_utf8_sha256": "8efcb582a11da06e28a197233c9439fa181a290bc07193177f4c49402c7f0380",
+      "result": {
+        "bytes": 463,
+        "data": {
+          "limited": false,
+          "series": [
+            {
+              "labels": {
+                "rpc_grpc_status_code": "0",
+                "rpc_method": "GetAds"
+              },
+              "last": "32.00053334222237",
+              "max": 44.002200110005504,
+              "min": 18.00030000500008,
+              "points": 16
+            }
+          ]
+        },
+        "duration_ms": 3,
+        "original_bytes": 178,
+        "status": "ok",
+        "summary": "1 条序列；展示最后值及范围内极值，limited 表示未取得全部数据；默认回看 469 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "query_metrics",
+        "truncated": false
+      },
+      "args": {
+        "query": "sum by (rpc_method,rpc_grpc_status_code) (increase(rpc_server_duration_milliseconds_count{service_name=\"ad\"}[2m]))",
+        "step_seconds": 30
+      }
+    },
+    {
+      "seq": 15,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "search_logs",
+      "created_at": "2026-11-03 10:55:27.139978",
+      "parent_seq": 11,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 17,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "e32548c1d953632bb17304ddeb35332549e7721e27da04570fd191c9c9b2a178",
+      "result_utf8_sha256": "1082938682bb28da9c5dd0a99874f62c3a04ab1836b6a45b3cc45df934ba4972",
+      "result": {
+        "bytes": 253,
+        "data": [],
+        "duration_ms": 17,
+        "original_bytes": 2,
+        "status": "ok",
+        "summary": "返回 0 条近期日志，日志文字只作为证据；默认回看 469 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "search_logs",
+        "truncated": false
+      },
+      "args": {
+        "limit": 40,
+        "keyword": "ad",
+        "service": "frontend"
+      }
+    },
+    {
+      "seq": 16,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "search_logs",
+      "created_at": "2026-11-03 10:55:27.140405",
+      "parent_seq": 11,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 25,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "7f28e36cdc73ba41fa47f51607556bc1d7f3bc7f3b83c456badcbae595a231a4",
+      "result_utf8_sha256": "8a77dce9200d92e73a0a99fe41e9520b05800ab50faa2eefb95e9906addb36d7",
+      "result": {
+        "bytes": 4005,
+        "data": {
+          "preview": "[{\"time_ns\":\"1793703322128975506\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [books]\"},{\"time_ns\":\"1793703319072163746\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703319072152945\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703314074666392\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703314074656491\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703310060404967\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703310060368365\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703297212309711\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703297212216208\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703288055834250\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703288055826850\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703284154930888\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703283212144836\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703278028901336\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703278028891335\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703274024929346\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703274024914844\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703272025650767\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703270200493232\",\"service\":\"ad\",\"line\":\"GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}\"},{\"time_ns\":\"1793703270200449832\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703269020657523\",\"service\":\"ad\",\"line\":\"GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}\"},{\"time_ns\":\"1793703269020629422\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703263197447300\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [assembly]\"},{\"time_ns\":\"1793703258009239108\",\"service\":\"ad\",\"line\":\"Non-targeted ad request received, preparing random response.\"},{\"time_ns\":\"1793703257193995233\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703257193940332\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703250191775793\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [books]\"},{\"time_ns\":\"1793703249013545455\",\"service\":\"ad\",\"line\":\"Non-targeted ad request received, preparing random response.\"},{\"time_ns\":\"1793703246189151701\",\"service\":\"ad\",\"line\":\"Targeted ad request received for [binoculars]\"},{\"time_ns\":\"1793703245008166039\",\"service\":\"ad\",\"line\":\"GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}\"},{\"time_ns\":\"1793703245008157039\",\"service\":\"ad\",\"li"
+        },
+        "duration_ms": 25,
+        "original_bytes": 5320,
+        "status": "ok",
+        "summary": "返回 50 条近期日志，日志文字只作为证据；默认回看 469 秒（故障前五分钟至当前，最长一小时）；完整数据 5320 字节，下面只保留开头，不能视为全量",
+        "tool": "search_logs",
+        "truncated": true
+      },
+      "args": {
+        "limit": 50,
+        "service": "ad"
+      }
+    },
+    {
+      "seq": 17,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "search_traces",
+      "created_at": "2026-11-03 10:55:27.146729",
+      "parent_seq": 11,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 17,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "3794c49b4516388043a82d500ff7b5675e0b7adfd9fccbaab9439ffb0d66cd4e",
+      "result_utf8_sha256": "0c61a08131d85ddf594aaac23337f6e6cd0e2511a61f99d5460fb78e2a05467b",
+      "result": {
+        "bytes": 3967,
+        "data": {
+          "preview": "[{\"trace_id\":\"f0c37b9254217777767e8310a1b8e44e\",\"span_count\":14,\"services\":[\"ad\",\"frontend\",\"frontend-proxy\",\"load-generator\"],\"slowest_spans\":[{\"id\":\"f728f80eaa3dc5a1\",\"parent_id\":\"\",\"service\":\"load-generator\",\"operation\":\"user_get_ads\",\"start_us\":1793703321336974,\"duration_us\":9430,\"tags\":{}},{\"id\":\"52c31ddcda2176ac\",\"parent_id\":\"f728f80eaa3dc5a1\",\"service\":\"load-generator\",\"operation\":\"GET\",\"start_us\":1793703321337761,\"duration_us\":8507,\"tags\":{}},{\"id\":\"d1abe2f348930e02\",\"parent_id\":\"52c31ddcda2176ac\",\"service\":\"frontend-proxy\",\"operation\":\"GET\",\"start_us\":1793703321340627,\"duration_us\":4936,\"tags\":{}},{\"id\":\"ca8f7d236cdb049d\",\"parent_id\":\"d1abe2f348930e02\",\"service\":\"frontend-proxy\",\"operation\":\"router frontend egress\",\"start_us\":1793703321340691,\"duration_us\":4848,\"tags\":{}},{\"id\":\"77f6033137efd9d8\",\"parent_id\":\"ca8f7d236cdb049d\",\"service\":\"frontend\",\"operation\":\"GET /api/data\",\"start_us\":1793703321341000,\"duration_us\":4581,\"tags\":{\"http.request.method\":\"GET\",\"http.response.status_code\":\"200\",\"http.route\":\"/api/data\"}}]},{\"trace_id\":\"49309c6eb0cf75872dc2f184aca6f9b0\",\"span_count\":9,\"services\":[\"ad\",\"frontend\",\"frontend-proxy\",\"frontend-web\"],\"slowest_spans\":[{\"id\":\"e4db3849ea0c3401\",\"parent_id\":\"\",\"service\":\"frontend-web\",\"operation\":\"GET\",\"start_us\":1793703318180000,\"duration_us\":23000,\"tags\":{\"http.request.method\":\"GET\",\"http.response.status_code\":\"200\"}},{\"id\":\"4fc3c426a274cf44\",\"parent_id\":\"e4db3849ea0c3401\",\"service\":\"frontend-proxy\",\"operation\":\"GET\",\"start_us\":1793703318191622,\"duration_us\":3557,\"tags\":{}},{\"id\":\"3a111fea5bfc9a6d\",\"parent_id\":\"4fc3c426a274cf44\",\"service\":\"frontend-proxy\",\"operation\":\"router frontend egress\",\"start_us\":1793703318191683,\"duration_us\":3473,\"tags\":{}},{\"id\":\"565a8cdad5b5ed4b\",\"parent_id\":\"3a111fea5bfc9a6d\",\"service\":\"frontend\",\"operation\":\"GET /api/data\",\"start_us\":1793703318191000,\"duration_us\":3413,\"tags\":{\"http.request.method\":\"GET\",\"http.response.status_code\":\"200\",\"http.route\":\"/api/data\"}},{\"id\":\"ce864e9ad66a1b9a\",\"parent_id\":\"565a8cdad5b5ed4b\",\"service\":\"frontend\",\"operation\":\"GET /api/data\",\"start_us\":1793703318192000,\"duration_us\":3123,\"tags\":{\"http.route\":\"/api/data\"}}]},{\"trace_id\":\"e750e60e64b841968f9384d5c461ed58\",\"span_count\":9,\"services\":[\"ad\",\"frontend\",\"frontend-proxy\",\"frontend-web\"],\"slowest_spans\":[{\"id\":\"7cccda15f9044b95\",\"parent_id\":\"\",\"service\":\"frontend-web\",\"operation\":\"GET\",\"start_us\":1793703318063000,\"duration_us\":11000,\"tags\":{\"http.request.method\":\"GET\",\"http.response.status_code\":\"200\"}},{\"id\":\"22ff90bd670f1c9b\",\"parent_id\":\"7cccda15f9044b95\",\"service\":\"frontend-proxy\",\"operation\":\"GET\",\"start_us\":1793703318066859,\"duration_us\":3647,\"tags\":{}},{\"id\":\"7259570128ceec7b\",\"parent_id\":\"22ff90bd670f1c9b\",\"service\":\"frontend-proxy\",\"operation\":\"router frontend egress\",\"start_us\":1793703318066978,\"duration_us\":3338,\"tags\":{}},{\"id\":\"a4f0a4f497f6915d\",\"parent_id\":\"7259570128ceec7b\",\"service\":\"frontend\",\"operation\":\"GET /api/data\",\"start_us\":1793703318067000,\"duration_us\":3156,\"tags\":{\"http.request.method\":\"GET\",\"http.response.status_code\":\"200\",\"http.route\":\"/api/data\"}},{\"id\":\"838df96155398e82\",\"parent_id\":\"a4f0a4f497f6915d\",\"serv"
+        },
+        "duration_ms": 17,
+        "original_bytes": 11105,
+        "status": "ok",
+        "summary": "10 条调用链，每条只显示最慢五步；父步骤耗时包含子步骤，不能直接相加；默认回看 469 秒（故障前五分钟至当前，最长一小时）；完整数据 11105 字节，下面只保留开头，不能视为全量",
+        "tool": "search_traces",
+        "truncated": true
+      },
+      "args": {
+        "limit": 10,
+        "service": "ad",
+        "min_duration_ms": 0
+      }
+    },
+    {
+      "seq": 18,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "search_traces",
+      "created_at": "2026-11-03 10:55:27.151265",
+      "parent_seq": 11,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 18,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "2cfbe2e140670b928df398549d1aed96897dac546a7299b42fcf6deca4075600",
+      "result_utf8_sha256": "f5020645552b5d192fdab592b3489d5b14a5ab0486240a415d5d279775e56274",
+      "result": {
+        "bytes": 3973,
+        "data": {
+          "preview": "[{\"trace_id\":\"f0c37b9254217777767e8310a1b8e44e\",\"span_count\":14,\"services\":[\"ad\",\"frontend\",\"frontend-proxy\",\"load-generator\"],\"slowest_spans\":[{\"id\":\"f728f80eaa3dc5a1\",\"parent_id\":\"\",\"service\":\"load-generator\",\"operation\":\"user_get_ads\",\"start_us\":1793703321336974,\"duration_us\":9430,\"tags\":{}},{\"id\":\"52c31ddcda2176ac\",\"parent_id\":\"f728f80eaa3dc5a1\",\"service\":\"load-generator\",\"operation\":\"GET\",\"start_us\":1793703321337761,\"duration_us\":8507,\"tags\":{}},{\"id\":\"d1abe2f348930e02\",\"parent_id\":\"52c31ddcda2176ac\",\"service\":\"frontend-proxy\",\"operation\":\"GET\",\"start_us\":1793703321340627,\"duration_us\":4936,\"tags\":{}},{\"id\":\"ca8f7d236cdb049d\",\"parent_id\":\"d1abe2f348930e02\",\"service\":\"frontend-proxy\",\"operation\":\"router frontend egress\",\"start_us\":1793703321340691,\"duration_us\":4848,\"tags\":{}},{\"id\":\"77f6033137efd9d8\",\"parent_id\":\"ca8f7d236cdb049d\",\"service\":\"frontend\",\"operation\":\"GET /api/data\",\"start_us\":1793703321341000,\"duration_us\":4581,\"tags\":{\"http.request.method\":\"GET\",\"http.response.status_code\":\"200\",\"http.route\":\"/api/data\"}}]},{\"trace_id\":\"a8413c9dbd30e6c61f804526a0f9662e\",\"span_count\":3,\"services\":[\"frontend\",\"frontend-proxy\"],\"slowest_spans\":[{\"id\":\"175e831671e4a76d\",\"parent_id\":\"\",\"service\":\"frontend-proxy\",\"operation\":\"GET\",\"start_us\":1793703321352092,\"duration_us\":1095,\"tags\":{}},{\"id\":\"bc154758fc14eea3\",\"parent_id\":\"175e831671e4a76d\",\"service\":\"frontend-proxy\",\"operation\":\"router frontend egress\",\"start_us\":1793703321352179,\"duration_us\":992,\"tags\":{}},{\"id\":\"08c01fd6a0e44ac4\",\"parent_id\":\"bc154758fc14eea3\",\"service\":\"frontend\",\"operation\":\"GET\",\"start_us\":1793703321352000,\"duration_us\":752,\"tags\":{\"http.request.method\":\"GET\",\"http.response.status_code\":\"200\"}}]},{\"trace_id\":\"f20550ad0ce743665f75036a3e32234a\",\"span_count\":3,\"services\":[\"frontend\",\"frontend-proxy\"],\"slowest_spans\":[{\"id\":\"7a46a5818c2b513b\",\"parent_id\":\"\",\"service\":\"frontend-proxy\",\"operation\":\"GET\",\"start_us\":1793703322572395,\"duration_us\":1626,\"tags\":{}},{\"id\":\"97b3f856b8ddf0a4\",\"parent_id\":\"7a46a5818c2b513b\",\"service\":\"frontend-proxy\",\"operation\":\"router frontend egress\",\"start_us\":1793703322572525,\"duration_us\":1471,\"tags\":{}},{\"id\":\"e40535a3f687e136\",\"parent_id\":\"97b3f856b8ddf0a4\",\"service\":\"frontend\",\"operation\":\"GET\",\"start_us\":1793703322572000,\"duration_us\":1166,\"tags\":{\"http.request.method\":\"GET\",\"http.response.status_code\":\"200\"}}]},{\"trace_id\":\"82e5dbff9df7f87cd9ebfb20bcb19d2e\",\"span_count\":21,\"services\":[\"frontend\",\"frontend-proxy\",\"frontend-web\",\"product-catalog\"],\"slowest_spans\":[{\"id\":\"9375fea0ce495823\",\"parent_id\":\"\",\"service\":\"frontend-web\",\"operation\":\"GET\",\"start_us\":1793703322525000,\"duration_us\":29000,\"tags\":{\"http.request.method\":\"GET\",\"http.response.status_code\":\"200\"}},{\"id\":\"ea6400d3b9e5ed4c\",\"parent_id\":\"9375fea0ce495823\",\"service\":\"frontend-proxy\",\"operation\":\"GET\",\"start_us\":1793703322531002,\"duration_us\":19703,\"tags\":{}},{\"id\":\"3bf63ef9f2126737\",\"parent_id\":\"ea6400d3b9e5ed4c\",\"service\":\"frontend-proxy\",\"operation\":\"router frontend egress\",\"start_us\":1793703322531232,\"duration_us\":19242,\"tags\":{}},{\"id\":\"f540884fc5b40ce3\",\"parent_id\":\"3bf63ef9f2126737\",\"service\":\"frontend\",\"operation\":\"GET /api/recommendatio"
+        },
+        "duration_ms": 18,
+        "original_bytes": 8838,
+        "status": "ok",
+        "summary": "10 条调用链，每条只显示最慢五步；父步骤耗时包含子步骤，不能直接相加；默认回看 469 秒（故障前五分钟至当前，最长一小时）；完整数据 8838 字节，下面只保留开头，不能视为全量",
+        "tool": "search_traces",
+        "truncated": true
+      },
+      "args": {
+        "limit": 10,
+        "service": "frontend",
+        "min_duration_ms": 0
+      }
+    },
+    {
+      "seq": 19,
+      "kind": "system",
+      "model": "",
+      "status": "llm_pending",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:27.175755",
+      "parent_seq": 0,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 0,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "f1bd2a96208a07125889c7c28173539eaa88a5532428fa7a1951f8b8ba5492e1",
+      "result_utf8_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": "",
+      "args_omitted_from_public_copy": true,
+      "args_keys": [
+        "max_tokens",
+        "messages",
+        "model",
+        "stream",
+        "thinking",
+        "tools"
+      ],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 20,
+      "kind": "llm",
+      "model": "gpt-6.1-terra",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 12009,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:33.109119",
+      "parent_seq": 0,
+      "tokens_out": 237,
+      "cost_micros": 9426,
+      "duration_ms": 5932,
+      "cache_hit_tokens": 5642,
+      "args_canonical_sha256": "f1bd2a96208a07125889c7c28173539eaa88a5532428fa7a1951f8b8ba5492e1",
+      "result_utf8_sha256": "40c8ba3915f0cf87e46b04231b6decd9aae540c9d88cabd2cd1ef36033562d19",
+      "result": {
+        "attempt_ids": [
+          "7fb897d7861054d5b657a0a3c68dc986"
+        ],
+        "cost_micros": 9426,
+        "message": {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{\"keyword\":\"GetAds Failed\",\"limit\":25,\"service\":\"ad\"}",
+                "name": "search_logs"
+              },
+              "id": "call_uXbllAKW1e7nlyHNW8A6pODy",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"query\":\"sum by (service_name,span_name,status_code) (increase(traces_spanmetrics_calls_total{span_name=~\\\".*(GetAds|getAds|ads).*\\\"}[2m]))\",\"step_seconds\":30}",
+                "name": "query_metrics"
+              },
+              "id": "call_uTUAweWrUI5oY0IaV64ZF0D7",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"query\":\"count by (__name__) ({__name__=~\\\".*(spanmetrics|calls_total).*\\\"})\"}",
+                "name": "query_metrics"
+              },
+              "id": "call_LiwG1ZJYoQGf1YcrQYI7MAb1",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"trace_id\":\"f0c37b9254217777767e8310a1b8e44e\"}",
+                "name": "get_trace"
+              },
+              "id": "call_MGRs0K0kKepiKClQxLTueeU4",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"query\":\"sum by (rpc_grpc_status_code,rpc_method) (increase(rpc_client_duration_milliseconds_count{service_name=\\\"ad\\\"}[2m]))\"}",
+                "name": "query_metrics"
+              },
+              "id": "call_wlgD3Lk8yhresh1U4jXFDqEN",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"keyword\":\"UNAVAILABLE\",\"limit\":30,\"service\":\"frontend\"}",
+                "name": "search_logs"
+              },
+              "id": "call_b9M5K06qFgGOpvCmp8cBHY54",
+              "type": "function"
+            }
+          ]
+        },
+        "model": "gpt-6.1-terra",
+        "usage": {
+          "cache_write_tokens": 6364,
+          "completion_tokens": 237,
+          "prompt_cache_hit_tokens": 5642,
+          "prompt_cache_miss_tokens": 6367,
+          "prompt_tokens": 12009,
+          "reasoning_tokens": 0
+        },
+        "usage_known": true
+      },
+      "args_omitted_from_public_copy": true,
+      "args_keys": [
+        "max_tokens",
+        "messages",
+        "model",
+        "stream",
+        "thinking",
+        "tools"
+      ],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 21,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "query_metrics",
+      "created_at": "2026-11-03 10:55:33.126684",
+      "parent_seq": 20,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 1,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "4ae83743ac7a0911208823452716563bd9026c4431d751c5cd3bd011338facc2",
+      "result_utf8_sha256": "79e8d9bf12f03dfff0e98c277d2b5c508779b19ff219fe0c8bee6256913daef4",
+      "result": {
+        "bytes": 313,
+        "data": {
+          "limited": false,
+          "series": []
+        },
+        "duration_ms": 1,
+        "original_bytes": 29,
+        "status": "ok",
+        "summary": "0 条序列；展示最后值及范围内极值，limited 表示未取得全部数据；默认回看 475 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "query_metrics",
+        "truncated": false
+      },
+      "args": {
+        "query": "sum by (service_name,span_name,status_code) (increase(traces_spanmetrics_calls_total{span_name=~\".*(GetAds|getAds|ads).*\"}[2m]))",
+        "step_seconds": 30
+      }
+    },
+    {
+      "seq": 22,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "query_metrics",
+      "created_at": "2026-11-03 10:55:33.127526",
+      "parent_seq": 20,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 2,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "c728c84242d2c991b1f749832c706430315b9ea0f465a8ceacce50113b490909",
+      "result_utf8_sha256": "98802767ccd094a5e8b9f464716037ad488ff49c45942eb022e1660ad7a362bf",
+      "result": {
+        "bytes": 416,
+        "data": {
+          "limited": false,
+          "series": [
+            {
+              "labels": {
+                "__name__": "traces_span_metrics_calls_total"
+              },
+              "last": "149",
+              "max": 149,
+              "min": 139,
+              "points": 32
+            }
+          ]
+        },
+        "duration_ms": 2,
+        "original_bytes": 131,
+        "status": "ok",
+        "summary": "1 条序列；展示最后值及范围内极值，limited 表示未取得全部数据；默认回看 475 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "query_metrics",
+        "truncated": false
+      },
+      "args": {
+        "query": "count by (__name__) ({__name__=~\".*(spanmetrics|calls_total).*\"})"
+      }
+    },
+    {
+      "seq": 23,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "get_trace",
+      "created_at": "2026-11-03 10:55:33.131122",
+      "parent_seq": 20,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 4,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "92174d55dac35fdc2d3a0df8bc093070147db9072072226a12f056451886d8b8",
+      "result_utf8_sha256": "107ef349c2122fda8537934204e1e2e9879b6998cb3fe6aa64736d4f73591ea6",
+      "result": {
+        "bytes": 1292,
+        "data": {
+          "shown_spans": 14,
+          "span_count": 14,
+          "trace_id": "f0c37b9254217777767e8310a1b8e44e",
+          "tree": "load-generator | user_get_ads | 9.430ms | span=f728f80eaa3dc5a1\n  load-generator | GET | 8.507ms | span=52c31ddcda2176ac\n    frontend-proxy | GET | 1.425ms | span=ed9b81bcd4a31d2f\n      frontend-proxy | router frontend egress | 1.287ms | span=bc57a9c25241b54c\n        frontend | GET | 0.540ms | span=33892c0d245bad67\n    frontend-proxy | GET | 4.936ms | span=d1abe2f348930e02\n      frontend-proxy | router frontend egress | 4.848ms | span=ca8f7d236cdb049d\n        frontend | GET /api/data | 4.581ms | span=77f6033137efd9d8\n          frontend | GET /api/data | 4.414ms | span=6833545075be4254\n            frontend | executing api route (pages) /api/data | 4.036ms | span=f13429d9e9ecc0da\n              frontend | oteldemo.AdService/GetAds | 3.694ms | span=1d7b300b20fd77a8\n                ad | oteldemo.AdService/GetAds | 1.757ms | span=41ed6782f136cfab\n                  ad | getAdsByCategory | 0.155ms | span=e4359201a8229832\n                  ad | getRandomAds | 0.127ms | span=2d445018cb21b75a"
+        },
+        "duration_ms": 4,
+        "original_bytes": 1099,
+        "status": "ok",
+        "summary": "采集到 14 个 span，树中显示 14 个；最多 200 个、32 层",
+        "tool": "get_trace",
+        "truncated": false
+      },
+      "args": {
+        "trace_id": "f0c37b9254217777767e8310a1b8e44e"
+      }
+    },
+    {
+      "seq": 24,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "query_metrics",
+      "created_at": "2026-11-03 10:55:33.134478",
+      "parent_seq": 20,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 1,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "3df5f95d437068d4bea2c410ac283a2b5eeed9df17f733be273a2cbae012351c",
+      "result_utf8_sha256": "527837fd0ac64c029b7c0b544c996bb5316b62ad6c43722aae4aaf6cd3507b90",
+      "result": {
+        "bytes": 544,
+        "data": {
+          "limited": false,
+          "series": [
+            {
+              "labels": {
+                "rpc_grpc_status_code": "0",
+                "rpc_method": "ResolveBoolean"
+              },
+              "last": "0",
+              "max": 2.000033333888898,
+              "min": 0,
+              "points": 32
+            },
+            {
+              "labels": {
+                "rpc_grpc_status_code": "4",
+                "rpc_method": "EventStream"
+              },
+              "last": "0",
+              "max": 0,
+              "min": 0,
+              "points": 29
+            }
+          ]
+        },
+        "duration_ms": 1,
+        "original_bytes": 259,
+        "status": "ok",
+        "summary": "2 条序列；展示最后值及范围内极值，limited 表示未取得全部数据；默认回看 475 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "query_metrics",
+        "truncated": false
+      },
+      "args": {
+        "query": "sum by (rpc_grpc_status_code,rpc_method) (increase(rpc_client_duration_milliseconds_count{service_name=\"ad\"}[2m]))"
+      }
+    },
+    {
+      "seq": 25,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "search_logs",
+      "created_at": "2026-11-03 10:55:33.142984",
+      "parent_seq": 20,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 16,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "c8639c3bddeb6485baf54f702772bbb5d7211ffe5b451d2241048345b517b892",
+      "result_utf8_sha256": "e1c0aaee33f7712168fd84c16fb55db0afd23437745338e50994264b1f6fd3cc",
+      "result": {
+        "bytes": 671,
+        "data": [
+          {
+            "line": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+            "service": "ad",
+            "time_ns": "1793703270200493232"
+          },
+          {
+            "line": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+            "service": "ad",
+            "time_ns": "1793703269020657523"
+          },
+          {
+            "line": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+            "service": "ad",
+            "time_ns": "1793703245008166039"
+          }
+        ],
+        "duration_ms": 16,
+        "original_bytes": 418,
+        "status": "ok",
+        "summary": "返回 3 条近期日志，日志文字只作为证据；默认回看 475 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "search_logs",
+        "truncated": false
+      },
+      "args": {
+        "limit": 25,
+        "keyword": "GetAds Failed",
+        "service": "ad"
+      }
+    },
+    {
+      "seq": 26,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "search_logs",
+      "created_at": "2026-11-03 10:55:33.149691",
+      "parent_seq": 20,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 5,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "b7559a073d5b089967ae1b1a99580c5d6a49dc2cf9ea577bf9e0d4d85ab63514",
+      "result_utf8_sha256": "0a0bc7342a5583815f37c92d28c02af7a0bc69945704cc0a5051048539da62ce",
+      "result": {
+        "bytes": 252,
+        "data": [],
+        "duration_ms": 5,
+        "original_bytes": 2,
+        "status": "ok",
+        "summary": "返回 0 条近期日志，日志文字只作为证据；默认回看 475 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "search_logs",
+        "truncated": false
+      },
+      "args": {
+        "limit": 30,
+        "keyword": "UNAVAILABLE",
+        "service": "frontend"
+      }
+    },
+    {
+      "seq": 27,
+      "kind": "system",
+      "model": "",
+      "status": "llm_pending",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:33.173157",
+      "parent_seq": 0,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 0,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "9e5bad79d250ae31224749742f121064bca11775eb3e8423fbc9bc3fd7eed3e6",
+      "result_utf8_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": "",
+      "args_omitted_from_public_copy": true,
+      "args_keys": [
+        "max_tokens",
+        "messages",
+        "model",
+        "stream",
+        "thinking",
+        "tools"
+      ],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 28,
+      "kind": "llm",
+      "model": "gpt-6.1-terra",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 13459,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:40.354232",
+      "parent_seq": 0,
+      "tokens_out": 212,
+      "cost_micros": 3477,
+      "duration_ms": 7180,
+      "cache_hit_tokens": 12006,
+      "args_canonical_sha256": "9e5bad79d250ae31224749742f121064bca11775eb3e8423fbc9bc3fd7eed3e6",
+      "result_utf8_sha256": "81e9d6f3c5ad631f6b0c03bf5d6a8a8eb28bbcf03e847d45fc63c4110185955e",
+      "result": {
+        "attempt_ids": [
+          "68a9e66fa5d3ae2d6627a93ee426e71c"
+        ],
+        "cost_micros": 3477,
+        "message": {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{\"query\":\"sum by (service_name,span_name,status_code) (increase(traces_span_metrics_calls_total{span_name=~\\\".*GetAds.*\\\"}[2m]))\",\"step_seconds\":30}",
+                "name": "query_metrics"
+              },
+              "id": "call_oMvmoYyPZNlJwj8b9WIzGQOp",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"query\":\"traces_span_metrics_calls_total{service_name=\\\"ad\\\",span_name=~\\\".*GetAds.*\\\"}\"}",
+                "name": "query_metrics"
+              },
+              "id": "call_NElM5V9QZve6BEoSsEuTN5t7",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"keyword\":\"GetAds Failed\",\"limit\":25,\"lookback_seconds\":145,\"service\":\"ad\"}",
+                "name": "search_logs"
+              },
+              "id": "call_7zXTsc9o089xLU9OTMubHVCM",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"keyword\":\"flag\",\"limit\":30,\"service\":\"ad\"}",
+                "name": "search_logs"
+              },
+              "id": "call_geIcH24hoQBNpJ783xB7vYL6",
+              "type": "function"
+            },
+            {
+              "function": {
+                "arguments": "{\"query\":\"sum by (rpc_service,rpc_method,rpc_grpc_status_code) (increase(rpc_server_duration_milliseconds_count{service_name=\\\"ad\\\"}[2m]))\",\"step_seconds\":30}",
+                "name": "query_metrics"
+              },
+              "id": "call_lwUHfaFnz5zDMpaOigmTkMft",
+              "type": "function"
+            }
+          ]
+        },
+        "model": "gpt-6.1-terra",
+        "usage": {
+          "cache_write_tokens": 1450,
+          "completion_tokens": 212,
+          "prompt_cache_hit_tokens": 12006,
+          "prompt_cache_miss_tokens": 1453,
+          "prompt_tokens": 13459,
+          "reasoning_tokens": 0
+        },
+        "usage_known": true
+      },
+      "args_omitted_from_public_copy": true,
+      "args_keys": [
+        "max_tokens",
+        "messages",
+        "model",
+        "stream",
+        "thinking",
+        "tools"
+      ],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 29,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "query_metrics",
+      "created_at": "2026-11-03 10:55:40.369106",
+      "parent_seq": 28,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 2,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "09124a4d811a7fcb749b2f26211b87038cf9646b5f6b26adca087fb839be3811",
+      "result_utf8_sha256": "ff5d5b44feffde6e42ed4be1c360280ed690e7f8af3afc92fdb68b656f7ccfd1",
+      "result": {
+        "bytes": 1103,
+        "data": {
+          "limited": false,
+          "series": [
+            {
+              "labels": {
+                "service_name": "ad",
+                "span_name": "oteldemo.AdService/GetAds",
+                "status_code": "STATUS_CODE_ERROR"
+              },
+              "last": "4.275771262854381",
+              "max": 4.275771262854381,
+              "min": 4.275771262854381,
+              "points": 1
+            },
+            {
+              "labels": {
+                "service_name": "ad",
+                "span_name": "oteldemo.AdService/GetAds",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "last": "34.00056667611127",
+              "max": 42.002100105005255,
+              "min": 18.00090004500225,
+              "points": 17
+            },
+            {
+              "labels": {
+                "service_name": "frontend",
+                "span_name": "oteldemo.AdService/GetAds",
+                "status_code": "STATUS_CODE_ERROR"
+              },
+              "last": "4.275771262854381",
+              "max": 4.275771262854381,
+              "min": 4.275771262854381,
+              "points": 1
+            },
+            {
+              "labels": {
+                "service_name": "frontend",
+                "span_name": "oteldemo.AdService/GetAds",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "last": "36.00060001000016",
+              "max": 44.002200110005504,
+              "min": 18.001200080005333,
+              "points": 17
+            }
+          ]
+        },
+        "duration_ms": 2,
+        "original_bytes": 817,
+        "status": "ok",
+        "summary": "4 条序列；展示最后值及范围内极值，limited 表示未取得全部数据；默认回看 482 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "query_metrics",
+        "truncated": false
+      },
+      "args": {
+        "query": "sum by (service_name,span_name,status_code) (increase(traces_span_metrics_calls_total{span_name=~\".*GetAds.*\"}[2m]))",
+        "step_seconds": 30
+      }
+    },
+    {
+      "seq": 30,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "query_metrics",
+      "created_at": "2026-11-03 10:55:40.369159",
+      "parent_seq": 28,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 2,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "e8a61feae7b878b5900197e44c2f3efa8fce27a8704cb68ea765c590c1f5c4d0",
+      "result_utf8_sha256": "e08670fc20a9cf5c1ba78da75428d7029b92dd19171473b6ef1d1b8d9455eb45",
+      "result": {
+        "bytes": 1426,
+        "data": {
+          "limited": false,
+          "series": [
+            {
+              "labels": {
+                "__name__": "traces_span_metrics_calls_total",
+                "collector_instance_id": "0ee3928b-a7a3-4c80-a20e-489df3a3c518",
+                "host_name": "docker-desktop",
+                "instance": "381b28ce-55f5-44e4-9f9f-1ab6336c7c10",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "381b28ce-55f5-44e4-9f9f-1ab6336c7c10",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_SERVER",
+                "span_name": "oteldemo.AdService/GetAds",
+                "status_code": "STATUS_CODE_ERROR"
+              },
+              "last": "3",
+              "max": 3,
+              "min": 0,
+              "points": 6
+            },
+            {
+              "labels": {
+                "__name__": "traces_span_metrics_calls_total",
+                "collector_instance_id": "0ee3928b-a7a3-4c80-a20e-489df3a3c518",
+                "host_name": "docker-desktop",
+                "instance": "381b28ce-55f5-44e4-9f9f-1ab6336c7c10",
+                "job": "opentelemetry-demo/ad",
+                "service_criticality": "medium",
+                "service_instance_id": "381b28ce-55f5-44e4-9f9f-1ab6336c7c10",
+                "service_name": "ad",
+                "service_namespace": "opentelemetry-demo",
+                "service_version": "3.1.0",
+                "span_kind": "SPAN_KIND_SERVER",
+                "span_name": "oteldemo.AdService/GetAds",
+                "status_code": "STATUS_CODE_UNSET"
+              },
+              "last": "271",
+              "max": 271,
+              "min": 144,
+              "points": 33
+            }
+          ]
+        },
+        "duration_ms": 2,
+        "original_bytes": 1139,
+        "status": "ok",
+        "summary": "2 条序列；展示最后值及范围内极值，limited 表示未取得全部数据；默认回看 482 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "query_metrics",
+        "truncated": false
+      },
+      "args": {
+        "query": "traces_span_metrics_calls_total{service_name=\"ad\",span_name=~\".*GetAds.*\"}"
+      }
+    },
+    {
+      "seq": 31,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "search_logs",
+      "created_at": "2026-11-03 10:55:40.375728",
+      "parent_seq": 28,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 7,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "f9b0f905a8ec3ff448f3783cfc4b823924e96b0acc349a9d99f0f19fcfebae7c",
+      "result_utf8_sha256": "053f1fae7647947a363990dabf231a549969446ed5cffcf9b551be5cbe9d7944",
+      "result": {
+        "bytes": 252,
+        "data": [],
+        "duration_ms": 7,
+        "original_bytes": 2,
+        "status": "ok",
+        "summary": "返回 0 条近期日志，日志文字只作为证据；默认回看 482 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "search_logs",
+        "truncated": false
+      },
+      "args": {
+        "limit": 30,
+        "keyword": "flag",
+        "service": "ad"
+      }
+    },
+    {
+      "seq": 32,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "query_metrics",
+      "created_at": "2026-11-03 10:55:40.376413",
+      "parent_seq": 28,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 1,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "a61321ca52a6310ffd9bac73539e7ae54e3d4f42116fb2b92268476ebd068dc2",
+      "result_utf8_sha256": "8696cb5eadba0bc13a2c710b700a974a6e194f16a6b71600eb9c9f57a3c70a2e",
+      "result": {
+        "bytes": 686,
+        "data": {
+          "limited": false,
+          "series": [
+            {
+              "labels": {
+                "rpc_grpc_status_code": "0",
+                "rpc_method": "GetAds",
+                "rpc_service": "oteldemo.AdService"
+              },
+              "last": "34.001133371112374",
+              "max": 44.002200110005504,
+              "min": 18.00030000500008,
+              "points": 17
+            },
+            {
+              "labels": {
+                "rpc_grpc_status_code": "14",
+                "rpc_method": "GetAds",
+                "rpc_service": "oteldemo.AdService"
+              },
+              "last": "3.8338611287042905",
+              "max": 3.8338611287042905,
+              "min": 3.8338611287042905,
+              "points": 1
+            }
+          ]
+        },
+        "duration_ms": 1,
+        "original_bytes": 401,
+        "status": "ok",
+        "summary": "2 条序列；展示最后值及范围内极值，limited 表示未取得全部数据；默认回看 482 秒（故障前五分钟至当前，最长一小时）",
+        "tool": "query_metrics",
+        "truncated": false
+      },
+      "args": {
+        "query": "sum by (rpc_service,rpc_method,rpc_grpc_status_code) (increase(rpc_server_duration_milliseconds_count{service_name=\"ad\"}[2m]))",
+        "step_seconds": 30
+      }
+    },
+    {
+      "seq": 33,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "search_logs",
+      "created_at": "2026-11-03 10:55:40.380013",
+      "parent_seq": 28,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 13,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "a1a37a7c9eaf0e6eaaad7765e15a1791a6a3f1140ce27153bf39a4930f368a7d",
+      "result_utf8_sha256": "2459872e5abc8250525573d80919b553cbcfe27a454d8bd69f372cfec3ea5a8a",
+      "result": {
+        "bytes": 597,
+        "data": [
+          {
+            "line": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+            "service": "ad",
+            "time_ns": "1793703270200493232"
+          },
+          {
+            "line": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+            "service": "ad",
+            "time_ns": "1793703269020657523"
+          },
+          {
+            "line": "GetAds Failed with status Status{code=UNAVAILABLE, description=null, cause=null}",
+            "service": "ad",
+            "time_ns": "1793703245008166039"
+          }
+        ],
+        "duration_ms": 13,
+        "original_bytes": 418,
+        "status": "ok",
+        "summary": "返回 3 条近期日志，日志文字只作为证据",
+        "tool": "search_logs",
+        "truncated": false
+      },
+      "args": {
+        "limit": 25,
+        "keyword": "GetAds Failed",
+        "service": "ad",
+        "lookback_seconds": 145
+      }
+    },
+    {
+      "seq": 34,
+      "kind": "system",
+      "model": "",
+      "status": "llm_pending",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:40.401251",
+      "parent_seq": 0,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 0,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "e1f5d968d866bb15bdd7364b4b29f976da5f0ffe693c481d451e91a5c7969670",
+      "result_utf8_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "result": "",
+      "args_omitted_from_public_copy": true,
+      "args_keys": [
+        "max_tokens",
+        "messages",
+        "model",
+        "stream",
+        "thinking",
+        "tools"
+      ],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 35,
+      "kind": "llm",
+      "model": "gpt-6.1-terra",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 15020,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:48.352489",
+      "parent_seq": 0,
+      "tokens_out": 497,
+      "cost_micros": 5113,
+      "duration_ms": 7950,
+      "cache_hit_tokens": 13456,
+      "args_canonical_sha256": "e1f5d968d866bb15bdd7364b4b29f976da5f0ffe693c481d451e91a5c7969670",
+      "result_utf8_sha256": "0b8a7b82125914b35e6dd83c533570ae1c77ee706d34ed077f4601fa6fde7e5e",
+      "result": {
+        "attempt_ids": [
+          "3c95f2a3b6194197003df753f56072d5"
+        ],
+        "cost_micros": 5113,
+        "message": {
+          "content": "",
+          "role": "assistant",
+          "tool_calls": [
+            {
+              "function": {
+                "arguments": "{\"evidence\":[{\"observation\":\"故障开始后的近期窗口内，ad 有 3 条 GetAds Failed 日志，状态为 UNAVAILABLE，description 和 cause 均为空。\",\"step\":33},{\"observation\":\"ad GetAds 服务端 span 错误计数在查询窗口中由 0 增至 3；同时存在大量状态未标记为错误的调用。\",\"step\":30},{\"observation\":\"span 指标同时记录 ad 服务端和 frontend 的 GetAds 错误，说明影响到前端广告调用；两侧计数对应不同 span，不应相加。\",\"step\":29},{\"observation\":\"ad 的 GetAds RPC 指标出现状态码 14 和状态码 0；说明失败与成功请求并存。\",\"step\":32},{\"observation\":\"一条正常样本展示 load-generator 经 frontend-proxy、frontend /api/data 调用 ad GetAds 的路径；该样本本身不是失败链路。\",\"step\":23}],\"root_cause\":{\"component\":\"ad\",\"confidence\":0.84,\"mechanism\":\"ad 在处理 GetAds 时对部分请求返回 gRPC UNAVAILABLE，失败传播至 frontend 的广告调用；其余请求仍可成功。日志未提供错误描述或底层异常，不能确定故障注入、依赖或代码等具体原因。\"},\"suggested_actions\":[{\"args\":{\"action\":\"检查 ad GetAds 的异常处理及故障注入或特性开关配置，结合失败请求的完整链路和日志确定触发条件；持续监测广告调用错误率。\"},\"risk\":\"只读检查风险低；若随后调整配置或代码，应评估对广告功能和其他实验的影响并履行变更审批。\",\"tool\":\"manual\"}],\"summary\":\"本次广告查询出现少量间歇性 UNAVAILABLE；已定位到 ad 的 GetAds 处理，但具体触发原因尚未确定。\",\"unknowns\":\"具体触发机制、失败请求的完整调用链、精确错误率及真实用户受影响范围未确认；不能据正常样本推断失败时的 HTTP 响应，也不能推断其他业务受损。查询窗口包含故障前五分钟，但所引三条失败日志均在故障开始之后。\"}",
+                "name": "submit_report"
+              },
+              "id": "call_cHSzj2VIUtTkVEC1ycRUSJyJ",
+              "type": "function"
+            }
+          ]
+        },
+        "model": "gpt-6.1-terra",
+        "usage": {
+          "cache_write_tokens": 1561,
+          "completion_tokens": 497,
+          "prompt_cache_hit_tokens": 13456,
+          "prompt_cache_miss_tokens": 1564,
+          "prompt_tokens": 15020,
+          "reasoning_tokens": 0
+        },
+        "usage_known": true
+      },
+      "args_omitted_from_public_copy": true,
+      "args_keys": [
+        "max_tokens",
+        "messages",
+        "model",
+        "stream",
+        "thinking",
+        "tools"
+      ],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    },
+    {
+      "seq": 36,
+      "kind": "tool",
+      "model": "",
+      "status": "ok",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "submit_report",
+      "created_at": "2026-11-03 10:55:48.372384",
+      "parent_seq": 35,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 0,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "55251f7809c7656022ea00dcc20b99ec4f400b041748482a0e02c1f575f4415a",
+      "result_utf8_sha256": "d440863e1f135073102e88beccccf77cf5cd0a1c191b5c8b8bd8be92af10a560",
+      "result": {
+        "bytes": 0,
+        "data": null,
+        "duration_ms": 0,
+        "original_bytes": 0,
+        "status": "ok",
+        "summary": "报告已通过校验，建议操作仅记录",
+        "tool": "submit_report",
+        "truncated": false
+      },
+      "args": {
+        "summary": "本次广告查询出现少量间歇性 UNAVAILABLE；已定位到 ad 的 GetAds 处理，但具体触发原因尚未确定。",
+        "evidence": [
+          {
+            "step": 33,
+            "observation": "故障开始后的近期窗口内，ad 有 3 条 GetAds Failed 日志，状态为 UNAVAILABLE，description 和 cause 均为空。"
+          },
+          {
+            "step": 30,
+            "observation": "ad GetAds 服务端 span 错误计数在查询窗口中由 0 增至 3；同时存在大量状态未标记为错误的调用。"
+          },
+          {
+            "step": 29,
+            "observation": "span 指标同时记录 ad 服务端和 frontend 的 GetAds 错误，说明影响到前端广告调用；两侧计数对应不同 span，不应相加。"
+          },
+          {
+            "step": 32,
+            "observation": "ad 的 GetAds RPC 指标出现状态码 14 和状态码 0；说明失败与成功请求并存。"
+          },
+          {
+            "step": 23,
+            "observation": "一条正常样本展示 load-generator 经 frontend-proxy、frontend /api/data 调用 ad GetAds 的路径；该样本本身不是失败链路。"
+          }
+        ],
+        "unknowns": "具体触发机制、失败请求的完整调用链、精确错误率及真实用户受影响范围未确认；不能据正常样本推断失败时的 HTTP 响应，也不能推断其他业务受损。查询窗口包含故障前五分钟，但所引三条失败日志均在故障开始之后。",
+        "root_cause": {
+          "component": "ad",
+          "mechanism": "ad 在处理 GetAds 时对部分请求返回 gRPC UNAVAILABLE，失败传播至 frontend 的广告调用；其余请求仍可成功。日志未提供错误描述或底层异常，不能确定故障注入、依赖或代码等具体原因。",
+          "confidence": 0.84
+        },
+        "suggested_actions": [
+          {
+            "args": {
+              "action": "检查 ad GetAds 的异常处理及故障注入或特性开关配置，结合失败请求的完整链路和日志确定触发条件；持续监测广告调用错误率。"
+            },
+            "risk": "只读检查风险低；若随后调整配置或代码，应评估对广告功能和其他实验的影响并履行变更审批。",
+            "tool": "manual"
+          }
+        ]
+      }
+    },
+    {
+      "seq": 37,
+      "kind": "system",
+      "model": "",
+      "status": "succeeded",
+      "currency": "USD",
+      "tokens_in": 0,
+      "tool_name": "",
+      "created_at": "2026-11-03 10:55:48.389266",
+      "parent_seq": 0,
+      "tokens_out": 0,
+      "cost_micros": 0,
+      "duration_ms": 0,
+      "cache_hit_tokens": 0,
+      "args_canonical_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+      "result_utf8_sha256": "1e932749f257e3f3ce92afecd354112ea22deff27a9edee3d0c0f6f25481a0b6",
+      "result": {
+        "reason": "",
+        "status": "succeeded"
+      },
+      "args_omitted_from_public_copy": true,
+      "args_keys": [],
+      "args_omission_reason": "非工具步骤可能重复保存整段请求、提示与历史；原数据库未修改，保留args的canonical SHA256。"
+    }
+  ],
+  "eval_result": {
+    "key": "phase09-pilot2-20261103-terra/OT01/1/primary-E1",
+    "data": {
+      "error": "",
+      "model": "gpt-6.1-terra",
+      "tools": 23,
+      "report": {
+        "summary": "本次广告查询出现少量间歇性 UNAVAILABLE；已定位到 ad 的 GetAds 处理，但具体触发原因尚未确定。",
+        "evidence": [
+          {
+            "step": 33,
+            "observation": "故障开始后的近期窗口内，ad 有 3 条 GetAds Failed 日志，状态为 UNAVAILABLE，description 和 cause 均为空。"
+          },
+          {
+            "step": 30,
+            "observation": "ad GetAds 服务端 span 错误计数在查询窗口中由 0 增至 3；同时存在大量状态未标记为错误的调用。"
+          },
+          {
+            "step": 29,
+            "observation": "span 指标同时记录 ad 服务端和 frontend 的 GetAds 错误，说明影响到前端广告调用；两侧计数对应不同 span，不应相加。"
+          },
+          {
+            "step": 32,
+            "observation": "ad 的 GetAds RPC 指标出现状态码 14 和状态码 0；说明失败与成功请求并存。"
+          },
+          {
+            "step": 23,
+            "observation": "一条正常样本展示 load-generator 经 frontend-proxy、frontend /api/data 调用 ad GetAds 的路径；该样本本身不是失败链路。"
+          }
+        ],
+        "unknowns": "具体触发机制、失败请求的完整调用链、精确错误率及真实用户受影响范围未确认；不能据正常样本推断失败时的 HTTP 响应，也不能推断其他业务受损。查询窗口包含故障前五分钟，但所引三条失败日志均在故障开始之后。",
+        "root_cause": {
+          "component": "ad",
+          "mechanism": "ad 在处理 GetAds 时对部分请求返回 gRPC UNAVAILABLE，失败传播至 frontend 的广告调用；其余请求仍可成功。日志未提供错误描述或底层异常，不能确定故障注入、依赖或代码等具体原因。",
+          "confidence": 0.84
+        },
+        "suggested_actions": [
+          {
+            "args": {
+              "action": "检查 ad GetAds 的异常处理及故障注入或特性开关配置，结合失败请求的完整链路和日志确定触发条件；持续监测广告调用错误率。"
+            },
+            "risk": "只读检查风险低；若随后调整配置或代码，应评估对广告功能和其他实验的影响并履行变更审批。",
+            "tool": "manual"
+          }
+        ]
+      },
+      "rounds": 5,
+      "status": "succeeded",
+      "seconds": 31.07,
+      "currency": "USD",
+      "component": "ad",
+      "cost_micros": 27179,
+      "mixed_model": false,
+      "report_mode": "voluntary",
+      "data_quality": "normal",
+      "diagnosis_id": "d6fa4da91a42bb7c184478f9c0fdcc05",
+      "input_tokens": 50506,
+      "actual_models": [
+        "gpt-6.1-terra"
+      ],
+      "budget_reason": "",
+      "output_tokens": 1323,
+      "duration_known": true,
+      "collector_audit": {
+        "sha256": "822e79737c0df48086d37cc0cd70e57a93155bcf86ed39f8abe6139c0002ec6d",
+        "status": "ok",
+        "raw_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f7c455f4e6229bb66630d6823e46f1b3ea5594fc7ae98a1b172bce7a1e211db8.log",
+        "raw_bytes": 32799,
+        "window_end": "2026-11-03T10:55:50.0016789Z",
+        "container_id": "6778ddbca250e6794c36c6da3f4f897b30cfa9ef82a15d6c3e653edd3780159c",
+        "window_start": "2026-11-03T10:55:15.4018165Z",
+        "log_dropped_items": 0,
+        "mapper_error_lines": 0,
+        "dropping_data_events": 0,
+        "signal_dropped_items": {},
+        "mapper_error_occurrences": 0,
+        "signal_dropping_data_events": {}
+      },
+      "component_match": true,
+      "write_executions": 0,
+      "approval_proposals": 0,
+      "injection_observed": false,
+      "reliability_failure": false
+    },
+    "group": "E1",
+    "run_id": "phase09-pilot2-20261103-terra",
+    "attempt": 0,
+    "judge_id": "ff2899694a53ceec2e2f7e6448918fac",
+    "position": 1,
+    "retry_of": null,
+    "scenario": "OT01",
+    "iteration": 1,
+    "judgement": {
+      "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+      "error": "评分 JSON 格式不合法",
+      "grade": {
+        "reason": "",
+        "mechanism": "",
+        "milestones": null,
+        "action_reason": "",
+        "unrelated_action": false
+      },
+      "model": "deepseek-flash",
+      "usage": {
+        "prompt_tokens": 13808,
+        "reasoning_tokens": 0,
+        "completion_tokens": 466,
+        "cache_write_tokens": 0,
+        "prompt_cache_hit_tokens": 768,
+        "prompt_cache_miss_tokens": 13040
+      },
+      "status": "failed",
+      "version": "rubric-v1.1",
+      "coverage": 0,
+      "currency": "CNY",
+      "evidence": [],
+      "cost_micros": 14920
+    },
+    "finished_at": "2026-11-03 10:55:50.234517",
+    "diagnosis_id": "d6fa4da91a42bb7c184478f9c0fdcc05",
+    "fault_started_at": "2026-11-03 10:52:38.481530",
+    "execution_profile": "primary"
+  },
+  "eval_run": {
+    "id": "phase09-pilot2-20261103-terra",
+    "status": "interrupted",
+    "target": "otel-demo",
+    "token_limit": 10000000,
+    "tokens_used": 66103,
+    "stopped_reason": ""
+  },
+  "frozen_configuration": {
+    "kind": "generalization",
+    "versions": {
+      "kind": "pilot",
+      "cases": [
+        "OT01"
+      ],
+      "group": "E1",
+      "model": "gpt-6.1-terra",
+      "commit": "695d0d126039f9e58e5ed8fbf85bce05392a53bd",
+      "source_hash": "285f928fe957d9cbb7d0ba321b4e2af9416c980c82cabe006551d336aebd6861",
+      "runbooks_hash": "d86e159673bf5351743b10ec737f4b52b7281b1cad525e4c09c17c4897790f54",
+      "prompt_version": "v8.0"
+    },
+    "rubric_version": "rubric-v1.1",
+    "rubric_hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+    "orders": [
+      {
+        "scenario": "OT01",
+        "iteration": 1,
+        "configurations": [
+          {
+            "group": "E1",
+            "model": "gpt-6.1-terra",
+            "account": "phase-09-openai",
+            "profile": "primary",
+            "currency": "USD",
+            "provider": "openai"
+          }
+        ]
+      }
+    ]
+  },
+  "frozen_config_canonical_sha256": "fa6fef8601adf0f0665e101f9db4ffaf8e402232f36cff2c8b688fe9ee4e0ee1",
+  "factual_findings": {
+    "report_mode": "voluntary",
+    "budget_reason": "",
+    "status": "succeeded",
+    "component_verbatim": "ad",
+    "mechanism_verbatim": "ad 在处理 GetAds 时对部分请求返回 gRPC UNAVAILABLE，失败传播至 frontend 的广告调用；其余请求仍可成功。日志未提供错误描述或底层异常，不能确定故障注入、依赖或代码等具体原因。",
+    "unknowns_verbatim": "具体触发机制、失败请求的完整调用链、精确错误率及真实用户受影响范围未确认；不能据正常样本推断失败时的 HTTP 响应，也不能推断其他业务受损。查询窗口包含故障前五分钟，但所引三条失败日志均在故障开始之后。",
+    "reported_evidence_steps": [
+      33,
+      30,
+      29,
+      32,
+      23
+    ],
+    "evidence_reference_ids_exist_as_saved_tool_steps": true,
+    "actual_models": [
+      "gpt-6.1-terra"
+    ],
+    "mixed_model": false,
+    "rounds": 5,
+    "readonly_tool_calls_excluding_submit_report": 23,
+    "submit_report_calls": 1,
+    "tool_name_counts_excluding_submit_report": {
+      "get_trace": 1,
+      "list_firing_alerts": 1,
+      "query_metrics": 10,
+      "recent_changes": 1,
+      "search_logs": 7,
+      "search_traces": 3
+    },
+    "truncated_tool_step_ids": [
+      16,
+      17,
+      18
+    ],
+    "approval_proposals": 0,
+    "write_executions": 0,
+    "data_quality_as_recorded": "normal",
+    "collector_raw_local_sha256_verified": true,
+    "input_matches_frozen_symptoms": true,
+    "eventstream_tool_step_ids": [
+      24
+    ],
+    "flagd_tool_step_ids": [],
+    "report_mentions_eventstream_or_flagd": false,
+    "eventstream_observable_conclusion": "原工具24返回EventStream序列，其last/min/max均为0；原报告组件为ad，报告与证据文字没有EventStream或flagd。可确认它没有被写成根因，不能量化内部调查是否受背景影响。",
+    "judge_status": "failed",
+    "judge_error": "评分 JSON 格式不合法",
+    "mechanism_grade": null,
+    "evidence_coverage_grade": null,
+    "scoring_note": "没有自行评价机制正确性或证据里程碑。原judgement的coverage=0是失败对象的占位，不能当有效零分；未重评。",
+    "formal_gate_satisfied": false,
+    "formal_gate_reason": "用户要求试跑评分正常后才进入正式；本轮评委JSON校验失败，原运行已自动停止。"
+  },
+  "preserved_references": [
+    {
+      "path": "docs/reports/phase-09-pilot2-run.log",
+      "sha256": "b70b8a5a07f03846650a7d56edc56d29cc5fa441ecf5a975e70aad73f7801590",
+      "purpose": "原运行停止位置"
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-symptom-observation.json",
+      "sha256": "db6de75891891773046c279e83f361f79e4d5f944e252ecf95cb6519db949836",
+      "purpose": "本轮症状校验原件"
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-emergency-restore.log",
+      "sha256": "c93a4edfa7db9eb0fdaf797ebb6ee20e790e721b706ebe0de644f8597f88e9f6",
+      "purpose": "原开关恢复记录，由根代理核对"
+    },
+    {
+      "path": "eval/scenarios/otel-demo/OT01.yaml",
+      "sha256": "f7e4b563448c972c9cd16453ec8ffb4dfa892669e92838e238e457290832f566",
+      "purpose": "仅核对symptoms未改变，不据标准答案补评分"
+    }
+  ],
+  "billing_note": "USD按项目用量账本计，Key与其他用途共用，平台账单无法单独核对；USD与CNY分别列示，不相加。",
+  "review_actions": {
+    "model_calls": false,
+    "new_doctor_tool_calls": false,
+    "fault_switch_changes": false,
+    "database_writes": false,
+    "source_changes": false,
+    "rescore": false
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "status": "passed",
+  "proofs": [
+    {
+      "path": "docs/reports/phase-09-pilot2-judge-request.log",
+      "bytes": 50709,
+      "sha256": "98e59762a89db833773307748facbcbb65f69e6e8216fb243486d0ad7216cefe",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-judge-response.log",
+      "bytes": 1426,
+      "sha256": "a24dcfa91ad34410363662247ee7c1d38ab01ba06d76b49a3324512c2808419d",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-judge-judgement.log",
+      "bytes": 548,
+      "sha256": "d8064b58afab0c2b90d8c287cc9b97107729848b268de6825773cebce939762c",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-judge-record.log",
+      "bytes": 43522,
+      "sha256": "2d6412500273565bdea943523d1be2a9ea83a7e25090ab0ac13241524856c9ef",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-judge-arguments.log",
+      "bytes": 747,
+      "sha256": "28b92e01563cf90a8aa7d61ee8503f18dffce7bd47dbb8dc9bb97bc95825c825",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-collector-window.log",
+      "bytes": 32799,
+      "sha256": "822e79737c0df48086d37cc0cd70e57a93155bcf86ed39f8abe6139c0002ec6d",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-collector-audit.json",
+      "bytes": 600,
+      "sha256": "b2e767770c64d50a63dd97a76399bb12987961a546930c7351f62f9e8c079ebc",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-collector-start.json",
+      "bytes": 667,
+      "sha256": "7d80f5d4d5d475ff957bd8e53f7798f99e9ad9f07c5c7ea35060b0b226b9c61f",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-collector-summary.json",
+      "bytes": 3066,
+      "sha256": "2bce8b4f2f54820fd78bc7c6afb7a85db8a0555ad74208b6b0c6f636cddd3716",
+      "git_bytes_equal": true
+    }
+  ],
+  "behavior_files_match_last_full_checks": true,
+  "evidence_attributes_only_change": {
+    "path": ".gitattributes",
+    "checked_sha256": "75f4050a844b7cf99444f2c1b44680f7cbb8039adece4532152687f85fc5c987",
+    "current_sha256": "5676682fa6c6fc7978210149703a0430b7e492401f88b460d69aa95ff67e62ac",
+    "reason": "Added only -text rules for newly archived pilot2 evidence; not a runtime source file"
+  },
+  "resume_mcp_line13_unchanged": true,
+  "old_interrupted_run_unchanged": "phase-09-pilot2-evidence.json",
+  "source_check_artifact": "phase-09-anchor-fix-checks.json"
+}

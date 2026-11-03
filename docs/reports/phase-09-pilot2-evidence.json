@@ -1,0 +1,38 @@
+{
+  "collector_evidence": [
+    {
+      "path": "docs/reports/phase-09-pilot2-collector-window.log",
+      "source": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f7c455f4e6229bb66630d6823e46f1b3ea5594fc7ae98a1b172bce7a1e211db8.log",
+      "bytes": 32799,
+      "sha256": "822e79737c0df48086d37cc0cd70e57a93155bcf86ed39f8abe6139c0002ec6d"
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-collector-audit.json",
+      "source": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f7c455f4e6229bb66630d6823e46f1b3ea5594fc7ae98a1b172bce7a1e211db8.audit.json",
+      "bytes": 600,
+      "sha256": "b2e767770c64d50a63dd97a76399bb12987961a546930c7351f62f9e8c079ebc"
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-collector-start.json",
+      "source": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f7c455f4e6229bb66630d6823e46f1b3ea5594fc7ae98a1b172bce7a1e211db8.start.json",
+      "bytes": 667,
+      "sha256": "7d80f5d4d5d475ff957bd8e53f7798f99e9ad9f07c5c7ea35060b0b226b9c61f"
+    },
+    {
+      "path": "docs/reports/phase-09-pilot2-collector-summary.json",
+      "source": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\collector-audit\\f7c455f4e6229bb66630d6823e46f1b3ea5594fc7ae98a1b172bce7a1e211db8.summary.json",
+      "bytes": 3066,
+      "sha256": "2bce8b4f2f54820fd78bc7c6afb7a85db8a0555ad74208b6b0c6f636cddd3716"
+    }
+  ],
+  "original_interrupted_run_unchanged": true,
+  "original_run_sha256": "abd0138b505319514d0588e80f46b5c9cd4096494f05bc81f8108de34112e132",
+  "derived_markdown": {
+    "path": "docs/reports/phase-09-pilot2-results.md",
+    "source": "docs/reports/phase-09-pilot2-results-export-complete.log",
+    "method": "remove only wrapper argument prefix; retain complete export body bytes (wrapper exit message was not in file)",
+    "source_sha256": "361656dd43f54076012a7cc50b9dbf5123a17a58e0b3c09d4c02a37ef8138874",
+    "body_sha256": "6c3a4a8607a52050555f78ebf38f4c89df96d0e46dc769c173be4f7944d4bbf4"
+  },
+  "source_files_match_last_full_checks": true
+}

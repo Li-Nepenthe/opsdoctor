@@ -1,0 +1,14 @@
+eval arguments: run --run phase09-pilot2-20261103-terra --scenarios OT01 --groups E1 --iterations 1 --model gpt-6.1-terra --allow-paid
+Demo OT01/1 state=pending
+原始开关已保存：C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\recovery\phase09-pilot2-20261103-terra\OT01-1.json；现在注入。
+Demo OT01/1 state=injecting
+Demo OT01/1 state=verifying
+Demo OT01/1 state=diagnosing
+位置1：phase09-pilot2-20261103-terra/OT01/1/primary-E1 diagnosis=d6fa4da91a42bb7c184478f9c0fdcc05；宿主保存Collector窗口
+diagnosis=d6fa4da91a42bb7c184478f9c0fdcc05 status=pending
+diagnosis=d6fa4da91a42bb7c184478f9c0fdcc05 status=running
+diagnosis=d6fa4da91a42bb7c184478f9c0fdcc05 status=succeeded
+phase09-pilot2-20261103-terra/OT01/1/primary-E1 status=succeeded data_quality=normal collector_raw=C:\Users\Nepenthe\AppData\Local\Temp\opsdoctor-phase09\collector-audit\f7c455f4e6229bb66630d6823e46f1b3ea5594fc7ae98a1b172bce7a1e211db8.log sha256=822e79737c0df48086d37cc0cd70e57a93155bcf86ed39f8abe6139c0002ec6d
+time=2026-11-03T02:55:50.300-08:00 level=INFO msg=开始模型请求 diagnosis_id=ff2899694a53ceec2e2f7e6448918fac attempt_id=154950629781b2aa9f425cfc0c7f9fa9 model=deepseek-flash
+time=2026-11-03T02:55:54.101-08:00 level=INFO msg=模型请求结束 diagnosis_id=ff2899694a53ceec2e2f7e6448918fac attempt_id=154950629781b2aa9f425cfc0c7f9fa9 status=ok duration_ms=3800 tokens_in=13808 tokens_out=466
+eval： 阶段 9 评分异常，原结果已保留，暂停后续付费：phase09-pilot2-20261103-terra/OT01/1/primary-E1

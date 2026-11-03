@@ -1,0 +1,180 @@
+{
+  "observed_at_utc": "2026-11-03T11:03:19.560115Z",
+  "scope": "Read-only fixed-ID UTF8 SELECT and offline syntax/source inspection. No environment/key enumeration, database mutation, source changes, model calls, repair, retry, or regrading.",
+  "run_id": "phase09-pilot2-20261103-terra",
+  "result_key": "phase09-pilot2-20261103-terra/OT01/1/primary-E1",
+  "doctor_diagnosis_id": "d6fa4da91a42bb7c184478f9c0fdcc05",
+  "judge_id": "ff2899694a53ceec2e2f7e6448918fac",
+  "attempt_id": "154950629781b2aa9f425cfc0c7f9fa9",
+  "doctor_context_from_saved_summary": {
+    "status": "succeeded",
+    "model": "gpt-6.1-terra",
+    "report_mode": "voluntary",
+    "data_quality": "normal",
+    "mixed_model": false,
+    "reliability_failure": false,
+    "input_tokens": 50506,
+    "output_tokens": 1323,
+    "cost_micros": 27179,
+    "currency": "USD"
+  },
+  "judge_attempt": {
+    "judge_status": "failed",
+    "judge_error": "评分 JSON 格式不合法",
+    "judge_model": "deepseek-flash",
+    "judge_provider": "openai",
+    "rubric_version": "rubric-v1.1",
+    "account": "phase-09-deepseek",
+    "currency": "CNY",
+    "attempt_status": "ok",
+    "maximum_micros": 59830,
+    "charged_micros": 14920,
+    "tokens_in": 13808,
+    "tokens_out": 466,
+    "created_at": "2026-11-03 10:55:50.291002",
+    "settled_at": "2026-11-03 10:55:54.093331"
+  },
+  "response_envelope": {
+    "valid_json": true,
+    "model": "deepseek-flash",
+    "choices": 1,
+    "tool_calls": 1,
+    "function_name": "submit_grade",
+    "finish_reason": "tool_calls",
+    "completion_tokens": 466,
+    "request_max_tokens": 2048
+  },
+  "failure": {
+    "field": "choices[0].message.tool_calls[0].function.arguments",
+    "arguments_utf8_bytes": 747,
+    "arguments_valid_json": false,
+    "first_failure": {
+      "parser": "Python standard-library JSON parser, syntax-only inspection; not a judge or score recomputation",
+      "message": "Expecting ',' delimiter",
+      "character_index_zero_based": 242,
+      "character_index_one_based": 243,
+      "utf8_byte_index_zero_based": 434,
+      "utf8_byte_index_one_based": 435,
+      "line": 1,
+      "column": 243,
+      "unexpected_character": "s",
+      "exact_context": "ds RPC 指标出现状态码14与状态码0，说明故障窗口内广告请求有错误也仍有成功；步骤29/30的 span 错误计数同样显示错误。, \"steps\": \"报告主因与参考一致：ad 在 GetAds 处理中对部分请求返回 gRPC UNAVAILABLE，失败传播到 front"
+    },
+    "explanation": "The first milestone reason string has no closing quote before the comma followed by steps. The quote before steps terminates that reason string; the following s is invalid at the position where a comma or closing brace is expected. The unmodified argument string does not form a complete valid grade object.",
+    "frozen_source": "internal/eval/judge/grade.go",
+    "frozen_function": "CheckResponse -> Check",
+    "frozen_branch": "decoder.Decode(&wire) != nil in the first format guard",
+    "stored_error": "评分 JSON 格式不合法",
+    "not_reached": [
+      "semantic mechanism acceptance",
+      "milestone completeness and allowed-ID checks",
+      "evidence step-ID checks",
+      "coverage computation"
+    ],
+    "no_repair_or_rescore": true,
+    "limit_inference": "finish_reason is tool_calls, not length; output is 466 tokens with max_tokens 2048. These records do not prove truncation by an output-token limit or a specific internal provider cause."
+  },
+  "frozen_protocol": {
+    "version": "rubric-v1.1",
+    "stored_rubric_sha256": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+    "request_system_sha256": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+    "repository_rubric_sha256": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+    "all_hashes_match": true,
+    "pending_milestone_ids": [
+      1,
+      2,
+      3
+    ],
+    "rule_results": [],
+    "milestones_required_count": 3,
+    "steps_required_type": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "minimum": 1
+      }
+    }
+  },
+  "stored_judgement": {
+    "hash": "bf5252244c3959a6d5d0396aa229c426f9a8de71aabdf6cdb6802079edc4aa9f",
+    "error": "评分 JSON 格式不合法",
+    "grade": {
+      "reason": "",
+      "mechanism": "",
+      "milestones": null,
+      "action_reason": "",
+      "unrelated_action": false
+    },
+    "model": "deepseek-flash",
+    "usage": {
+      "prompt_tokens": 13808,
+      "reasoning_tokens": 0,
+      "completion_tokens": 466,
+      "cache_write_tokens": 0,
+      "prompt_cache_hit_tokens": 768,
+      "prompt_cache_miss_tokens": 13040
+    },
+    "status": "failed",
+    "version": "rubric-v1.1",
+    "coverage": 0,
+    "currency": "CNY",
+    "evidence": [],
+    "cost_micros": 14920
+  },
+  "interpretation": {
+    "valid_judgement": false,
+    "model_literal_correct_is_not_an_accepted_grade": true,
+    "failed_grade_is_missing_not_zero_score": true,
+    "stored_coverage_zero_is_not_measured_zero_coverage": true,
+    "transport_success_does_not_imply_grade_protocol_success": true,
+    "judge_fee_cny_micros_retained": 14920,
+    "formal_gate_passed": false,
+    "formal_not_started": true,
+    "cannot_add_a_paid_retry_to_satisfy_success_gate": true
+  },
+  "evidence": {
+    "request": {
+      "path": "docs/reports/phase-09-pilot2-judge-request.log",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\pilot2-judge-failure\\20261103T105937213686Z\\request.json",
+      "bytes": 50709,
+      "sha256": "98e59762a89db833773307748facbcbb65f69e6e8216fb243486d0ad7216cefe",
+      "source": "UTF8 SELECT of existing redacted MySQL JSON column(s), with mysql output newline retained",
+      "copied_without_reencoding": true
+    },
+    "response": {
+      "path": "docs/reports/phase-09-pilot2-judge-response.log",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\pilot2-judge-failure\\20261103T105937213686Z\\response.json",
+      "bytes": 1426,
+      "sha256": "a24dcfa91ad34410363662247ee7c1d38ab01ba06d76b49a3324512c2808419d",
+      "source": "UTF8 SELECT of existing redacted MySQL JSON column(s), with mysql output newline retained",
+      "copied_without_reencoding": true
+    },
+    "judgement": {
+      "path": "docs/reports/phase-09-pilot2-judge-judgement.log",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\pilot2-judge-failure\\20261103T105937213686Z\\judgement.json",
+      "bytes": 548,
+      "sha256": "d8064b58afab0c2b90d8c287cc9b97107729848b268de6825773cebce939762c",
+      "source": "UTF8 SELECT of existing redacted MySQL JSON column(s), with mysql output newline retained",
+      "copied_without_reencoding": true
+    },
+    "record": {
+      "path": "docs/reports/phase-09-pilot2-judge-record.log",
+      "source_path": "C:\\Users\\Nepenthe\\AppData\\Local\\Temp\\opsdoctor-phase09\\pilot2-judge-failure\\20261103T105937213686Z\\record.json",
+      "bytes": 43522,
+      "sha256": "2d6412500273565bdea943523d1be2a9ea83a7e25090ab0ac13241524856c9ef",
+      "source": "UTF8 SELECT of existing redacted MySQL JSON column(s), with mysql output newline retained",
+      "copied_without_reencoding": true
+    },
+    "arguments": {
+      "path": "docs/reports/phase-09-pilot2-judge-arguments.log",
+      "bytes": 747,
+      "sha256": "28b92e01563cf90a8aa7d61ee8503f18dffce7bd47dbb8dc9bb97bc95825c825",
+      "source": "Derived by decoding choices[0].message.tool_calls[0].function.arguments from preserved response JSON; content is unchanged, not repaired or rescored"
+    }
+  },
+  "integrity_limits": [
+    "The evidence preserves existing redacted API ledger text returned by MySQL, not a network packet capture or an unredacted HTTP byte stream.",
+    "The decoded argument artifact is explicitly derived; the original outer response and stored judgement remain byte-identical.",
+    "No database status, report, score, or cost record was changed. Root owns flags restoration, healthy checks, account totals and main documentation."
+  ]
+}

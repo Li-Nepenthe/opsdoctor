@@ -1784,3 +1784,11 @@ EventStream摸底、四服务原始span及已授权OT01两查询修订见P9-36/3
 首次试跑phase09-pilot-20261103-terra于07:57:10 UTC注入并通过症状检查，进入diagnosing后报Collector起点锚点时间无法验证，尚未创建诊断。P9-41记录原槽位、原错误、0生成/0评分/两币种0支出。已紧急恢复原完整flags并实际查healthy，医生切回Mock。原run为interrupted且原trial未补写完成，暂不重试或正式评测；先免费定位并保存可审阅修法，依用户“异常时停下”要求等待其决定。
 
 同日补记：锚点读取机制已在同Collector只读复现，最小tail/all修复、真实对照和全仓Mock检查通过（P9-43、P9-44）。原次失败调用raw未留存，专项报告明确这一边界，不冒充原次字节还原。Demo已仅stop，Mock新pair及全部原资源保留（P9-45）；收费仍暂停，等用户决定新批次，不自动补跑。
+
+### 2026-11-03：新pilot2真实诊断完成，评委格式失败，正式批次未开
+
+用户复核锚点修复后批准新run ID试跑，并明确正式批次前必须核对症状、normal采集、医生主动提交、评委成功、恢复健康与全部费用×10。原中断批次逐字节保留；完成旧evaluation_targets模式交接后绑定pilot2，不改变原run/trial/result/interruption（P9-50）。免费预检与启动见P9-48、P9-49。
+
+Terra在pilot2主动提交1份ad/GetAds报告，原文承认具体机制仍未知；Collector诊断窗normal。DeepSeek一次HTTP成功，但内层submit_grade.arguments缺引号，冻结Check拒绝整份评分，run自动interrupted。没有重评、修JSON、替换标准或开正式批次，字面correct和失败默认coverage0都不当有效分。费用、原文与精确定位见P9-51–54及失败专项。
+
+按用户约定紧急restore后切Mock。原flags及证明SHA匹配；本轮中断后直到13:10 UTC才完成首次实际healthy观察，不能倒写成3分钟内恢复或正常trial.done/冷却完成。只stop Demo，原资源和旧run保留；新库账户累计USD$0.027179、CNY¥0.014920，不重置。美元按项目用量账本计，Key与其他用途共用，平台账单不能单独核对。正式矩阵费用估算虽低于剩余额度/余额，评委门槛仍失败，所以暂停（P9-54、P9-55）。

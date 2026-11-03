@@ -1,0 +1,21 @@
+{
+  "checked_at_utc": "2026-11-03T10:45:41.526591+00:00",
+  "source_target_files_match": true,
+  "database": {
+    "attempts": 0,
+    "new_run_exists": 0,
+    "old_run_status": "interrupted",
+    "doctor_statuses": null
+  },
+  "deepseek_balance": {
+    "is_available": true,
+    "balance_infos": [
+      {
+        "currency": "CNY",
+        "total_balance": "5.67",
+        "granted_balance": "0.00",
+        "topped_up_balance": "5.67"
+      }
+    ]
+  }
+}

@@ -1,0 +1,2 @@
+eval arguments: freeze --run phase09-pilot2-20261103-terra --scenarios OT01 --groups E1 --iterations 1 --model gpt-6.1-terra
+eval： 这个系统由另一批评测占用，请先完成或恢复原批次

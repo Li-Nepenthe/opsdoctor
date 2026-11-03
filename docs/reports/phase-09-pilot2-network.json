@@ -1,0 +1,28 @@
+{
+  "exit_code": 0,
+  "raw_sha256": "1fd36e3cf14b9adb384f8436d58d0543ba1f6db950d5bc5ea75229f183b7cd89",
+  "summary": {
+    "type": "summary",
+    "started_utc": "2026-11-03T10:40:16.023176587Z",
+    "finished_utc": "2026-11-03T10:50:15.991972258Z",
+    "elapsed_ms": 600002,
+    "sampling_window_seconds": 600,
+    "interval_seconds": 5,
+    "attempts": 238,
+    "successes": 238,
+    "failures": 0,
+    "providers": {
+      "deepseek": {
+        "attempts": 120,
+        "successes": 120,
+        "failures": 0
+      },
+      "openai": {
+        "attempts": 118,
+        "successes": 118,
+        "failures": 0
+      }
+    },
+    "completed": true
+  }
+}

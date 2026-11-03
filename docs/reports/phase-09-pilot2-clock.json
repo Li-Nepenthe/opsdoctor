@@ -1,0 +1,8 @@
+{
+  "checked_at_utc": "2026-11-03T10:40:15.229196+00:00",
+  "samples": 61,
+  "intervals": 60,
+  "max_absolute_correction_ns": 1932145,
+  "events_over_100ms": [],
+  "raw_sha256": "185e270395f0243591291648df45370f02a766a4d142c279fe6a2cf7c475931e"
+}

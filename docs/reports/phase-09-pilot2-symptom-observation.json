@@ -1,0 +1,20 @@
+{
+  "observed_at_utc": "2026-11-03T10:55:41.089323+00:00",
+  "fault_started_at": "2026-11-03T10:52:38.48153Z",
+  "query": "sum(increase(traces_span_metrics_calls_total{service_name=\"ad\",span_kind=\"SPAN_KIND_SERVER\",span_name=\"oteldemo.AdService/GetAds\",status_code=\"STATUS_CODE_ERROR\"}[2m])) > 0",
+  "response": {
+    "status": "success",
+    "data": {
+      "resultType": "vector",
+      "result": [
+        {
+          "metric": {},
+          "value": [
+            1793703341.088,
+            "4.41187353122552"
+          ]
+        }
+      ]
+    }
+  }
+}
