@@ -1,0 +1,72 @@
+{
+  "files": [
+    {
+      "path": "docs/reports/phase-09-paid-baseline.json",
+      "sha256": "a90b5af4071eb1da98d459d6107fd889082455144664f09c15cc277586c5cb34",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-paid-ad-baseline-investigation.json",
+      "sha256": "36a117dc5ecb80abe9d96c9e330c772b882240b9a476a2e476aaa358eaf0c442",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-ot01-same-window-proof.json",
+      "sha256": "4af8866f9f415a33cf093e00786b1a9d80a27f170daafdd136e2259c0a120883",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-ot01-selector-proposal.json",
+      "sha256": "6deb04e365abc26f18e91ac990f8414418364efdb5cc0a225aeacf64ca2872e0",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-ot01-baseline-proposal.diff",
+      "sha256": "1bc712f1d7a9a07d148db6c5a26d7fbf8e96907ea99d114d617ce39594bc671f",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-ot01-baseline-proposal.md",
+      "sha256": "9d81f48ea7a11a6e0a14f593604c81ab0c35887732567d58369076951a2f6924",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-paid-flags-before-injection.json",
+      "sha256": "cac9c1f606fcef8b1e3bdf776f930f9f7113e2ef39536a0825fe9eb568396a40",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-eventstream-client-spans.json",
+      "sha256": "5260af19cc7ef20d90e17954c3d2724d6dc4d42daf57c6cdc5d771ab3a878e2c",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-eventstream-controlled-20261103T072744Z.json",
+      "sha256": "f077c5ec5a6e18b2204c6b943987f26c3af0b415e63d0abee55469229ebd1f0a",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-eventstream-controlled-20261103T072744Z.jsonl",
+      "sha256": "6efdf7f41328c5acd98ce9285444c7f61bf31f6f6f30e06b1be8dd98b85abf9c",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-paid-network-final.jsonl",
+      "sha256": "0dc916ff1f3c2d9a7cc261f98d01ca1864e4245bad3e03ef1eeb9b15329e2503",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-paid-clock-final.jsonl",
+      "sha256": "74765c2966b7bf23fca1fefe8863887b1a126e7c467e005c2a464c74916890a6",
+      "git_bytes_equal": true
+    },
+    {
+      "path": "docs/reports/phase-09-collector-window-integration-raw.log",
+      "sha256": "097811ee8b6dca1c704df1b5776baf5ad22fb8360e8e42ad3434feb51aa312c0",
+      "git_bytes_equal": true
+    }
+  ],
+  "status": "passed",
+  "amendment_preserved_reference_hashes_match": true,
+  "note": "Explicitly re-added original proof files after disabling Git EOL conversion. No source evidence bytes changed."
+}
