@@ -2,6 +2,16 @@
 
 现在先由你当“医生的大脑”。程序负责安全地取证，你负责决定下一步查什么、这些证据说明了什么。这个阶段没有接大模型，也不会自动修复。
 
+**配合小林coding 阅读。** 和前几个阶段一样，用到基础知识时先用几句话讲清楚（标着“补基础”），再给出 [小林coding](https://www.xiaolincoding.com/) 里讲同一知识点的文章（标着“对照阅读”）。这一阶段主要是医生自己的设计：工具、权限、去重。小林coding 里能直接对照的内容不多，集中在 MySQL 执行计划、事务、幂等和 Go 接口上。
+
+| 本材料 | 小林coding 对应文章 | 去那边重点看什么 |
+|---|---|---|
+| 2.2 第三步 执行计划 | 《图解MySQL》[索引常见面试题 → 防止索引失效](https://www.xiaolincoding.com/mysql/index/index_interview.html#防止索引失效) | type、key、rows 怎样读；`type=ALL`、`key=NULL` 说明什么 |
+| 5.3 十秒预算 | 《Golang面试题》[6.4 context 如何被取消？](https://www.xiaolincoding.com/interview/golang.html#_6-4-context如何被取消) | 父 context 的截止时间怎样管住下面的所有调用 |
+| 5.5 告警去重 | 《系统设计面试题》[如何设计一个幂等接口，避免重复下单或重复扣款？](https://www.xiaolincoding.com/interview/systemdesign.html#如何设计一个幂等接口-避免重复下单或重复扣款)、《消息队列面试题》[消息重复消费怎么解决？](https://www.xiaolincoding.com/interview/mq.html#消息重复消费怎么解决) | 给每件事一个唯一身份，靠数据库约束挡住第二次 |
+| 5.5 一个事务里写 | 《图解MySQL》[事务有哪些特性？](https://www.xiaolincoding.com/mysql/transaction/mvcc.html#事务有哪些特性) | 原子性：一个事务里的修改要么全部生效，要么全部不生效 |
+| 6.1 接口 | 《Golang面试题》[7.1 interface 的底层原理是怎样的？](https://www.xiaolincoding.com/interview/golang.html#_7-1-go语言中-interface的底层原理是怎样的)、[7.4 interface 有哪些应用场景？](https://www.xiaolincoding.com/interview/golang.html#_7-4-go语言interface有哪些应用场景) | 接口值里存着“具体类型 + 方法表”；依赖注入和测试替身 |
+
 ## 1. 这个阶段做了什么
 
 ```mermaid
@@ -40,7 +50,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql b
 Invoke-RestMethod http://127.0.0.1:8090/health/ready
 ```
 
-你应该看到 doctor 和 doctor-mysql 健康，最后返回成功。首次空库先把 QPS 改成 0，按 README 完成造数后再开流量。初始化脚本第一次运行时可能还没有业务表，所以等迁移完成后再补授表级权限。脚本不会替你改已有账号的密码。
+你应该看到 doctor 和 doctor-mysql 健康，最后返回成功。首次空库先把 QPS 改成 0，按[操作手册](../operations.md#造数与调用库存)完成造数后再开流量。初始化脚本第一次运行时可能还没有业务表，所以等迁移完成后再补授表级权限。脚本不会替你改已有账号的密码。
 
 ```powershell
 # 只读本次需要的变量，不执行 .env 的内容，也不打印密码。
@@ -115,6 +125,10 @@ go run ./cmd/doctorctl tool run --target shop mysql_table_stats --args '{"table"
 为什么给 SELECT，而不是直接贴 UPDATE？工具只允许查看 SELECT 的执行计划。我们把 UPDATE 的查找条件转成 SELECT，查看“怎样定位这一行”，不执行扣库存。
 
 实测计划显示 `type=ALL`、`key=NULL`、估计扫描 498780 行；索引列表只有 PRIMARY，缺少架构说明里用于 sku_id 查找的索引。ALL 表示计划扫描全表，rows 是估计值，不是这次真的执行并数出的行数。这些证据支持“按商品找库存时失去了有效索引”。
+
+> **对照阅读**：《图解MySQL》[索引常见面试题 → 防止索引失效](https://www.xiaolincoding.com/mysql/index/index_interview.html#防止索引失效)：执行计划各列的含义。`key=NULL` 表示没有用上任何索引，`type=ALL` 是全表扫描，是最坏的一种。
+>
+> 可以和阶段 4 第 5.2 节对照着看：那里对真实的 UPDATE 做 EXPLAIN，结果写的是 `type=index`、`key=PRIMARY`；这里对改写成的 SELECT 做 EXPLAIN，结果是 `type=ALL`、`key=NULL`。两份计划写法不同，预计扫描的都是 498780 行，说的是同一件事：按商品编号已经找不到捷径了。这也提醒你，把 UPDATE 改写成 SELECT 来看计划，得到的是一个近似，不一定和原语句的计划完全相同。
 
 **第四步：检查连带影响。**
 
@@ -231,6 +245,24 @@ S01 第一轮实验脚本漏了专用 DSN，在注入前失败。补齐后通过
 
 完整文件导航在[代码地图](../代码地图.md)。不必第一次就通读全部适配器，先把 mysql_explain 这一条路径读通。
 
+### 4.1 代码走读：一次 mysql_explain 从命令行到 MySQL
+
+以第 2.2 节第三步的命令为例：`doctorctl tool run --target shop mysql_explain --args '{"sql":"SELECT * FROM stock WHERE sku_id = 1"}'`。
+
+| 顺序 | 在哪里 | 做了什么 |
+|---|---|---|
+| 1 | doctorctl（[app/cli.go](../../internal/doctor/app/cli.go)） | 把命令转成 HTTP 请求：`POST /api/v1/targets/shop/tools/mysql_explain/run`，请求头带登录令牌，正文就是 `--args` 里的 JSON |
+| 2 | 路由和 `runTool`（[httpapi/router.go](../../internal/doctor/httpapi/router.go)） | 这条路由在需要登录的分组里，先验令牌。再按路径里的 `shop` 找到这个系统，找不到返回 404；正文最多读 8192 字节，然后交给 shop 自己的工具菜单 |
+| 3 | `Registry.Run`（[tools/registry.go](../../internal/doctor/tools/registry.go)） | 检查工具名长度，确认菜单里有 `mysql_explain`；创建 10 秒的 context；按参数规则解码 JSON：只能有 `sql` 一个字段，长度 1 到 2048 字节 |
+| 4 | 工具函数（[tools/catalog_mysql.go](../../internal/doctor/tools/catalog_mysql.go)） | 调用 `source.SelectStatement`：去掉末尾的一个分号，确认第一个词是 SELECT，后面不能出现 `INTO`、`FOR`、`SLEEP`、`UPDATE` 这类词 |
+| 5 | `mysqlinspect.Explain`（[mysqlinspect/client.go](../../internal/doctor/source/mysqlinspect/client.go)） | 再按同样的规则检查一遍，然后由代码自己在前面加上 `EXPLAIN `，最多取 100 行。这个客户端在创建菜单时就绑定好了：用 shop 的 diag_ro 账号，连接池最多 3 条，多语句强制关闭 |
+| 6 | MySQL | 返回执行计划。原来的 SELECT 并不执行，所以不会读出业务行 |
+| 7 | 回到工具函数 | 把计划整理成表格，并注明“执行计划，不是查询结果行” |
+| 8 | 回到 `Registry.Run` | 编码成 JSON，状态记为 `ok`。`finish` 计算整个 Result 的大小，超过 4096 字节就只保留开头，放进 `preview`，并标上 `truncated=true` |
+| 9 | 回到 doctorctl | 不管工具成功与否，HTTP 都返回 200，真正的结果看 `status`。CLI 检查它，不是 `ok` 就以非零退出码结束 |
+
+第 4、5 步检查了两次，不是写重复了：工具层的检查给出清楚的报错，适配器的检查是最后一道关口，以后即使有别的调用方绕过工具层，也过不去。第 2 步的 `shop` 来自请求路径，而不是 JSON 参数，这就是第 5.2 节说的“参数里不放系统名”。
+
 ## 5. 关键设计与 WHY
 
 ### 5.1 为什么要有 source 接口
@@ -249,9 +281,13 @@ S01 第一轮实验脚本漏了专用 DSN，在注入前失败。补齐后通过
 
 如果每个工具自己决定超时，很容易有一个漏写。Registry 在校验后创建十秒 context，把它一路传到 HTTP 请求或数据库查询。MySQL 等连接也算在这十秒里。父调用如果只剩一秒，工具只有一秒，不会凭空得到新的十秒。
 
+> **对照阅读**：《Golang面试题》[6.4 context 如何被取消？](https://www.xiaolincoding.com/interview/golang.html#_6-4-context如何被取消)：超时取消靠定时器，到点自动取消；父 context 取消时，所有子 context 跟着取消。所以只要在入口创建一次十秒的 context，再一路往下传，下面的 HTTP 请求、等连接、查数据库都会在同一时刻停下。
+
 结果也有统一上限。`original_bytes` 是最终截断前的 Data JSON 大小，`bytes` 是包含状态、摘要等字段的完整 Result 大小。两者口径不同。超长时把前半段放进 `preview` 字符串，仍是合法 JSON，`truncated=true` 明确告诉你结果不完整。先摘要再截断，能优先留下数量、极值和最慢步骤。
 
 这不等于无限大的后端结果都能读完。HTTP 适配器先限制响应最多 2 MiB；指标也限制序列和点数。超过边界会失败或明确标为 limited，不能把省略部分当作“没有”。
+
+**这个上限在阶段 9 付出了代价。** 四千字节的上限保证一次结果不会挤爆后面的模型输入，但阶段 9 的外部 Demo 暴露了它的另一面。那边一次结账的调用链比 shop 长得多，`get_trace` 两次返回的完整数据分别是 5200 和 8352 字节，模型只看到开头；写着“连不上错误支付地址”的那一段，正好在被截掉的后半截。医生看到 `truncated=true`，如实写了“原因未知”，没有编造，说明截断标记起了作用。可它也说明，现在的摘要对很长的调用链还不够用：更好的做法是让摘要优先保留出错的步骤。这类改动要出新版本，并在两个系统上重跑评测，阶段 9 没有做。面试被问到“如果继续做，你会改什么”，这是一个很好的例子。
 
 ### 5.4 权限边界：读的一侧
 
@@ -265,11 +301,15 @@ S01 第一轮实验脚本漏了专用 DSN，在注入前失败。补齐后通过
 
 **为什么 MySQL 账号有 SELECT，医生却拿不到业务行？** MySQL 做 EXPLAIN 也要验证表权限，因此 diag_ro 有五张业务表的 SELECT。账号本身确实有读取这些行的能力，不能说 SELECT 被数据库禁掉了。限制来自工具：唯一接受 SQL 的方法会先检查 SELECT，再自己加 EXPLAIN，返回计划而不执行原查询；其他方法的 SQL 都固定。若有人盗走账号直连数据库，这层工具限制并不能保护业务行，所以凭据仍必须保密。
 
+**补基础：为什么要拒绝多语句和中间的分号。** 如果允许一次发多条 SQL，输入 `SELECT 1; DROP TABLE stock` 就可能借着“查计划”执行第二条。这种把命令藏进参数里的攻击叫 **SQL 注入**。项目从三处挡住它：`SelectStatement` 只允许末尾一个分号，中间出现分号就拒绝；词法检查拒绝 `INTO`、`SLEEP`、`UPDATE` 等关键词；连接配置强制关闭多语句（`MultiStatements = false`），就算前两道都漏了，驱动也不会把第二条发出去。其他工具不接收 SQL，比如查索引的工具，表名用绑定参数传进固定的 SQL，不拼进字符串。
+
 MySQL 监控表只授权实际用到的列。SQL 统计读 `DIGEST_TEXT`，具体值已被替成问号，不读 `QUERY_SAMPLE_TEXT`。锁信息不读 `LOCK_DATA`。没有授予 PROCESS、GRANT OPTION、INSERT、UPDATE、DELETE 或 DDL。
 
 Redis 只允许 INFO、SLOWLOG GET/LEN，以及客户端握手需要的 HELLO、PING。工具返回慢日志时还删去 key/value 参数，只留命令名、参数个数和耗时。允许“看慢日志”不等于允许 SLOWLOG RESET，更不等于能 GET 一个缓存键。
 
 连接数也属于权限。故障时数据库已经忙，医生不能再抢几十条连接。账号 `MAX_USER_CONNECTIONS 3` 是数据库的硬限制，医生池上限也是 3；排队十秒就返回超时。doctorctl 经 HTTP 使用这个池，开多个终端不会每个再开三条。
+
+**补基础：最小权限原则。** 给一个程序的权限，只够它完成工作就行，多一点都不给。这样即使它出了漏洞、被人滥用，能造成的破坏也有上限。本节的三层防线都是这个原则：工具只开放需要的查看动作，账号只授权用到的表和列，连接数也只给三条。
 
 以后模型会看到工具整理后的指标、SQL 模板、元数据、调用树、日志和架构说明，不会拿到 DSN 或原始客户端对象。本阶段还没有模型，也没有实现阶段 7 的统一脱敏；接入真实日志前必须另外考虑敏感信息，不能因为工具只读就认为内容都适合外发。
 
@@ -278,6 +318,10 @@ Redis 只允许 INFO、SLOWLOG GET/LEN，以及客户端握手需要的 HELLO、
 发送方没有收到成功响应时，会再次发送。同一故障持续时也会重复提醒。用“系统名加分组键”做唯一身份，让重复通知找到已有 pending 任务。任务和告警快照在一个数据库事务里写，全部提交后才向发送方返回成功。
 
 通知变成 resolved，只更新快照，不删除任务。本阶段没有执行器，任务一直 pending。后续任务完成时才需要释放活动分组身份；那属于后续状态机，不在这里假装已经做完。
+
+> **对照阅读**：
+> - 《系统设计面试题》[如何设计一个幂等接口，避免重复下单或重复扣款？](https://www.xiaolincoding.com/interview/systemdesign.html#如何设计一个幂等接口-避免重复下单或重复扣款)、《消息队列面试题》[消息重复消费怎么解决？](https://www.xiaolincoding.com/interview/mq.html#消息重复消费怎么解决)：两题的核心都是“给每件事一个唯一身份，靠数据库的唯一约束挡住第二次”。告警去重用的是同一招，身份是“系统名 + 分组键”，和阶段 2 的下单幂等键、消费去重表是一个思路。
+> - 《图解MySQL》[事务有哪些特性？](https://www.xiaolincoding.com/mysql/transaction/mvcc.html#事务有哪些特性)：原子性说的是，一个事务里的修改要么全部生效，要么全部不生效。任务和告警快照写在同一个事务里，就不会出现“任务建了、快照没存”的半截状态。全部提交后才回复成功；发送方没收到回复就会重发，重发又会被唯一身份挡住。
 
 ### 5.6 Jaeger 为什么固定一种接口
 
@@ -310,6 +354,8 @@ func main() {
 ```
 
 输出 3 和 11。工具只依赖 Counter 这么小的能力，不必知道后面是真的数据库还是测试对象。
+
+> **对照阅读**：《Golang面试题》[7.1 Go 语言中 interface 的底层原理是怎样的？](https://www.xiaolincoding.com/interview/golang.html#_7-1-go语言中-interface的底层原理是怎样的)：带方法的接口值在运行时叫 iface，里面的 itab 记着具体类型和一张方法表。编译时检查具体类型的方法是否齐全，齐全就能赋给接口，所以不用写 implements。[7.4 interface 有哪些应用场景？](https://www.xiaolincoding.com/interview/golang.html#_7-4-go语言interface有哪些应用场景)：第一条“依赖注入和解耦”说的就是本节：使用方只依赖小接口，测试时换成 Fake。
 
 ### 6.2 json.RawMessage：先保留 JSON，再按用途解码
 
@@ -474,5 +520,24 @@ go run ./cmd/doctorctl tool run --target shop search_logs --args '{"service":"or
 6. 持续故障会重复通知，网络失败会重发。数据库唯一身份和事务让这些通知更新同一任务，不生成一堆重复工作。
 7. 本阶段没有系统提示或模型。未来删掉提示里的限制，也不会凭空增加工具、地址、账号权限或挂载文件。代码和账号边界仍在。
 8. 每个系统先创建独立客户端和工具菜单，任务绑定系统。参数不能临时换系统；配置重名、共享凭据和 A 令牌推 B 都有拒绝测试。
+
+</details>
+
+### 面试追问：面试官接着会问
+
+1. 为什么不让 AI 直接连数据库执行 SQL，而要包一层工具？
+2. 怎么防止 AI 执行危险的 SQL？
+3. 工具返回的结果太大怎么办？
+4. Redis 的只读账号是怎么做的？
+5. 医生自己的数据库和被诊断系统的数据库，为什么要分开？
+
+<details>
+<summary>答题要点</summary>
+
+1. 工具把能做的事限定在“查看”：每个工具有固定用途、固定参数、10 秒超时和 4 KB 的结果上限，每次调用都留审计。直接给 SQL，等于把数据库的全部能力交给模型，出了问题也说不清是谁做了什么。
+2. 四层：唯一接收 SQL 的工具只接受单条 SELECT，中间不许有分号，拒绝 `INTO`、`SLEEP`、`UPDATE` 等词，`EXPLAIN` 前缀由代码自己加；驱动强制关闭多语句；数据库账号 diag_ro 只有查看权限、最多 3 条连接；就算账号被盗，也只能读、不能写（第 5.4 节）。
+3. 先摘要，保留数量、极值和最慢步骤，再截断到 4 KB，并标上 `truncated=true`，让模型知道结果不完整。代价在阶段 9 暴露了：OT04 的关键错误恰好在被截掉的后半段，所以下一步该做“按重要性保留”，比如调用链优先保留出错的 span（第 5.3 节）。
+4. Redis 6 以后有 ACL，可以给账号单独列出允许的命令。项目只允许 INFO、SLOWLOG GET 和 LEN，以及握手要用的 HELLO、PING；GET、KEYS 和所有写命令都会被拒绝。返回慢日志时，还删掉了里面的 key 和 value 参数。
+5. 医生要写自己的任务和审计，需要写权限；被诊断的系统只给它只读账号。两套账号、两个库分开，医生就不可能拿着自己的写权限去改业务库。阶段 9 更进一步，医生可以完全单独部署。
 
 </details>

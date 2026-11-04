@@ -14,6 +14,19 @@
 
 这个阶段还有一次很有价值的**真实排障**（第 3.5 节）：从一个奇怪的现象出发，一步步找到藏在 gRPC 库里的根因。面试时讲这种经历，比背概念有说服力得多。
 
+**配合小林coding 阅读。** 和前几个阶段一样，用到基础知识时先用几句话讲清楚（标着“补基础”），再给出 [小林coding](https://www.xiaolincoding.com/) 里讲同一知识点的文章（标着“对照阅读”）。小林coding 没有专门讲 Prometheus、Jaeger 这些监控工具，所以这一阶段的对照阅读集中在排障思路、DNS 和 Go 写法上；监控本身的概念，以本材料的补基础为准。
+
+| 本材料 | 小林coding 对应文章 | 去那边重点看什么 |
+|---|---|---|
+| 1、3.5 用三种数据排障 | 《系统设计面试题》[对外提供一个 API 服务，客户说请求接口超时了，怎么排查？](https://www.xiaolincoding.com/interview/systemdesign.html#对外提供一个api服务-客户说请求接口超时了-怎么排查) | 先看监控定范围，再用请求 ID 串起日志、用链路追踪拆开耗时；为什么不能只把超时调大 |
+| 3.5 DNS | 《图解网络》[真实地址查询 —— DNS](https://www.xiaolincoding.com/network/1_base/what_happen_url.html#真实地址查询-dns) | 域名怎样一级一级解析成 IP，本地 DNS 服务器和缓存起什么作用 |
+| 5.4 context 带着 span 往下传 | 《Golang面试题》[6.2 Go 语言的 context 有什么作用？](https://www.xiaolincoding.com/interview/golang.html#_6-2-go语言的context有什么作用) | context 的三个用途：超时、取消、传递请求级数据；调用链信息属于第三种 |
+| 5.6 错误率告警 | 《图解网络》[HTTP 常见的状态码有哪些？](https://www.xiaolincoding.com/network/2_http/http_interview.html#http-常见的状态码有哪些) | 4xx 和 5xx 的区别，错误率告警为什么只数 5xx |
+| 5.6 goroutine 告警 | 《Golang面试题》[10.5 Go 语言在什么情况下会发生内存泄漏？](https://www.xiaolincoding.com/interview/golang.html#_10-5-go语言在什么情况下会发生内存泄漏)、[10.6 发生了内存泄漏如何定位和优化？](https://www.xiaolincoding.com/interview/golang.html#_10-6-go语言发生了内存泄漏如何定位和优化) | goroutine 泄漏是最常见的一种；先看 goroutine 数量的曲线，再用 pprof 找它们卡在哪里 |
+| 6.1 给切片类型加方法 | 《Golang面试题》[2.4 slice 作为函数参数传递，会改变原 slice 吗？](https://www.xiaolincoding.com/interview/golang.html#_2-4-slice作为函数参数传递-会改变原slice吗)、[2.2 slice 是怎么扩容的？](https://www.xiaolincoding.com/interview/golang.html#_2-2-go语言里slice是怎么扩容的) | 为什么 `Set` 必须用指针接收者 |
+| 6.2 装饰器 | 《Golang面试题》[7.4 Go 语言 interface 有哪些应用场景？](https://www.xiaolincoding.com/interview/golang.html#_7-4-go语言interface有哪些应用场景) | 依赖注入和解耦、Web 框架的中间件，都靠“同一个接口，换一个实现” |
+| 实验二 熔断器状态 | 《分布式面试题》[限流、熔断和降级有什么区别？](https://www.xiaolincoding.com/interview/cap.html#限流、熔断和降级有什么区别) | 熔断器的关闭、打开、半开三个状态怎样切换 |
+
 ## 1. 这个阶段做了什么
 
 **三种数据，各回答一个问题：**
@@ -44,13 +57,17 @@ flowchart LR
 
 alertsink 是临时的：它只把收到的告警写进日志，不判断原因，也不修复。阶段 5 以后由医生接替。
 
+**补基础：拉取和推送。** 三种数据进入存储的方式不一样。指标是 Prometheus 主动来“拉”：每 10 秒访问一次各服务的 `/metrics` 地址，把当时的数字取回去，这一步叫采集（scrape）。调用链和日志则是服务主动“推”出去：span 攒成一批发给 Jaeger；日志直接打印到标准输出，由 Alloy 从容器里收走，再转给 Loki。拉取有个好处：Prometheus 自己知道“这次没拉到”，会把这个目标的 `up` 记成 0，所以服务挂了也能发现（第 9 节第 6 题）。
+
+**补基础：时间序列。** Prometheus 里的一条数据由“指标名 + 一组标签”确定，比如 `http_server_request_duration_seconds_count{service="order-service", route="/orders", method="POST", status="201"}`。每采集一次，这条线上就多一个点（时间，数值），这样一串点叫一条**时间序列**。第 5.3 节说的“标签组合太多会撑爆存储”，指的就是这种线太多。
+
 ## 2. 怎么跑起来、看什么
 
 所有命令都在仓库根目录运行，开始前先打开 Docker Desktop。全部 17 个容器大约占 2 GB 内存。
 
 ### 2.1 启动全部服务
 
-你的 `.env` 里已经有阶段 3 需要的几个变量（Grafana 管理员密码、监控账号密码、告警令牌），Astra 开发时已经补好了。如果启动时提示缺少某个变量，参照根目录 README 的“启动阶段 3 环境”一节补上。
+你的 `.env` 里已经有阶段 3 需要的几个变量（Grafana 管理员密码、监控账号密码、告警令牌），Astra 开发时已经补好了。如果启动时提示缺少某个变量，参照[操作手册](../operations.md#启动靶场环境)的“启动靶场环境”一节补上。
 
 ```powershell
 $env:LOADGEN_QPS = '0'
@@ -179,6 +196,10 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 这件事说明：在旧环境里测试通过，不等于在全新环境里也能通过。CI 每次都从空白开始，正好能发现这类问题。
 
+**补基础：文件权限 0644 和 0755。** Linux 给每个文件记三组权限：文件主人、同组用户、其他人。每组三项：读（r，记 4）、写（w，记 2）、执行（x，记 1），加起来就是一个数字。`0644` 是“主人能读写（4+2），其他人只能读（4）”，谁都不能执行；`0755` 是三组都能执行（7=4+2+1，5=4+1）。Windows 不记录这种权限，所以同一个脚本，在你电脑上检出和在 CI 的 Linux 上检出，权限可能不一样。
+
+**补基础：直接执行、source 和圆括号。** 直接执行一个脚本（比如 `./init.sh`），会另开一个新的 shell 进程来跑，脚本里的 `set -u` 和变量都随这个进程结束而消失。`source init.sh` 则是在当前的 shell 里逐行执行，脚本改过的设置会留下来，影响后面的命令。圆括号 `( ... )` 会开一个子 shell，括号里的设置出了括号就失效。所以把脚本内容包进圆括号，不管别人用哪种方式运行它，都不会影响外面。
+
 ### 3.5 真实排障：查到了 IP，为什么调用还是卡住了
 
 这是这个阶段最值得学的一段，完整地讲一遍。
@@ -228,6 +249,12 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T order-servic
 4. 读源码确认因果，而且读的是项目实际使用的那个版本。
 5. 用同样的条件对比修复前后，没有改善的结果也要如实记录。
 
+**补基础：DNS、A 记录和 TXT 记录。** 代码里写的是服务名 `inventory-service`，真正发网络请求要用 IP 地址。把名字翻译成 IP 的系统叫 DNS。DNS 里一个名字可以挂好几种“记录”：A 记录存 IPv4 地址，是最常用的；TXT 记录存一段文本，常用来放配置或验证信息。Docker 给每个容器配了一个内置的 DNS（地址是 127.0.0.11）：容器名、服务名它自己就能回答；不认识的名字，比如 `_grpc_config.inventory-service`，它转给宿主机设置的 DNS 去问，外面一直不回答，就只能等到超时。
+
+> **对照阅读**：
+> - 《图解网络》[真实地址查询 —— DNS](https://www.xiaolincoding.com/network/1_base/what_happen_url.html#真实地址查询-dns)：小林讲了一个域名怎样从本地 DNS 服务器一路问到根、顶级域、权威 DNS 服务器，以及浏览器和操作系统的缓存。本节的 Docker 内置 DNS 就扮演“本地 DNS 服务器”的角色。小林没有讲 A、TXT 这些记录类型，看上面的补基础即可。
+> - 《系统设计面试题》[对外提供一个 API 服务，客户说请求接口超时了，怎么排查？](https://www.xiaolincoding.com/interview/systemdesign.html#对外提供一个api服务-客户说请求接口超时了-怎么排查)：小林的步骤和本节几乎一一对应：先看 P99 和错误率定范围，用请求 ID 串起日志，用链路追踪拆开耗时。他也专门提到了“DNS 解析慢”，以及“不能只是把所有超时参数都调大”。读完试着用他的框架把本节的排障重讲一遍，面试时很好用。
+
 ## 4. 阅读顺序
 
 | 顺序 | 文件 | 重点看什么 |
@@ -243,6 +270,63 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T order-servic
 | 9 | [alertsink/handler.go](../../internal/platform/alertsink/handler.go) | 收到告警以后做了什么 |
 | 10 | [deploy/README.md](../../deploy/README.md) 及各子目录的 README | 每个监控组件的配置，以及它们怎样连成一套 |
 
+### 4.1 代码走读：一次下单请求怎样变成指标
+
+假设第 2.2 节的流量里，有一次 `POST /orders` 返回了 201，用时 0.037 秒（数字是示意）：
+
+| 顺序 | 在哪里 | 做了什么 |
+|---|---|---|
+| 1 | `HTTPMiddleware`（[telemetry/middleware.go](../../internal/platform/telemetry/middleware.go)） | 记下开始时间，调用 `ctx.Next()`，把请求交给后面的下单处理函数 |
+| 2 | 下单处理函数 | 照常下单，返回 201 |
+| 3 | 回到 `HTTPMiddleware` | `ctx.FullPath()` 取到的是路由模板 `/orders`，不是请求的原始地址；没有匹配到路由时它是空字符串，改记成 `unmatched`。方法 `POST` 在已知列表里，原样保留；不认识的方法统一记成 `OTHER`。状态码是 `201` |
+| 4 | 同上 | `metrics.HTTP.WithLabelValues("POST", "/orders", "201").Observe(0.037)`：0.037 秒不超过 0.05，所以 `le="0.05"` 以及更大的每个区间计数都加 1；同时总耗时 `_sum` 加 0.037，总次数 `_count` 加 1 |
+| 5 | Prometheus | 每 10 秒访问一次 `/metrics`，把这些计数存成时间序列。`service="order-service"` 这个标签是服务创建注册表时统一加上的（[metrics.go](../../internal/platform/telemetry/metrics.go) 里的 `WrapRegistererWith`），所以每条序列都带着它 |
+
+一个直方图在 `/metrics` 里会展开成很多行，大致是这样（数字是示意）：
+
+```text
+http_server_request_duration_seconds_bucket{method="POST",route="/orders",service="order-service",status="201",le="0.025"} 812
+http_server_request_duration_seconds_bucket{method="POST",route="/orders",service="order-service",status="201",le="0.05"} 1530
+...
+http_server_request_duration_seconds_bucket{method="POST",route="/orders",service="order-service",status="201",le="+Inf"} 1600
+http_server_request_duration_seconds_sum{method="POST",route="/orders",service="order-service",status="201"} 47.3
+http_server_request_duration_seconds_count{method="POST",route="/orders",service="order-service",status="201"} 1600
+```
+
+注意 `le` 是“小于等于”：`le="0.05"` 的 1530 已经包含了 `le="0.025"` 的 812。区间计数是**累计**的，最后的 `+Inf` 就等于总次数。第 5.2 节算 P99，用的就是这种累计计数。
+
+### 4.2 代码走读：trace 怎样跟着消息走到 order-worker
+
+接着第 2.4 节那笔订单。它的请求头带着 `traceparent`，最后两位是 `01`，表示要记录：
+
+| 顺序 | 在哪里 | 做了什么 |
+|---|---|---|
+| 1 | `Publish`（[events/publisher.go](../../internal/shop/events/publisher.go)） | 以当前 context 里的 span 为父节点，开一个 `order.created publish` span，类型是 Producer（生产者）。trace ID 沿用这笔订单的 |
+| 2 | 同上：`Propagator.Inject(ctx, &headers)` | Propagator 从 context 取出当前 span，调用 `headers.Set("traceparent", "00-<trace ID>-<publish span 的 ID>-01")`。`headers` 就是第 6.1 节那种加了方法的切片 `KafkaHeaders` |
+| 3 | `writer.WriteMessages` | 消息带着这个消息头写进 Kafka，键是订单号 |
+| 4 | order-worker 的 `process`（[events/consumer.go](../../internal/shop/events/consumer.go)） | 读到消息，把 `message.Headers` 转成 `KafkaHeaders`；`Propagator.Extract` 调用 `Get("traceparent")`，把 trace ID 和父 span ID 放进 context |
+| 5 | 同上 | 开 `order.created process` span，类型是 Consumer（消费者）。它的父节点是第 1 步的 publish span，trace ID 不变，所以在 Jaeger 里接在同一条链上 |
+| 6 | 之后的 SQL 和日志 | 都从这个 context 往下传：SQL 插件创建子 span，日志自动带上同一个 trace_id（第 5.5 节） |
+
+如果这笔订单没被选中记录，最后两位是 `00`，第 2 步写进消息头的也是 `00`。各服务的采样方式是“跟随父节点”（`parentbased_traceidratio`，由 [docker-compose.yml](../../deploy/docker-compose.yml) 里的环境变量设置），order-worker 看到 `00` 也就不记录。所以一条链要么都记、要么都不记（第 5.7 节）。
+
+### 4.3 代码走读：一条告警从规则到通知
+
+以第 7 节实验一为例：200 QPS 下停掉 order-worker。下面用的是阶段 3 当时的[告警配置](https://github.com/Li-Nepenthe/opsdoctor/blob/482aa22/deploy/alertmanager/alertmanager.yml)。阶段 5 以后，接收方从 alertsink 换成了医生，分组方式也改了，但流程相同。
+
+| 顺序 | 在哪里 | 发生了什么 |
+|---|---|---|
+| 1 | Kafka exporter → Prometheus | 每 10 秒采集一次消费组的积压量 `kafka_consumergroup_lag` |
+| 2 | 告警规则（[rules/shop.yml](../../deploy/prometheus/rules/shop.yml) 里的 `ConsumerLagHigh`） | Prometheus 每 10 秒算一次 `sum(kafka_consumergroup_lag{consumergroup="order-worker",topic="order.created"}) > 1000`。积压第一次超过 1000 时，告警进入 **pending**（等待），开始计时 |
+| 3 | 同上 | 接下来 2 分钟（`for: 2m`）里每次计算都仍超过 1000，告警变成 **firing**，发给 Alertmanager。中间只要有一次不满足，就退回去重新计时 |
+| 4 | Alertmanager | 按告警名和服务分组，先等 5 秒（`group_wait`），让同一组的告警凑齐再发；然后 POST 到 `http://alertsink:8091/api/v1/alerts`，请求头带 `Authorization: Bearer <令牌>`。令牌从容器里的临时文件读取，不写在配置里 |
+| 5 | alertsink（[alertsink/handler.go](../../internal/platform/alertsink/handler.go)） | 先核对令牌，不对就返回 401（第 7 节实验三）；再解析 JSON，状态只能是 firing 或 resolved；每条告警写一行日志“收到告警通知”，返回 204 |
+| 6 | 恢复以后 | 积压降到 1000 以下，告警恢复。配置了 `send_resolved: true`，所以会再发一次 resolved 通知 |
+
+把时间加起来，就能理解第 3.3 节那次为什么是 167 秒。规则旁边的注释估计，默认流量下大约每秒 40 笔订单，积压涨到 1000 要二十多秒；之后还要再持续 2 分钟才 firing；采集和计算各有最多 10 秒的间隔，Alertmanager 还要等 5 秒。加在一起，大约两分半到三分钟。
+
+**补基础：比较令牌，为什么要先算哈希、再用 `subtle.ConstantTimeCompare`。** 普通的字符串比较，遇到第一个不同的字节就返回。攻击者可以反复猜，测量每次响应是快是慢，一个字节一个字节地猜出令牌，这叫**时序攻击**。`ConstantTimeCompare` 不管哪里不同，都把整段比完，耗时一样。但它在两段长度不同时会直接返回，所以先把双方都算成固定 32 字节的 SHA-256 再比较，长度也不会泄露。
+
 ## 5. 关键设计与为什么
 
 ### 5.1 三种指标类型
@@ -254,6 +338,8 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T order-servic
 | **Histogram（直方图）** | 把每个值分到不同的区间里计数，用来估计分布 | `http_server_request_duration_seconds`：HTTP 请求的耗时 |
 
 Counter 的值本身没什么意义（“从启动到现在一共重试了 37 次”），有意义的是它增长的速度，所以查询时通常用 `rate()`：每秒增加了多少。程序重启后 Counter 归零，`rate()` 会自动处理这种情况。
+
+**补基础：rate 和 increase。** `rate(x[2m])` 是“最近 2 分钟里平均每秒增加多少”；`increase(x[2m])` 是“最近 2 分钟一共增加了多少”，大约等于 `rate` 乘以 120。两者都只用窗口里实际采到的点来算，再按比例推算到整个窗口，所以 `increase` 的结果经常不是整数。阶段 9 就碰到过这种情况：外部 Demo 的业务指标大约每 60 秒才更新一次，2 分钟的窗口里只有两个点，`increase` 把这一分钟的增量按比例放大成两倍，查出来的几乎都是偶数。所以不能把 `increase` 的结果直接当成“发生了几次”。
 
 ### 5.2 P99 是怎么从直方图算出来的
 
@@ -272,6 +358,26 @@ histogram_quantile(0.99,
 从里往外读：`rate(...[2m])` 算出最近 2 分钟每个区间每秒增加了多少；`sum by (le)` 把多个实例的同一个区间加在一起（`le` 是区间的上界）；`histogram_quantile(0.99, ...)` 估算出 P99。
 
 **不能把几个实例各自的 P99 平均。** 正确的做法就是上面这样：先把各实例的区间计数加起来，再算 P99。
+
+**补基础：P99 是什么意思。** 把一段时间里所有请求的耗时从小到大排好，排在 99% 位置上的那个值就是 P99。P99 是 300 毫秒，意思是 99% 的请求在 300 毫秒以内完成，最慢的那 1% 超过它。只看平均值，会被大量的快请求“拉低”：平均 20 毫秒的接口，也可能有 1% 的请求等了好几秒，而用户抱怨的正是这部分。所以看板和告警用 P99。
+
+**算一遍。** 假设最近 2 分钟一共有 1000 个下单请求，累计区间计数是这样（数字是示意）：
+
+| 区间上界 `le` | 累计请求数 |
+|---|---:|
+| 0.05 秒 | 600 |
+| 0.1 秒 | 900 |
+| 0.25 秒 | 985 |
+| 0.5 秒 | 995 |
+| 1 秒 | 1000 |
+
+1. P99 是第 0.99 × 1000 = 990 个请求。
+2. 从上往下找第一个累计数不少于 990 的区间，是 0.5 秒那一行（995）。上一行是 985，所以第 990 个请求落在 0.25 到 0.5 秒之间，是这个区间 10 个请求里的第 5 个。
+3. Prometheus 假设这 10 个请求在区间里均匀分布，按比例算：0.25 + (0.5 − 0.25) × 5 ÷ 10 = 0.375 秒。
+
+所以 P99 约为 375 毫秒。真实值可能是 0.25 到 0.5 秒之间的任何数，这就是“估计值”的意思；区间分得越细，估计越准。
+
+**为什么不能平均，也算一遍。** 实例 A 处理了 100 个请求，全都是 10 毫秒，P99 是 10 毫秒。实例 B 也是 100 个，其中 2 个用了 2 秒，P99 是 2 秒。两个 P99 平均，大约是 1 秒。可是把 200 个请求放在一起，慢的只有 2 个，第 198 个（0.99 × 200）仍然是 10 毫秒的快请求，真实的 P99 还是 10 毫秒左右，和平均出来的结果差了一百倍。
 
 ### 5.3 标签基数：为什么订单号不能做标签
 
@@ -300,6 +406,10 @@ histogram_quantile(0.99,
 
 如果 Kafka 这一段不传，order-worker 的处理就会变成一条新的、孤立的 trace，下单和消费就串不起来了。
 
+具体的传递过程，见第 4.2 节。
+
+> **对照阅读**：《Golang面试题》[6.2 Go 语言的 context 有什么作用？](https://www.xiaolincoding.com/interview/golang.html#_6-2-go语言的context有什么作用)：小林总结了 context 的三个用途：超时控制、传递取消信号、传递请求级的数据，并提到第三种“在分布式链路追踪中特别有用”。本节放在 context 里的当前 span，就是第三种用法。
+
 ### 5.5 日志里的 trace_id
 
 每条日志都会自动带上 `trace_id` 和 `span_id`，日志和调用链就能对上了。
@@ -313,6 +423,12 @@ histogram_quantile(0.99,
 因为同一个症状可能有很多原因。消息积压可能是 order-worker 停了，也可能是数据库变慢了，或者消息格式坏了。告警只负责发现“有问题”，找出原因是医生的工作。
 
 每条规则还有一个持续时间（`for`），比如积压要持续 2 分钟才报。这样能过滤掉偶尔的抖动，代价是发现得晚一点。
+
+**补基础：告警的三个状态。** 规则每 10 秒算一次。条件不满足时是 inactive（没事）；第一次满足，进入 pending（等待），开始计 `for` 的时间；在 `for` 规定的时间里每次都满足，才变成 firing（报警），发给 Alertmanager。等待期间只要有一次不满足，就回到 inactive，下次满足时重新计时。完整的过程见第 4.3 节。
+
+> **对照阅读**：
+> - 《图解网络》[HTTP 常见的状态码有哪些？](https://www.xiaolincoding.com/network/2_http/http_interview.html#http-常见的状态码有哪些)：4xx 表示客户端发来的请求有问题，5xx 表示服务器自己处理出错。错误率告警 `HTTPErrorRateHigh` 只数 5xx：参数填错的 400、地址不存在的 404 是客户端的问题，不代表服务坏了。
+> - 《Golang面试题》[10.5 Go 语言在什么情况下会发生内存泄漏？](https://www.xiaolincoding.com/interview/golang.html#_10-5-go语言在什么情况下会发生内存泄漏)、[10.6 发生了内存泄漏如何定位和优化？](https://www.xiaolincoding.com/interview/golang.html#_10-6-go语言发生了内存泄漏如何定位和优化)：小林说 goroutine 泄漏是最常见的一种，定位时先看 goroutine 数量的曲线，再用 pprof 看它们卡在哪里。`GoroutinesGrowing` 告警做的就是“看曲线”这一步；用 pprof 查原因，是阶段 5 以后医生的工具。
 
 ### 5.7 采样和资源
 
@@ -365,6 +481,8 @@ func main() {
 
 为什么 `Set` 要用指针接收者？`append` 在容量不够时会分配一块新的数组，返回新的切片。如果接收者是值（`headers Headers`），改的只是一份拷贝，调用方的变量不会变。
 
+> **对照阅读**：《Golang面试题》[2.4 slice 作为函数参数传递，会改变原 slice 吗？](https://www.xiaolincoding.com/interview/golang.html#_2-4-slice作为函数参数传递-会改变原slice吗)：小林的结论是，传 slice 时拷贝的是一个小结构体（指向底层数组的指针、长度、容量）。改元素会影响外面；但 `append` 改了长度，甚至换了底层数组，外面就看不到了。要让外面也变，就返回新的 slice，或者传指针。值接收者就相当于“传一份拷贝”，所以 `Set` 要用指针接收者。扩容时为什么会换数组，见 [2.2 slice 是怎么扩容的？](https://www.xiaolincoding.com/interview/golang.html#_2-2-go语言里slice是怎么扩容的)
+
 ### 6.2 装饰器：包一层，加点东西
 
 ```go
@@ -402,6 +520,8 @@ func main() {
 ```
 
 `countingCache` 和 `redisCache` 实现的是同一个接口，所以用到 `Cache` 的业务代码不需要任何修改。项目里的 `observedCache`、`observedProducts`、`observedIdempotency` 都是这样做的，只是把 `count++` 换成了给 Prometheus 指标加 1。
+
+> **对照阅读**：《Golang面试题》[7.4 Go 语言 interface 有哪些应用场景？](https://www.xiaolincoding.com/interview/golang.html#_7-4-go语言interface有哪些应用场景)：小林列的第一条是“依赖注入和解耦”，还提到 Web 框架的中间件也靠接口来扩展。装饰器能成立，前提就是业务代码只依赖接口，不关心背后是原来的缓存，还是包了一层的缓存。
 
 ### 6.3 采集时再读取当前值
 
@@ -456,6 +576,8 @@ docker compose --env-file .env -f deploy/docker-compose.yml stop inventory-servi
 你应该看到 `unavailable`（降级）。去看板上看熔断器状态面板，应该变成 2（打开）。
 
 恢复：`docker compose --env-file .env -f deploy/docker-compose.yml start inventory-service`。再查几次商品，熔断器经过半开（1）回到关闭（0）。
+
+> **对照阅读**：《分布式面试题》[限流、熔断和降级有什么区别？](https://www.xiaolincoding.com/interview/cap.html#限流、熔断和降级有什么区别)：熔断器的关闭、打开、半开三个状态，正好对应看板上的 0、2、1。半开时只放少量请求去试探，成功了才回到关闭；库存服务恢复后再查几次商品，就是在给半开状态送试探请求。商品查询显示 `unavailable` 而不是直接报错，就是小林说的“降级”。
 
 ### 实验三：用错误的令牌推送告警
 
@@ -547,6 +669,25 @@ http_server_request_duration_seconds_count{service="order-service", route="unmat
 8. 这个请求没有被采样；span 还在发送的路上；Jaeger 重启过或者已经被新的 trace 挤掉了；只有一个外部传进来的父 span，但那一段从来没有发给 Jaeger；或者发送真的出了错。
 9. 现象：闲置 34.5 分钟后恢复流量，库存调用全部超时，熔断器打开。线索：调用链里没有 gRPC 的 span；DNS 的 A 记录查询很快，TXT 记录查询要 5 秒才超时。根因：grpc-go 解析地址时会查 A 和 TXT，两个都查完才发调用；连接闲置 30 分钟后会被释放，再次调用时要重新解析。修复：创建 gRPC 客户端时加上 `WithDisableServiceConfig()`，不再查 TXT。验证：把空闲时间调成 10 秒，用同样的流量对比，失败从 228 个降到 0 个。
 10. 容器重启后 IP 不变，gRPC 直接重连原来的地址，不需要重新解析 DNS，所以 TXT 查询本来就不影响这个场景。剩下的 1 秒多失败，是库存服务真的停机的时间。
+
+</details>
+
+### 面试追问：面试官接着会问
+
+1. Prometheus 是拉数据还是等推送？各有什么好处？
+2. 一个接口变慢了，你怎么一步步定位？
+3. 调用链只记录 10%，会不会正好漏掉出错的请求？
+4. 告警太多、太吵怎么办？
+5. 日志、指标、调用链，为什么三样都要？只要日志行不行？
+
+<details>
+<summary>答题要点</summary>
+
+1. 本项目是拉：Prometheus 定时访问各服务的 `/metrics`。好处是它自己知道目标挂没挂（`up=0`），服务也不需要知道监控系统在哪。推是服务主动发出去，适合运行时间很短的任务，或者监控拉不到的网络环境；阶段 9 的 OTel Demo 就是通过 OTLP 把指标推给 Prometheus 的。
+2. 先看指标，确认是哪个接口、从什么时候开始慢（P99、错误率）；再找一笔同一时段的慢请求，用调用链看慢在哪一步；再用它的 trace_id 查日志，看那一步发生了什么；最后用数据库、网络这些底层数据验证猜想。第 3.5 节的 DNS TXT 排障就是这样一步步查出来的。
+3. 会。现在的做法叫“头部采样”：请求一开始就决定记不记，出错的请求也可能没被选中。改进办法是“尾部采样”：先把整条链缓存起来，等请求结束、知道它出错了或者很慢，再决定保留。代价是采集器要多缓存很多数据。
+4. 只对用户能看到的症状告警，不对猜测的原因告警；用 `for` 要求异常持续一段时间；Alertmanager 按告警名和服务分组，先等 5 秒凑齐再一起发；重复提醒之间有间隔。阶段 5 以后，医生还会把同一场故障的多次通知合进同一个诊断。
+5. 指标便宜，适合看全局趋势和触发告警，但看不到某一笔请求；调用链能看一笔请求慢在哪一步，但有采样；日志细节最多，但量大、难聚合。三者用 trace_id 串起来，就能从“整体有问题”一路走到“这一笔为什么错”。
 
 </details>
 

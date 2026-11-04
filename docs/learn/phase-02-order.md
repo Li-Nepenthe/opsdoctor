@@ -12,6 +12,27 @@
 
 > 这份材料对照的是**当前的代码**。阶段 3 加的指标和调用链，读代码时可以先跳过。
 
+**配合小林coding 阅读。** 和前两个阶段一样，用到基础知识时先用几句话讲清楚（标着“补基础”），再给出 [小林coding](https://www.xiaolincoding.com/) 里讲同一知识点的文章（标着“对照阅读”）。这一阶段的面试题最多，Redis、消息队列、分布式一致性都在这里第一次出现。本阶段用到的全部对照文章：
+
+| 本材料 | 小林coding 对应文章 | 去那边重点看什么 |
+|---|---|---|
+| 5.1 Redis 与 Cache Aside | 《图解Redis》[什么是 Redis？](https://www.xiaolincoding.com/redis/base/wath_is_redis.html) | Redis 为什么快，为什么常放在 MySQL 前面当缓存 |
+| 5.1 写时删缓存 | 《图解Redis》[数据库和缓存如何保证一致性？](https://www.xiaolincoding.com/redis/architecture/mysql_redis_consistency.html#先更新数据库-还是先删除缓存) | “先更新数据库，还是先删除缓存？” |
+| 5.2 穿透、击穿、雪崩 | 《图解Redis》[什么是缓存雪崩、击穿、穿透？](https://www.xiaolincoding.com/redis/cluster/cache_problem.html) | 每个问题有几种办法，本项目选了哪一种 |
+| 5.3 限流、熔断、降级 | 《分布式面试题》[限流、熔断和降级有什么区别？](https://www.xiaolincoding.com/interview/cap.html#限流、熔断和降级有什么区别)、[常见的限流算法你知道哪些？](https://www.xiaolincoding.com/interview/cap.html#常见的限流算法你知道哪些) | 三者各解决什么问题；令牌桶和漏桶的区别（必答题第 10 题） |
+| 5.4 查询和扣减 | 《图解网络》[GET 和 POST 方法都是安全和幂等的吗？](https://www.xiaolincoding.com/network/2_http/http_interview.html#get-和-post-方法都是安全和幂等的吗) | “幂等”是什么意思 |
+| 5.5 Kafka 基本概念 | 《消息队列面试题》[为什么需要消息队列？](https://www.xiaolincoding.com/interview/mq.html#为什么需要消息队列)、[Kafka 的模型介绍一下](https://www.xiaolincoding.com/interview/mq.html#kafka-的模型介绍一下-kafka-是推送还是拉取)、[为什么一个分区只能由消费者组的一个消费者消费？](https://www.xiaolincoding.com/interview/mq.html#kafka为什么一个分区只能由消费者组的一个消费者消费-这样设计的意义是什么) | 主题、分区、消费组 |
+| 5.5 位点与去重 | 《消息队列面试题》[Kafka 的 offset 应该什么时候提交？](https://www.xiaolincoding.com/interview/mq.html#kafka-的-offset-应该什么时候提交-自动提交有什么问题)、[消息重复消费怎么解决？](https://www.xiaolincoding.com/interview/mq.html#消息重复消费怎么解决)、[最多一次、至少一次、恰好一次有什么区别？](https://www.xiaolincoding.com/interview/mq.html#最多一次、至少一次、恰好一次有什么区别) | 先处理再提交；去重记录和业务更新放进同一个本地事务 |
+| 5.6 接口幂等 | 《系统设计面试题》[如何设计一个幂等接口，避免重复下单或重复扣款？](https://www.xiaolincoding.com/interview/systemdesign.html#如何设计一个幂等接口-避免重复下单或重复扣款) | 幂等键、请求参数摘要，以及处理中、成功、结果未知几种状态 |
+| 5.6 SET NX 与 Lua | 《图解Redis》[Redis 分布式锁是怎么实现的？](https://www.xiaolincoding.com/redis/module/setnx.html) | `SET key unique_value NX EX`，唯一标识，用 Lua 把“判断”和“修改”合成一步 |
+| 5.6 noeviction 与 AOF | 《图解Redis》[过期删除策略和内存淘汰策略有什么区别？](https://www.xiaolincoding.com/redis/module/strategy.html)、[AOF 持久化是怎么实现的？](https://www.xiaolincoding.com/redis/storage/aof.html) | 内存淘汰策略里的 noeviction；AOF 三种写回策略里的 Always |
+| 5.7 分布式一致性 | 《分布式面试题》[分布式事务的解决方案你知道哪些？](https://www.xiaolincoding.com/interview/cap.html#分布式事务的解决方案你知道哪些) | 2PC、TCC、Saga、本地消息表各自的代价 |
+| 5.8 Outbox | 《消息队列面试题》[本地消息表怎么保证数据库和 MQ 的一致性？](https://www.xiaolincoding.com/interview/mq.html#本地消息表怎么保证数据库和-mq-的一致性) | 本地消息表就是 Outbox |
+| 3.3 坏消息、实验三 积压 | 《消息队列面试题》[消费失败怎么重试，死信消息怎么处理？](https://www.xiaolincoding.com/interview/mq.html#消费失败怎么重试-死信消息怎么处理)、[如何处理消息队列的消息积压问题？](https://www.xiaolincoding.com/interview/mq.html#如何处理消息队列的消息积压问题) | 死信队列是什么；积压怎么处理 |
+| 6.3、6.4、6.6 Go 写法 | 《Golang面试题》[7.3 类型转换和断言的区别](https://www.xiaolincoding.com/interview/golang.html#_7-3-类型转换和断言的区别是什么)、[1.10 tag 有什么用](https://www.xiaolincoding.com/interview/golang.html#_1-10-go-语言-tag-有什么用)、[4.8 往关闭的channel写数据](https://www.xiaolincoding.com/interview/golang.html#_4-8-往一个关闭的channel写入数据会发生什么)、[5.3 原子操作和锁的区别](https://www.xiaolincoding.com/interview/golang.html#_5-3-聊聊原子操作和锁的区别) | 类型断言、结构体标签、为什么由发送方关闭通道、atomic |
+
+订单服务的 HTTP 接口是用 Gin 写的，Gin 的入门讲解在第 6.7 节：先按第 2 节把接口跑起来，再读那一节对照代码。小林coding 的 Golang 面试题没有专门讲 Gin，相关面试点以第 6.7 节为准。
+
 ## 1. 这个阶段做了什么
 
 | 新增的部分 | 作用 |
@@ -45,7 +66,7 @@ flowchart LR
 
 ## 2. 怎么跑起来、看什么
 
-所有命令都在仓库根目录运行，开始前先打开 Docker Desktop。命令用 PowerShell 写，bash 的写法见根目录 [README](../../README.md)。
+所有命令都在仓库根目录运行，开始前先打开 Docker Desktop。命令用 PowerShell 写，bash 的写法见[操作手册](../operations.md)。
 
 > 你的数据库里已经有数据了，**不要运行 `shopctl seed`**。
 
@@ -173,6 +194,8 @@ go run ./cmd/shopctl check
 
 **取舍：** 遇到格式损坏的消息时，选择停下来，不提交它的位点，而不是悄悄跳过。现在没有“死信队列”（专门存放处理不了的消息的地方），坏消息需要人工处理。
 
+> **对照阅读**：《消息队列面试题》[消费失败怎么重试，死信消息怎么处理？](https://www.xiaolincoding.com/interview/mq.html#消费失败怎么重试-死信消息怎么处理)：死信队列是什么，什么时候把消息转进去。
+
 ### 3.4 先确认失败边界，再写接口幂等
 
 **要做什么：** 同一个幂等键的重复请求，不能重复扣库存或重复下单。
@@ -241,9 +264,51 @@ go run ./cmd/shopctl check
 | 14 | [loadgen/generator.go](../../internal/loadgen/generator.go)、[client.go](../../internal/loadgen/client.go)、[stats.go](../../internal/loadgen/stats.go) | 目标速率和实际速率怎样分开统计；dropped 是怎么来的 |
 | 15 | [order/service_test.go](../../internal/shop/order/service_test.go) | 每一种失败情况的测试，反过来帮你理解 `Create` |
 
+### 4.1 代码走读：一次下单，在请求里同步完成的那一段
+
+沿着第 2.3 节的那次下单走一遍：请求头带着 `Idempotency-Key`，正文是 `{"user_id":880001000,"sku_id":499997,"quantity":1}`。
+
+| 顺序 | 在哪里 | 做了什么 |
+|---|---|---|
+| 1 | `Handler.Create`（[http_handler.go](../../internal/shop/order/http_handler.go)） | 读请求头 `Idempotency-Key`，带了多个就拒绝；用 `BindJSON` 解析出 user_id、sku_id、quantity |
+| 2 | `Service.Create` 开头 | 检查三个数都大于 0、键的格式合法 |
+| 3 | `RedisIdempotency.Reserve`（[order/cache.go](../../internal/shop/order/cache.go)） | 先算出请求参数摘要，再执行 `SET idempotency:<键> <记录> NX EX 86400`。记录是一段 JSON，里面有随机的所有者标识、参数摘要、状态“处理中”和商品编号。写入成功，拿到处理权 |
+| 4 | `prices.Get`，也就是商品服务 | 先查 Redis 的 `product:499997`，没有再查 MySQL 并写回缓存（第 5.1 节） |
+| 5 | `stock.Deduct` | 通过 gRPC 调库存服务扣 1 件，最多等 800 毫秒，不重试。库存服务那一头发生了什么，见阶段 1 第 4.1 节 |
+| 6 | `repository.Create` | 在 MySQL 的事务里执行 `INSERT INTO orders ...`，状态 `created`，金额等于单价乘以数量。如果提交（Commit）这一步出错，分不清订单到底写进去没有，就按“结果不确定”处理（第 5.7 节） |
+| 7 | `publisher.Publish` | 往主题 `order.created` 发一条消息，用订单号决定进哪个分区，等 Kafka 确认收到。发送失败只记一条告警日志，照常返回成功（第 5.8 节） |
+| 8 | `idempotency.Complete` | 用 Lua 脚本先比较 Redis 里的记录还是不是自己写的那条，是才改成“已完成”，并存下订单号和金额。`KEEPTTL` 让有效期保持原来的 24 小时，不重新计时 |
+| 9 | `Handler.Create` | 返回 201，正文 `data` 里是订单号、金额和状态 |
+
+**同一个键再提交一次：** 第 3 步的 `SET NX` 失败，因为键已经存在。代码读出原来的记录，先比较参数摘要，一致；状态是“已完成”，就直接返回保存的订单号和金额，第 4 到 8 步一步都不执行。这就是第 2.3 节两次返回完全一样的原因。状态是“处理中”，返回 409 `REQUEST_IN_PROGRESS`；状态是“待核对”，返回 409 `REQUEST_OUTCOME_UNKNOWN`。
+
+**同一个键、换了下单内容：** 比如第一次买 1 件，第二次买 5 件。参数摘要对不上，说明客户端把键用错了，返回 400 参数错误，不会把第一次的结果当成这一次的结果返回。
+
+### 4.2 代码走读：同一条消息到了两次
+
+接着上一节，订单写好、消息发出以后，order-worker 在后台处理这条消息。下面假设订单号是 12345，消息在某个分区的位点是 100，并且在最坏的时刻发生了一次崩溃：
+
+| 时刻 | order-worker 做了什么 | MySQL | Kafka 位点 |
+|---|---|---|---|
+| 1 | 读到订单 12345 的消息 | | 停在 100 |
+| 2 | 开始事务，`INSERT INTO processed_events (order_id, processed_at) VALUES (12345, 当前时间)`，成功 | 多了一条去重记录（还没提交） | |
+| 3 | `INSERT INTO product_sales (sku_id, sold) VALUES (499997, 1) ON DUPLICATE KEY UPDATE sold = sold + 1` | 销量加 1（还没提交） | |
+| 4 | 提交事务 | 两条修改一起生效 | |
+| 5 | 还没来得及提交位点，进程被强制杀掉，就像第 7 节实验三那样 | | 仍停在 100 |
+| 6 | 重启以后，从位点 100 重新读到同一条消息 | | |
+| 7 | 开始事务，再插入 processed_events：主键 12345 已经存在，MySQL 返回错误 1062（主键重复）。`Apply` 据此认定这笔订单处理过了，直接返回；这个事务里什么也没写，回滚即可 | 销量没有再加 | |
+| 8 | 提交位点，日志里的 `result` 字段是 `duplicate` | | 前进到 101 |
+
+要注意的两点：
+
+1. **第 5 步如果换成“先提交位点、再写数据库”**，崩溃以后这条消息就再也不会来了，销量少算一笔，而且没法补救。这就是第 5.5 节那张表的意思。
+2. **两条重复消息同时到达也不会算两次。** 第一条的事务还没提交时，第二条插入同一个主键会先等着；等第一条提交了，它得到 1062，按重复处理。代码在 [sales/repository.go](../../internal/shop/sales/repository.go) 的 `Apply` 里。
+
 ## 5. 关键设计与为什么
 
 ### 5.1 缓存：先查缓存，没有再查数据库
+
+**补基础：Redis。** Redis 是一个把数据放在内存里的键值数据库：给它一个键，它返回对应的值。内存比磁盘快得多，所以 Redis 常放在 MySQL 前面当缓存。本项目里的 Redis 有两个用途：一是商品缓存，键是 `product:商品编号`，值是商品的 JSON；二是第 5.6 节的幂等记录，键是 `idempotency:幂等键`。
 
 这种做法叫 **Cache Aside**（旁路缓存）：
 
@@ -253,6 +318,8 @@ go run ./cmd/shopctl check
 为什么写的时候删缓存而不是改缓存？两个请求同时更新同一个商品时，“改缓存”的顺序可能和“改数据库”的顺序不一致，缓存里就会留下旧值。删缓存能缩小这个问题，但也不能完全消除，所以缓存都设有效期，最多过一会儿就会自己更新。（项目目前没有修改商品的接口，只用到了读的那一半。）
 
 **为什么只缓存商品，不缓存库存：** 商品名称和价格很少变，缓存几分钟没问题。库存时刻在变，而且扣库存必须由库存服务在数据库里原子地判断，不能拿缓存里的数去减。商品详情里显示的库存，是每次实时向库存服务查询的。
+
+> **对照阅读**：《图解Redis》[什么是 Redis？](https://www.xiaolincoding.com/redis/base/wath_is_redis.html)；[数据库和缓存如何保证一致性？](https://www.xiaolincoding.com/redis/architecture/mysql_redis_consistency.html#先更新数据库-还是先删除缓存)：小林一步步比较了“先更新数据库，还是先更新缓存”“先更新数据库，还是先删除缓存”，最后推荐的也是先更新数据库、再删除缓存。他还讲了另一种“先删缓存、再更新数据库”的方案要配合“延迟双删”，可以对照着理解为什么本节不选它。
 
 ### 5.2 缓存的三个经典问题
 
@@ -265,6 +332,11 @@ go run ./cmd/shopctl check
 三个办法各管一种问题，不能互相替代。singleflight 只能合并同一个进程里的请求；如果订单服务部署了多个实例，每个实例还是会各查一次。
 
 阶段 4 的故障场景会故意关掉 singleflight（S04 缓存击穿）、去掉随机有效期（S05 缓存雪崩），所以这两个功能都可以通过配置关闭。
+
+> **对照阅读**：《图解Redis》[什么是缓存雪崩、击穿、穿透？](https://www.xiaolincoding.com/redis/cluster/cache_problem.html)。小林给每个问题都列了几种办法，对照看本项目选了哪一种：
+> - [雪崩](https://www.xiaolincoding.com/redis/cluster/cache_problem.html#缓存雪崩)：小林提到给过期时间加一个随机数，本项目就是 10 分钟再随机加最多 1 分钟。
+> - [击穿](https://www.xiaolincoding.com/redis/cluster/cache_problem.html#缓存击穿)：小林提到用互斥锁，保证同一时间只有一个请求去重建缓存。singleflight 是同一个思路，但只在一个进程里生效；想让多个实例也只查一次，就要换成 Redis 这类分布式锁。
+> - [穿透](https://www.xiaolincoding.com/redis/cluster/cache_problem.html#缓存穿透)：小林提到缓存空值和布隆过滤器。本项目用的是前一种，把“不存在”写成 `null` 缓存 30 秒。
 
 ### 5.3 服务治理：五种手段，解决五种问题
 
@@ -295,6 +367,8 @@ stateDiagram-v2
 
 **限流用的是令牌桶：** 想象一个桶，每秒往里放 500 个令牌，最多存 100 个。每个请求要拿走一个令牌才能进入，拿不到就立刻返回 429。桶里存着的令牌允许短时间的突发流量。
 
+> **对照阅读**：《分布式面试题》[限流、熔断和降级有什么区别？](https://www.xiaolincoding.com/interview/cap.html#限流、熔断和降级有什么区别)：小林用三个问题来区分它们：请求太多了怎么办、下游持续出问题怎么办、部分功能暂时做不了怎么办；熔断器的三种状态和本节一样。[常见的限流算法你知道哪些？](https://www.xiaolincoding.com/interview/cap.html#常见的限流算法你知道哪些)：固定窗口、滑动窗口、漏桶、令牌桶四种，漏桶把流量整成固定速率但不允许突发，令牌桶允许一定的突发，这正是必答题第 10 题。[多台机器部署时，怎么做全局限流？](https://www.xiaolincoding.com/interview/cap.html#多台机器部署时-怎么做全局限流)：对应本节说的“只限制单个实例”这个局限。
+
 ### 5.4 为什么查库存可以重试，扣库存不行
 
 - **查询**没有副作用：执行一次和执行三次，结果一样。
@@ -309,6 +383,8 @@ stateDiagram-v2
 
 所有重试共用同一个 800 毫秒的时限，剩下的时间不够了就不再重试。
 
+> **对照阅读**：《图解网络》[GET 和 POST 方法都是安全和幂等的吗？](https://www.xiaolincoding.com/network/2_http/http_interview.html#get-和-post-方法都是安全和幂等的吗)：“幂等”指多次执行相同的操作，结果都相同。查库存是幂等的，扣库存不是，所以只有前者能重试。小林还提醒，一个接口是否幂等要看服务端怎么实现，不能只看它用的是 GET 还是 POST。
+
 ### 5.5 消息：先写数据库，再提交位点
 
 **为什么用消息：** 下单成功后要加销量。如果订单服务直接去改销量表，下单就要多等一步；销量那边出了问题，下单也会失败。改成发一条消息、由 order-worker 异步处理，两边就互不影响了。
@@ -318,6 +394,10 @@ stateDiagram-v2
 - **主题（topic）：** 消息的分类，这里是 `order.created`。
 - **分区（partition）：** 一个主题分成几份（这里是 3 份），可以并行处理。消息按订单 ID 决定进哪个分区。
 - **位点（offset）：** 记录“这个分区我读到第几条了”。消费者处理完一条消息，要“提交位点”，Kafka 才知道它处理到哪里了。
+
+**补基础：消费组和分区怎样配合。** order-worker 用的消费组叫 `order-worker`，第 7 节实验三查积压时用的就是这个名字。同一个消费组里，一个分区同一时刻只交给一个消费者。现在只运行一个 order-worker，它一个人读 3 个分区；启动 3 个，就每个分到 1 个分区；启动第 4 个，会有一个闲着没有分区可读。所以分区数决定了一个消费组最多能有几个消费者同时干活。
+
+**补基础：发送时等的是什么确认。** 订单服务发消息时设置了 `RequiredAcks: kafka.RequireAll`，也就是常说的 acks=all：Kafka 确认这条消息已经写进所有同步副本，发送才算成功。不过本项目的 Kafka 只有一个节点，没有别的副本，所以这里的“所有副本”其实只有它自己。生产环境一般会配 3 个副本。
 
 **提交位点的时机决定了会不会丢消息：**
 
@@ -337,6 +417,15 @@ stateDiagram-v2
 
 为什么不把“已处理”记在 Redis 里？那样就变成两个系统了：Redis 记录成功、MySQL 加销量失败，或者反过来，中间又会出现不一致。都放在 MySQL 的同一个事务里最简单可靠。
 
+具体过程，包括崩溃后同一条消息再来一次时发生了什么，见第 4.2 节。
+
+> **对照阅读**（《消息队列面试题》）：
+> - [为什么需要消息队列？](https://www.xiaolincoding.com/interview/mq.html#为什么需要消息队列)、[Kafka 的模型介绍一下](https://www.xiaolincoding.com/interview/mq.html#kafka-的模型介绍一下-kafka-是推送还是拉取)、[为什么一个分区只能由消费者组的一个消费者消费？](https://www.xiaolincoding.com/interview/mq.html#kafka为什么一个分区只能由消费者组的一个消费者消费-这样设计的意义是什么)：主题、分区、消费组这几个概念。
+> - [Kafka 的 offset 应该什么时候提交？](https://www.xiaolincoding.com/interview/mq.html#kafka-的-offset-应该什么时候提交-自动提交有什么问题)：小林的原则是“先完成业务，再提交对应进度”，和本节选的一样。他还提醒，自动提交并不知道业务数据库有没有写完。
+> - [消息重复消费怎么解决？](https://www.xiaolincoding.com/interview/mq.html#消息重复消费怎么解决)：小林的办法是建一张消费记录表，给业务幂等键加唯一索引，把“插入消费记录”和“更新业务数据”放在同一个本地事务里。本项目的 `processed_events` 就是这张表，订单 ID 就是那个幂等键。
+> - [最多一次、至少一次、恰好一次有什么区别？](https://www.xiaolincoding.com/interview/mq.html#最多一次、至少一次、恰好一次有什么区别)：本项目是“至少一次”加上消费幂等。
+> - [Kafka 的 ISR 是什么，acks=all 就一定不丢消息吗？](https://www.xiaolincoding.com/interview/mq.html#kafka-的-isr-是什么-acks-all-就一定不丢消息吗)：读完就明白，为什么在只有一个节点的 Kafka 上，acks=all 并不比单副本更可靠。
+
 ### 5.6 接口幂等：同一个下单请求只执行一次
 
 **问题：** 用户点了“下单”，网络卡了一下没反应，又点了一次；或者客户端超时后自动重试。如果服务端每次都执行，就下了两单。
@@ -349,7 +438,11 @@ stateDiagram-v2
 
 记录保存 24 小时（`EX 86400`）。超过 24 小时再用同一个键，就当成新请求了。
 
+**补基础：同一个键，换了下单内容怎么办？** 占位记录里除了状态，还存着一份“请求参数摘要”：把用户、商品、数量三个数编码以后算一个 SHA-256。同一个键再来时，如果摘要和记录里的不一样，比如第一次买 1 件、第二次买 5 件，说明客户端把键用错了，直接返回 400 参数错误，不会把第一次的结果当成这一次的结果返回。
+
 **为什么改记录时要比较整条内容（Lua 脚本）：** 假设请求 A 处理得特别慢，它的占位在 24 小时后过期了，请求 B 用同一个键占了新的位。这时 A 终于处理完，要把记录改成“已完成”。如果只判断“这个键还存在”，A 就会把 B 的记录覆盖掉。所以每条记录里都有一个随机的“所有者”标识，修改前先比较整条记录是否还是自己当初写的那条，是才修改。“先比较、再修改”必须一步完成，中间不能被别的请求插进来，所以用 Lua 脚本在 Redis 服务器里执行。
+
+**补基础：为什么 Lua 脚本能“一步完成”。** Redis 执行一段 Lua 脚本时，中间不会插进别的命令，整段脚本就像一条命令。所以脚本里先 `GET` 比较、再 `SET` 修改，两步之间不会被别的请求插队。如果在 Go 代码里先 `GET`、再判断、再 `SET`，这三步之间就可能有别的请求改了这条记录。
 
 **Redis 不可用时，宁可拒绝下单：** 这时没法检查重复，如果照常下单，就失去了防重复的保护。所以直接返回 503。
 
@@ -357,6 +450,11 @@ stateDiagram-v2
 
 - `noeviction`：内存满了就拒绝新的写入，而不是把旧记录删掉腾地方。
 - AOF 持久化：每次写入都记到磁盘上，Redis 重启后记录还在。
+
+> **对照阅读**：
+> - 《系统设计面试题》[如何设计一个幂等接口，避免重复下单或重复扣款？](https://www.xiaolincoding.com/interview/systemdesign.html#如何设计一个幂等接口-避免重复下单或重复扣款)：小林的思路和本项目几乎一一对应：客户端生成请求 ID，重试时沿用；保存请求参数摘要，同一个键参数变了就拒绝；记录分“处理中、成功、结果未知”几种状态。有一点不同：小林建议，订单在 MySQL 里时，把幂等键的唯一索引和创建订单放进同一个本地事务。本项目的幂等记录在 Redis、订单在 MySQL，两者之间没有事务，所以才需要第 5.7 节那张失败处理表。面试时能讲清这个取舍，是加分项。
+> - 《图解Redis》[多节点争抢资源，Redis 分布式锁是怎么实现的？](https://www.xiaolincoding.com/redis/module/setnx.html)：分布式锁的核心命令是 `SET lock_key unique_value NX EX 30`，和本节的占位几乎一样；`unique_value` 相当于本项目记录里的“所有者”标识。释放锁时用 Lua 把“判断是不是自己的”和“删除”合成一步，本项目修改记录也是同一个道理。
+> - 《图解Redis》[Redis 过期删除策略和内存淘汰策略有什么区别？](https://www.xiaolincoding.com/redis/module/strategy.html) 里的 noeviction；[AOF 持久化是怎么实现的？](https://www.xiaolincoding.com/redis/storage/aof.html) 里的三种写回策略。本项目选的是最可靠、也最慢的 Always（Compose 里的 `--appendfsync always`），每条写命令都会刷到磁盘。
 
 ### 5.7 下单中途失败：哪些情况可以重试，哪些不行
 
@@ -375,6 +473,8 @@ stateDiagram-v2
 | 订单写成功，**发消息失败** | 订单已经存在 | 照常返回“下单成功”，记一条告警日志（销量可能少算一笔） |
 | 订单写成功，**保存结果到 Redis 失败** | 订单已经存在，但 Redis 里没有记下结果 | 保留占位，标记“待核对” |
 
+**补基础：补偿。** 表里“扣库存成功、写订单失败”的那两行，用的办法是调用 Release 把库存还回去。这种“做一个反向操作，把已经发生的事撤销”的办法叫**补偿**。补偿本身也可能失败，所以表里才有“归还库存也失败”那一行。
+
 核心原则只有一句话：**只有确认“什么都没发生”或“已经完全撤销”时，才允许重试；结果不确定时，宁可拒绝，也不冒重复扣库存、重复下单的风险。**
 
 **“待核对”和“处理中”要用不同的错误码：** 两者都返回 409，但错误码不同：
@@ -388,11 +488,15 @@ stateDiagram-v2
 
 **根本的解决办法（这个阶段没有做）：** 扣库存超时之所以麻烦，是因为扣库存本身不是幂等的。如果扣库存时也带上一个请求 ID、由库存服务去重，超时后就可以放心重试了。这超出了阶段 2 的范围，作为已知限制记录下来。
 
+> **对照阅读**：《分布式面试题》[什么情况下需要使用分布式事务？](https://www.xiaolincoding.com/interview/cap.html#什么情况下需要使用分布式事务)、[分布式事务的解决方案你知道哪些？](https://www.xiaolincoding.com/interview/cap.html#分布式事务的解决方案你知道哪些)。小林把方案分成两类：XA/2PC 在资源层统一提交或回滚；TCC、Saga、本地消息表在业务层，靠预留、补偿或可靠消息让流程最终走到正确的状态。本项目下单用的是“失败了就补偿”，接近 Saga 的思路，但只给扣库存这一步做了补偿。
+
 ### 5.8 订单写成功了，消息却没发出去
 
 这时订单已经存在。如果当成下单失败、让用户重来，库存会再扣一次，订单会再写一笔，问题更大。所以照常返回“下单成功”，同时记一条告警日志。代价是这笔订单的销量少算了，`shopctl check` 会发现差额。
 
 业界常用的解决办法叫 **Outbox（发件箱）**：写订单时，在同一个数据库事务里，往一张“待发送消息”表里也插入一行；再由一个单独的任务，从这张表里读出消息发给 Kafka，发成功了再标记为已发送。因为订单和“待发送消息”在同一个事务里，要么都有、要么都没有，消息就不会丢了。这个阶段只讲思路，没有实现。
+
+> **对照阅读**：《消息队列面试题》[本地消息表怎么保证数据库和 MQ 的一致性？](https://www.xiaolincoding.com/interview/mq.html#本地消息表怎么保证数据库和-mq-的一致性)：本地消息表就是本节说的 Outbox。小林还提到两点：消息发出去了、但还没来得及标记“已发送”就宕机，下次会再发一次，所以消费者仍然要幂等；多个发送任务同时扫描时，要防止它们抢同一条记录。
 
 ### 5.9 压测：看实际值，不看目标值
 
@@ -498,6 +602,8 @@ func main() {
 
 singleflight 合并查询后返回的结果是 `any` 类型，所以商品服务要用类型断言把它变回 `Product`。用一个返回值的写法时，如果类型不对，程序会 panic；用两个返回值的写法，类型不对时 `ok` 为 false。
 
+> **对照阅读**：《Golang面试题》[7.3 类型转换和断言的区别是什么](https://www.xiaolincoding.com/interview/golang.html#_7-3-类型转换和断言的区别是什么)。
+
 ### 6.4 用指针区分“0”和“没有”
 
 ```go
@@ -523,6 +629,8 @@ func main() {
 ```
 
 `int32` 的默认值就是 0，单靠它分不清“库存是 0（卖完了）”和“不知道库存是多少（库存服务挂了）”。用指针 `*int32` 时，`nil` 表示没有值。字段后面反引号里的内容叫**结构体标签**，告诉 JSON 编码器这个字段叫什么名字；`omitempty` 表示值为空时，输出里就不写这个字段。
+
+> **对照阅读**：《Golang面试题》[1.10 Go 语言 tag 有什么用？](https://www.xiaolincoding.com/interview/golang.html#_1-10-go-语言-tag-有什么用)。
 
 ### 6.5 errors.As：在错误链里找一个实现了某个接口的错误
 
@@ -594,6 +702,155 @@ func main() {
 
 两个规则：**通道由发送方关闭**（接收方不知道还有没有人要发）；**多个 goroutine 修改同一个计数时，要用 `atomic` 或者锁**，不能用普通的 `int`。
 
+> **对照阅读**：《Golang面试题》[4.7 关闭Channel会产生异常吗？](https://www.xiaolincoding.com/interview/golang.html#_4-7-关闭channel会产生异常吗)、[4.8 往一个关闭的Channel写入数据会发生什么？](https://www.xiaolincoding.com/interview/golang.html#_4-8-往一个关闭的channel写入数据会发生什么)：往已关闭的通道发送会直接 panic，重复关闭也会 panic。如果让接收方去关通道，发送方还在发就会出事，这就是“由发送方关闭”的原因。[5.2 Go 语言是如何实现原子操作的？](https://www.xiaolincoding.com/interview/golang.html#_5-2-go-语言是如何实现原子操作的)、[5.3 聊聊原子操作和锁的区别](https://www.xiaolincoding.com/interview/golang.html#_5-3-聊聊原子操作和锁的区别)：什么时候用 `atomic`，什么时候用锁。
+
+### 6.7 Gin 入门：订单服务的 HTTP 接口是怎么写出来的
+
+**Gin 是什么。** Gin 是 Go 里最常用的 HTTP Web 框架，建在标准库 `net/http` 之上，替你做三件事：**路由**（哪个地址交给哪个函数处理）、**中间件**（每个请求都要经过的公共逻辑，比如记日志、限流、恢复 panic）、**取参数和写响应的便捷方法**（路径参数、解析 JSON、返回 JSON）。
+
+先认识几个概念：
+
+| 概念 | 是什么 | 在下面例子里的样子 |
+|---|---|---|
+| Engine | 路由器本身，所有路由和中间件都挂在它上面 | `router := gin.New()` |
+| HandlerFunc | 处理函数，形状固定是 `func(c *gin.Context)` | 每个 `router.GET(...)` 的最后一个参数 |
+| `*gin.Context` | 每个请求一个，装着请求、响应、路径参数，也用来在中间件之间传值。它不是标准库的 `context.Context`；要后者，用 `c.Request.Context()` | 处理函数的参数 `c` |
+| 路径参数 | 路由里的 `:id` 是占位符 | `c.Param("id")` |
+| 路由组 | 一组共用前缀和中间件的路由 | `router.Group("/admin", requireToken())` |
+| 中间件 | 也是 HandlerFunc；`c.Next()` 交给下一个，`c.Abort()` 让后面的都不再执行 | `requestLog`、`requireToken` |
+
+下面是一个完整的小程序。它不监听端口，用标准库的 `httptest` 把请求直接交给路由，所以运行时不用开浏览器，也不占端口。在仓库外新建一个目录，保存为 `main.go`，执行 `go mod init ginexample`、`go get github.com/gin-gonic/gin@v1.12.0`（和本项目同一版本），再执行 `go run .`。
+
+```go
+package main
+
+import (
+	"fmt"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+
+	"github.com/gin-gonic/gin"
+)
+
+// requestLog 是最小的中间件：c.Next() 之前的代码在处理函数之前执行，之后的代码在处理函数返回后执行。
+func requestLog() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		fmt.Println("进入中间件：", c.Request.Method, c.Request.URL.Path)
+		c.Next()
+		fmt.Println("离开中间件：route =", c.FullPath(), "status =", c.Writer.Status())
+	}
+}
+
+// requireToken 演示 Abort：令牌不对就直接返回 401，后面的处理函数不会执行。
+func requireToken() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		if c.GetHeader("Authorization") != "Bearer demo" {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": "UNAUTHORIZED"})
+			return
+		}
+		c.Next()
+	}
+}
+
+// createOrder 的 binding 标签交给 Gin 自带的校验器检查。
+type createOrder struct {
+	SKUID    int64 `json:"sku_id" binding:"required"`
+	Quantity int32 `json:"quantity" binding:"required,min=1"`
+}
+
+func newRouter() *gin.Engine {
+	gin.SetMode(gin.ReleaseMode) // 关掉 Gin 自己的调试输出，只看示例的打印。
+	router := gin.New()          // 不带任何默认中间件，需要什么自己 Use。
+	router.Use(requestLog())
+	router.GET("/orders/:id", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"id": c.Param("id")})
+	})
+	secured := router.Group("/admin", requireToken()) // 这一组路由都先过令牌检查。
+	secured.POST("/orders", func(c *gin.Context) {
+		var input createOrder
+		if err := c.ShouldBindJSON(&input); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"code": "INVALID_ARGUMENT"})
+			return
+		}
+		c.JSON(http.StatusCreated, gin.H{"sku_id": input.SKUID, "quantity": input.Quantity})
+	})
+	return router
+}
+
+// send 不开端口，直接把请求交给路由处理，再打印响应。
+func send(router *gin.Engine, method, path, token, body string) {
+	request := httptest.NewRequest(method, path, strings.NewReader(body))
+	if token != "" {
+		request.Header.Set("Authorization", token)
+	}
+	recorder := httptest.NewRecorder()
+	router.ServeHTTP(recorder, request)
+	fmt.Println("响应：", recorder.Code, recorder.Body.String())
+	fmt.Println()
+}
+
+func main() {
+	router := newRouter()
+	send(router, "GET", "/orders/42", "", "")
+	send(router, "POST", "/admin/orders", "", `{"sku_id":1,"quantity":1}`)
+	send(router, "POST", "/admin/orders", "Bearer demo", `{"sku_id":1,"quantity":0}`)
+	send(router, "POST", "/admin/orders", "Bearer demo", `{"sku_id":1,"quantity":2}`)
+	send(router, "GET", "/not-found", "", "")
+}
+```
+
+本机实际输出（gin v1.12.0）：
+
+```text
+进入中间件： GET /orders/42
+离开中间件：route = /orders/:id status = 200
+响应： 200 {"id":"42"}
+
+进入中间件： POST /admin/orders
+离开中间件：route = /admin/orders status = 401
+响应： 401 {"code":"UNAUTHORIZED"}
+
+进入中间件： POST /admin/orders
+离开中间件：route = /admin/orders status = 400
+响应： 400 {"code":"INVALID_ARGUMENT"}
+
+进入中间件： POST /admin/orders
+离开中间件：route = /admin/orders status = 201
+响应： 201 {"quantity":2,"sku_id":1}
+
+进入中间件： GET /not-found
+离开中间件：route =  status = 404
+响应： 404 404 page not found
+```
+
+逐个看结果：
+
+1. **第一个请求**：中间件的前半段先执行，再到处理函数，最后回到中间件的后半段。`c.FullPath()` 拿到的是路由模板 `/orders/:id`，不是实际地址 `/orders/42`。阶段 3 的指标标签用的就是它。
+2. **第二个请求**：没带令牌，`requireToken` 调用 `AbortWithStatusJSON` 直接返回 401，后面的处理函数没有执行；但外层 `requestLog` 的后半段照样执行了，所以它看得到最终的 401。这就是为什么项目把计时、指标这类中间件放在最外层。
+3. **第三个请求**：`quantity` 传了 0，被 `binding:"required"` 拒绝。这是 Gin 的一个经典坑：对数字来说，`required` 的意思是“不能是零值”，所以合法的 0 也会被当成“没填”。真要允许 0，就把字段改成指针 `*int32`，原理和第 6.4 节“用指针区分 0 和没有”一样。
+4. **第四个请求**：校验通过，返回 201。`gin.H` 其实就是 `map[string]any`，编码成 JSON 时键按字母顺序排列，所以 `quantity` 排在 `sku_id` 前面。
+5. **第五个请求**：没有匹配的路由，`FullPath()` 是空字符串，Gin 默认回一段纯文本的 404。项目用 `router.NoRoute(...)` 改成统一的 JSON 错误，指标里则记成 `unmatched`（阶段 3 第 5.3 节）。
+
+**项目里是怎样用的。** 打开 [orderservice/app.go](../../internal/shop/app/orderservice/app.go) 的 `routes` 函数对照着看：
+
+| 做法 | 在项目里的样子 | 为什么这样做 |
+|---|---|---|
+| 用 `gin.New()`，不用 `gin.Default()` | `Default` 等于 `New` 再加上 Gin 自带的 Logger 和 Recovery 两个中间件 | 项目要用自己的结构化日志和 Recovery，所以从空的开始，自己决定装什么 |
+| 中间件的顺序 | 依次是：响应记录、调用链、指标、请求编号、Recovery、限流、请求体上限、请求总预算 | 外层的看得到所有结果，包括被限流拒绝的 429；内层的负责把 panic、超限和超时变成明确的响应 |
+| 路由 | `GET /products/:id`、`POST /orders`、`GET /orders/:id`、`GET /orders`，加一个 `NoRoute` | 和第 2 节调用的接口一一对应 |
+| 解析 JSON | 不用 Gin 的绑定，而是项目自己写的 `httpx.BindJSON`（[httpx.go](../../internal/platform/httpx/httpx.go)） | 拒绝未知字段：参数名拼错应该报错，不能被悄悄忽略；只接受一个 JSON 值；和 `BodyLimit` 配合限制请求体大小 |
+| 统一响应 | `httpx.Success` 和 `httpx.Failure`，都返回 `{"code", "data" 或 "message", "request_id"}` | 所有接口长一个样子；`Failure` 用 `AbortWithStatusJSON`，写完错误就中断后面的处理 |
+| 恢复 panic | `httpx.Recovery`：`defer` 里 `recover()`，改写成 500 | 一个请求 panic 不拖垮整个进程；它只能接住当前请求这个 goroutine 里的 panic |
+
+**补基础：面试常问的 Gin 问题。**
+
+- **中间件是怎么串起来的？** Gin 把全局中间件和这条路由的处理函数按顺序放进一个切片，用一个下标记录执行到了第几个。`c.Next()` 把下标加一，调用下一个，等它返回后再接着执行自己剩下的代码；`c.Abort()` 把下标直接设成一个很大的值，后面的就都不执行了。一层套一层，像洋葱一样，所以叫“洋葱模型”。
+- **路由为什么快？** 路由表是一棵前缀树（radix tree），按路径一段一段地往下匹配，不需要逐条比较所有路由。
+- **`gin.Context` 能不能交给别的 goroutine 用？** 不能直接用。请求结束后，Gin 会把这个 Context 放回对象池给下一个请求复用；如果 goroutine 还拿着它，读到的可能已经是别人的数据。确实要用，先 `c.Copy()` 一份。项目 `httpx` 的注释里也写着“不能在多个 goroutine 共享 Gin context”。
+- **`ShouldBindJSON` 和 `BindJSON` 有什么区别？** Gin 自带的 `BindJSON` 出错时会自动回 400 并中断；`ShouldBindJSON` 只把错误还给你，由你决定怎么响应。注意，项目里的 `httpx.BindJSON` 是自己写的同名函数，不是 Gin 的那个。
+- **`gin.Default()` 和 `gin.New()` 的区别？** `Default` 就是 `New` 加上 Logger 和 Recovery 两个中间件。
+
 ## 7. 动手实验
 
 每个实验看完结果后都要**恢复原状**。不要删除任何数据卷。
@@ -637,6 +894,8 @@ func main() {
 
    `LAG` 列是每个分区还没处理的消息数。这时运行 `shopctl check`，`gap` 可能大于 0。
 5. 恢复：`docker compose --env-file .env -f deploy/docker-compose.yml up -d --wait order-worker`。等 LAG 都变成 0，再运行 `shopctl check`，应该是 `gap=0`。
+
+> **对照阅读**：《消息队列面试题》[如何处理消息队列的消息积压问题？](https://www.xiaolincoding.com/interview/mq.html#如何处理消息队列的消息积压问题)、[Kafka 消息积压怎么办？](https://www.xiaolincoding.com/interview/mq.html#kafka-消息积压怎么办)。
 
 ### 实验四：停掉 Redis，看幂等的保护
 
@@ -727,6 +986,27 @@ func main() {
 13. 原来的记录可能已经过期，同一个键又被新的请求占用了。只看键在不在，旧请求就会覆盖新请求的记录。记录里有一个随机的所有者标识，比较整条记录才能确认“这还是我写的那条”。
 14. dropped 说明有请求根本没发出去，不能把“0 错误”当成扛住了。百分位不是可以相加的量，必须把所有样本合起来重新计算。
 15. 手上的消息可能已经写了一半，或者数据库已经写完、只差提交位点。把它处理完、提交位点，可以避免重启后再处理一次。最多等 10 秒（`WORKER_MESSAGE_TIMEOUT`），不会无限等待。
+
+</details>
+
+### 面试追问：面试官接着会问
+
+1. 先更新数据库再删缓存，万一删缓存失败了怎么办？
+2. Kafka 的消息可能在哪几个环节丢？你们怎么处理的？
+3. 为什么不用 Kafka 的事务或者“恰好一次”？
+4. 幂等记录和分布式锁有什么区别？
+5. 限流、熔断、降级，在下单链路里分别在哪儿？
+6. Gin 的中间件是怎么执行的？
+
+<details>
+<summary>答题要点</summary>
+
+1. 本项目的兜底是缓存有过期时间（10 分钟，再加最多 1 分钟随机），就算某次删除失败，最多也只会不一致到这条缓存过期。更彻底的办法是删除失败后重试，比如把待删的键放进消息队列；或者订阅数据库的 binlog，由它来删缓存。见《图解Redis》[如何保证两个操作都能执行成功？](https://www.xiaolincoding.com/redis/architecture/mysql_redis_consistency.html#如何保证两个操作都能执行成功)
+2. 三个环节。生产端：项目等 Kafka 确认才算发送成功，失败会记告警；但“订单已提交、消息没发出去”仍然会丢，这就是没做 Outbox 的已知缺口。Broker：本项目的 Kafka 只有一个节点，没有副本，机器坏了就会丢，acks=all 在单节点上并不更可靠。消费端：先提交位点再处理会丢，所以项目先写数据库、再提交位点。见《消息队列面试题》[消息丢失怎么解决的？](https://www.xiaolincoding.com/interview/mq.html#消息丢失怎么解决的)
+3. Kafka 事务只覆盖 Kafka 内部的“读、处理、写”，管不到 MySQL 里的销量更新。所以项目用“至少一次”加消费幂等：`processed_events` 用主键去重，和销量更新放在同一个事务里。见《消息队列面试题》[Kafka 的幂等生产者和事务，能保证业务恰好执行一次吗？](https://www.xiaolincoding.com/interview/mq.html#kafka-的幂等生产者和事务-能保证业务恰好执行一次吗)
+4. 写法很像，都是 `SET key value NX EX`。分布式锁用完就释放，只保证同一时刻只有一个人在做；幂等记录要保留 24 小时，还存着结果，同一个请求再来就直接返回原来的结果，保证“同一件事只做一次”。
+5. 限流在订单服务的入口，用令牌桶，超了返回 429；熔断在调用库存服务的客户端，失败比例高了就暂时快速失败；降级在查商品时，库存服务不可用，就把库存状态标成不可用，商品资料照常返回。下单不能降级成“当作有库存”。
+6. 见第 6.7 节：中间件和处理函数按顺序放在一个切片里，`c.Next()` 交给下一个，`c.Abort()` 让后面的都不再执行，像洋葱一样一层层进去再出来。
 
 </details>
 

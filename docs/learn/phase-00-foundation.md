@@ -8,6 +8,23 @@
 
 > 这份材料对照的是**当前的代码**。阶段 1–3 给这些基础部件加过功能（比如日志里的 trace_id），遇到时会注明“阶段 X 加入”，读的时候可以先跳过。
 
+**配合小林coding 阅读。** 本材料默认你还不熟悉 HTTP、数据库连接、锁、事务这些基础。用到时会先用几句话讲清楚（标着“补基础”），再给出 [小林coding](https://www.xiaolincoding.com/) 里讲同一知识点的文章（标着“对照阅读”）。建议的读法：先读完本材料的一小节，再去读对应文章里指定的部分，最后回到项目代码对照。本阶段用到的全部对照文章：
+
+| 本材料 | 小林coding 对应文章 | 去那边重点看什么 |
+|---|---|---|
+| 4.1、5.4 HTTP 请求 | 《图解网络》[HTTP 常见面试题](https://www.xiaolincoding.com/network/2_http/http_interview.html) | “HTTP 常见的状态码有哪些？”和“HTTP 常见字段有哪些？” |
+| 5.3 日志与 context | 《Golang面试题》[6.1 Go语言里的Context是什么？](https://www.xiaolincoding.com/interview/golang.html#_6-1-go语言里的context是什么) 到 6.4 | context 能携带什么、怎样被取消 |
+| 5.5 连接池 | 《图解网络》[TCP 三次握手过程是怎样的？](https://www.xiaolincoding.com/network/3_tcp/tcp_interview.html#tcp-三次握手过程是怎样的) | 新建一条连接要在网络上来回几趟 |
+| 5.5 连接池 | 《图解MySQL》[执行一条 select 语句，期间发生了什么？](https://www.xiaolincoding.com/mysql/base/how_select.html#第一步-连接器) | “第一步：连接器”：长连接、短连接，为什么要定期断开长连接 |
+| 4.2、5.6 迁移排队 | 《图解系统》[多线程冲突了怎么办？](https://www.xiaolincoding.com/os/4_process/multithread_sync.html#互斥的概念) | “互斥的概念”：锁要解决什么问题 |
+| 5.6 命名锁 | 《图解MySQL》[MySQL 有哪些锁？](https://www.xiaolincoding.com/mysql/lock/mysql_lock.html) | MySQL 自带的三类锁；会话断开时锁会自动释放 |
+| 5.7 迁移和事务 | 《图解MySQL》[事务隔离级别是怎么实现的？](https://www.xiaolincoding.com/mysql/transaction/mvcc.html#事务有哪些特性) | 开头的“事务有哪些特性？”，尤其是原子性 |
+| 5.8 优雅停机 | 《图解系统》[进程间有哪些通信方式？](https://www.xiaolincoding.com/os/4_process/process_commu.html#信号) | “信号”一节：Ctrl+C 和 SIGTERM |
+| 5.9 密码和令牌 | 《图解网络》[HTTP 常见面试题](https://www.xiaolincoding.com/network/2_http/http_interview.html) | “HTTPS 是如何解决上面的三个风险的？”里的“摘要算法 + 数字签名” |
+| 5.11 Docker | 《Docker面试题》[镜像和容器有什么区别？](https://www.xiaolincoding.com/interview/docker.html#镜像和容器有什么区别) | 再往下看“数据持久化”和“Docker Compose 是什么”两题 |
+| 6.3、6.4 defer | 《Golang面试题》[1.8 defer 的执行顺序是怎样的？](https://www.xiaolincoding.com/interview/golang.html#_1-8-defer-的执行顺序是怎样的-defer-的作用或者使用场景是什么) | 执行顺序和使用场景 |
+| 必答题第 10 题 | 《Golang面试题》[1.3 协程和线程和进程的区别？](https://www.xiaolincoding.com/interview/golang.html#_1-3-协程和线程和进程的区别)、[4.3 向channel发送数据的过程](https://www.xiaolincoding.com/interview/golang.html#_4-3-向channel发送数据的过程是怎样的)、[5.9 WaitGroup](https://www.xiaolincoding.com/interview/golang.html#_5-9-waitgroup-是怎样实现协程等待) | goroutine 是什么；channel 的缓冲满了，发送方为什么要等 |
+
 ## 1. 这个阶段做了什么
 
 理解这些基础部件最好的办法，是看一个真实的服务从启动到退出，依次用到了哪些部件。下面是库存服务（阶段 1 写的）的启动过程，代码在 [inventoryservice/app.go](../../internal/shop/app/inventoryservice/app.go) 的 `Run` 函数里：
@@ -93,7 +110,7 @@ go test ./internal/platform/mysqlx ./internal/platform/migrate -run Integration 
 
 你应该看到 `SKIP`，以及开启方法的提示。需要连真实数据库的测试叫“集成测试”，默认不运行，这样平时跑测试不需要先启动数据库。
 
-**第 6 步：打开集成测试。** 按根目录 [README](../../README.md) 里“运行真实 MySQL 与 Redis 集成测试”一节，把测试库的连接地址设到当前终端，再运行：
+**第 6 步：打开集成测试。** 按[操作手册](../operations.md#运行真实-mysql-与-redis-集成测试)里“运行真实 MySQL 与 Redis 集成测试”一节，把测试库的连接地址设到当前终端，再运行：
 
 ```text
 go test -race ./internal/platform/mysqlx ./internal/platform/migrate -run Integration -count=1 -timeout=90s -v
@@ -201,6 +218,73 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 | 15 | [CI 配置](../../.github/workflows/ci.yml) | 本机跑的检查，是怎样在 GitHub 的 Linux 机器上再跑一遍的 |
 | 16 | [commentcheck](../../tools/commentcheck/doc.go)、[archcheck](../../tools/archcheck/doc.go) | **放到最后。** 先读 doc.go 知道它们检查什么，再选读 `main.go`。规则代码要用到 Go 的语法树，看不懂可以先跳过 |
 
+### 4.1 代码走读：一个请求从进门到写出日志
+
+读 httpx.go 和 logging.go 时，最好对照一次真实的输出。下面的输出来自一次真实运行：用本阶段的 `logging.New`、`RequestIDs`、`Recovery`、`BodyLimit`、`BindJSON`、`Success`，加上一个简化的下单接口（真实的下单接口在阶段 2），这三个中间件的先后顺序和真实订单服务一样。真实订单服务还多装了几层：最外面有调用链和指标，中间还有限流和请求时限，见 [orderservice/app.go](../../internal/shop/app/orderservice/app.go) 的 `routes`。
+
+请求是 `POST /orders`，请求头带 `User-Agent: curl/8.10.1`，没带 `X-Request-ID`，正文是 `{"sku_id":1001,"quantity":2}`，共 28 字节。
+
+| 顺序 | 谁在处理 | 做了什么 |
+|---|---|---|
+| 1 | `RequestIDs`，`ctx.Next()` 之前 | 请求头里没有编号，就生成一个随机编号 `2IYWAJ2PD4KYGJZRB3EZSUFA75`，放进 context，同时写进响应头；记下开始时间 |
+| 2 | `Recovery`，`ctx.Next()` 之前 | 登记一个 defer，准备接住 panic |
+| 3 | `BodyLimit` | `Content-Length` 是 28，没超过 1 MiB；给正文套上 `MaxBytesReader` |
+| 4 | 处理函数 | `BindJSON` 解析出 sku_id=1001、quantity=2；写一条业务日志；`Success` 写出 201 响应 |
+| 5 | `Recovery` 的 defer | 没有 panic，什么也不做 |
+| 6 | `RequestIDs`，`ctx.Next()` 之后 | 里面都做完了，写访问日志：方法、路由、状态码、耗时 |
+
+程序真实写出的两条日志，每条是一行 JSON：
+
+```text
+{"time":"2026-11-02T14:57:05.5137577Z","level":"INFO","msg":"收到下单请求","service":"order-service","sku_id":1001,"quantity":2,"request_id":"2IYWAJ2PD4KYGJZRB3EZSUFA75"}
+{"time":"2026-11-02T14:57:05.5137577Z","level":"INFO","msg":"HTTP 请求完成","service":"order-service","method":"POST","route":"/orders","status":201,"duration_ms":0,"user_agent":"curl/8.10.1","request_id":"2IYWAJ2PD4KYGJZRB3EZSUFA75"}
+```
+
+客户端收到的响应：状态码 201，响应头 `X-Request-ID: 2IYWAJ2PD4KYGJZRB3EZSUFA75`，正文是：
+
+```json
+{"code":"OK","data":{"order_id":1},"request_id":"2IYWAJ2PD4KYGJZRB3EZSUFA75"}
+```
+
+对照着看四个细节：
+
+1. **两条日志的 `request_id` 相同。** 处理函数里只写了 `logger.InfoContext(ctx.Request.Context(), "收到下单请求", "sku_id", ...)`，没有手动传编号。是 logging 包的 `Handle` 在写出时，从 context 里取出编号补上的（第 5.3 节）。
+2. **业务日志在前，访问日志在后。** 访问日志写在 `ctx.Next()` 之后，要等里面的处理全部做完，才知道状态码和耗时。
+3. **`time` 结尾的 `Z` 表示 UTC**，由 `utcTime` 统一。`duration_ms` 是 0，因为这个简化接口不到 1 毫秒就做完了。
+4. **日志里只有路由模板 `/orders`，没有完整的 URL。** 即使 URL 的查询参数里带了密码，也不会进日志。
+
+同一个接口的另外三种情况，也是真实输出：
+
+| 情况 | 响应 | 日志 |
+|---|---|---|
+| 客户端自带 `X-Request-ID: my-trace-001` | 201，响应头和正文里的编号都是 `my-trace-001` | 两条日志也都用 `my-trace-001`，客户端可以拿自己的编号来查日志 |
+| 参数名拼错：`{"sku_id":1001,"qty":2}` | 400，正文 `{"code":"INVALID_ARGUMENT","message":"请求必须是符合接口约定的单个 JSON 值",...}` | 只有一条访问日志，`"status":400`。处理函数在 `BindJSON` 那里就返回了，没有业务日志 |
+| 处理函数里发生 panic | 500，正文 `{"code":"INTERNAL","message":"内部错误",...}` | 先是一条 `"level":"ERROR","msg":"HTTP 请求异常","error":"panic"`，再是 `"status":500` 的访问日志，两条编号相同。panic 的具体内容既没进日志，也没返回给客户端 |
+
+到了阶段 2，启动订单服务以后用 curl 发请求，再运行 `docker compose --env-file .env -f deploy/docker-compose.yml logs order-service`，就能看到同样结构的日志。阶段 3 之后还会多出 `trace_id` 和 `span_id`。
+
+### 4.2 代码走读：两个服务同时启动，迁移怎样排队
+
+假设 shop 库是全新的，库存服务（下表的 A）和 order-worker（B）同时启动。用 Compose 一次启动所有服务时，这种情况很常见。shop 库目前有 5 个迁移文件，从 `0001_products.sql` 到 `0005_processed_events.sql`，是阶段 1、2 陆续加的。
+
+两边算出的锁名相同：`acquire` 先执行 `SELECT DATABASE()` 得到 `shop`，取它的 SHA-256 摘要的前 16 字节，得到 `opsdoctor:migrate:8d9001d32c6a703d95921a77115050f3`。同一个库永远是同一个锁名；迁移别的库（比如测试库）时锁名不同，互不阻挡。
+
+| 时刻 | 库存服务（A） | order-worker（B） |
+|---|---|---|
+| 1 | `database.Conn` 从连接池借出一条连接，记作 A1，算出锁名 | 借出连接 B1，算出同一个锁名 |
+| 2 | 在 A1 上执行 `GET_LOCK(锁名, 30)`，返回 1：拿到锁 | 在 B1 上执行 `GET_LOCK(锁名, 30)`：锁在 A1 手里，开始等，最多等 30 秒 |
+| 3 | 建历史表 `schema_migrations`（已存在就跳过）；读历史，是空的；核对历史，没问题 | 还在等 |
+| 4 | 依次执行 0001 到 0005。每执行成功一个，就往历史表插一行：文件名和校验和 | 还在等 |
+| 5 | `Apply` 返回，两个 defer 按“后登记先执行”：先在 A1 上 `RELEASE_LOCK`（返回 1），再把 A1 还回连接池 | `GET_LOCK` 返回 1：拿到锁 |
+| 6 | 继续启动，开始对外服务 | 读历史：5 行都在，校验和与本地文件一致；5 个文件全部跳过；释放锁，还回连接 |
+
+要注意的几点：
+
+1. **B 一条迁移 SQL 都没执行。** 它是在 A 写完历史以后才读历史的。如果不排队，A、B 可能同时发现“0003 还没执行”，各执行一遍，这就是第 5.6 节开头说的问题。
+2. **等不到锁会明确失败。** 如果 A 迁移超过 30 秒还没做完，B 的 `GET_LOCK` 返回 0，`Apply` 返回“获取迁移命名锁超时或返回 NULL”，B 启动失败并退出，不会在没拿到锁的情况下硬着头皮迁移。整个迁移还受调用方传进来的 ctx 时限约束。
+3. **解锁失败也不会卡住 B。** 如果第 5 步的 `RELEASE_LOCK` 没有返回 1（比如网络刚好断了），`release` 会调用 `discard` 让连接池扔掉 A1。连接一断，MySQL 自动释放 A1 拿着的锁，B 照样能拿到。
+4. **测试里怎样模拟这件事：** [migrate_integration_test.go](../../internal/platform/migrate/migrate_integration_test.go) 开两个 goroutine 同时调用 `Apply`，等两边都结束后，检查历史表里只记了一条。必答题第 10 题问的就是这个测试。
+
 ## 5. 关键设计与为什么
 
 ### 5.1 一个仓库，但要用规则把各部分隔开
@@ -240,7 +324,19 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 > 阶段 3 加入调用链之后，日志还会自动带上 `trace_id` 和 `span_id`。阶段 0 还没有这两个字段。
 
+> **对照阅读**：《Golang面试题》[6.1 Go语言里的Context是什么？](https://www.xiaolincoding.com/interview/golang.html#_6-1-go语言里的context是什么) 到 [6.4 Context如何被取消](https://www.xiaolincoding.com/interview/golang.html#_6-4-context如何被取消)。context 有两个用途：携带信息、传递取消通知。本节的 `WithFields` 用的是第一个；第 5.8 节的优雅停机用的是第二个。真实的日志长什么样，见第 4.1 节。
+
 ### 5.4 HTTP 的两道保护
+
+**补基础：一个 HTTP 请求长什么样。** 客户端发来的请求分三部分：
+
+1. 第一行是方法和路径，比如 `POST /orders`。
+2. 接着是请求头，一行一个“名字: 值”。比如 `Content-Length: 28` 表示正文有 28 字节；`User-Agent: curl/8.10.1` 表示用什么工具发的；`X-Request-ID` 是客户端可以自带的请求编号。
+3. 空一行之后是正文，这里是一段 JSON。
+
+服务端的回复也是三部分：状态码、响应头、响应正文。状态码 2 开头表示成功，4 开头表示客户端的请求有问题，5 开头表示服务端自己出错。本节会用到：201（创建成功）、400（请求格式不对）、413（请求体太大）、500（服务端内部出错）。
+
+**补基础：中间件和 Gin。** httpx 里的 `RequestIDs`、`Recovery`、`BodyLimit` 都是 Gin 的中间件。Gin 是建在 Go 标准库 `net/http` 之上的 Web 框架，负责把不同的路径交给对应的处理函数。中间件像套在处理函数外面的一层层壳：请求从外往里穿过每一层，`ctx.Next()` 的意思是“交给里面一层”；里面全部做完以后，代码再回到 `ctx.Next()` 的下一行继续执行。所以 `RequestIDs` 能在 `ctx.Next()` 之后记下最终的状态码和耗时。第 4.1 节有一次真实运行的完整过程。
 
 **第一道：panic 不能让服务崩溃，也不能泄露信息。** Go 的 panic 类似 Java 里没被捕获的异常。`Recovery` 中间件接住业务代码的 panic，返回统一的 500 错误。它只在日志里记“发生了 panic”，不记 panic 的具体内容，也不打印请求内容，因为里面可能有密码或 SQL。客户端拿到的响应里有 `request_id`，开发者可以用它查日志。
 
@@ -258,6 +354,8 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 - 请求里出现结构体没有的字段时报错。这通常说明参数名拼错了，安静地忽略反而让调用方以为请求成功了。
 - 解析完一个 JSON 以后，再读一次，必须已经读到结尾。防止请求体后面偷偷追加第二个 JSON。
 
+> **对照阅读**：《图解网络》[HTTP 常见面试题](https://www.xiaolincoding.com/network/2_http/http_interview.html) 里的 [HTTP 常见的状态码有哪些？](https://www.xiaolincoding.com/network/2_http/http_interview.html#http-常见的状态码有哪些) 和 [HTTP 常见字段有哪些？](https://www.xiaolincoding.com/network/2_http/http_interview.html#http-常见字段有哪些)。小林讲 `Content-Length` 时，说的是它用来标出正文在哪里结束；本项目还多用了一步：拿它提前拒绝过大的请求。
+
 ### 5.5 连接池，以及时区要设两个地方
 
 **`*sql.DB` 是连接池，不是一条连接。** 你可以把它想成银行的一排窗口。每次执行 SQL，连接池分给你一个空闲窗口，用完收回。两次连续的 `db.Exec`，很可能用的是两个不同的窗口。
@@ -274,6 +372,12 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 Go 标准库里 `MaxOpenConns` 设为 0 表示“不限制”。项目要求必须设一个大于 0 的值，所以 `prepare` 会拒绝 0。
 
+**补基础：为什么建一条连接很贵。** 程序和 MySQL 之间的每条连接，建立时要先完成 TCP 三次握手，再由 MySQL 校验用户名和密码、读取权限，前后要在网络上来回好几趟。如果每条 SQL 都新建一条连接、用完就断，大部分时间都会花在建连接上。连接池把建好的连接留着反复用，省掉的就是这部分开销。
+
+> **对照阅读**：
+> - 《图解网络》[TCP 三次握手过程是怎样的？](https://www.xiaolincoding.com/network/3_tcp/tcp_interview.html#tcp-三次握手过程是怎样的)：新建一条 TCP 连接要来回几趟。
+> - 《图解MySQL》[执行一条 select 语句，期间发生了什么？](https://www.xiaolincoding.com/mysql/base/how_select.html#第一步-连接器) 的“第一步：连接器”：MySQL 怎样校验身份，长连接和短连接有什么区别，为什么要定期断开长连接。上表的 `ConnMaxLifetime`，就是让连接池替你定期换掉旧连接。
+
 **时区为什么要设两个地方：** 数据库里的时间，会经过两个环节：
 
 1. **MySQL 自己计算时间**，比如 `NOW()`。用的是这条连接的会话时区 `time_zone`。
@@ -287,6 +391,8 @@ Go 标准库里 `MaxOpenConns` 设为 0 表示“不限制”。项目要求必�
 
 **排队靠 MySQL 自带的锁。** 调用 `GET_LOCK('名字', 等待秒数)`，第一个进程拿到锁，后来的进程就等着，直到前一个调用 `RELEASE_LOCK('名字')` 释放。这种按名字区分的锁叫“命名锁”。
 
+**补基础：锁到底是什么。** 好几个人要改同一样东西时，规定“同一时刻只能有一个人在改，其他人排队”，这叫**互斥**，用来排队的东西就是**锁**。Go 里的 `sync.Mutex`、MySQL 的行锁、这里的命名锁都是这个意思，区别在于锁在哪里生效：Go 的锁只管得住一个进程，MySQL 的锁对所有连到这个数据库的进程都有效。迁移要拦住的是好几个服务进程，所以只能用数据库里的锁。
+
 **关键在于：这把锁属于某一条数据库连接。** MySQL 记录的是“哪条连接拿着锁”，只有这条连接能释放它。这条连接一旦断开，锁会自动释放。
 
 **而 `*sql.DB` 是连接池。** 每次调用 `db.Exec`，池子会随便分给你一个空闲的连接。你可能在 3 号连接上拿到锁，执行迁移时用的是 5 号，想解锁时又分到了 7 号。7 号连接根本没拿过这把锁，解不了。
@@ -297,7 +403,15 @@ Go 标准库里 `MaxOpenConns` 设为 0 表示“不限制”。项目要求必�
 
 **最后一个细节：解锁失败怎么办？** 解锁出错时，这条连接可能还拿着锁。如果把它还回池子，下一个借到它的请求就会莫名其妙地拿着一把锁。所以 `release` 解锁失败时，会调用 `discard` 让连接池直接扔掉这条连接。连接一断开，MySQL 就自动释放了锁。（第 6.9 节讲 `discard` 是怎么做到的。）
 
+两个服务同时迁移时的完整时间表，见第 4.2 节。
+
+> **对照阅读**：
+> - 《图解系统》[多线程冲突了怎么办？](https://www.xiaolincoding.com/os/4_process/multithread_sync.html#互斥的概念) 的“互斥的概念”：锁要解决什么问题。
+> - 《图解MySQL》[MySQL 有哪些锁？](https://www.xiaolincoding.com/mysql/lock/mysql_lock.html)：MySQL 自带全局锁、表级锁、行锁三类。命名锁不在其中，它是 MySQL 另外提供的“按名字加的锁”，但有一点相同：小林讲[全局锁](https://www.xiaolincoding.com/mysql/lock/mysql_lock.html#全局锁)时提到，会话断开后锁会自动释放，命名锁也是这样，这正是 `discard` 能解开锁的原因。另外，表级锁里的[元数据锁](https://www.xiaolincoding.com/mysql/lock/mysql_lock.html#元数据锁)也和迁移有关：执行 `CREATE TABLE`、`ALTER TABLE` 这类修改表结构的语句时，MySQL 会自动加上它。
+
 ### 5.7 迁移为什么不用事务包起来
+
+**补基础：事务是什么。** 事务是一组 SQL，要么全部生效，要么全部不生效，这叫**原子性**。比如转账要“A 扣 100”和“B 加 100”两步，放进一个事务里，第二步失败时，第一步会被撤销（叫**回滚**），不会出现 A 的钱扣了、B 却没收到的情况。普通的 INSERT、UPDATE 都可以这样回滚，但下面要说的修改表结构的语句不行。
 
 你可能会想：把所有迁移放进一个事务，出错就回滚，不是更安全吗？
 
@@ -312,6 +426,8 @@ Go 标准库里 `MaxOpenConns` 设为 0 表示“不限制”。项目要求必�
 **为什么还要记“校验和”：** 已经执行过的迁移文件如果后来被改了，数据库里的表就和文件内容对不上了。所以记录时会保存文件内容的“指纹”（SHA-256 校验和），每次启动都核对一遍，发现被改过就报错。要修改表结构，只能新增一个迁移文件。
 
 **为什么一个文件只能有一条 SQL：** 如果一个文件里写多条 SQL、用分号分开，程序就要按分号切开再逐条执行。但分号也可能出现在字符串里，比如 `'a;b'`，切错了就会执行出错误的 SQL。一个文件一条 SQL，就不用切了。代价是迁移文件会多一些。`mysqlx` 还关闭了 MySQL 驱动的多语句模式，就算有人在一个文件里写了两条，也会直接报错。
+
+> **对照阅读**：《图解MySQL》[事务隔离级别是怎么实现的？](https://www.xiaolincoding.com/mysql/transaction/mvcc.html#事务有哪些特性) 开头的“事务有哪些特性？”。小林提到，原子性靠 undo log（回滚日志）来保证。本节说的 DDL 隐式提交，意思是它一执行完就算数，没法和别的语句一起回滚。
 
 ### 5.8 优雅停机：先收尾，再关门
 
@@ -328,6 +444,10 @@ Go 标准库里 `MaxOpenConns` 设为 0 表示“不限制”。项目要求必�
 
 **关闭失败也要继续：** 某一步关闭失败了，`Shutdown` 会记下错误，继续关后面的资源，最后把所有错误合并返回。不能因为服务器没关好，就连数据库连接也不关了。
 
+**补基础：信号。** 信号是操作系统通知进程“发生了某件事”的方式。在终端按 Ctrl+C，进程收到 SIGINT；`docker stop` 先发 SIGTERM，等一段时间进程还没退出，再发 SIGKILL 强制杀掉。程序能接住 SIGINT 和 SIGTERM 去做清理，但接不住 SIGKILL。所以清理必须在 SIGKILL 到来之前做完：库存服务给在途请求 10 秒（[config.go](../../internal/shop/app/inventoryservice/config.go) 里的 `shutdownTimeout`），Compose 给库存服务的等待时间是 15 秒（`stop_grace_period: 15s`），比 10 秒长，留出了关闭数据库连接的时间。
+
+> **对照阅读**：《图解系统》[进程间有哪些通信方式？](https://www.xiaolincoding.com/os/4_process/process_commu.html#信号) 的“信号”一节；《Golang面试题》[6.4 Context如何被取消](https://www.xiaolincoding.com/interview/golang.html#_6-4-context如何被取消)：`Notify` 收到信号后，就是靠取消 context，通知所有拿着它的代码。
+
 ### 5.9 密码和登录令牌
 
 这部分代码现在还没有被使用，阶段 5 做医生的登录功能时才会用到。
@@ -343,6 +463,10 @@ Go 标准库里 `MaxOpenConns` 设为 0 表示“不限制”。项目要求必�
 - 签发方、受众对不对：防止拿别的系统签发的令牌来登录。
 - 有没有过期。
 
+> **对照阅读**：《图解网络》[HTTP 常见面试题](https://www.xiaolincoding.com/network/2_http/http_interview.html) 里“HTTPS 是如何解决上面的三个风险的？”中的“摘要算法 + 数字签名”。对照时注意两点：
+> - bcrypt 属于摘要，算不回原文。它还会给每个密码加一段随机的“盐”，所以同一个密码保存两次，结果也不一样；验证时会用保存下来的盐重新算一遍再比较。
+> - 小林讲的数字签名是“私钥签、公钥验”。本项目的 JWT 用的是 HS256，签发和验证用**同一个密钥**（至少 32 字节）。道理是一样的：没有这个密钥就算不出正确的签名，令牌内容被改过，签名就对不上。
+
 ### 5.10 检查工具和测试，各能证明什么
 
 | 手段 | 能发现什么 | 证明不了什么 |
@@ -357,11 +481,15 @@ Go 标准库里 `MaxOpenConns` 设为 0 表示“不限制”。项目要求必�
 
 ### 5.11 Docker Compose：容器启动了，不等于能用了
 
+**补基础：镜像、容器、数据卷。** 镜像是一个只读的“安装包”，比如 `mysql:8.4.13`；容器是用镜像启动起来、正在运行的程序，同一个镜像可以启动好多个容器。容器被删除后，写在容器里面的数据也跟着没了，所以数据库要把数据放在**数据卷**里，数据卷独立于容器保存。Compose 用一个 YAML 文件写清楚要启动哪些容器、它们怎样连在一起，一条命令就能全部启动。
+
 **健康检查（healthcheck）：** 容器里的进程启动了，MySQL 不一定已经能接受查询，它可能还在初始化。所以每个组件都配了 `healthcheck`，Docker 定期执行一条命令（比如真的发一条查询），成功了才标记为 `healthy`。
 
 **`depends_on`：** 后来的服务（比如库存服务）用 `depends_on: condition: service_healthy` 声明“等 MySQL 健康了我再启动”。但它只管第一次启动的顺序。服务运行起来以后，如果数据库断了，还是要靠服务自己的超时和重连来处理。
 
 **数据卷和初始化脚本：** MySQL 的数据存在 Docker 数据卷里。删掉容器，数据卷还在，数据也还在。这也意味着 MySQL 的初始化脚本只在数据卷第一次创建时执行一次。之后改 `.env` 里的密码，不会改掉数据库里已经建好的账号的密码。
+
+> **对照阅读**：《Docker面试题》[镜像和容器有什么区别？](https://www.xiaolincoding.com/interview/docker.html#镜像和容器有什么区别)、[Docker 容器数据持久化有哪些方式？](https://www.xiaolincoding.com/interview/docker.html#docker-容器数据持久化有哪些方式)、[Docker Compose 是什么？什么场景用？](https://www.xiaolincoding.com/interview/docker.html#docker-compose-是什么-什么场景用)。小林那边没有讲 healthcheck，这部分以本节为准。
 
 ## 6. 本阶段用到的 Go 写法
 
@@ -450,6 +578,8 @@ func main() {
 输出顺序是：开始、结束、清理 2、清理 1。它的作用类似 Java 的 finally：不管函数从哪里返回，清理都会执行。
 
 在 [migrate.go 的 Apply](../../internal/platform/migrate/migrate.go) 里，先登记了“归还连接”，后登记了“释放锁”。所以退出时先释放锁，再归还连接，正好是对的顺序。反过来就会出错：连接先还回去了，就没法再用它解锁。
+
+> **对照阅读**：《Golang面试题》[1.8 defer 的执行顺序是怎样的？](https://www.xiaolincoding.com/interview/golang.html#_1-8-defer-的执行顺序是怎样的-defer-的作用或者使用场景是什么)。
 
 ### 6.4 具名返回值：defer 为什么能修改返回结果
 
@@ -722,6 +852,29 @@ func discardExample(connection *sql.Conn) error {
 10. 测试开了两个 goroutine，每个往 channel 里写一次结果。主 goroutine 先 `Wait` 等它们都结束，再读 channel。如果容量是 0，写入的 goroutine 会一直等着有人来读，而主 goroutine 又在等它们结束，两边互相等，就卡死了。容量 2 正好放得下两个结果。
 11. 单元测试不设置测试数据库的地址，集成测试看到没有地址就会 SKIP；只有设置了专用测试库的地址，集成测试才会真正运行。HTTP 测试用 `httptest` 直接调用处理函数，认证测试也不需要网络。
 12. commentcheck 只查注释有没有写，不管写得好不好；archcheck 查代码位置和依赖方向，查不到运行时才确定的行为；`-race` 只能发现测试实际跑到的代码里的并发冲突，没跑到的代码它不知道。三者都不能代替人的审查。
+
+</details>
+
+### 面试追问：面试官接着会问
+
+上面的必答题偏重本阶段的代码细节。面试官更可能从下面这些问题切入：
+
+1. 这个项目从零开始，你第一步做了什么？为什么先做这些？
+2. JWT 和 Session 有什么区别？你为什么用 JWT？
+3. 密码为什么用 bcrypt，不用 MD5 或 SHA-256？
+4. 执行 `docker stop` 时，你的服务经历了什么？
+5. 什么是数据竞争？`-race` 能保证程序没有竞争吗？
+6. 配置里的密码怎么管理？
+
+<details>
+<summary>答题要点</summary>
+
+1. 先搭地基：配置读取、结构化日志、HTTP 统一外壳、MySQL 连接池、数据库迁移、优雅停机、登录（JWT 加 bcrypt），再加两个检查工具和 CI。后面的三个业务服务、医生和评测器都复用这些，公共问题一次解决好，每个服务就不用各写一遍。
+2. Session 是服务器保存会话、客户端只拿一个编号；JWT 把用户信息和签名都放进令牌，服务器验签就行，不用保存。好处是无状态、容易扩展；代价是签发以后很难提前作废，所以有效期要短（医生的登录令牌是一小时）。JWT 只是 Base64 编码，谁都能解码，必须验签才可信（第 5 节）。
+3. MD5、SHA-256 设计得很快，攻击者每秒能试几十亿次；bcrypt 故意算得慢（有成本参数），还自带随机盐，同一个密码每次算出来都不一样，提前算好的彩虹表就没用了。注意 bcrypt 只用前 72 字节，所以项目限制密码最长 72 字节。
+4. Docker 先发 SIGTERM；`lifecycle.Notify` 把信号变成 context 取消；服务停止接新请求，等手上的请求做完，再按顺序关闭各种资源。超过宽限时间还没退出，Docker 会再发 SIGKILL 强制结束，所以关闭的顺序和每一步的超时都要设计好。
+5. 两个 goroutine 同时访问同一块内存，至少一个在写，中间又没有同步，就是数据竞争。`-race` 在运行时记录内存访问，发现竞争就报错，但它只能发现测试实际跑到的代码路径，没跑到的发现不了。避免的办法是锁、channel 或 atomic，见《Golang面试题》[5.3 聊聊原子操作和锁的区别](https://www.xiaolincoding.com/interview/golang.html#_5-3-聊聊原子操作和锁的区别)。
+6. `.env` 不提交到 Git，`.env.example` 只放演示用的假值；程序启动时就检查配置是否完整、是否合法；日志和错误信息里不打印密码。后面阶段给医生的数据库账号还都是只读、限连接数的专用账号。
 
 </details>
 
