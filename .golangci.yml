@@ -1,0 +1,165 @@
+# 导入方向和文件角色交给 depguard；位置、标准答案与 Compose 仍由 archcheck 检查。
+version: "2"
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  default: none
+  enable:
+    - depguard
+  exclusions:
+    # 自动生成的标记也不能绕过业务边界。
+    generated: disable
+  settings:
+    depguard:
+      rules:
+        # depguard 默认按字符串前缀匹配。包名加 $ 精确匹配，再用 / 匹配子包，
+        # 才与原来的目录边界一致，不会把 shopper 误当成 shop。
+        doctor-boundary:
+          list-mode: original
+          files:
+            - "**/internal/doctor/**"
+          deny:
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/shop$"
+              desc: 医生只能通过外部接口观察靶场，不能直接依赖业务实现。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/shop/"
+              desc: 医生只能通过外部接口观察靶场，不能直接依赖业务实现。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/chaos$"
+              desc: 医生不能依赖故障注入器获取故障答案。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/chaos/"
+              desc: 医生不能依赖故障注入器获取故障答案。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/eval$"
+              desc: 医生不能借评测器读取标准答案。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/eval/"
+              desc: 医生不能借评测器读取标准答案。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/loadgen$"
+              desc: 压测控制不属于医生可以依赖的实现。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/loadgen/"
+              desc: 压测控制不属于医生可以依赖的实现。
+            - pkg: "os/exec$"
+              desc: 医生不能启动外部命令，避免绕过只读数据源。
+
+        shop-boundary:
+          list-mode: original
+          files:
+            - "**/internal/shop/**"
+          deny:
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/doctor$"
+              desc: 靶场必须独立运行，不能依赖诊断程序完成业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/doctor/"
+              desc: 靶场必须独立运行，不能依赖诊断程序完成业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/chaos$"
+              desc: 靶场不能依赖故障注入器完成业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/chaos/"
+              desc: 靶场不能依赖故障注入器完成业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/eval$"
+              desc: 靶场不能把评测逻辑混入业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/eval/"
+              desc: 靶场不能把评测逻辑混入业务。
+
+        platform-boundary:
+          list-mode: original
+          files:
+            - "**/internal/platform/**"
+          # 逐个列出五个业务目录，不依赖 allow 与 deny 的优先级。
+          deny:
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/chaos$"
+              desc: platform 是通用基础设施，不能向上依赖故障注入业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/chaos/"
+              desc: platform 是通用基础设施，不能向上依赖故障注入业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/doctor$"
+              desc: platform 是通用基础设施，不能向上依赖诊断业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/doctor/"
+              desc: platform 是通用基础设施，不能向上依赖诊断业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/shop$"
+              desc: platform 是通用基础设施，不能向上依赖靶场业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/shop/"
+              desc: platform 是通用基础设施，不能向上依赖靶场业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/eval$"
+              desc: platform 是通用基础设施，不能向上依赖评测业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/eval/"
+              desc: platform 是通用基础设施，不能向上依赖评测业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/loadgen$"
+              desc: platform 是通用基础设施，不能向上依赖压测业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/internal/loadgen/"
+              desc: platform 是通用基础设施，不能向上依赖压测业务。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/gen$"
+              desc: 生成协议也带有业务含义，platform 不能依赖它。
+            - pkg: "github.com/Li-Nepenthe/opsdoctor/gen/"
+              desc: 生成协议也带有业务含义，platform 不能依赖它。
+
+        domain-files:
+          list-mode: original
+          files:
+            - "**/internal/**/model.go"
+            - "**/internal/**/service.go"
+            - "!**/internal/platform/**"
+          deny:
+            - pkg: "net/http$"
+              desc: 模型和业务流程只依赖抽象接口，不直接操作 HTTP。
+            - pkg: "net/http/"
+              desc: 模型和业务流程只依赖抽象接口，不直接操作 HTTP。
+            - pkg: "github.com/gin-gonic/gin$"
+              desc: 模型和业务流程不能绑定 Gin 请求上下文。
+            - pkg: "github.com/gin-gonic/gin/"
+              desc: 模型和业务流程不能绑定 Gin 请求上下文。
+            - pkg: "google.golang.org/grpc$"
+              desc: 模型和业务流程只依赖抽象接口，不直接操作 gRPC。
+            - pkg: "google.golang.org/grpc/"
+              desc: 模型和业务流程只依赖抽象接口，不直接操作 gRPC。
+            - pkg: "database/sql$"
+              desc: 模型和业务流程通过仓储接口访问数据，不直接写 SQL。
+            - pkg: "database/sql/"
+              desc: 模型和业务流程通过仓储接口访问数据，不直接写 SQL。
+            - pkg: "github.com/redis/go-redis$"
+              desc: Redis 连接细节应留在缓存适配层。
+            - pkg: "github.com/redis/go-redis/"
+              desc: Redis 连接细节应留在缓存适配层。
+            - pkg: "github.com/go-redis/redis$"
+              desc: Redis 连接细节应留在缓存适配层。
+            - pkg: "github.com/go-redis/redis/"
+              desc: Redis 连接细节应留在缓存适配层。
+            - pkg: "github.com/segmentio/kafka-go$"
+              desc: Kafka 连接细节应留在消息适配层。
+            - pkg: "github.com/segmentio/kafka-go/"
+              desc: Kafka 连接细节应留在消息适配层。
+
+        shop-storage-files:
+          list-mode: original
+          files:
+            - "**/internal/shop/**/repository.go"
+            - "**/internal/shop/**/cache.go"
+            - "**/internal/shop/**/publisher.go"
+            - "**/internal/shop/**/consumer.go"
+          deny:
+            - pkg: "github.com/gin-gonic/gin$"
+              desc: 存储和消息文件不应承担 HTTP 接口职责。
+            - pkg: "github.com/gin-gonic/gin/"
+              desc: 存储和消息文件不应承担 HTTP 接口职责。
+            - pkg: "google.golang.org/grpc$"
+              desc: 存储和消息文件不应承担 RPC 接口职责。
+            - pkg: "google.golang.org/grpc/"
+              desc: 存储和消息文件不应承担 RPC 接口职责。
+
+        shop-interface-files:
+          list-mode: original
+          files:
+            - "**/internal/shop/**/http_handler.go"
+            - "**/internal/shop/**/grpc_server.go"
+          deny:
+            - pkg: "database/sql$"
+              desc: 接口适配层应调用 service，直接写 SQL 会绕过业务规则。
+            - pkg: "database/sql/"
+              desc: 接口适配层应调用 service，直接写 SQL 会绕过业务规则。
+
+        shop-client-files:
+          list-mode: original
+          files:
+            - "**/internal/shop/**/*_client.go"
+          deny:
+            - pkg: "github.com/gin-gonic/gin$"
+              desc: 客户端负责向外调用，Gin 负责接收请求，两种适配职责不能混在一起。
+            - pkg: "github.com/gin-gonic/gin/"
+              desc: 客户端负责向外调用，Gin 负责接收请求，两种适配职责不能混在一起。

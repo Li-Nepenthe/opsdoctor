@@ -1,5 +1,13 @@
 # 设计决定
 
+## 2026-11-09：导入规则交给 depguard，保留项目特有的架构检查
+
+使用 golangci-lint v2.15.0，只开启 depguard，把 archcheck 的领域隔离和文件分层迁成 `.golangci.yml` 的 7 条规则。平台规则显式列出 chaos、doctor、shop、eval、loadgen 和生成协议，不依赖 allow/deny 优先级。包路径采用精确匹配加子包前缀，保留原来按目录边界判断的行为。测试文件继续检查，生成文件标记也不能跳过边界。Staticcheck 继续独立运行；golangci-lint 只安装到本机和 CI，不加入应用的 go.mod。
+
+迁移前逐条制造临时违规，7 条在新旧检查器中都被拒绝，随后逐字节还原临时代码。额外验证了 doctor 禁用 os/exec、gRPC 子包、Redis 版本后缀、合法的 platform 依赖，以及领域文件规则对 platform 的排除。只有依赖导入用例 TestForbiddenImports 被移除，文件位置、标准答案读取和 Compose 的实现及测试断言保留。
+
+探针发现 depguard 只检查当前构建版本：在 response_async.go 中临时加入违规依赖，默认命令没有报错，使用 `--build-tags=leakbug` 才拒绝。原 archcheck 会遍历这两个版本，因此本机和 CI 都运行默认与 leakbug 两条命令，保持对现有构建版本的覆盖。archcheck 继续检查文件位置、标准答案读取（含 go:embed）与 Compose 挂载/端口；这些是项目特有约束，depguard 不能替代。
+
 ## 2026-11-09：JSON Schema 校验交给成熟库，报告保留原数字
 
 工具参数与最终报告改用 `github.com/google/jsonschema-go v0.4.3` 校验类型、必填、范围、枚举及字符串长度。工具规则直接从声明字段构造，避免 `omitempty` 丢失整数下界 0；注册表构建时 Resolve 并检查默认值，诊断菜单改变默认值时生成独立规则。报告规则按组件表缓存，并发首次使用也只 Resolve 一次。模型可见的工具和报告定义保持原字节，由提交 `db0e2d4` 的 golden 测试约束。
@@ -221,6 +229,7 @@ Go 库用 `go list -m -json <模块>@latest` 查询稳定版本后固定；不�
 | golang-jwt/jwt/v5 | v5.3.1 | 复用已验证的 JWT 实现；不自行实现签名协议 |
 | golang.org/x/crypto | v0.58.0 | 使用 bcrypt；不自行实现密码哈希 |
 | staticcheck / honnef.co/go/tools | v0.8.2 | 查询时的稳定版本；不沿用旧仓库 v0.8.1 |
+| golangci-lint | v2.15.0 | 2026-11-09 新增；[官方当前稳定版](https://github.com/golangci/golangci-lint/releases/tag/v2.15.0)，仅开启 depguard 替代手写导入检查 |
 | MySQL | mysql:8.4.13 | 计划指定 8.4 LTS，选该系列已发布补丁；不切换其他大版本 |
 | Redis | redis:8.10.2 | 查询时稳定版本；这里只启用基础缓存实例 |
 | Kafka | apache/kafka:4.4.0 | 官方 KRaft 镜像；manifest 已实际查询，无 ZooKeeper |
