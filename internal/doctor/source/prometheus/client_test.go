@@ -3,7 +3,7 @@
 // 时间和数值都来自测试夹具，不把它们记成真实运行数据。
 //
 // 主要内容：
-//   - TestQueries：即时、范围、标量、坏响应和告警状态。
+//   - TestQueries：即时、范围、标量、字符串、坏响应和告警状态。
 //
 // 阅读建议：看请求断言和返回值断言两边，不能只验证 JSON 能解析。
 
@@ -23,7 +23,7 @@ func TestQueries(t *testing.T) {
 	for _, testcase := range []struct {
 		name     string // 说明本次检查哪一种后端格式。
 		response string // 夹具正文。
-		kind     string // instant、range 或 alerts。
+		kind     string // instant、range、string 或 alerts；string 单独核对文本采样点。
 		bad      bool   // 是否应该被当成坏响应拒绝。
 	}{
 		{"即时", `{"status":"success","data":{"resultType":"vector","result":[{"metric":{"service":"a"},"value":[100,"3"]}]}}`, "instant", false},                                                // vector 只有一个值。
@@ -31,6 +31,8 @@ func TestQueries(t *testing.T) {
 		{"标量", `{"status":"success","data":{"resultType":"scalar","result":[100,"3"]}}`, "instant", false},                                                                                     // scalar 没有标签也不能丢。
 		{"短采样点", `{"status":"success","data":{"resultType":"vector","result":[{"value":[100]}]}}`, "instant", true},                                                                            // 防止数组下标越界。
 		{"业务错误", `{"status":"error"}`, "instant", true},                                                                                                                                        // HTTP 200 仍可能是查询错误。
+		{"未知状态", `{"status":"unexpected","data":{"resultType":"vector","result":[{"value":[100,"3"]}]}}`, "instant", true},                                                                     // 有采样点也不能接受未声明成功的响应。
+		{"字符串", `{"status":"success","data":{"resultType":"string","result":[100,"ready"]}}`, "string", false},                                                                                 // 文本值不能被当成数字解析。
 		{"告警", `{"status":"success","data":{"alerts":[{"state":"pending"},{"state":"firing","labels":{"alertname":"Slow"},"activeAt":"2026-10-01T00:00:00Z","value":"2"}]}}`, "alerts", false}, // 只留下 firing。
 	} {
 		t.Run(testcase.name, func(t *testing.T) {
@@ -65,6 +67,12 @@ func TestQueries(t *testing.T) {
 			result, err := client.Query(t.Context(), query)
 			if (err != nil) != testcase.bad {
 				t.Fatalf("错误分类：%v", err)
+			}
+			if testcase.kind == "string" {
+				if len(result.Series) != 1 || len(result.Series[0].Points) != 1 || result.Series[0].Points[0] != (source.Point{Time: 100, Value: "ready"}) {
+					t.Fatalf("字符串结果应原样返回一个采样点：%+v", result)
+				}
+				return
 			}
 			if !testcase.bad && (len(result.Series) != 1 || result.Series[0].Points[0].Value != "3") {
 				t.Fatalf("指标转换错误：%+v", result)
