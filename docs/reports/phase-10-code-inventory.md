@@ -57,8 +57,8 @@
 | [internal/shop/events/consumer_fetch_test.go](../../internal/shop/events/consumer_fetch_test.go) | 220 行 | 八项新增回归覆盖恢复、永久错、预算、重置、空闲、取消、消息后边界 |
 | [internal/shop/events/consumer_test.go](../../internal/shop/events/consumer_test.go) | 215 行 | 测试装配面向MessageReader，供新的脚本读取器复用 |
 | [internal/shop/events/doc.go](../../internal/shop/events/doc.go) | 33 行 | 新增测试文件导航 |
-| [进度.md](../../进度.md) | 171 行 | 交付勾选、跳过阶段9的顺序说明和工程/学习验收分离 |
-| [项目计划书.md](../../项目计划书.md) | 2164 行 | 保留原需求，追加阶段9/10/8.2的顺序决定及美元新口径 |
+| [进度.md](../进度.md) | 171 行 | 交付勾选、跳过阶段9的顺序说明和工程/学习验收分离 |
+| [项目计划书.md](../项目计划书.md) | 2164 行 | 保留原需求，追加阶段9/10/8.2的顺序决定及美元新口径 |
 
 ## 类型与函数
 

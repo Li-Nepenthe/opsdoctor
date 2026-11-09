@@ -55,7 +55,7 @@ Terra 的156份报告均主动提交；DeepSeek 的39份中23份主动、16份�
 
 医生库迁移0026–0042的作用见[迁移清单](../../internal/doctor/store/migrations/README.md)。结果、轮次、原中断、补跑关联、预算和执行版本分别留档，续跑不重置费用或token。新增登录后只读接口`GET /api/v1/eval/runs`和`GET /api/v1/eval/runs/:id`；没有新增公开端口。
 
-配置以[计划书第5.8.4节](../../项目计划书.md)为准，包括EVAL_TOKEN_BUDGET、EVAL_COMPARISON_*与闲时价格配置。Compose仍为十九个项目容器，只扩展doctor实验配置和手册只读挂载，未开放Docker socket。
+配置以[计划书第5.8.4节](../项目计划书.md)为准，包括EVAL_TOKEN_BUDGET、EVAL_COMPARISON_*与闲时价格配置。Compose仍为十九个项目容器，只扩展doctor实验配置和手册只读挂载，未开放Docker socket。
 
 ## 四、测试
 

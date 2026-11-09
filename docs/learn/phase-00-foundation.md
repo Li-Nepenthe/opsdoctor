@@ -878,4 +878,4 @@ func discardExample(connection *sql.Conn) error {
 
 </details>
 
-学完后，在[进度看板](../../进度.md)上勾选阶段 0 的“学习验收”。
+学完后，在[进度看板](../进度.md)上勾选阶段 0 的“学习验收”。

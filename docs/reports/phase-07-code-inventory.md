@@ -146,8 +146,8 @@
 | [tools/recoverycheck/crash_integration_test.go](../../tools/recoverycheck/crash_integration_test.go) | 405 | +405/−0 | 本文件：真的终止一个子进程，再用同一个测试库恢复诊断。 |
 | [tools/recoverycheck/doc.go](../../tools/recoverycheck/doc.go) | 13 | +13/−0 | Package recoverycheck 验证医生进程真的消失以后，数据库中的断点是否足够恢复。 |
 | [tools/recoverycheck/fixture_test.go](../../tools/recoverycheck/fixture_test.go) | 68 | +68/−0 | 本文件：给进程崩溃验收准备独立的医生测试库记录。 |
-| [进度.md](../../进度.md) | 163 | +13/−13 | OpsDoctor 进度看板 |
-| [项目计划书.md](../../项目计划书.md) | 2128 | +34/−12 | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 |
+| [进度.md](../进度.md) | 163 | +13/−13 | OpsDoctor 进度看板 |
+| [项目计划书.md](../项目计划书.md) | 2128 | +34/−12 | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 |
 
 ## 类型与函数导航
 

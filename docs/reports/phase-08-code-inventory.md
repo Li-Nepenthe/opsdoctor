@@ -258,8 +258,8 @@
 | [internal/platform/httpx/user_agent_test.go](../../internal/platform/httpx/user_agent_test.go) | 45 | +45/−0 | 本文件：验证客户端文字只作为一个 JSON 日志字段，不获得执行能力。 |
 | [tools/archcheck/doctor.go](../../tools/archcheck/doctor.go) | 102 | +16/−4 | 本文件：检查医生容器能从宿主机拿到什么。 |
 | [tools/archcheck/doctor_test.go](../../tools/archcheck/doctor_test.go) | 76 | +5/−1 | 本文件：证明容器不能通过部署配置拿到故障答案或 Docker 控制权。 |
-| [进度.md](../../进度.md) | 165 | +15/−13 | OpsDoctor 进度看板 |
-| [项目计划书.md](../../项目计划书.md) | 2153 | +28/−3 | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 |
+| [进度.md](../进度.md) | 165 | +15/−13 | OpsDoctor 进度看板 |
+| [项目计划书.md](../项目计划书.md) | 2153 | +28/−3 | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 |
 
 ## 类型与函数导航
 

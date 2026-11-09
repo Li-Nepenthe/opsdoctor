@@ -176,8 +176,8 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、staticcheck 0.8.2 与 ub
 | [tools/commentcheck/files.go](../../tools/commentcheck/files.go) | 146 | +146 / −0 | 检查文件说明与包内文件清单，并输出代码地图。 |
 | [tools/commentcheck/files_test.go](../../tools/commentcheck/files_test.go) | 104 | +104 / −0 | 证明三层说明的机器规则能发现缺失，并生成可点击的文件地图。 |
 | [tools/commentcheck/main.go](../../tools/commentcheck/main.go) | 66 | +16 / −3 | 分派注释检查、符号清单和文件地图三种命令模式。 |
-| [进度.md](../../进度.md) | 163 | +13 / −13 | 本阶段交付与工程验收；学习留给用户 |
-| [项目计划书.md](../../项目计划书.md) | 1839 | +3 / −1 | 登记新增测试变量和获批 cmd/README 精确例外 |
+| [进度.md](../进度.md) | 163 | +13 / −13 | 本阶段交付与工程验收；学习留给用户 |
+| [项目计划书.md](../项目计划书.md) | 1839 | +3 / −1 | 登记新增测试变量和获批 cmd/README 精确例外 |
 <!-- FILES_END -->
 
 ### 3.3 类型与函数清单

@@ -943,4 +943,4 @@ EXPLAIN SELECT sku_id, available FROM stock WHERE sku_id=250000 AND available>=1
 
 </details>
 
-学完后，在[进度看板](../../进度.md)上勾选阶段 1 的“学习验收”。
+学完后，在[进度看板](../进度.md)上勾选阶段 1 的“学习验收”。
