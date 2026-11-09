@@ -18,6 +18,7 @@
 //   - prompt.go：读取带版本号的嵌入提示词，组装固定前缀。
 //   - report.go：报告的 JSON Schema 与证据步骤检查。
 //   - schema.go：校验报告使用的有限 JSON Schema 类型。
+//   - schema_golden_test.go：用固定组件表逐字节检查报告工具定义。
 //   - loop.go：调用模型、记录用量、判断预算和报告。
 //   - calls.go：并行执行只读工具，保留调用 ID 与步骤号的对应关系。
 //
