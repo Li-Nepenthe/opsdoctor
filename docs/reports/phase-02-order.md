@@ -1,6 +1,6 @@
 # 阶段 2 汇报书：订单服务、缓存与消息
 
-日期：2026-10-23。分支：`phase-02-order`。基线 main：`3970868dae0e298c3cb0b1269a6800a473e2e7a7`。本地工程验收与 [Linux CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39961041773) 均通过，记录见[进度看板](../../进度.md)和[实测记录](../notes.md#phase-02)。
+日期：2026-10-23。分支：`phase-02-order`。基线 main：`3970868dae0e298c3cb0b1269a6800a473e2e7a7`。本地工程验收与 [Linux CI](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/39961041773) 均通过，记录见[进度看板](../进度.md)和[实测记录](../notes.md#phase-02)。
 
 ## 一、总览
 
@@ -225,8 +225,8 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 | [tools/commentcheck/files.go](../../tools/commentcheck/files.go) | 154 | +18 / −10 | 检查文件说明与包内文件清单，并输出代码地图。 |
 | [tools/commentcheck/files_test.go](../../tools/commentcheck/files_test.go) | 109 | +6 / −1 | 证明三层说明的机器规则能发现缺失，并生成可点击的文件地图。 |
 | [tools/commentcheck/main.go](../../tools/commentcheck/main.go) | 70 | +7 / −3 | 分派注释检查、符号清单和文件地图三种命令模式。 |
-| [进度.md](../../进度.md) | 163 | +15 / −15 | 交付与工程状态，学习验收保留未勾选 |
-| [项目计划书.md](../../项目计划书.md) | 1859 | +23 / −3 | 用户批准的失败边界、错误码与配置契约 |
+| [进度.md](../进度.md) | 163 | +15 / −15 | 交付与工程状态，学习验收保留未勾选 |
+| [项目计划书.md](../项目计划书.md) | 1859 | +23 / −3 | 用户批准的失败边界、错误码与配置契约 |
 <!-- FILES_END -->
 
 ### 3.3 类型与函数清单

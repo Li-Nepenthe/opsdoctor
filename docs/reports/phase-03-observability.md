@@ -165,8 +165,8 @@
 | [internal/shop/sales/repository.go](../../internal/shop/sales/repository.go) | 在一个 MySQL 事务里完成订单去重和销量累加。 | 86 | +9 / −8 |
 | [internal/shop/sales/repository_integration_test.go](../../internal/shop/sales/repository_integration_test.go) | 在真实 MySQL 中验证销量去重与事务回滚。 | 152 | +22 / −6 |
 | [internal/shop/sales/service.go](../../internal/shop/sales/service.go) | 在处理订单消息之前验证业务字段。 | 38 | +5 / −4 |
-| [进度.md](../../进度.md) | OpsDoctor 进度看板 | 163 | +13 / −13 |
-| [项目计划书.md](../../项目计划书.md) | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 | 2025 | +14 / −3 |
+| [进度.md](../进度.md) | OpsDoctor 进度看板 | 163 | +13 / −13 |
+| [项目计划书.md](../项目计划书.md) | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 | 2025 | +14 / −3 |
 <!-- PHASE_FILES_END -->
 
 按改动包列出新增导出成员与关键函数。既有函数若接线变化较大也保留，便于逐行学习；普通不变成员不重复列出。

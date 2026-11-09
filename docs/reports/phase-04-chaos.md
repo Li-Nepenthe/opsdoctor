@@ -149,8 +149,8 @@ Jaeger 保留用户批准的 2.20.0 例外，其他基础设施沿用阶段 3 �
 | [internal/shop/inventoryclient/inventory_client.go](../../internal/shop/inventoryclient/inventory_client.go) | 199 | 给库存 gRPC 调用加上时间限制和故障保护 |
 | [internal/shop/order/service.go](../../internal/shop/order/service.go) | 224 | 按顺序完成下单，并在失败时判断能否安全重试 |
 | [internal/shop/order/service_test.go](../../internal/shop/order/service_test.go) | 356 | 逐个模拟下单步骤失败，核对库存补偿与幂等记录 |
-| [进度.md](../../进度.md) | 163 | 记录本阶段的实现或实测证据 |
-| [项目计划书.md](../../项目计划书.md) | 2062 | 记录本阶段的实现或实测证据 |
+| [进度.md](../进度.md) | 163 | 记录本阶段的实现或实测证据 |
+| [项目计划书.md](../项目计划书.md) | 2062 | 记录本阶段的实现或实测证据 |
 
 ### 3. 类型与关键函数
 

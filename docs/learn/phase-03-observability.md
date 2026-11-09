@@ -691,4 +691,4 @@ http_server_request_duration_seconds_count{service="order-service", route="unmat
 
 </details>
 
-学完后，在[进度看板](../../进度.md)上勾选阶段 3 的“学习验收”。
+学完后，在[进度看板](../进度.md)上勾选阶段 3 的“学习验收”。

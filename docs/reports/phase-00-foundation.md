@@ -115,8 +115,8 @@
 | [tools/commentcheck/check_test.go](../../tools/commentcheck/check_test.go) | 缺注释、生成文件、长函数和列表测试 | 108 | +108 / -0 |
 | [tools/commentcheck/doc.go](../../tools/commentcheck/doc.go) | commentcheck 包的职责、调用方、依赖与边界 | 4 | +4 / -0 |
 | [tools/commentcheck/main.go](../../tools/commentcheck/main.go) | 注释检查参数、输出和失败退出 | 53 | +53 / -0 |
-| [进度.md](../../进度.md) | 只更新阶段 0 交付与验收状态 | 163 | +14 / -14 |
-| [项目计划书.md](../../项目计划书.md) | 按 5.8.4 登记新增 Compose/测试环境变量 | 1766 | +3 / -0 |
+| [进度.md](../进度.md) | 只更新阶段 0 交付与验收状态 | 163 | +14 / -14 |
+| [项目计划书.md](../项目计划书.md) | 按 5.8.4 登记新增 Compose/测试环境变量 | 1766 | +3 / -0 |
 <!-- FILES_END -->
 
 ### 3. 类型与函数清单

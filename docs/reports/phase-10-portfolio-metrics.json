@@ -1,0 +1,20 @@
+{
+  "calculated_on": "2026-11-09",
+  "method": "对已有导出离线复算；耗时不含注入、恢复和评分，费用为诊断模型项目账本，不含评委",
+  "source": "phase-08-formal-results.md",
+  "source_sha256": "a2a652027c463991ad7009b18ff918b0b85a7c09055bfbe4799e73ab40aa5af8",
+  "source_hash_normalization": "UTF-8 / LF，消除检出平台换行差异",
+  "group": "Terra E1 / 完整工具",
+  "reports": 39,
+  "mean_seconds": "20.368462",
+  "median_seconds": "20.622",
+  "mean_model_ledger_usd": "0.024731615",
+  "median_model_ledger_usd": "0.023909",
+  "singleflight": {
+    "source": "数据台账 P4-13",
+    "queries_per_group": 6400,
+    "loads_disabled": 6295,
+    "loads_enabled": 400,
+    "reduction_percent": "93.645751"
+  }
+}

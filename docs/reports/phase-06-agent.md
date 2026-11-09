@@ -180,8 +180,8 @@
 | [internal/loadgen/app.go](../../internal/loadgen/app.go) | 119 | 启动压测进程，管理控制端口、统计输出和退出。 |
 | [internal/loadgen/control.go](../../internal/loadgen/control.go) | 115 | 通过本机控制接口调整速率和热点商品。 |
 | [internal/loadgen/loadgen_test.go](../../internal/loadgen/loadgen_test.go) | 216 | 验证压测请求分布、重试身份和真实统计口径。 |
-| [进度.md](../../进度.md) | 163 | OpsDoctor 进度看板 |
-| [项目计划书.md](../../项目计划书.md) | 2106 | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 |
+| [进度.md](../进度.md) | 163 | OpsDoctor 进度看板 |
+| [项目计划书.md](../项目计划书.md) | 2106 | OpsDoctor 项目计划书：Go 故障诊断 Agent + 可复现故障靶场 |
 <!-- FILES_END -->
 
 ### 3.3 类型与函数
