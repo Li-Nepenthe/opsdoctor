@@ -1,25 +1,20 @@
-// 本文件：用同一份字段描述生成 JSON Schema，并校验实际工具参数。
+// 本文件：保留公开 Schema 的原始字节，把工具参数校验交给 jsonschema-go。
 //
-// 当前只读工具只需要字符串和整数。这里实现这两个类型的明确规则，不假装支持
-// 任意 JSON Schema。未知字段、重复字段、对象套对象都会被拒绝。
+// JSON 声明仍用于模型输入；校验规则从结构体字段构造，避免 omitempty 丢掉零下界。
+// 每份菜单构建时只 Resolve 一次，调用时保留输入边界，再让库校验和补默认值。
 //
-// 主要内容：
-//   - Schema、Property：工具公开的参数说明。
-//   - validate：解析单个对象并检查必填、类型、范围和允许值。
-//   - arguments：让工具按已经验证的类型取值。
-//
-// 阅读建议：先看未知字段为什么立即拒绝，再看默认值如何只由注册表提供。
+// 主要内容：Schema、Property 保持公开格式；resolve 构造规则；validate 返回可直接使用的参数。
+// 阅读建议：先看为什么不能把公开 JSON 转回规则，再看整数默认值如何转成 int。
 
 package tools
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"regexp"
-	"slices"
 	"unicode/utf8"
+
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/jsonstrict"
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 // Schema 只允许定义过的顶层字段，工具参数中从来没有系统名、URL 或主机。
@@ -52,102 +47,83 @@ func (args arguments) text(name string) string { value, _ := args[name].(string)
 // integer 读取整数，默认值也已由校验器转换成 int。
 func (args arguments) integer(name string) int { value, _ := args[name].(int); return value }
 
-// validate 逐个读取字段，才能拒绝 encoding/json 默认会悄悄覆盖的重复键。
-func (schema Schema) validate(raw json.RawMessage) (arguments, error) {
-	// 逐个读字段才能发现重复键；直接解码进 map 会丢失前一次出现的信息。
+// parameterValidator 只保存已经解析的规则；实例参数不存进去，可以供并发调用共用。
+type parameterValidator struct {
+	resolved *jsonschema.Resolved // 初始化后只读，Validate 不重新解析 Schema。
+	integers []string             // 工具读取的是 int，库解码与补默认值后需要转换。
+}
+
+// resolve 只用于注册表构建；定义来自代码，写错时启动失败，不能拖到第一次工具调用。
+func (schema Schema) resolve() *parameterValidator {
+	rule := &jsonschema.Schema{Type: schema.Type, Properties: map[string]*jsonschema.Schema{}, Required: schema.Required}
+	if !schema.AdditionalProperties {
+		rule.AdditionalProperties = &jsonschema.Schema{Not: &jsonschema.Schema{}}
+	}
+	validator := &parameterValidator{}
+	// 必须读原始字段；Minimum 为 0 时，公开 JSON 为兼容旧提示词仍然会省略它。
+	for name, property := range schema.Properties {
+		rule.Properties[name] = property.rule()
+		if property.Type == "integer" {
+			validator.integers = append(validator.integers, name)
+		}
+	}
+	resolved, err := rule.Resolve(&jsonschema.ResolveOptions{ValidateDefaults: true})
+	if err != nil {
+		panic(fmt.Errorf("工具参数定义不合法：%v", err))
+	}
+	validator.resolved = resolved
+	return validator
+}
+
+// rule 只做声明转换，不再自行实现类型、范围、正则和枚举检查。
+func (property Property) rule() *jsonschema.Schema {
+	rule := &jsonschema.Schema{Type: property.Type, Description: property.Description, Pattern: property.Pattern}
+	switch property.Type {
+	case "integer":
+		rule.Minimum, rule.Maximum = jsonschema.Ptr(float64(property.Minimum)), jsonschema.Ptr(float64(property.Maximum))
+	case "string":
+		rule.MinLength, rule.MaxLength = jsonschema.Ptr(property.MinLength), jsonschema.Ptr(property.MaxLength)
+	default:
+		panic("工具参数定义使用了不支持的类型")
+	}
+	// 空 Enum 表示没有枚举约束；不能转成库里的空数组，否则所有值都会被拒绝。
+	for _, value := range property.Enum {
+		rule.Enum = append(rule.Enum, value)
+	}
+	if property.Default != nil {
+		raw, err := json.Marshal(property.Default)
+		if err != nil {
+			panic(fmt.Errorf("工具默认值无法编码：%v", err))
+		}
+		rule.Default = raw
+	}
+	return rule
+}
+
+// validate 保留原始输入边界，库只接收本次调用自己的 float64 参数树。
+func (validator *parameterValidator) validate(raw json.RawMessage) (arguments, error) {
 	if len(raw) == 0 || len(raw) > 8192 || !utf8.Valid(raw) {
 		return nil, fmt.Errorf("参数必须是最多 8192 字节的 JSON 对象")
 	}
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.UseNumber()
-	first, err := decoder.Token()
-	if err != nil || first != json.Delim('{') {
-		return nil, fmt.Errorf("工具参数必须是一个 JSON 对象")
+	if _, err := jsonstrict.Decode(raw); err != nil {
+		return nil, err
 	}
-	args := make(arguments)
-	for decoder.More() {
-		key, err := decoder.Token()
-		if err != nil {
-			return nil, fmt.Errorf("参数 JSON 格式错误")
-		}
-		name, ok := key.(string)
-		if !ok {
-			return nil, fmt.Errorf("参数名必须是字符串")
-		}
-		property, ok := schema.Properties[name]
-		if !ok {
-			return nil, fmt.Errorf("包含工具未定义的字段；不接受 URL、主机或系统参数")
-		}
-		if _, exists := args[name]; exists {
-			return nil, fmt.Errorf("字段 %s 重复", name)
-		}
-		var value any
-		if decoder.Decode(&value) != nil {
-			return nil, fmt.Errorf("参数 JSON 格式错误")
-		}
-		checked, err := property.check(value)
-		if err != nil {
-			return nil, fmt.Errorf("字段 %s：%s", name, err)
-		}
-		args[name] = checked
+	var value any
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return nil, fmt.Errorf("参数不符合工具定义：参数里的数字超出范围")
 	}
-	if _, err := decoder.Token(); err != nil {
-		return nil, fmt.Errorf("参数 JSON 未结束")
+	if err := validator.resolved.Validate(value); err != nil {
+		return nil, fmt.Errorf("参数不符合工具定义：%v", err)
 	}
-	var extra any
-	if decoder.Decode(&extra) != io.EOF {
-		return nil, fmt.Errorf("只接受一个 JSON 对象")
+	if err := validator.resolved.ApplyDefaults(&value); err != nil {
+		return nil, fmt.Errorf("参数不符合工具定义：%v", err)
 	}
-	return schema.complete(args)
-}
-
-// complete 在格式校验后检查必填字段，缺省值只能取自工具定义。
-func (schema Schema) complete(args arguments) (arguments, error) {
-	for name, property := range schema.Properties {
-		if _, exists := args[name]; exists {
-			continue
-		}
-		if slices.Contains(schema.Required, name) {
-			return nil, fmt.Errorf("缺少必填字段 %s", name)
-		}
-		if property.Default != nil {
-			args[name] = property.Default
+	args := arguments(value.(map[string]any))
+	// 先由库验证类型和范围，再转换。允许 3.0、1e3 等写法，工具实际使用的整数仍在范围内。
+	for _, name := range validator.integers {
+		if number, exists := args[name]; exists {
+			args[name] = int(number.(float64))
 		}
 	}
 	return args, nil
-}
-
-// check 不做宽松类型转换。字符串 "10" 和数字 10 不是同一种工具参数。
-func (property Property) check(value any) (any, error) {
-	// 只接受声明的类型。把数字字符串自动转成整数，会掩盖调用者提供错参数的问题。
-	switch property.Type {
-	case "string":
-		text, ok := value.(string)
-		if !ok {
-			return nil, fmt.Errorf("必须是字符串")
-		}
-		length := utf8.RuneCountInString(text)
-		if length < property.MinLength || length > property.MaxLength {
-			return nil, fmt.Errorf("字符数必须在 %d–%d 之间", property.MinLength, property.MaxLength)
-		}
-		if property.Pattern != "" && !regexp.MustCompile(property.Pattern).MatchString(text) {
-			return nil, fmt.Errorf("字符串格式不符合要求")
-		}
-		if len(property.Enum) > 0 && !slices.Contains(property.Enum, text) {
-			return nil, fmt.Errorf("不在允许的选项中")
-		}
-		return text, nil
-	case "integer":
-		number, ok := value.(json.Number)
-		if !ok {
-			return nil, fmt.Errorf("必须是整数")
-		}
-		integer, err := number.Int64()
-		if err != nil || integer < int64(property.Minimum) || integer > int64(property.Maximum) {
-			return nil, fmt.Errorf("整数必须在 %d–%d 之间", property.Minimum, property.Maximum)
-		}
-		return int(integer), nil
-	default:
-		return nil, fmt.Errorf("工具参数定义使用了不支持的类型")
-	}
 }

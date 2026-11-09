@@ -65,7 +65,8 @@ func (registry *Registry) add(name, description string, properties map[string]Pr
 	if required == nil {
 		required = []string{}
 	}
-	registry.tools[name] = tool{Definition{Name: name, Description: description, ReadOnly: true, TimeoutSeconds: 10, Parameters: Schema{Type: "object", Properties: properties, Required: required}}, run}
+	definition := Definition{Name: name, Description: description, ReadOnly: true, TimeoutSeconds: 10, Parameters: Schema{Type: "object", Properties: properties, Required: required}}
+	registry.tools[name] = tool{definition: definition, parameters: definition.Parameters.resolve(), run: run}
 }
 
 // textProperty 统一字符串长度说明，避免某个工具忘记限制输入。

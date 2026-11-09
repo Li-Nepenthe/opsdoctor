@@ -40,6 +40,13 @@
 |---|---|
 | [clockcheck](clockcheck/doc.go) | 同时读取日期和经过时间，区分校时跳变与任务晚得到 CPU；不连接任何外部服务 |
 
+**JSON 输入边界（成熟库替换）：**
+
+| 包 | 作用 |
+|---|---|
+| [jsonstrict](jsonstrict/README.md) | 在 Schema 校验前拒绝重复键和过深嵌套，保留数字原文；字段规则交给 jsonschema-go |
+
 ## 从哪里开始读
+
 
 按上面的分组顺序读。阶段 0 的六个包是所有服务的地基，建议先读 config、logging、httpx，再读 mysqlx、migrate、lifecycle。

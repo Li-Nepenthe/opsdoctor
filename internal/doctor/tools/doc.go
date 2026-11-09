@@ -22,7 +22,8 @@
 //   - catalog_traces.go：登记慢请求搜索与单条调用链树。
 //   - registry.go：让所有工具共用参数校验、十秒预算和四千字节结果限制。
 //   - registry_test.go：验证工具统一入口的参数、超时、截断和系统绑定。
-//   - schema.go：用同一份字段描述生成 JSON Schema，并校验实际工具参数。
+//   - schema.go：保持公开 Schema 字节不变，由库校验参数并补齐默认值。
+//   - schema_test.go：验证数字转换、原始输入边界和诊断菜单的规则隔离。
 //   - schema_golden_test.go：逐字节固定全部工具定义，防止替换校验器时改变模型输入。
 //   - summary.go：把长时间线和重复的调用步骤整理成可阅读的证据摘要。
 //
