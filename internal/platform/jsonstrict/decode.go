@@ -37,7 +37,7 @@ func readValue(decoder *json.Decoder, depth int) (any, error) {
 	}
 	token, err := decoder.Token()
 	if err != nil {
-		return nil, fmt.Errorf("JSON 在第 %d 字节附近格式错误", decoder.InputOffset())
+		return nil, fmt.Errorf("JSON 在第 %d 字节附近格式错误：%v", decoder.InputOffset(), err)
 	}
 	switch token {
 	case json.Delim('{'):
@@ -45,7 +45,7 @@ func readValue(decoder *json.Decoder, depth int) (any, error) {
 		for decoder.More() {
 			key, err := decoder.Token()
 			if err != nil {
-				return nil, fmt.Errorf("JSON 在第 %d 字节附近对象字段不合法", decoder.InputOffset())
+				return nil, fmt.Errorf("JSON 在第 %d 字节附近对象字段不合法：%v", decoder.InputOffset(), err)
 			}
 			name, ok := key.(string)
 			if !ok {

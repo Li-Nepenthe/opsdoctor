@@ -1,6 +1,7 @@
 // 本文件：验证严格解码只检查 JSON 输入边界，不改变数字原文或字段内容。
 //
 // 主要内容：TestDecodeNumbers 检查数字保真；TestDecodeBoundaries 覆盖重复键、格式和深度。
+// TestDecodeSyntaxReason 保留格式错误的具体原因，让调用方能据此修正输入。
 // 阅读建议：JSON Schema 的类型与范围不在这里测试，它们由调用方交给库。
 
 package jsonstrict
@@ -10,6 +11,16 @@ import (
 	"strings"
 	"testing"
 )
+
+// TestDecodeSyntaxReason 同时覆盖值与字段名，避免模型只收到字节位置却不知道错在哪里。
+func TestDecodeSyntaxReason(t *testing.T) {
+	for _, raw := range []string{`{"value":x}`, `{"value":1,x:2}`} {
+		_, err := Decode([]byte(raw))
+		if err == nil || !strings.Contains(err.Error(), "invalid character 'x'") {
+			t.Fatalf("没有保留 JSON 格式错误的原因：%v", err)
+		}
+	}
+}
 
 // TestDecodeNumbers 同时覆盖浮点数不能精确表示的值和不能表示的数量级。
 func TestDecodeNumbers(t *testing.T) {
