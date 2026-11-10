@@ -1,11 +1,10 @@
-// 本文件：用故意违规的假模块检验架构规则。
+// 本文件：用临时源码检验文件位置和标准答案读取规则。
 //
-// fixture 只把样例交给 parser，不编译被禁止的导入。
-// 先看跨领域依赖，再看 cmd 目录约束和场景答案读取。每个反例都要能给出文件位置，避免检查器只在当前仓库恰巧通过。
+// 导入规则的验证由 depguard 负责；这里保留 cmd 目录约束和场景答案读取的反例。
+// fixture 只把样例交给 parser，不编译样例，每个读取反例都要能给出文件位置。
 //
 // 主要内容：
-//   - fixture：创建独立的假模块，检查器只解析这些文件，不需要下载被禁止的依赖。
-//   - TestForbiddenImports：覆盖领域隔离和分层违规，包括不能靠“包名前缀相似”产生误报的边界。
+//   - fixture：创建独立的源码目录，检查器只解析文件，不编译或运行样例。
 //   - TestLocations：验证根目录 Go 文件和 cmd 多文件会被拒绝，合法的薄入口不会误报。
 //   - TestScenarioReads：验证直接、拼接、Join、常量和 embed 路径都不能从医生包读取标准答案。
 
@@ -18,13 +17,10 @@ import (
 	"testing"
 )
 
-// fixture 创建独立的假模块，检查器只解析这些文件，不需要下载被禁止的依赖。
+// fixture 创建独立的源码目录，检查器只解析文件，不编译或运行样例。
 func fixture(t *testing.T, path, source string) string {
 	t.Helper()
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "go.mod"), []byte("module example.test/project\n"), 0o600); err != nil {
-		t.Fatal(err)
-	}
 	fullPath := filepath.Join(root, filepath.FromSlash(path))
 	if err := os.MkdirAll(filepath.Dir(fullPath), 0o755); err != nil {
 		t.Fatal(err)
@@ -33,66 +29,6 @@ func fixture(t *testing.T, path, source string) string {
 		t.Fatal(err)
 	}
 	return root
-}
-
-// TestForbiddenImports 覆盖领域隔离和分层违规，包括不能靠“包名前缀相似”产生误报的边界。
-func TestForbiddenImports(t *testing.T) {
-	for _, test := range []struct {
-		file      string // file 决定被检查的领域和文件角色。
-		imported  string // imported 是要验证的依赖路径。
-		forbidden bool   // forbidden 表示本组合应当被拒绝。
-	}{
-		// 医生不能导入订单实现，否则可以绕过外部接口直接了解靶场内部。
-		{"internal/doctor/agent/agent.go", "example.test/project/internal/shop/order", true},
-		// 禁止医生直接调用故障注入器。
-		{"internal/doctor/agent/agent.go", "example.test/project/internal/chaos", true},
-		// 子包同样受限制，不能绕开领域根目录检查。
-		{"internal/doctor/source/reader.go", "example.test/project/internal/chaos/action", true},
-		// 数据源适配器不能另起 shell 去查看容器或实验状态。
-		{"internal/doctor/source/reader.go", "os/exec", true},
-		// 禁止医生借评测器读取标准答案。
-		{"internal/doctor/agent/agent.go", "example.test/project/internal/eval/runner", true},
-		// 压测控制也不属于医生可以依赖的实现。
-		{"internal/doctor/agent/agent.go", "example.test/project/internal/loadgen", true},
-		// 靶场不能反过来依赖医生，即使依赖的是看似通用的认证包。
-		{"internal/shop/order/repository.go", "example.test/project/internal/doctor/auth", true},
-		// 靶场不能把评测逻辑混入业务。
-		{"internal/shop/order/repository.go", "example.test/project/internal/eval", true},
-		// 靶场不能依赖注入器才能工作。
-		{"internal/shop/order/repository.go", "example.test/project/internal/chaos", true},
-		// 通用配置包不能向上依赖订单业务。
-		{"internal/platform/config/config.go", "example.test/project/internal/shop/order", true},
-		// 生成的库存协议仍含业务概念，platform 也不能导入。
-		{"internal/platform/config/config.go", "example.test/project/gen/inventory/v1", true},
-		// 模型不能绑定 HTTP 传输细节。
-		{"internal/shop/order/model.go", "net/http", true},
-		// service 不能依赖 Gin 请求上下文。
-		{"internal/shop/order/service.go", "github.com/gin-gonic/gin", true},
-		// gRPC 子包同样属于传输依赖，不能靠导入 codes 绕过规则。
-		{"internal/shop/order/service.go", "google.golang.org/grpc/codes", true},
-		// service 应使用仓储接口，不能直接写 SQL。
-		{"internal/shop/order/service.go", "database/sql", true},
-		// 带版本后缀的 Redis 客户端也必须被识别。
-		{"internal/shop/order/service.go", "github.com/redis/go-redis/v9", true},
-		// Kafka 连接细节应留在消息适配层。
-		{"internal/shop/order/service.go", "github.com/segmentio/kafka-go", true},
-		// HTTP handler 不能绕过 service 直接操作数据库。
-		{"internal/shop/order/http_handler.go", "database/sql", true},
-		// 对照组：repository 负责 SQL，合法使用不能被拦住。
-		{"internal/shop/order/repository.go", "database/sql", false},
-		// 对照组：医生可以复用通用日志包。
-		{"internal/doctor/agent/agent.go", "example.test/project/internal/platform/logging", false},
-		// 只按完整目录边界匹配，shopper 不能因为前缀相同就被当成 shop。
-		{"internal/doctor/agent/agent.go", "example.test/project/internal/shopper", false},
-	} {
-		t.Run(test.file+test.imported, func(t *testing.T) {
-			root := fixture(t, test.file, "package sample\nimport _ \""+test.imported+"\"\n")
-			problems, err := check(root)
-			if err != nil || (len(problems) != 0) != test.forbidden {
-				t.Fatalf("检查结果：%v %v", problems, err)
-			}
-		})
-	}
 }
 
 // TestLocations 验证根目录 Go 文件和 cmd 多文件会被拒绝，合法的薄入口不会误报。

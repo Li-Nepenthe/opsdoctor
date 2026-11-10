@@ -1,21 +1,18 @@
-// 本文件：校验报告使用到的 JSON Schema 子集。
+// 本文件：保留报告 Schema 的公开格式，按组件表缓存 jsonschema-go 的校验规则。
 //
-// 报告有嵌套对象和数组，阶段 5 的扁平工具参数校验不够用。这里仅实现报告真正
-// 需要的类型、必填项、范围和枚举，公开 Schema 与运行时检查共用同一份结构。
+// 模型看到的声明结构不能因换库而变化。规则由同一份 JSON 转成库的 Schema，
+// 每种组件表只 Resolve 一次；字段类型、必填、范围和枚举都交给库检查。
 //
-// 主要内容：schema 描述规则；decodeJSON 拒绝重复字段；check 递归检查值。
-// 阅读建议：先看 object 分支的未知字段检查，再看数组中的每条证据怎样被检查。
+// 主要内容：schema 保持原 JSON 声明；resolvedReportSchema 安全复用已经解析的规则。
+// 阅读建议：组件顺序也是模型输入的一部分，缓存键使用完整数组 JSON，不能简单拼名字。
 
 package agent
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
-	"io"
-	"math"
-	"slices"
-	"unicode/utf8"
+	"sync"
+
+	"github.com/google/jsonschema-go/jsonschema"
 )
 
 // schema 只用于本包拥有的报告格式，不是任意外部 Schema 的解释器。
@@ -34,130 +31,30 @@ type schema struct {
 	Maximum     *float64           `json:"maximum,omitempty"`     // 可选数值上界。
 }
 
-// decodeJSON 用 Token 逐项读取，以便发现重复字段；普通 Unmarshal 会保留最后一次值。
-func decodeJSON(raw []byte) (any, error) {
-	decoder := json.NewDecoder(bytes.NewReader(raw))
-	decoder.UseNumber()
-	value, err := readValue(decoder, 0)
-	if err != nil {
-		return nil, err
-	}
-	if decoder.Decode(new(any)) != io.EOF {
-		return nil, fmt.Errorf("只接受一份 JSON")
-	}
-	return value, nil
+// reportValidator 把同一组件表的并发首次调用合在一起，解析失败也只记录一次。
+type reportValidator struct {
+	once sync.Once            // 只允许一次 Resolve，其他调用等待同一个结果。
+	rule *jsonschema.Resolved // 初始化后只读，可安全用于多份报告。
+	err  error                // 规则来自程序声明，出错不能改用宽松规则。
 }
 
-// readValue 限制嵌套层数，恶意 JSON 不能让递归无限深入。
-func readValue(decoder *json.Decoder, depth int) (any, error) {
-	// 只逐层接收对象与数组，结束符由当前递归层消费。
-	if depth > 16 {
-		return nil, fmt.Errorf("JSON 嵌套过深")
-	}
-	token, err := decoder.Token()
-	if err != nil {
-		return nil, fmt.Errorf("JSON 在第 %d 字节附近格式错误：%v", decoder.InputOffset(), err)
-	}
-	switch token {
-	case json.Delim('{'):
-		value := map[string]any{}
-		for decoder.More() {
-			key, err := decoder.Token()
-			if err != nil {
-				return nil, fmt.Errorf("JSON 在第 %d 字节附近对象字段不合法：%v", decoder.InputOffset(), err)
-			}
-			name, ok := key.(string)
-			if !ok {
-				return nil, fmt.Errorf("对象字段名必须是字符串")
-			}
-			if _, exists := value[name]; exists {
-				return nil, fmt.Errorf("字段 %s 重复", name)
-			}
-			item, err := readValue(decoder, depth+1)
-			if err != nil {
-				return nil, err
-			}
-			value[name] = item
-		}
-		_, err = decoder.Token()
-		return value, err
-	case json.Delim('['):
-		value := []any{}
-		for decoder.More() {
-			item, err := readValue(decoder, depth+1)
-			if err != nil {
-				return nil, err
-			}
-			value = append(value, item)
-		}
-		_, err = decoder.Token()
-		return value, err
-	default:
-		return token, nil
-	}
-}
+// reportValidators 的键来自部署配置中的组件表，值只缓存规则，不缓存任何报告或诊断数据。
+var reportValidators sync.Map
 
-// check 返回具体字段路径，让模型知道该改报告的哪一处。
-func (rule *schema) check(value any, path string) error {
-	// 结构校验先于业务校验，后面才能安全地读取 evidence.step。
-	switch rule.Type {
-	case "object":
-		return rule.checkObject(value, path)
-	case "array":
-		items, ok := value.([]any)
-		if !ok || len(items) > rule.MaxItems {
-			return fmt.Errorf("%s 必须是最多 %d 项的数组", path, rule.MaxItems)
+// resolvedReportSchema 保留声明的字段顺序和组件顺序，不改变 reportDefinition 的编码路径。
+func resolvedReportSchema(components []string) (*jsonschema.Resolved, error) {
+	key, _ := json.Marshal(components)
+	stored, _ := reportValidators.LoadOrStore(string(key), &reportValidator{})
+	validator := stored.(*reportValidator)
+	// 多个诊断同时遇到同一组件表时，也只做一次规则解析。
+	validator.once.Do(func() {
+		raw, _ := json.Marshal(reportSchema(components))
+		var rule jsonschema.Schema
+		if err := json.Unmarshal(raw, &rule); err != nil {
+			validator.err = err
+			return
 		}
-		for index, item := range items {
-			if err := rule.Items.check(item, fmt.Sprintf("%s[%d]", path, index)); err != nil {
-				return err
-			}
-		}
-	case "string":
-		text, ok := value.(string)
-		if !ok || utf8.RuneCountInString(text) < rule.MinLength || utf8.RuneCountInString(text) > rule.MaxLength {
-			return fmt.Errorf("%s 必须是 %d–%d 字符的字符串", path, rule.MinLength, rule.MaxLength)
-		}
-		if len(rule.Enum) > 0 && !slices.Contains(rule.Enum, text) {
-			return fmt.Errorf("%s 不在允许的命名表中", path)
-		}
-	case "number", "integer":
-		number, ok := value.(json.Number)
-		if !ok {
-			return fmt.Errorf("%s 必须是数字", path)
-		}
-		parsed, err := number.Float64()
-		if err != nil || math.IsNaN(parsed) || math.IsInf(parsed, 0) || (rule.Type == "integer" && parsed != math.Trunc(parsed)) || (rule.Minimum != nil && parsed < *rule.Minimum) || (rule.Maximum != nil && parsed > *rule.Maximum) {
-			return fmt.Errorf("%s 的数字超出范围或不是要求的整数", path)
-		}
-	default:
-		return fmt.Errorf("报告 Schema 含未支持的类型")
-	}
-	return nil
-}
-
-// checkObject 先检查必填字段，再检查多余字段，不把缺项悄悄当作空字符串。
-func (rule *schema) checkObject(value any, path string) error {
-	object, ok := value.(map[string]any)
-	if !ok {
-		return fmt.Errorf("%s 必须是对象", path)
-	}
-	for _, name := range rule.Required {
-		if _, ok := object[name]; !ok {
-			return fmt.Errorf("%s 缺少 %s", path, name)
-		}
-	}
-	for name, item := range object {
-		child, ok := rule.Properties[name]
-		if !ok {
-			if !rule.Additional {
-				return fmt.Errorf("%s 包含未定义的字段 %s", path, name)
-			}
-			continue // 建议操作的 args 只记录；阶段 7 的写执行器另有严格校验。
-		}
-		if err := child.check(item, path+"."+name); err != nil {
-			return err
-		}
-	}
-	return nil
+		validator.rule, validator.err = rule.Resolve(nil)
+	})
+	return validator.rule, validator.err
 }

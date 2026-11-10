@@ -37,7 +37,7 @@
 
 ## 4. 阶段完成时必须做的事（按顺序）
 
-1. 跑完全部检查：`gofmt`、`go vet`、`staticcheck`、`commentcheck`、`archcheck`、`go test -race ./...`。
+1. 跑完全部检查：`gofmt`、`go vet`、`staticcheck`、`commentcheck`、`archcheck`、`golangci-lint run ./...`、`golangci-lint run --build-tags=leakbug ./...`、`go test -race ./...`。
 2. 按计划书第 3.1、3.2 节自查三层说明：目录、文件、代码。
 3. 更新目录与文件说明：新增的分组目录要有 `README.md`；`doc.go` 的文件清单与包内文件保持一致；用 `commentcheck -map` 重新生成 `docs/代码地图.md` 的文件清单。
 4. 写阶段汇报书 `docs/reports/phase-NN-<短名>.md`（格式见计划书第 4.1 节）。
@@ -99,10 +99,10 @@
 - 启动三个服务、压测工具、基础依赖与监控栈：`docker compose --env-file .env -f deploy/docker-compose.yml up -d --build --wait --wait-timeout 240`（首次空库先设 `LOADGEN_QPS=0`，造数后再通过控制接口开始流量）
 - 查看健康状态：`docker compose --env-file .env -f deploy/docker-compose.yml ps`
 - 停止并保留数据：`docker compose --env-file .env -f deploy/docker-compose.yml down`
-- 安装检查工具：`go install honnef.co/go/tools/cmd/staticcheck@v0.8.2`
+- 安装检查工具：`go install honnef.co/go/tools/cmd/staticcheck@v0.8.2`、`go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0`
 - 格式检查/修正：`gofmt -l cmd gen internal tools` / `gofmt -w cmd internal tools`（生成文件通过 buf 重建）
 - 静态检查：`go vet ./...`、`staticcheck ./...`
-- 项目规则：`go run ./tools/commentcheck ./...`、`go run ./tools/archcheck ./...`
+- 项目规则：`go run ./tools/commentcheck ./...`、`go run ./tools/archcheck ./...`、`golangci-lint run ./...`；导入规则还要用 `golangci-lint run --build-tags=leakbug ./...` 检查故障构建版本。
 - 阅读清单：`go run ./tools/commentcheck -list ./...`
 - 文件地图：`go run ./tools/commentcheck -map ./...`，替换 `docs/代码地图.md` 中自动生成标记之间的表格。
 - 单元与竞态测试：`go test -race ./... -count=1 -timeout=180s`

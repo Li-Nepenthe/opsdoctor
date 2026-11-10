@@ -17,7 +17,7 @@ import (
 	"fmt"
 )
 
-// StockRepository 在使用方声明所需能力，类似 Java 接口，但实现类不用写 implements。
+// StockRepository 由库存业务声明最小能力，生产仓储和测试替身遵守同一契约。
 // 实现必须支持并发，并把 ctx 传给实际 IO。Deduct 必须原子判断和扣减，不能先查再改。
 type StockRepository interface {
 	GetStock(context.Context, int64) (Stock, error)

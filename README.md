@@ -117,7 +117,7 @@ curl --fail http://127.0.0.1:8090/health/ready
 
 | 想了解什么 | 入口 |
 |---|---|
-| 关键实现、依赖边界和设计取舍 | [架构](docs/architecture.md) · [代码地图](docs/代码地图.md) · [设计记录](docs/decisions.md) |
+| 关键实现、依赖边界和设计取舍 | [架构](docs/architecture.md) · [代码地图](docs/代码地图.md) · [设计记录](docs/decisions.md) · [成熟库评估](docs/learn/library-evaluation.md) |
 | 启动、运维与接入 | [完整命令](docs/operations.md) · [接入指南](docs/onboarding.md) · [MCP](docs/mcp.md) · [常见问题](docs/troubleshooting.md) |
 | 实验数字、失败与权限边界 | [演示与验证记录](docs/demo-and-results.md) · [数据台账](docs/数据台账.md) · [简历指标口径](docs/resume-draft.md) |
 | 开发过程和学习材料 | [文档目录](docs/README.md) · [项目计划书](docs/项目计划书.md) · [进度](docs/进度.md) · [学习材料](docs/learn/README.md) |

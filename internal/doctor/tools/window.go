@@ -38,6 +38,8 @@ func (registry *Registry) ForDiagnosis(start time.Time, allowed map[string]bool)
 				item.definition.Parameters.Properties["step_seconds"] = step
 			}
 			item.run = diagnosisWindow(item.run, name, start, time.Now)
+			// 默认值已改变，副本需要自己的规则；否则旧校验器仍会补回固定窗口。
+			item.parameters = item.definition.Parameters.resolve()
 		}
 		result.tools[name] = item
 	}

@@ -37,7 +37,7 @@ type waitingBroker struct {
 	allow   <-chan struct{} // 主测试关闭后，内存 broker 才返回成功。
 }
 
-// RoundTrip 实现 kafka.RoundTripper；这相当于把 Java 客户端的传输实现换成测试替身。
+// RoundTrip 用内存响应控制 Kafka 确认时机，让测试能稳定验证等待和取消。
 func (broker *waitingBroker) RoundTrip(ctx context.Context, _ net.Addr, request kafka.Request) (kafka.Response, error) {
 	switch request.(type) {
 	case *metadata.Request:

@@ -3,6 +3,10 @@
 // 命名锁属于连接，所以 Apply 必须先借出专用连接，再获取锁、核对历史和执行 SQL。
 // 先通读 Apply 的资源回收，再看 acquire、readHistory、verifyHistory。最后读 release/discard，理解释放锁失败时为何不能归还脏连接。
 //
+// 评估过 golang-migrate v4.20.1：它把锁等待写死为 10 秒，不支持 ctx 取消，
+// 失败后要人工处理 dirty 状态，也不检查已执行文件是否被改写。
+// 补回这些行为几乎要保留全部现有代码，还要维护旧库接管，因此继续保留这个小型迁移器。
+//
 // 主要内容：
 //   - Apply：在同一数据库连接上持锁、检查历史、执行新迁移并记录结果。
 //   - acquire：把当前库名放进锁名，迁移 shop 时不必阻挡另一个独立数据库的迁移。
@@ -123,8 +127,8 @@ func acquire(ctx context.Context, connection *sql.Conn) (string, error) {
 	const lockHashBytes = 16
 	digest := sha256.Sum256([]byte(database))
 	name := fmt.Sprintf("opsdoctor:migrate:%x", digest[:lockHashBytes])
-	// sql.NullInt64 用 Int64 保存整数，用 Valid 区分“有值”和 SQL NULL，类似 Java 可空 Long 的用途。
-	// GET_LOCK 成功返回 1、超时返回 0、出错可能返回 NULL。普通 int64 无法表达这三种情况。
+	// GET_LOCK 拿到锁返回 1，等待超时返回 0，MySQL 内部出错返回 NULL。
+	// 用 NullInt64 接住 NULL，才能把它报告成锁的结果，而不是一条类型转换错误。只有 1 才继续迁移。
 	var acquired sql.NullInt64
 	err := connection.QueryRowContext(ctx, acquireLockSQL, name, lockWaitSeconds).Scan(&acquired)
 	if err != nil || !acquired.Valid || acquired.Int64 != 1 {

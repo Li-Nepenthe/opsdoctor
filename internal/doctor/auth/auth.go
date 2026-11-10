@@ -28,7 +28,7 @@ import (
 type Error string
 
 // Error 让这个具名字符串类型满足标准库 error 接口。
-// Go 按方法判断接口是否实现。有 Error() string 就够了，不需要 Java 的 implements。
+// 返回预定义的领域文本，避免把底层认证细节直接暴露给调用方。
 func (err Error) Error() string { return string(err) }
 
 // 错误分类供后续 HTTP 层映射状态码。这里不依赖 HTTP，也不泄露失败的具体凭据。

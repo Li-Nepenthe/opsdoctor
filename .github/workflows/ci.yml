@@ -47,6 +47,12 @@ jobs:
         run: |
           go run ./tools/commentcheck ./...
           go run ./tools/archcheck ./...
+      - name: 导入方向与文件分层（Depguard）
+        run: |
+          go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0
+          golangci-lint run ./...
+          # depguard 按构建条件选择文件，故障版本也必须检查。
+          golangci-lint run --build-tags=leakbug ./...
       - name: 单元测试与竞态检查（无外部依赖）
         run: go test -race ./... -count=1 -timeout=180s
       - name: 检查另一构建版本能编译
@@ -138,6 +144,7 @@ jobs:
       - name: MySQL 和 Redis 集成测试与竞态检查
         # .env.example 只含演示假值；通过环境注入，不把密码写入工作流。
         run: |
+          set -o pipefail # tee 写入日志成功也不能掩盖 go test 的失败。
           while IFS= read -r line; do
             case "$line" in
               TEST_MYSQL_DSN=*|TEST_MIGRATE_MYSQL_DSN=*|TEST_INVENTORY_MYSQL_DSN=*|TEST_SEED_MYSQL_DSN=*|TEST_ORDER_MYSQL_DSN=*|TEST_SALES_MYSQL_DSN=*|TEST_REDIS_ADDR=*|TEST_REDIS_PASSWORD=*|TEST_SHOP_MYSQL_RO_DSN=*|TEST_SHOP_MYSQL_DDL_DSN=*|TEST_SHOP_REDIS_RO_URL=*|TEST_DOCTOR_MYSQL_DSN=*) export "$line" ;;
@@ -154,8 +161,9 @@ jobs:
           events = [json.loads(line) for line in (Path(os.environ['RUNNER_TEMP']) / 'integration.jsonl').read_text().splitlines()]
           skipped = [e['Test'] for e in events if e.get('Test') and e['Action'] == 'skip']
           passed = [e['Test'] for e in events if e.get('Test') and e['Action'] == 'pass']
-          assert passed and not skipped, {'passed': len(passed), 'skipped': skipped}
-          print(f'集成测试 pass={len(passed)}, skip={len(skipped)}')
+          failed = [e for e in events if e['Action'] in ('fail', 'build-fail')]
+          print(f'集成测试 pass={len(passed)}, fail={len(failed)}, skip={len(skipped)}')
+          assert passed and not failed and not skipped, {'passed': len(passed), 'failed': failed, 'skipped': skipped}
           PY
       - name: 库存服务与 small 造数冒烟
         run: |

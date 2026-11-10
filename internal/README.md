@@ -21,7 +21,7 @@
 - `platform` 不能使用 `shop` 或 `doctor`，因为它是给所有人用的通用代码。
 - `shop` 和 `doctor` 之间不能互相导入。医生只能像外人一样，通过监控数据和只读账号观察靶场。
 
-这些规则由 [archcheck](../tools/archcheck/doc.go) 在 CI 里自动检查，违反了会报错。
+这些导入规则由 [depguard 配置](../.golangci.yml)在 CI 里检查，覆盖默认与 leakbug 构建。[archcheck](../tools/archcheck/doc.go)继续检查目录布局、标准答案访问与 Compose 边界。
 
 ## 从哪里开始读
 

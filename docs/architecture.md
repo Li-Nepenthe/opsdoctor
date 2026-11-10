@@ -55,9 +55,13 @@ flowchart TD
 | `internal/eval/` | 冻结输入、配对运行、评分、费用与版本审计、结果导出 | [评测器说明](../internal/eval/README.md) |
 | `tools/` | 开发时检查注释、依赖与崩溃恢复 | [工具说明](../tools/README.md) |
 
-业务包按接口、业务和数据访问分层。以库存为例，[gRPC 适配](../internal/shop/inventory/grpc_server.go) 把 protobuf 请求变为领域参数，[业务层](../internal/shop/inventory/service.go) 检查规则，[仓储](../internal/shop/inventory/repository.go) 执行 SQL。业务层定义自己需要的接口，测试可以用假实现替换仓储。Go 按方法集合满足接口，不需要 Java 的 `implements` 声明。
+业务包按接口、业务和数据访问分层。以库存为例，[gRPC 适配](../internal/shop/inventory/grpc_server.go) 把 protobuf 请求变为领域参数，[业务层](../internal/shop/inventory/service.go) 检查规则，[仓储](../internal/shop/inventory/repository.go) 执行 SQL。业务层定义自己需要的接口，测试可以用假实现替换仓储。Go 按方法集合满足接口，生产仓储和测试替身都遵守业务层声明的能力边界。
 
-医生不得导入 shop、chaos、eval 的业务实现。双方通过明确的 HTTP、gRPC 和数据库检查协议交互，[archcheck](../tools/archcheck/main.go) 会检查这条边界。医生容器不挂载标准答案，也不持有 Docker socket。Alloy 采集 Docker 日志所需的挂载属于采集器，不能因此说医生有 Docker 权限。
+医生不得导入 shop、chaos、eval 的业务实现。双方通过明确的 HTTP、gRPC 和数据库检查协议交互，[depguard 配置](../.golangci.yml)检查导入边界，[archcheck](../tools/archcheck/main.go)检查目录布局、标准答案访问及 Compose 挂载与内部端口。医生容器不挂载标准答案，也不持有 Docker socket。Alloy 采集 Docker 日志所需的挂载属于采集器，不能因此说医生有 Docker 权限。
+
+工具参数和报告的字段规则由 jsonschema-go v0.4.3 校验；项目保留输入大小、重复键、深度和真实步骤检查。报告用两份解码结果分别校验与输出，避免 float64 改写原数字。模型可见的工具与报告 Schema 由 golden 测试逐字节固定。
+
+Prometheus 薄适配器、MySQL 迁移器和模型客户端经过对照后保留：它们分别承担证据严格性、启动恢复与费用审计的边界，候选库需要补回的逻辑抵消了替换收益。版本、差异表和保留理由见[成熟库评估](learn/library-evaluation.md)与[设计记录](decisions.md)。
 
 ## 靶场的请求、缓存和消息
 

@@ -2,6 +2,8 @@
 * text=auto eol=lf
 *.png binary
 *.jpg binary
+# 历史模型回复直接复制审计原件，跨平台检出也保留相同字节。
+internal/doctor/llm/openai/testdata/deepseek-p9-53-response.json -text -whitespace
 # 阶段9的Collector原始日志与采样包含字节指纹，不能在检出/提交时转换换行。
 docs/reports/phase-09-*.log -text -whitespace
 docs/reports/phase-09-log-fix-samples.jsonl -text -whitespace

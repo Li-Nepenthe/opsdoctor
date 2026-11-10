@@ -63,6 +63,7 @@ type output struct {
 // tool 把公开说明与内部实现放在一起，调用者只会拿到 Definition 的副本。
 type tool struct {
 	definition Definition                                       // 用同一份 Schema 做说明和校验。
+	parameters *parameterValidator                              // 构建菜单时解析规则，调用时只做校验。
 	run        func(context.Context, arguments) (output, error) // 只能捕获构造时绑定的数据源。
 }
 
@@ -110,7 +111,7 @@ func (registry *Registry) Run(ctx context.Context, name string, raw json.RawMess
 	}
 	bounded, cancel := context.WithTimeout(ctx, Timeout)
 	defer cancel()
-	args, err := item.definition.Parameters.validate(raw)
+	args, err := item.parameters.validate(raw)
 	if err != nil {
 		result.Status = "invalid_argument"
 		result.Summary = err.Error()

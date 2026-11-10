@@ -1,5 +1,41 @@
 # 设计决定
 
+## 2026-11-10：非必要手写代码改用成熟库
+
+最初只读代码时建议替换五项；逐项用相同输入对照旧实现与候选库、复核差异后，最终替换两项，保留三项。选择以行为契约和适配成本为依据，过程与面试追问见[成熟库评估学习材料](learn/library-evaluation.md)。
+
+| 项目 | 评估版本 | 结果与理由 |
+|---|---|---|
+| Prometheus 查询 | client_golang v1.25.0 | 保留基于 httpbackend 的适配器；库把缺值采样点当成 0，字符串结果及未知状态行为也不同。没有改用查询 API，原指标采集依赖保持原用途 |
+| JSON Schema | github.com/google/jsonschema-go v0.4.3 | 从间接依赖改为直接依赖，替换两套通用字段校验；保留输入边界、报告双解码与公开 Schema golden |
+| 导入规则 | golangci-lint v2.15.0 / depguard | 只开启 depguard，用七条规则替代导入扫描；默认与 leakbug 构建都检查。工具只安装到本机与 CI，不进应用依赖 |
+| MySQL 迁移 | golang-migrate/v4 v4.20.1 | 保留 Apply；锁、取消、dirty 恢复、历史改写检查和并发接管的适配抵消了收益，未保留库依赖 |
+| OpenAI 客户端 | openai-go/v3 v3.97.0 | 保留 HTTP 实现及回复类型；宽松类型解码、状态码、完整错误审计与响应上限需要补回，估算代码净增，未引入 SDK |
+
+证据和账本宁可报错，也不能让库自己凑一个数。Prometheus 缺失值补零与 SDK 将小数 token 截成整数都会改写输入含义；相关契约已固定。OpenAI 测试还复用阶段 9 P9-53 的真实脱敏保存回复，核对原件哈希、缓存 token 与非法工具参数字符串。复核中的重定向和 1 MiB 边界变异均被测试抓住。
+
+迁移探针同时发现 CI 管道未传播 go test 失败。已加入 pipefail，并拒绝所有 fail/build-fail 事件，包含包级失败。[CI #75](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/42756064473)先用保留的 library_graceful 竞态证明门禁会变红；撤掉探针、补原实现契约后，[CI #76](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/42757557487)及[第 5 项 CI #77](https://github.com/Li-Nepenthe/opsdoctor/actions/runs/42780936018)均全绿，集成测试各为 pass=75、fail=0、skip=0。三项保留实现都未修改生产执行逻辑。
+
+**简历和台账里的评测数字来自替换前的代码，本次替换前的 main 是 `16db4e8`；本次没有重跑付费评测。** 各轮实际执行的冻结提交仍以原实验记录为准。Schema 字节未变不等于重新测过模型效果，校验错误提示和获准的数字接受规则已有变化；本地 Mock 与 CI 结果不能写成替换后的准确率、费用或延迟实测。本次也没有改写数据台账中的历史数字。
+
+## 2026-11-09：导入规则交给 depguard，保留项目特有的架构检查
+
+使用 golangci-lint v2.15.0，只开启 depguard，把 archcheck 的领域隔离和文件分层迁成 `.golangci.yml` 的 7 条规则。平台规则显式列出 chaos、doctor、shop、eval、loadgen 和生成协议，不依赖 allow/deny 优先级。包路径采用精确匹配加子包前缀，保留原来按目录边界判断的行为。测试文件继续检查，生成文件标记也不能跳过边界。Staticcheck 继续独立运行；golangci-lint 只安装到本机和 CI，不加入应用的 go.mod。
+
+迁移前逐条制造临时违规，7 条在新旧检查器中都被拒绝，随后逐字节还原临时代码。额外验证了 doctor 禁用 os/exec、gRPC 子包、Redis 版本后缀、合法的 platform 依赖，以及领域文件规则对 platform 的排除。只有依赖导入用例 TestForbiddenImports 被移除，文件位置、标准答案读取和 Compose 的实现及测试断言保留。
+
+探针发现 depguard 只检查当前构建版本：在 response_async.go 中临时加入违规依赖，默认命令没有报错，使用 `--build-tags=leakbug` 才拒绝。原 archcheck 会遍历这两个版本，因此本机和 CI 都运行默认与 leakbug 两条命令，保持对现有构建版本的覆盖。archcheck 继续检查文件位置、标准答案读取（含 go:embed）与 Compose 挂载/端口；这些是项目特有约束，depguard 不能替代。
+
+## 2026-11-09：JSON Schema 校验交给成熟库，报告保留原数字
+
+工具参数与最终报告改用 `github.com/google/jsonschema-go v0.4.3` 校验类型、必填、范围、枚举及字符串长度。工具规则直接从声明字段构造，避免 `omitempty` 丢失整数下界 0；注册表构建时 Resolve 并检查默认值，诊断菜单改变默认值时生成独立规则。报告规则按组件表缓存，并发首次使用也只 Resolve 一次。模型可见的工具和报告定义保持原字节，由提交 `db0e2d4` 的 golden 测试约束。
+
+129 个本地探针输入经审核后确定了数值策略：允许 `3.0`、`1e3`，也接受 float64 精度范围内的舍入和下溢，但工具实际使用的 int 必须在规则范围内。例如 `3.0000000000000001` 变成 3、`3600.0000000000001` 变成 3600、`1e-1000` 变成 0。证据步骤从校验副本的 float64 转成 int，修复旧实现把 `1.0` 读取失败后误当作步骤 0 的问题；真实步骤存在性检查继续保留。
+
+校验不应改写报告。共享的 `jsonstrict` 用 `UseNumber` 解码并检查重复键和深度，这棵树是报告输出的唯一来源；同一份输入另解码成 float64，仅用于库校验和步骤读取。因此自由参数里的 `9007199254740993`、`1e-1000` 以及 confidence 的原数字写法都保持不变。报告含 `1e309` 时新增拒绝，提示“报告里的数字超出范围”。报告原有的非法 UTF-8 替换行为不变；工具仍拒绝非法 UTF-8。输入大小、重复键、深度和步骤真实性由项目继续负责。
+
+非法调用时模型看到的校验文案发生变化：库错误带 JSON 路径，工具加“参数不符合工具定义：”，报告加“报告不符合格式：”。没有改动既有测试断言；新增测试覆盖已批准的数字行为与报告输出保真。本次未调用付费模型，未重跑历史付费评测，不能把历史成绩表述为替换后的实测结果。
+
 <a id="phase-10-order"></a>
 
 ## 2026-11-02：先展示投递，阶段 9 推迟而非取消
@@ -211,6 +247,8 @@ Go 库用 `go list -m -json <模块>@latest` 查询稳定版本后固定；不�
 | golang-jwt/jwt/v5 | v5.3.1 | 复用已验证的 JWT 实现；不自行实现签名协议 |
 | golang.org/x/crypto | v0.58.0 | 使用 bcrypt；不自行实现密码哈希 |
 | staticcheck / honnef.co/go/tools | v0.8.2 | 查询时的稳定版本；不沿用旧仓库 v0.8.1 |
+| golangci-lint | v2.15.0 | 2026-11-09 新增；[官方当前稳定版](https://github.com/golangci/golangci-lint/releases/tag/v2.15.0)，仅开启 depguard 替代手写导入检查 |
+| github.com/google/jsonschema-go | v0.4.3 | 2026-11-09 改为直接依赖；替换工具与报告的字段校验，输入边界和报告原数字仍由项目保留 |
 | MySQL | mysql:8.4.13 | 计划指定 8.4 LTS，选该系列已发布补丁；不切换其他大版本 |
 | Redis | redis:8.10.2 | 查询时稳定版本；这里只启用基础缓存实例 |
 | Kafka | apache/kafka:4.4.0 | 官方 KRaft 镜像；manifest 已实际查询，无 ZooKeeper |

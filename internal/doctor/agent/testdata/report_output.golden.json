@@ -1,0 +1,27 @@
+[
+  {
+    "Name": "normal",
+    "Input": "{\"summary\":\"测试结论\",\"root_cause\":{\"component\":\"unknown\",\"mechanism\":\"证据不足\",\"confidence\":0.1},\"evidence\":[{\"step\":1,\"observation\":\"测试工具返回了一条观察\"}],\"suggested_actions\":[{\"tool\":\"manual\",\"args\":{},\"risk\":\"需要人核对\"}],\"unknowns\":\"仍需核对\"}",
+    "Output": "{\"evidence\":[{\"observation\":\"测试工具返回了一条观察\",\"step\":1}],\"root_cause\":{\"component\":\"unknown\",\"confidence\":0.1,\"mechanism\":\"证据不足\"},\"suggested_actions\":[{\"args\":{},\"risk\":\"需要人核对\",\"tool\":\"manual\"}],\"summary\":\"测试结论\",\"unknowns\":\"仍需核对\"}"
+  },
+  {
+    "Name": "large_integer",
+    "Input": "{\"summary\":\"测试结论\",\"root_cause\":{\"component\":\"unknown\",\"mechanism\":\"证据不足\",\"confidence\":0.1},\"evidence\":[{\"step\":1,\"observation\":\"测试工具返回了一条观察\"}],\"suggested_actions\":[{\"tool\":\"manual\",\"args\":{\"number\":9007199254740993},\"risk\":\"需要人核对\"}],\"unknowns\":\"仍需核对\"}",
+    "Output": "{\"evidence\":[{\"observation\":\"测试工具返回了一条观察\",\"step\":1}],\"root_cause\":{\"component\":\"unknown\",\"confidence\":0.1,\"mechanism\":\"证据不足\"},\"suggested_actions\":[{\"args\":{\"number\":9007199254740993},\"risk\":\"需要人核对\",\"tool\":\"manual\"}],\"summary\":\"测试结论\",\"unknowns\":\"仍需核对\"}"
+  },
+  {
+    "Name": "tiny_exponent",
+    "Input": "{\"summary\":\"测试结论\",\"root_cause\":{\"component\":\"unknown\",\"mechanism\":\"证据不足\",\"confidence\":0.1},\"evidence\":[{\"step\":1,\"observation\":\"测试工具返回了一条观察\"}],\"suggested_actions\":[{\"tool\":\"manual\",\"args\":{\"number\":1e-1000},\"risk\":\"需要人核对\"}],\"unknowns\":\"仍需核对\"}",
+    "Output": "{\"evidence\":[{\"observation\":\"测试工具返回了一条观察\",\"step\":1}],\"root_cause\":{\"component\":\"unknown\",\"confidence\":0.1,\"mechanism\":\"证据不足\"},\"suggested_actions\":[{\"args\":{\"number\":1e-1000},\"risk\":\"需要人核对\",\"tool\":\"manual\"}],\"summary\":\"测试结论\",\"unknowns\":\"仍需核对\"}"
+  },
+  {
+    "Name": "confidence_precision",
+    "Input": "{\"summary\":\"测试结论\",\"root_cause\":{\"component\":\"unknown\",\"mechanism\":\"证据不足\",\"confidence\":1.0000000000000001},\"evidence\":[{\"step\":1,\"observation\":\"测试工具返回了一条观察\"}],\"suggested_actions\":[{\"tool\":\"manual\",\"args\":{},\"risk\":\"需要人核对\"}],\"unknowns\":\"仍需核对\"}",
+    "Output": "{\"evidence\":[{\"observation\":\"测试工具返回了一条观察\",\"step\":1}],\"root_cause\":{\"component\":\"unknown\",\"confidence\":1.0000000000000001,\"mechanism\":\"证据不足\"},\"suggested_actions\":[{\"args\":{},\"risk\":\"需要人核对\",\"tool\":\"manual\"}],\"summary\":\"测试结论\",\"unknowns\":\"仍需核对\"}"
+  },
+  {
+    "Name": "number_spelling",
+    "Input": "{\"summary\":\"测试结论\",\"root_cause\":{\"component\":\"unknown\",\"mechanism\":\"证据不足\",\"confidence\":0.1},\"evidence\":[{\"step\":1,\"observation\":\"测试工具返回了一条观察\"}],\"suggested_actions\":[{\"tool\":\"manual\",\"args\":{\"integer\":3.0,\"exponent\":1e3,\"negative_zero\":-0.0,\"nested\":[9007199254740993,1e-1000]},\"risk\":\"需要人核对\"}],\"unknowns\":\"仍需核对\"}",
+    "Output": "{\"evidence\":[{\"observation\":\"测试工具返回了一条观察\",\"step\":1}],\"root_cause\":{\"component\":\"unknown\",\"confidence\":0.1,\"mechanism\":\"证据不足\"},\"suggested_actions\":[{\"args\":{\"exponent\":1e3,\"integer\":3.0,\"negative_zero\":-0.0,\"nested\":[9007199254740993,1e-1000]},\"risk\":\"需要人核对\",\"tool\":\"manual\"}],\"summary\":\"测试结论\",\"unknowns\":\"仍需核对\"}"
+  }
+]

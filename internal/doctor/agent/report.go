@@ -14,6 +14,7 @@ import (
 	"slices"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/jsonstrict"
 )
 
 // reportSchema 对象字段全部显式必填，unknowns 可为空，但不能省略。
@@ -50,26 +51,35 @@ func reportDefinition(components []string) llm.Tool {
 	return llm.Tool{Type: "function", Function: llm.ToolDefinition{Name: "submit_report", Description: "单独提交最终报告。evidence.step 必须是本次诊断已经保存的真实步骤；建议操作只记录不执行。", Parameters: raw}}
 }
 
-// validateReport 不接受超过 16 KiB 的报告，字段范围和真实步骤均通过后才返回原始 JSON。
+// validateReport 用 float64 副本校验，用保留 json.Number 的树输出，校验不能悄悄修改报告数字。
 func validateReport(raw []byte, components []string, existing map[int]bool) (json.RawMessage, error) {
 	const maximumReportBytes = 16 << 10 // 足以容纳多条证据，仍避免数据库和页面接收无限文本。
 	if len(raw) > maximumReportBytes {
 		return nil, fmt.Errorf("报告超过 16 KiB，请缩短描述")
 	}
-	value, err := decodeJSON(raw)
+	original, err := jsonstrict.Decode(raw)
 	if err != nil {
 		return nil, err
 	}
-	if err := reportSchema(components).check(value, "report"); err != nil {
-		return nil, err
+	// 第一遍已确认 JSON 格式；第二遍只供库校验，不作为输出来源。此处不新增 UTF-8 拒绝。
+	var value any
+	if err := json.Unmarshal(raw, &value); err != nil {
+		return nil, fmt.Errorf("报告里的数字超出范围")
+	}
+	rule, err := resolvedReportSchema(components)
+	if err != nil {
+		return nil, fmt.Errorf("报告格式定义无法解析")
+	}
+	if err := rule.Validate(value); err != nil {
+		return nil, fmt.Errorf("报告不符合格式：%v", err)
 	}
 	object := value.(map[string]any)
 	for _, item := range object["evidence"].([]any) {
 		// 外形已验证，这里只检查编号是否属于本次保存过的步骤，不能借用别的诊断。
-		step, _ := item.(map[string]any)["step"].(json.Number).Int64()
+		step := item.(map[string]any)["step"].(float64)
 		if !existing[int(step)] {
-			return nil, fmt.Errorf("证据步骤 %d 在本次诊断中不存在，请引用工具结果里的 step", step)
+			return nil, fmt.Errorf("证据步骤 %g 在本次诊断中不存在，请引用工具结果里的 step", step)
 		}
 	}
-	return json.Marshal(value)
+	return json.Marshal(original)
 }
