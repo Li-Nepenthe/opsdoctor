@@ -22,7 +22,7 @@ import (
 )
 
 // GRPCServer 只适配协议。嵌入生成的 Unimplemented 实现，让未来新增 RPC 时仍能向前兼容。
-// Go 的嵌入会提升被嵌入类型的方法，作用类似组合，不是 Java 的类继承。
+// 新增 RPC 尚未接线时，使用生成代码的默认实现返回 Unimplemented。
 type GRPCServer struct {
 	inventoryv1.UnimplementedInventoryServiceServer          // 必须按值嵌入，避免未初始化的嵌入指针造成 panic。
 	service                                         *Service // service 执行业务规则，本层不直接访问数据库。

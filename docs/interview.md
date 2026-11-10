@@ -10,9 +10,9 @@
 
 - Go 编译器限制导入范围：只有位于 `internal` 父目录所覆盖树中的代码才能导入它。
 - 它阻止仓库外部随便依赖实现细节，但不能隔开同仓库的 shop 与 doctor。
-- 项目内部的依赖方向还要由 archcheck 检查，权限隔离则靠工具与账号。
+- 项目内部的依赖方向由 depguard 检查；archcheck 检查目录布局、标准答案访问和 Compose 边界，权限隔离则靠工具与账号。
 
-出处：[archcheck](../tools/archcheck/main.go)、[阶段 0 汇报](reports/phase-00-foundation.md)。
+出处：[depguard 配置](../.golangci.yml)、[archcheck](../tools/archcheck/main.go)、[阶段 0 汇报](reports/phase-00-foundation.md)。
 
 ### 0.2 为什么配置用环境变量，而不把配置文件打包进程序？
 
@@ -41,10 +41,10 @@
 ### 0.5 为什么用程序检查包依赖，而不是靠人自觉？
 
 - 隔离规则跨很多文件，代码增长后人工复查容易遗漏。
-- archcheck 检查导入、目录布局与标准答案访问，把破坏边界的提交挡在 CI。
+- depguard 检查默认与 leakbug 构建的导入；archcheck 检查目录布局、标准答案访问和 Compose 挂载，把破坏边界的提交挡在 CI。
 - 静态规则能证明特定禁令没有被违反，不能证明业务一定正确，仍需单元、集成和端到端检查。
 
-出处：[archcheck 与样例测试](../tools/archcheck/check_test.go)、[阶段 0 汇报](reports/phase-00-foundation.md)。
+出处：[depguard 配置](../.golangci.yml)、[archcheck 与样例测试](../tools/archcheck/check_test.go)、[阶段 0 汇报](reports/phase-00-foundation.md)。
 
 ## 阶段 1：库存与 MySQL
 
@@ -671,13 +671,13 @@
 
 出处：[CI](../.github/workflows/ci.yml)、[库存集成保护](../internal/shop/inventory/repository_integration_test.go)、[阶段 0 汇报](reports/phase-00-foundation.md)。
 
-### 0.补7 commentcheck、archcheck、race 分别证明什么？
+### 0.补7 commentcheck、depguard、archcheck、race 分别证明什么？
 
 - commentcheck 检查说明存在与文件清单，不证明注释讲得清楚。
-- archcheck 检查声明的结构与导入禁令，不证明远端账号真的受限。
+- depguard 检查当前构建的导入禁令；archcheck 检查目录布局、标准答案访问与 Compose 边界，两者都不证明远端账号真的受限。
 - race 检测测试实际执行路径中的并发数据竞争，不证明所有可能调度都安全。
 
-出处：[commentcheck](../tools/commentcheck/main.go)、[archcheck](../tools/archcheck/main.go)、[阶段 0 汇报](reports/phase-00-foundation.md)。
+出处：[commentcheck](../tools/commentcheck/main.go)、[depguard 配置](../.golangci.yml)、[archcheck](../tools/archcheck/main.go)、[阶段 0 汇报](reports/phase-00-foundation.md)。
 
 ### 1.补1 扣减失败为什么先看影响行数，再查商品存在？
 

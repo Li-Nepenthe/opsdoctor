@@ -127,8 +127,8 @@ func acquire(ctx context.Context, connection *sql.Conn) (string, error) {
 	const lockHashBytes = 16
 	digest := sha256.Sum256([]byte(database))
 	name := fmt.Sprintf("opsdoctor:migrate:%x", digest[:lockHashBytes])
-	// sql.NullInt64 用 Int64 保存整数，用 Valid 区分“有值”和 SQL NULL，类似 Java 可空 Long 的用途。
-	// GET_LOCK 成功返回 1、超时返回 0、出错可能返回 NULL。普通 int64 无法表达这三种情况。
+	// 用 sql.NullInt64 保留 GET_LOCK 的 NULL 状态，避免把查询异常误判成普通超时。
+	// 只有明确返回 1 才继续迁移；否则丢弃这条可能已持锁的连接。
 	var acquired sql.NullInt64
 	err := connection.QueryRowContext(ctx, acquireLockSQL, name, lockWaitSeconds).Scan(&acquired)
 	if err != nil || !acquired.Valid || acquired.Int64 != 1 {

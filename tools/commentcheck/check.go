@@ -133,7 +133,7 @@ func inspectFile(path string, result *scanResult, packages map[string]string, do
 	for _, declaration := range file.Decls {
 		switch node := declaration.(type) {
 		case *ast.FuncDecl:
-			// 类型分支类似 Java 的 instanceof：取到函数节点后，检查它的文档和函数体。
+			// 函数的说明和函数体都要检查，避免只有声明处写了注释就漏掉内部逻辑。
 			inspectFunction(node, file, positions, key, result)
 		case *ast.GenDecl:
 			// type、const、var、import 共用一类 AST 节点，具体规则交给声明检查函数区分。

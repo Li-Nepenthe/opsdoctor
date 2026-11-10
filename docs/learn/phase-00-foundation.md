@@ -55,7 +55,8 @@ flowchart TD
 | [lifecycle](../../internal/platform/lifecycle/doc.go) | 优雅停机：收到退出信号后按顺序关闭资源 | 所有服务 |
 | [auth](../../internal/doctor/auth/doc.go) | 登录规则：令牌（JWT）和密码（bcrypt） | 阶段 5 的医生服务 |
 | [commentcheck](../../tools/commentcheck/doc.go) | 检查代码说明有没有写全 | CI |
-| [archcheck](../../tools/archcheck/doc.go) | 检查代码有没有放错位置、有没有越界依赖 | CI |
+| [archcheck](../../tools/archcheck/doc.go) | 检查目录布局、标准答案访问、Compose 挂载与内部端口 | CI |
+| [depguard](../../.golangci.yml) | 检查依赖方向和文件角色对应的导入边界 | CI（默认与 leakbug 构建） |
 
 ## 2. 怎么跑起来、看什么
 
@@ -293,7 +294,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 **为什么只用一个模块：** 对初学阶段来说，一个模块最简单。一条 `go test ./...` 就能跑完全部测试，通用部件也能直接共享。
 
-**代价：** 同一个模块里，任何包都能导入任何包，Go 不会阻止医生的代码导入靶场的代码。`internal` 目录只能挡住**其他仓库**的导入，挡不住本仓库内部。所以项目另写了 archcheck，在 CI 里检查“谁能依赖谁”。
+**代价：** 同一个模块里，任何包都能导入任何包，Go 不会阻止医生的代码导入靶场的代码。`internal` 目录只能挡住**其他仓库**的导入，挡不住本仓库内部。项目现在用 depguard 在 CI 里检查“谁能依赖谁”；archcheck 保留目录布局、标准答案访问和 Compose 检查。
 
 > `internal` 是 Go 认识的特殊目录名：放在它下面的包，只有本仓库的代码能导入。
 
@@ -472,7 +473,8 @@ Go 标准库里 `MaxOpenConns` 设为 0 表示“不限制”。项目要求必�
 | 手段 | 能发现什么 | 证明不了什么 |
 |---|---|---|
 | commentcheck | 漏写了注释或说明 | 注释写得好不好、对不对 |
-| archcheck | 代码放错位置、越界导入 | 运行时才能确定的行为 |
+| archcheck | 目录布局、标准答案访问、Compose 挂载与内部端口违规 | 运行时才能确定的行为 |
+| depguard | 当前构建中违反配置的导入；默认与 leakbug 构建分别检查 | 运行时账号权限、未检查构建中的依赖 |
 | `go test -race` | 测试跑到的代码里存在的并发读写冲突 | 没被测试跑到的代码是否安全 |
 
 **测试要有“反例”。** 检查工具如果只在合法代码上测试，一个永远输出“通过”的空壳工具也能通过测试。所以测试里必须有故意违规的代码，证明工具真的会报错。
@@ -757,10 +759,18 @@ func discardExample(connection *sql.Conn) error {
 
 ### 实验二：让依赖检查报错
 
-1. 在 config.go 的 `import` 里临时加一行：`_ "github.com/Li-Nepenthe/opsdoctor/internal/doctor/auth"`。
-2. 运行 `go run ./tools/archcheck ./...`。
+如果尚未安装检查工具，先运行 `go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0`，并确认 Go 的 bin 目录在 PATH 中。
 
-你应该看到“platform 不得依赖业务包”。前面的 `_` 表示“只导入、不使用”，Go 允许这样写，但它仍然算一次依赖，archcheck 照样会抓住。撤销这一行。
+1. 在 config.go 的 `import (` 后临时加入第一项：`_ "github.com/Li-Nepenthe/opsdoctor/internal/doctor/auth"`。
+2. 运行 `golangci-lint run ./...`。
+
+这次收尾在 Windows 上实际得到下面的报错（行号取决于插入位置）：
+
+```text
+internal\platform\config\config.go:18:2: import 'github.com/Li-Nepenthe/opsdoctor/internal/doctor/auth' is not allowed from list 'platform-boundary': platform 是通用基础设施，不能向上依赖诊断业务。 (depguard)
+```
+
+前面的 `_` 表示“只导入、不使用”，Go 允许这样写，但它仍然算一次依赖，depguard 照样会抓住。撤销这一行再运行，应该通过。archcheck 现在负责目录布局、标准答案访问和 Compose 检查，不再检查这条导入规则。
 
 ### 实验三：让配置测试失败
 
@@ -781,7 +791,7 @@ func discardExample(connection *sql.Conn) error {
 
 ## 8. 常见误区
 
-- **“internal 能隔开项目里的各个部分。”** 它只能挡住其他仓库的导入。项目内部谁能依赖谁，要靠 archcheck。
+- **“internal 能隔开项目里的各个部分。”** 它只能挡住其他仓库的导入。项目内部谁能依赖谁，要靠 depguard 的导入规则。
 - **“Go 的接口和 Java 一样，要写 implements。”** 不用。一个类型只要有接口要求的所有方法，就自动实现了这个接口。
 - **“context 取消了，函数就会自动停下。”** 不会。取消只是一个通知，函数要自己检查 `ctx.Done()`，或者把 ctx 传给会检查它的操作（比如数据库查询）。
 - **“`sql.Open` 成功就说明数据库能连上。”** 不对。它只是创建了连接池，还没真正联网。要 `Ping` 一次才知道。这也是 `mysqlx.Open` 最后要 Ping 的原因。
@@ -807,7 +817,7 @@ func discardExample(connection *sql.Conn) error {
 9. 限制请求体大小时，为什么不能只看 `Content-Length`？
 10. 迁移的并发测试里，结果 channel 的容量为什么是 2？
 11. 怎样证明单元测试没有连真实数据库？怎样打开集成测试？
-12. commentcheck、archcheck、`-race` 分别能发现什么问题、证明不了什么？
+12. commentcheck、depguard、archcheck、`-race` 分别能发现什么问题、证明不了什么？
 
 ## 10. 本阶段新术语
 
@@ -840,7 +850,7 @@ func discardExample(connection *sql.Conn) error {
 <details>
 <summary>必答问题参考要点（先自己回答）</summary>
 
-1. 放在 `internal` 下的包，只有它的父目录及以下的代码能导入。它能挡住其他仓库导入我们的内部代码，但挡不住本仓库内部的互相导入，比如医生导入靶场。后者靠 archcheck。
+1. 放在 `internal` 下的包，只有它的父目录及以下的代码能导入。它能挡住其他仓库导入我们的内部代码，但挡不住本仓库内部的互相导入，比如医生导入靶场。后者靠 depguard。
 2. 同一个程序可以不重新打包，直接部署到不同的环境，只换环境变量就行；密码也不会出现在代码和镜像里。代价是启动时必须认真检查每个变量，而且不能把变量的值随便打进日志。
 3. 收到退出信号 → 停止接受新请求 → 等正在处理的请求做完 → 按顺序关闭资源（先服务器，后数据库） → 超过总时限就不再等。不做优雅停机，正在处理的请求会被直接打断，客户端收到连接错误，事务可能做到一半。
 4. `healthcheck` 回答“这个服务现在能不能用”；`depends_on: condition: service_healthy` 让一个服务等它依赖的服务第一次变健康以后再启动。后者只管第一次启动，运行中断线要靠服务自己处理。
@@ -851,7 +861,7 @@ func discardExample(connection *sql.Conn) error {
 9. 客户端可以不发 `Content-Length`（分块传输），也可以谎报。只有在实际读取正文时计数（`MaxBytesReader`），才能真正限制住读进来的字节数。
 10. 测试开了两个 goroutine，每个往 channel 里写一次结果。主 goroutine 先 `Wait` 等它们都结束，再读 channel。如果容量是 0，写入的 goroutine 会一直等着有人来读，而主 goroutine 又在等它们结束，两边互相等，就卡死了。容量 2 正好放得下两个结果。
 11. 单元测试不设置测试数据库的地址，集成测试看到没有地址就会 SKIP；只有设置了专用测试库的地址，集成测试才会真正运行。HTTP 测试用 `httptest` 直接调用处理函数，认证测试也不需要网络。
-12. commentcheck 只查注释有没有写，不管写得好不好；archcheck 查代码位置和依赖方向，查不到运行时才确定的行为；`-race` 只能发现测试实际跑到的代码里的并发冲突，没跑到的代码它不知道。三者都不能代替人的审查。
+12. commentcheck 只查注释有没有写，不管写得好不好；depguard 查当前构建的导入规则；archcheck 查目录布局、标准答案访问和 Compose 边界，查不到运行时才确定的行为；`-race` 只能发现测试实际跑到的代码里的并发冲突，没跑到的代码它不知道。这些检查都不能代替人的审查。
 
 </details>
 
