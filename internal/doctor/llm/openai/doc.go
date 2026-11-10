@@ -6,12 +6,14 @@
 //
 // 文件清单：
 //   - responses.go：转换 Responses 的调用条目，并读取缓存命中和写入用量。
-//   - responses_test.go：用假 HTTP 回复证明函数往返和费用换算。
+//   - responses_test.go：验证工具往返、严格解码与真实审计样本的恢复。
 //   - doc.go：HTTP 模型客户端的边界与阅读入口。
 //   - client.go：配置检查、脱敏、发送和费用结算。
 //   - protocol.go：读取回复、解释错误码、按 Retry-After 等待。
 //   - client_test.go：在内存中验证重试、审计内容和取消，不调用真实模型。
 //   - network_test.go：验证无响应重试、退避和每次独立预留费用。
+//   - testdata/README.md：历史样本的来源和字节保留约束。
+//   - testdata/deepseek-p9-53-response.json：阶段 9 P9-53 的脱敏回复原件。
 //
 // 阅读顺序：Complete → attempt → decodeResponse → settle。
 // 本包不执行工具，也不读取系统说明书或故障场景。

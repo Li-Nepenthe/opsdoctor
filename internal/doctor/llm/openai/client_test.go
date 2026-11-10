@@ -6,6 +6,7 @@
 // 主要内容：TestHTTPPolicy 检查错误码；TestWireAudit 检查脱敏与协议；
 // TestCancel、TestCancelBody 分别检查等待响应头和读取正文时的取消。
 // TestAttemptPrices 检查请求跨过价格时段边界仍按发送时的价格结算。
+// TestHTTPResponseBoundaries 固定非 200、重定向与回复大小的拒绝边界。
 // 阅读建议：账本的 Reserve 必须先于 Transport 被调用，这也是测试中的断言。
 
 package openai
@@ -102,6 +103,43 @@ func TestHTTPPolicy(t *testing.T) {
 					t.Fatalf("calls=%d elapsed=%s err=%v", calls, time.Since(start), err)
 				}
 			})
+		})
+	}
+}
+
+// TestHTTPResponseBoundaries 防止有效正文掩盖错误状态，或越界回复触发额外付费尝试。
+func TestHTTPResponseBoundaries(t *testing.T) {
+	const valid = `{"choices":[{"message":{"role":"assistant","content":"ok"}}],"usage":{"prompt_tokens":20,"completion_tokens":2}}`
+	for _, test := range []struct {
+		name, body string
+		status     int
+		wantError  bool
+	}{
+		{"201", valid, 201, true}, {"204", valid, 204, true},
+		{"302", valid, 302, true}, {"307", valid, 307, true},
+		{"exactly_1_MiB", valid + strings.Repeat(" ", (1<<20)-len(valid)), 200, false},
+		{"over_1_MiB", valid + strings.Repeat(" ", (1<<20)+1-len(valid)), 200, true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			ledger := &memoryLedger{}
+			calls, targets := 0, 0
+			// 正文和重定向目标均返回合法回复，拒绝必须来自 HTTP 边界而不是 JSON 损坏。
+			client := clientForTest(t, ledger, func(request *http.Request) (*http.Response, error) {
+				calls++
+				if request.URL.Path == "/redirect-target" {
+					targets++
+					return reply(200, valid), nil
+				}
+				response := reply(test.status, test.body)
+				if test.status == 302 || test.status == 307 {
+					response.Header.Set("Location", "/redirect-target")
+				}
+				return response, nil
+			}, io.Discard)
+			answer, err := client.Complete(t.Context(), requestForTest())
+			if (err != nil) != test.wantError || answer.UsageKnown == test.wantError || calls != 1 || targets != 0 || len(ledger.reservations) != 1 {
+				t.Fatalf("calls=%d targets=%d known=%v err=%v", calls, targets, answer.UsageKnown, err)
+			}
 		})
 	}
 }

@@ -1,24 +1,75 @@
-// 本文件：用内存 HTTP 回复验证 Responses 的函数往返和缓存计费。
+// 本文件：验证模型回复的工具往返、计费与历史兼容。
 //
 // 端点和模型名看起来像真实 API，但 Transport 完全由测试接管。测试不会读取本机 Key，
 // 也不会联网。发送内容必须与预留审计完全相同。
 //
 // 主要内容：TestResponsesRoundtrip 检查两轮 call_id；TestResponsesUsage 检查计量边界。
+// TestSavedResponseTypes 拒绝类型被写错的回复；TestSavedDeepSeekResponse 固定真实审计样本的恢复结果。
 // 阅读建议：调用 ID 不是步骤号，必须原样传回；缓存写入不是额外一份输入 token。
 
 package openai
 
 import (
+	"crypto/sha256"
 	"encoding/json"
+	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
 )
+
+// TestSavedResponseTypes 不允许协议适配悄悄改写用量或工具参数。
+func TestSavedResponseTypes(t *testing.T) {
+	const chat = `{"choices":[{"message":{"role":"assistant","content":"ok","tool_calls":[{"id":"c1","type":"function","function":{"name":"inspect","arguments":"{}"}}]}}],"usage":{"prompt_tokens":20,"completion_tokens":2}}`
+	const responses = `{"status":"completed","output":[{"type":"function_call","call_id":"c1","name":"inspect","arguments":"{}"}],"usage":{"input_tokens":20,"output_tokens":2}}`
+	// 先证明基底有效，下面每个反例只改变一种字段类型。
+	for _, body := range []string{chat, responses} {
+		if _, err := DecodeSavedResponse([]byte(body), "fallback"); err != nil {
+			t.Fatal(err)
+		}
+	}
+	for _, test := range []struct{ name, body string }{
+		{"chat_string_token", strings.Replace(chat, `"prompt_tokens":20`, `"prompt_tokens":"20"`, 1)},
+		{"chat_fraction_token", strings.Replace(chat, `"prompt_tokens":20`, `"prompt_tokens":20.5`, 1)},
+		{"chat_object_content", strings.Replace(chat, `"content":"ok"`, `"content":{}`, 1)},
+		{"chat_object_arguments", strings.Replace(chat, `"arguments":"{}"`, `"arguments":{}`, 1)},
+		{"responses_string_token", strings.Replace(responses, `"input_tokens":20`, `"input_tokens":"20"`, 1)},
+		{"responses_object_arguments", strings.Replace(responses, `"arguments":"{}"`, `"arguments":{}`, 1)},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			if answer, err := DecodeSavedResponse([]byte(test.body), "fallback"); err == nil || answer.UsageKnown {
+				t.Fatalf("错误类型被当作有效回复：known=%v err=%v", answer.UsageKnown, err)
+			}
+		})
+	}
+}
+
+// TestSavedDeepSeekResponse 使用阶段 9 P9-53 的已脱敏审计；错误的参数应留给工具校验，不能在恢复时修补。
+func TestSavedDeepSeekResponse(t *testing.T) {
+	raw, err := os.ReadFile("testdata/deepseek-p9-53-response.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if fmt.Sprintf("%x", sha256.Sum256(raw)) != "a24dcfa91ad34410363662247ee7c1d38ab01ba06d76b49a3324512c2808419d" {
+		t.Fatal("历史样本已改变，不能作为同一份审计回归")
+	}
+	answer, err := DecodeSavedResponse(raw, "fallback")
+	want := llm.Usage{Input: 13808, Output: 466, CacheHit: 768, CacheMiss: 13040}
+	if err != nil || !answer.UsageKnown || answer.Model != "deepseek-flash" || answer.Usage != want || len(answer.Message.ToolCalls) != 1 {
+		t.Fatalf("历史回复恢复不符：%+v err=%v", answer, err)
+	}
+	// 同时约束原始字符串和非法状态，避免“修好 JSON”后让当年的失败评分变成成功。
+	arguments := []byte(answer.Message.ToolCalls[0].Function.Arguments)
+	if json.Valid(arguments) || fmt.Sprintf("%x", sha256.Sum256(arguments)) != "28b92e01563cf90a8aa7d61ee8503f18dffce7bd47dbb8dc9bb97bc95825c825" {
+		t.Fatal("历史工具参数被修补或改写")
+	}
+}
 
 // TestResponsesRoundtrip 把模型第一轮的函数调用接到第二轮输入，确认没有丢失 ID 或增加托管工具。
 func TestResponsesRoundtrip(t *testing.T) {
