@@ -127,8 +127,8 @@ func acquire(ctx context.Context, connection *sql.Conn) (string, error) {
 	const lockHashBytes = 16
 	digest := sha256.Sum256([]byte(database))
 	name := fmt.Sprintf("opsdoctor:migrate:%x", digest[:lockHashBytes])
-	// 用 sql.NullInt64 保留 GET_LOCK 的 NULL 状态，避免把查询异常误判成普通超时。
-	// 只有明确返回 1 才继续迁移；否则丢弃这条可能已持锁的连接。
+	// GET_LOCK 拿到锁返回 1，等待超时返回 0，MySQL 内部出错返回 NULL。
+	// 用 NullInt64 接住 NULL，才能把它报告成锁的结果，而不是一条类型转换错误。只有 1 才继续迁移。
 	var acquired sql.NullInt64
 	err := connection.QueryRowContext(ctx, acquireLockSQL, name, lockWaitSeconds).Scan(&acquired)
 	if err != nil || !acquired.Valid || acquired.Int64 != 1 {
