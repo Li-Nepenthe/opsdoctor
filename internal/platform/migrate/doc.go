@@ -21,8 +21,6 @@
 //   - migrate.go：Apply 本身，负责第 2～5 步。
 //   - files_test.go：检查文件规则的单元测试。
 //   - migrate_integration_test.go：连真实 MySQL，验证迁移和加锁，包括两个调用同时迁移的情况。
-//   - migrate_probe_integration_test.go：临时对比旧 Apply 与 golang-migrate，CI 日志记录行为差异，不接入生产。
-//   - migrate_probe_support_test.go：探针专用库清理、内存文件转换和脱敏结果输出。
 //   - testdata/0001_probe.sql：只给集成测试用的示例迁移。
 //
 // 阅读顺序：先读 files.go，了解迁移文件要满足哪些规则；再读 migrate.go 的 Apply，

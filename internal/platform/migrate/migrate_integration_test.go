@@ -6,6 +6,7 @@
 // 主要内容：
 //   - integrationDatabase：连接专用测试库。缺少开关时跳过，避免普通 go test 访问网络。
 //   - TestApplyIntegration：验证两个并发启动者只记一次迁移，改写被拒绝，取消后锁仍能正确释放。
+//   - TestApplyRecoveryIntegration：验证执行中取消或 SQL 失败只保留成功历史，修正后能重新拿锁并继续。
 //   - verifyCancellation：持锁后取消调用方，再释放并重新获取，验证清理没有复用已取消的 context。
 
 package migrate
@@ -14,6 +15,7 @@ import (
 	"context"
 	"database/sql"
 	"embed"
+	"errors"
 	"os"
 	"sync"
 	"testing"
@@ -95,6 +97,77 @@ func TestApplyIntegration(t *testing.T) {
 		t.Fatal("接受了改写的历史迁移")
 	}
 	verifyCancellation(t, database)
+}
+
+// TestApplyRecoveryIntegration 验证执行中取消或 SQL 失败只保留成功历史，修正后能重新拿锁并继续。
+func TestApplyRecoveryIntegration(t *testing.T) {
+	for _, test := range []struct {
+		name, middle  string // middle 是故意阻塞或写错的第 2 个迁移。
+		cancelRunning bool   // 取消用例必须先看到 SQL 真正在执行，不能用固定延时猜测。
+	}{
+		{"cancel_during_migration", "SELECT SLEEP(5)", true},
+		{"repair_failed_migration", "INSER INTO migration_probe VALUES (1)", false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			database := integrationDatabase(t)
+			first, err := embeddedProbe.ReadFile("testdata/0001_probe.sql")
+			if err != nil {
+				t.Fatal(err)
+			}
+			// 复用原来的建表迁移；后两个文件只写内存，不改生产 SQL。
+			files := fstest.MapFS{
+				"0001_probe.sql":  {Data: first},
+				"0002_middle.sql": {Data: []byte(test.middle)},
+				"0003_finish.sql": {Data: []byte("INSERT INTO migration_probe VALUES (2)")},
+			}
+			ctx, cancel := context.WithCancel(t.Context())
+			defer cancel()
+			done := make(chan error, 1)
+			go func() { done <- Apply(ctx, database, files, ".") }()
+			var running int
+			var observeErr error
+			if test.cancelRunning {
+				// 同账号可以查看自己的连接；精确匹配 SQL 并排除观察连接，无需 PROCESS 权限。
+				const runningSQL = `SELECT COUNT(*) FROM information_schema.PROCESSLIST
+					WHERE ID <> CONNECTION_ID() AND DB = DATABASE() AND INFO = ?`
+				deadline := time.Now().Add(4 * time.Second)
+				for time.Now().Before(deadline) {
+					observeErr = database.QueryRowContext(t.Context(), runningSQL, test.middle).Scan(&running)
+					if observeErr != nil || running > 0 {
+						break
+					}
+					time.Sleep(20 * time.Millisecond)
+				}
+				cancel()
+			}
+			// 先等 Apply 完整退出再断言，观察失败时也不能把后台连接留给下一个用例。
+			err = <-done
+			if test.cancelRunning && (running == 0 || observeErr != nil) {
+				t.Fatalf("未观察到第 2 个迁移正在执行：%v", observeErr)
+			}
+			if err == nil || test.cancelRunning && !errors.Is(err, context.Canceled) {
+				t.Fatalf("未返回预期的 SQL 失败或 context.Canceled：%v", err)
+			}
+			// 同时查历史和实际写入，避免只证明没有记账，却漏掉后续 SQL 已经执行的情况。
+			const stateSQL = `SELECT COUNT(*), COALESCE(MAX(version), ''),
+				(SELECT COUNT(*) FROM migration_probe) FROM schema_migrations`
+			var count, marks int
+			var latest string
+			if err := database.QueryRowContext(t.Context(), stateSQL).Scan(&count, &latest, &marks); err != nil || count != 1 || latest != "0001_probe.sql" || marks != 0 {
+				t.Fatalf("中断后历史=%d，最后文件=%s，写入=%d：%v", count, latest, marks, err)
+			}
+			files["0002_middle.sql"].Data = []byte("INSERT INTO migration_probe VALUES (1)")
+			// 新的调用预算也验证命名锁已经释放，不需要人工清理状态就能继续。
+			retryCtx, stop := context.WithTimeout(t.Context(), 10*time.Second)
+			defer stop()
+			if err := Apply(retryCtx, database, files, "."); err != nil {
+				t.Fatal(err)
+			}
+			if err := database.QueryRowContext(retryCtx, stateSQL).Scan(&count, &latest, &marks); err != nil || count != 3 || latest != "0003_finish.sql" || marks != 2 {
+				t.Fatalf("修正后历史=%d，最后文件=%s，写入=%d：%v", count, latest, marks, err)
+			}
+		})
+	}
 }
 
 // verifyCancellation 持锁后取消调用方，再释放并重新获取，验证清理没有复用已取消的 context。
