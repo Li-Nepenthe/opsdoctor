@@ -142,35 +142,16 @@ func (index *Runbooks) Search(ctx context.Context, query string, limit int) ([]R
 	if limit < 1 || limit > 3 || utf8.RuneCountInString(query) > 256 {
 		return nil, fmt.Errorf("%w：检索限一至三段，关键词最多 256 字", ErrInvalidArgument)
 	}
-	terms := map[string]bool{}
-	for _, word := range searchWords(query) {
-		terms[word] = true
-	}
-	if len(terms) == 0 {
+	ordered := queryTerms(query)
+	if len(ordered) == 0 {
 		return nil, fmt.Errorf("%w：请提供中文或英文关键词", ErrInvalidArgument)
 	}
-	ordered := make([]string, 0, len(terms))
-	for term := range terms {
-		ordered = append(ordered, term)
-	}
-	sort.Strings(ordered) // 固定浮点加法次序，重复检索不受 map 遍历顺序影响。
 	hits := []RunbookHit{}
 	for _, chunk := range index.chunks {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		score := 0.0
-		for _, term := range ordered {
-			frequency := float64(chunk.terms[term])
-			if frequency == 0 {
-				continue
-			}
-			// 正的 IDF 形式与 Lucene BM25 一致。常见词的权重较低，但不会产生负分。
-			df, count := float64(index.frequency[term]), float64(len(index.chunks))
-			idf := math.Log1p((count - df + 0.5) / (df + 0.5))
-			const k1, b = 1.2, 0.75 // 固定饱和程度和长度修正强度，正式评测不调参。
-			score += idf * frequency * (k1 + 1) / (frequency + k1*(1-b+b*float64(chunk.length)/index.average))
-		}
+		score := index.scoreChunk(chunk, ordered)
 		if score > 0 {
 			hits = append(hits, RunbookHit{chunk.file, chunk.title, chunk.part, score, chunk.text})
 		}
@@ -185,6 +166,35 @@ func (index *Runbooks) Search(ctx context.Context, query string, limit int) ([]R
 		return hits[i].Part < hits[j].Part // 同分时固定顺序，不能因 map 顺序改变返回片段。
 	})
 	return hits[:min(limit, len(hits))], nil
+}
+
+func queryTerms(query string) []string {
+	terms := map[string]bool{}
+	for _, word := range searchWords(query) {
+		terms[word] = true
+	}
+	ordered := make([]string, 0, len(terms))
+	for term := range terms {
+		ordered = append(ordered, term)
+	}
+	sort.Strings(ordered) // 固定浮点加法次序，重复检索不受 map 遍历顺序影响。
+	return ordered
+}
+
+func (index *Runbooks) scoreChunk(chunk runbookChunk, ordered []string) float64 {
+	score := 0.0
+	for _, term := range ordered {
+		frequency := float64(chunk.terms[term])
+		if frequency == 0 {
+			continue
+		}
+		// 正的 IDF 形式与 Lucene BM25 一致。常见词的权重较低，但不会产生负分。
+		df, count := float64(index.frequency[term]), float64(len(index.chunks))
+		idf := math.Log1p((count - df + 0.5) / (df + 0.5))
+		const k1, b = 1.2, 0.75 // 固定饱和程度和长度修正强度，正式评测不调参。
+		score += idf * frequency * (k1 + 1) / (frequency + k1*(1-b+b*float64(chunk.length)/index.average))
+	}
+	return score
 }
 
 // WithRunbooks 返回独立菜单；基础目录和 MCP 菜单不会因此得到 E2 专用工具。
