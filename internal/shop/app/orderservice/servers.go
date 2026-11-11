@@ -23,11 +23,22 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/product"
 )
 
+type shopServices struct {
+	products *product.Service
+	orders   *order.Service
+}
+
+type httpServers struct {
+	business         *http.Server
+	admin            *http.Server
+	processingBudget time.Duration
+}
+
 // services 在构造函数之间传递接口，让商品、订单包不用自己打开连接或注册全局指标。
-func services(settings Config, resources *dependencies, runtime *telemetry.Runtime, logger *slog.Logger, budget time.Duration) (*product.Service, *order.Service, error) {
+func services(settings Config, resources *dependencies, runtime *telemetry.Runtime, logger *slog.Logger, budget time.Duration) (shopServices, error) {
 	cache, err := product.NewRedisCache(resources.redis, settings.CacheJitter)
 	if err != nil {
-		return nil, nil, err
+		return shopServices{}, err
 	}
 	products := product.NewService(
 		&observedProducts{Repository: product.NewMySQLRepository(resources.database), metrics: runtime.Metrics},
@@ -36,7 +47,7 @@ func services(settings Config, resources *dependencies, runtime *telemetry.Runti
 	// 只有整条业务路径和收尾预算都耗尽，旧 processing 占位才能转为待核对。
 	idempotency, err := order.NewRedisIdempotency(resources.redis, settings.IdempotencyTTL, budget)
 	if err != nil {
-		return nil, nil, err
+		return shopServices{}, err
 	}
 	orders := order.NewService(order.Dependencies{
 		Repository:     order.NewMySQLRepository(resources.database),
@@ -49,20 +60,20 @@ func services(settings Config, resources *dependencies, runtime *telemetry.Runti
 		PublishTimeout: settings.PublishBudget,
 		Logger:         logger,
 	})
-	return products, orders, nil
+	return shopServices{products: products, orders: orders}, nil
 }
 
 // servers 只创建对象，不开始监听。serve 会先确认两个端口都能绑定，再开放流量。
-func servers(settings Config, resources *dependencies, logger *slog.Logger, runtime *telemetry.Runtime) (*http.Server, *http.Server, time.Duration, error) {
+func servers(settings Config, resources *dependencies, logger *slog.Logger, runtime *telemetry.Runtime) (httpServers, error) {
 	// 消息确认有自己的预算，幂等占位和 HTTP 排空必须一并容纳它。
 	budget := processingBudget(settings)
-	products, orders, err := services(settings, resources, runtime, logger, budget)
+	shop, err := services(settings, resources, runtime, logger, budget)
 	if err != nil {
-		return nil, nil, 0, err
+		return httpServers{}, err
 	}
-	router, err := routes(settings, products, orders, logger, runtime)
+	router, err := routes(settings, shop.products, shop.orders, logger, runtime)
 	if err != nil {
-		return nil, nil, 0, err
+		return httpServers{}, err
 	}
 	business := &http.Server{
 		Addr: settings.HTTPAddress, Handler: router, ReadHeaderTimeout: headerTimeout,
@@ -74,5 +85,5 @@ func servers(settings Config, resources *dependencies, logger *slog.Logger, runt
 		}
 		return resources.redis.Ping(probe).Err()
 	}, runtime.Metrics.Registry)
-	return business, admin, budget, nil
+	return httpServers{business: business, admin: admin, processingBudget: budget}, nil
 }

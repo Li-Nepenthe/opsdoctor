@@ -74,7 +74,7 @@ func Run(parent context.Context) (result error) {
 		return err
 	}
 	defer func() { result = errors.Join(result, resources.close()) }()
-	httpServer, admin, processingBudget, err := servers(settings, resources, logger, observability)
+	endpoints, err := servers(settings, resources, logger, observability)
 	if err != nil {
 		return err
 	}
@@ -96,7 +96,7 @@ func Run(parent context.Context) (result error) {
 		"getstock_attempt_timeout", settings.Inventory.AttemptTimeout.String(),
 		"retry_backoff", settings.Inventory.Retry.Backoff.String(), "breaker_enabled", settings.Inventory.Breaker.Enabled,
 		"cache_singleflight", settings.Singleflight, "cache_ttl_jitter", settings.CacheJitter.String(), "idempotency_ttl", settings.IdempotencyTTL.String())
-	return serve(ctx, httpServer, admin, processingBudget+shutdownMargin, logger)
+	return serve(ctx, endpoints.business, endpoints.admin, endpoints.processingBudget+shutdownMargin, logger)
 }
 
 // connectInventory 把首次 DNS 查询和握手放进启动预算，避免第一位用户替服务承担建连等待。
