@@ -106,16 +106,7 @@ func (generator *generator) run(ctx context.Context) {
 		workers.Add(1)
 		go func() {
 			defer workers.Done()
-			for value := range jobs {
-				if value.burst != nil {
-					// 调度者把这一批交给工作者后统一放行，避免先领到任务的人已经查完缓存。
-					<-value.burst.start
-				}
-				failed := generator.execute(workContext, value)
-				if value.burst != nil {
-					generator.bursts.finish(value.burst.id, failed, 0)
-				}
-			}
+			generator.work(workContext, jobs)
 		}()
 	}
 	generator.schedule(ctx, jobs)
@@ -130,6 +121,19 @@ func (generator *generator) run(ctx context.Context) {
 	case <-timer.C:
 		cancel()
 		<-finished
+	}
+}
+
+func (generator *generator) work(ctx context.Context, jobs <-chan job) {
+	for value := range jobs {
+		if value.burst != nil {
+			// 调度者把这一批交给工作者后统一放行，避免先领到任务的人已经查完缓存。
+			<-value.burst.start
+		}
+		failed := generator.execute(ctx, value)
+		if value.burst != nil {
+			generator.bursts.finish(value.burst.id, failed, 0)
+		}
 	}
 }
 
