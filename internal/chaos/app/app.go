@@ -1,14 +1,5 @@
-// 本文件：把 chaos 命令行接到场景、执行器和自动验收流程。
-//
-// 程序从仓库根目录运行。普通业务服务不会调用这里，也不会拿到这里的高权限账号。
-// 命令错误会返回非零退出码，方便把完整实验结果保存到文件。
-//
-// 主要内容：
-//   - Run：读取场景，装配外部适配器，分派子命令。
-//   - operate：执行单个场景的注入、观察或恢复。
-//   - overrides：检查显式实验参数，不改写仓库中的 YAML。
-//
-// 阅读建议：先运行 list，再对照单个场景的 inject 和 restore 顺序。
+// 本文件：命令行通过 Run 连接宿主机的实验流程。
+// operate 校验命令与现有记录的对应关系，overrides 只更改本次运行的参数。
 
 package app
 
@@ -89,7 +80,7 @@ func newEngine(reader config.Reader) (*Engine, error) {
 	if err = errors.Join(orderErr, proxyErr, loadErr, promErr, redisErr, productsErr, workersErr); err != nil {
 		return nil, err
 	}
-	// 缺少 DSN 时只在真正执行索引动作时报错，list、healthy 等只读命令不需要高权限凭据。
+	// 只在索引动作真正需要连接时要求凭据。
 	dsn, _ := reader.String("CHAOS_MYSQL_DSN", "")
 	password, _ := reader.String("REDIS_PASSWORD", "")
 	runner := &action.Runner{OrderURL: order, Root: root, RedisPassword: password, MySQLDSN: dsn, RedisAddress: redis, ProxyURL: proxy, LoadURL: load, HTTP: &http.Client{Timeout: 10 * time.Second}}
@@ -171,7 +162,7 @@ func (engine *Engine) operate(ctx context.Context, command string, value scenari
 
 // overrides 只覆盖对应动作已有的参数；没有这种动作的场景会拒绝无效的覆盖选项。
 func overrides(value *scenario.Scenario, args []string, output io.Writer) error {
-	// -1 只表示没有传入选项，真正的零值仍可以表达暂停或解除热点。
+	// 未指定的选项用 -1 表示，零仍可表示暂停或恢复普通选品。
 	flags := flag.NewFlagSet("inject", flag.ContinueOnError)
 	flags.SetOutput(output)
 	qps := flags.Int("qps", -1, "覆盖流量动作的目标速率")

@@ -1,14 +1,5 @@
-// 本文件：通过本机控制接口改变网络延迟和请求流量。
-//
-// Toxiproxy 转发真实 TCP 数据，增加的等待会自然出现在调用链中。
-// 控制请求本身不进入业务日志，也不向服务发送场景编号或答案。
-//
-// 主要内容：
-//   - request：发送有大小限制的 JSON 控制请求。
-//   - latency：添加或移除固定名称的网络规则。
-//   - load：更新目标 QPS 或热点商品。
-//
-// 阅读建议：区分网络规则的 upstream/downstream，与请求总体的调用方向。
+// 本文件：实验工具通过本机控制接口读取或更新既有设置。
+// request 限制响应大小，控制请求不携带场景编号或调查参考答案。
 
 package action
 
@@ -26,7 +17,6 @@ import (
 
 // request 不自动重试写控制请求；超时后交给恢复路径处理结果不确定的情况。
 func (runner *Runner) request(ctx context.Context, method, url string, input, output any) error {
-	// 输入先编码为 JSON；URL 和方法由内部动作选择，不执行文本命令。
 	var body []byte
 	var err error
 	if input != nil {

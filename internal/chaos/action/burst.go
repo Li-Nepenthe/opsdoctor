@@ -1,14 +1,5 @@
-// 本文件：让流量工具发送有限批次的商品查询，并确认真实完成情况。
-//
-// 每批只查一个商品。上一批结束后才安排下一批，不在注入器中创建并发 HTTP 工作者。
-// loadgen 仍负责发送真实业务请求，本文件只调用它的本机控制接口。
-//
-// 主要内容：
-//   - burst：依次请求商品突发，控制批次间距。
-//   - waitBurst：核对批次编号、完成数与失败数，不能把接收成功当成执行成功。
-//   - pause：让等待服从整个注入动作的截止时间。
-//
-// 阅读建议：出现失败立即停止后续批次，恢复流量和服务由外层实验流程负责。
+// 本文件：宿主机控制接口一次只接收一批商品查询。
+// burst 等待 waitBurst 核对本批的完成情况，失败后由外层流程恢复。
 
 package action
 
@@ -21,7 +12,6 @@ import (
 )
 
 // burst 让每批内部同时出发，再按批次大小留出间距，使平均速率不超过 320 次/秒。
-// 例如 16 个请求间隔 50ms，64 个请求间隔 200ms，避免把入口限流混成缓存症状。
 func (runner *Runner) burst(ctx context.Context, step scenario.Step) error {
 	for offset := 0; offset < step.Count; offset++ {
 		started := time.Now()
@@ -55,11 +45,11 @@ func (runner *Runner) waitBurst(ctx context.Context, id uint64, requests int) er
 		var response struct {
 			Data struct {
 				Burst struct {
-					ID        uint64 `json:"id"`        // 防止把后来被别人发起的批次当成本次结果。
-					Completed int    `json:"completed"` // 实际 HTTP 尝试已结束的数量。
-					Failed    int    `json:"failed"`    // 非零就不能把这批称为成功商品查询。
-					Skipped   int    `json:"skipped"`   // 未发出的任务必须保留为失败实验。
-					Running   bool   `json:"running"`   // false 后才能使用最终统计。
+					ID        uint64 `json:"id"` // 防止把后来被别人发起的批次当成本次结果。
+					Completed int    `json:"completed"`
+					Failed    int    `json:"failed"`
+					Skipped   int    `json:"skipped"` // 未发出的任务必须保留为失败实验。
+					Running   bool   `json:"running"` // 仅在工作结束后使用最终统计。
 				} `json:"burst"`
 			} `json:"data"`
 		}

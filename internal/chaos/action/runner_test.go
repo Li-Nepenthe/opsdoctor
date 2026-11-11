@@ -2,13 +2,6 @@
 //
 // 不连接 Docker 或真实数据库。测试关心发给外部系统的动作范围，以及恢复是否使用原配置。
 //
-// 主要内容：
-//   - TestDeploymentRestore：恢复原镜像内容 ID 和配置，不重新构建。
-//   - TestToxicLifecycle：检查延迟规则的请求与重复恢复。
-//   - TestInvalidActionNeverRuns：非法动作不能到达外部执行器。
-//   - TestCapturePinsOriginalImage：发布前给原内容留下独立引用。
-//   - TestRestoreRejectsChangedImage：标签被外部改动后拒绝恢复错误版本。
-//
 // 阅读建议：恢复测试中的旧镜像与当前标签故意不同，用来发现误用标签的问题。
 
 package action

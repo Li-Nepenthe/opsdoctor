@@ -1,14 +1,5 @@
-// 本文件：保存发布前的配置，并通过 Compose 发布与恢复服务。
-//
-// 配置改变会真正重建容器。先给原镜像留一个本地标签，再记录内容 ID，避免原引用被新构建覆盖。
-// 只保存公开配置，不把容器里的密码复制进实验记录。
-//
-// 主要内容：
-//   - Baseline、Deployment：记录恢复需要的信息。
-//   - Capture：在任何改动前读取流量与相关服务的配置。
-//   - deploy、Restore：执行发布，恢复时使用刚才的快照。
-//
-// 阅读建议：先看 Capture 的字段筛选，再看恢复为什么禁止重新构建旧镜像。
+// 本文件：发布前由 Capture 保存服务原镜像与公开配置。
+// Restore 依据内容 ID 核对保存的镜像，避免原来的标签已经被新构建覆盖。
 
 package action
 
@@ -24,9 +15,9 @@ import (
 
 // Baseline 是本机恢复记录的一部分，不含凭据。
 type Baseline struct {
-	Services map[string]Deployment `json:"services"`   // 只记录本场景会发布的服务。
-	QPS      int                   `json:"qps"`        // 恢复操作者原先的流量，而不是强行设为默认值。
-	HotSKUID int64                 `json:"hot_sku_id"` // 同时恢复选品分布。
+	Services map[string]Deployment `json:"services"` // 只记录本场景会发布的服务。
+	QPS      int                   `json:"qps"`      // 恢复操作者原先的流量，而不是强行设为默认值。
+	HotSKUID int64                 `json:"hot_sku_id"`
 }
 
 // Deployment 用镜像内容 ID 和公开环境重建原服务。
@@ -38,7 +29,7 @@ type Deployment struct {
 
 // Capture 在注入之前执行。无法可靠读取基线时不开始实验。
 func (runner *Runner) Capture(ctx context.Context, value scenario.Scenario) (Baseline, error) {
-	// 先读流量，再读取将要重建的容器；这时尚未执行任何注入动作。
+	// 先读取实际流量，再保存需要恢复的服务配置。
 	baseline := Baseline{Services: make(map[string]Deployment)}
 	var control struct {
 		Data struct {
@@ -80,8 +71,7 @@ func (runner *Runner) Capture(ctx context.Context, value scenario.Scenario) (Bas
 		if inspected.Image == "" {
 			return baseline, fmt.Errorf("容器信息没有返回原镜像内容 ID")
 		}
-		// 只记 ID 不会替 Docker 保留镜像。新构建覆盖原标签、旧容器又被移除后，原 ID 可能已无法使用。
-		// 在任何发布动作之前加一个独立标签，让旧内容有明确引用。重复保存同一内容会复用同一标签。
+		// 仅记内容 ID 不能保留原镜像。发布前须为旧内容留下独立的本地标签。
 		savedTag := "opsdoctor/" + step.Service + ":saved-" + strings.TrimPrefix(inspected.Image, "sha256:")
 		if _, err = runner.RunCommand(ctx, []string{"image", "tag", inspected.Image, savedTag}, nil); err != nil {
 			return baseline, fmt.Errorf("保留原镜像：%w", err)

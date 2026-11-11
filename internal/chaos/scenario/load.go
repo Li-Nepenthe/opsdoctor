@@ -1,14 +1,5 @@
-// 本文件：加载并检查场景文件，所有检查通过后才允许开始操作。
-//
-// 文件中的动作会改动靶场，所以不能把拼写错误当成默认值继续执行。
-// 文件大小、编号和动作范围都在这里收紧。
-//
-// 主要内容：
-//   - Load：按固定顺序读取已实现的十三个场景。
-//   - Decode：拒绝未知字段，并检查必需的实验信息。
-//   - ValidateStep：检查每种动作自己的参数范围。
-//
-// 阅读建议：先读 Decode，再按感兴趣的动作查看 validate.go。
+// 本文件：场景说明通过完整性检查后才交给宿主机运行器。
+// Load 只读取固定编号，Decode 对文件大小、字段和动作逐项校验。
 
 package scenario
 
@@ -22,9 +13,9 @@ import (
 	"github.com/goccy/go-yaml"
 )
 
-// Load 只读取当前阶段明确支持的文件，不把目录中新放入的任意文件自动变成可执行场景。
+// Load 只读取已登记的文件。
 func Load(directory string) ([]Scenario, error) {
-	// 编号列表属于当前阶段的授权范围，阶段 8 已明确授权 S11/S12，其余新编号仍须先修改白名单。
+	// 目录中新放入的文件不能自动成为可执行场景。
 	var result []Scenario
 	for _, id := range []string{"S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "S13"} {
 		data, err := os.ReadFile(filepath.Join(directory, id+".yaml"))
@@ -45,7 +36,7 @@ func Load(directory string) ([]Scenario, error) {
 
 // Decode 先检查内容，再逐个检查动作。失败时不返回半份可以误用的场景。
 func Decode(data []byte) (Scenario, error) {
-	const maxBytes = 64 * 1024 // 十几个动作和讲解足够放下，拒绝误把大型文件当作配置。
+	const maxBytes = 64 * 1024 // 限制单份场景文档的大小。
 	var value Scenario
 	if len(data) > maxBytes {
 		return value, fmt.Errorf("场景文件超过 64 KiB")

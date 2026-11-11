@@ -1,13 +1,5 @@
-// 本文件：把场景操作限制在计划书规定的服务和资源内。
-//
-// YAML 不提供任意命令入口。表名、索引名、代理名与部署变量都有固定范围。
-// 运行器也会调用这些校验，避免只有文件加载路径受到保护。
-//
-// 主要内容：
-//   - ValidateStep：按动作检查参数。
-//   - ValidateEnvironment：拒绝密码变量和未开放的配置。
-//
-// 阅读建议：先看索引配对，再看部署变量为什么只列白名单。
+// 本文件：场景配置和运行器共用输入校验。
+// ValidateStep 限定可操作的资源，ValidateEnvironment 单独检查环境变量，未开放的配置不能进入操作。
 
 package scenario
 
@@ -20,7 +12,7 @@ import (
 
 // ValidateStep 先限制动作类型，再检查必要参数。运行器不会拼接未经校验的 SQL 标识符。
 func ValidateStep(step Step) error {
-	// 每种动作只开放必要资源；合法表名和合法索引名还必须正确配对。
+	// 索引名和表名必须配对，分别合法仍不足以通过检查。
 	switch step.Action {
 	case "drop_index", "restore_index":
 		if (step.Table == "stock" && step.Index == "uk_stock_sku") || (step.Table == "orders" && step.Index == "idx_orders_user_created") {
@@ -55,7 +47,7 @@ func ValidateStep(step Step) error {
 			return nil
 		}
 	case "load":
-		// 指针为空表示保持原值；因此至少要明确更新一个字段。
+		// 省略的字段保持原值，至少要指定一项变更。
 		if step.QPS == nil && step.HotSKUID == nil {
 			break
 		}
