@@ -96,17 +96,7 @@ func (run *session) readTools(ctx context.Context, calls []llm.ToolCall, final b
 		}
 		// 每个任务只写自己的切片元素；group.Wait 等所有保存结束后才合并历史。
 		group.Go(func() error {
-			var result tools.Result
-			switch {
-			case call.Function.Name == "submit_report":
-				result = invalidReport("submit_report 必须单独一轮；本轮查看工具结果返回后再提交")
-			case run.input.Approvals != nil && run.input.Approvals.Handles(call.Function.Name):
-				result = tools.Result{Tool: call.Function.Name, Status: "invalid_argument", Summary: "写工具必须单独一轮申请；不能与其他工具或报告混在一起", Data: json.RawMessage(`null`)}
-			case !allowed:
-				result = tools.Result{Tool: call.Function.Name, Status: "invalid_argument", Summary: "查证预算已用尽，只能单独提交报告", Data: json.RawMessage(`null`)}
-			default:
-				result = run.input.Tools.Run(ctx, call.Function.Name, json.RawMessage(call.Function.Arguments))
-			}
+			result := run.readTool(ctx, call, allowed)
 			message, step, err := run.saveTool(ctx, call, result, allowed)
 			replies[index], steps[index] = message, step
 			return err
@@ -126,6 +116,19 @@ func (run *session) readTools(ctx context.Context, calls []llm.ToolCall, final b
 		return ctx.Err()
 	}
 	return nil
+}
+
+func (run *session) readTool(ctx context.Context, call llm.ToolCall, allowed bool) tools.Result {
+	switch {
+	case call.Function.Name == "submit_report":
+		return invalidReport("submit_report 必须单独一轮；本轮查看工具结果返回后再提交")
+	case run.input.Approvals != nil && run.input.Approvals.Handles(call.Function.Name):
+		return tools.Result{Tool: call.Function.Name, Status: "invalid_argument", Summary: "写工具必须单独一轮申请；不能与其他工具或报告混在一起", Data: json.RawMessage(`null`)}
+	case !allowed:
+		return tools.Result{Tool: call.Function.Name, Status: "invalid_argument", Summary: "查证预算已用尽，只能单独提交报告", Data: json.RawMessage(`null`)}
+	default:
+		return run.input.Tools.Run(ctx, call.Function.Name, json.RawMessage(call.Function.Arguments))
+	}
 }
 
 // saveTool 把实际步骤号包在 tool 回复里，模型无需猜测并行完成的顺序。
