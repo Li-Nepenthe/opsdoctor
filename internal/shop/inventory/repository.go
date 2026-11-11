@@ -87,6 +87,16 @@ func (repository *MySQLStockRepository) change(ctx context.Context, statement st
 	return fmt.Errorf("变更 sku=%d 的条件不满足：%w", skuID, rejected)
 }
 
+const (
+	errTooManyConnections = 1040
+	errLockWaitTimeout    = 1205
+	errDeadlock           = 1213
+	errLocalSocketConnect = 2002
+	errHostConnect        = 2003
+	errServerGone         = 2006
+	errConnectionLost     = 2013
+)
+
 // classifyDatabaseError 隔离驱动类型。业务层只识别领域错误和标准 context 错误。
 func classifyDatabaseError(ctx context.Context, err error) error {
 	if ctx.Err() != nil {
@@ -100,7 +110,8 @@ func classifyDatabaseError(ctx context.Context, err error) error {
 	if errors.As(err, &mysqlError) {
 		// 只把连接容量、断连、死锁和锁等待归为暂时失败。语法/权限错误应留为 INTERNAL。
 		switch mysqlError.Number {
-		case 1040, 1205, 1213, 2002, 2003, 2006, 2013:
+		case errTooManyConnections, errLockWaitTimeout, errDeadlock,
+			errLocalSocketConnect, errHostConnect, errServerGone, errConnectionLost:
 			unavailable = true
 		}
 	}
