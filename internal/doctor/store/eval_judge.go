@@ -70,11 +70,18 @@ func (store *Store) PrepareEvalJudge(ctx context.Context, request EvalJudgeInput
 			return value, err
 		}
 	}
-	var savedModel, savedProvider, savedAccount, savedVersion string
-	if err = tx.QueryRowContext(ctx, "SELECT status,input,model,provider,eval_account,prompt_version FROM diagnoses WHERE id=?", value.ID).Scan(&value.Status, &value.Input, &savedModel, &savedProvider, &savedAccount, &savedVersion); err != nil {
+	var saved struct{ model, provider, account, version string }
+	if err = tx.QueryRowContext(ctx, "SELECT status,input,model,provider,eval_account,prompt_version FROM diagnoses WHERE id=?", value.ID).Scan(
+		&value.Status,
+		&value.Input,
+		&saved.model,
+		&saved.provider,
+		&saved.account,
+		&saved.version,
+	); err != nil {
 		return value, err
 	}
-	if !sameJSON(value.Input, clean) || savedModel != request.Model || savedProvider != request.Provider || savedAccount != request.Account || savedVersion != request.RubricVersion {
+	if !sameJSON(value.Input, clean) || saved.model != request.Model || saved.provider != request.Provider || saved.account != request.Account || saved.version != request.RubricVersion {
 		return value, fmt.Errorf("评分已绑定另一份输入、模型、版本或账户")
 	}
 	return value, tx.Commit()

@@ -58,7 +58,15 @@ func (store *Store) CreateEvalRun(ctx context.Context, value EvalRun) error {
 // EvalRun 只读这一批的 token 状态；费用必须另查对应币种的 Ledger。
 func (store *Store) EvalRun(ctx context.Context, id string) (EvalRun, error) {
 	var value EvalRun
-	err := store.database.QueryRowContext(ctx, "SELECT id,target,config,status,token_limit,tokens_used,stopped_reason FROM eval_runs WHERE id=?", id).Scan(&value.ID, &value.Target, &value.Config, &value.Status, &value.TokenLimit, &value.TokensUsed, &value.StoppedReason)
+	err := store.database.QueryRowContext(ctx, "SELECT id,target,config,status,token_limit,tokens_used,stopped_reason FROM eval_runs WHERE id=?", id).Scan(
+		&value.ID,
+		&value.Target,
+		&value.Config,
+		&value.Status,
+		&value.TokenLimit,
+		&value.TokensUsed,
+		&value.StoppedReason,
+	)
 	return value, err
 }
 

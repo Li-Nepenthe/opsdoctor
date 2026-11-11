@@ -69,11 +69,29 @@ func (store *Store) PrepareEvalResult(ctx context.Context, value EvalResult) (Ev
 
 // readEvalResult 在一个查询里取回完整槽位，避免分别读取时拼出不同版本的快照。
 func (store *Store) readEvalResult(ctx context.Context, key string) (EvalResult, error) {
-	var value EvalResult
-	var data, judgement []byte
-	err := store.database.QueryRowContext(ctx, "SELECT result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,COALESCE(diagnosis_id,''),result,attempt,COALESCE(retry_of,''),execution_profile,COALESCE(judge_id,''),judgement FROM eval_results WHERE result_key=?", key).Scan(&value.Key, &value.RunID, &value.Scenario, &value.Iteration, &value.Group, &value.Position, &value.FaultStartedAt, &value.Input, &value.DiagnosisID, &data, &value.Attempt, &value.RetryOf, &value.ExecutionProfile, &value.JudgeID, &judgement)
-	value.Data, value.Judgement = data, judgement
-	return value, err
+	var row struct {
+		EvalResult
+		data, judgement []byte // 结果和评分在各自结束前可以是 SQL NULL。
+	}
+	err := store.database.QueryRowContext(ctx, "SELECT result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,COALESCE(diagnosis_id,''),result,attempt,COALESCE(retry_of,''),execution_profile,COALESCE(judge_id,''),judgement FROM eval_results WHERE result_key=?", key).Scan(
+		&row.Key,
+		&row.RunID,
+		&row.Scenario,
+		&row.Iteration,
+		&row.Group,
+		&row.Position,
+		&row.FaultStartedAt,
+		&row.Input,
+		&row.DiagnosisID,
+		&row.data,
+		&row.Attempt,
+		&row.RetryOf,
+		&row.ExecutionProfile,
+		&row.JudgeID,
+		&row.judgement,
+	)
+	row.Data, row.Judgement = row.data, row.judgement
+	return row.EvalResult, err
 }
 
 // AttachEvalDiagnosis 只接受同批次、同幂等编号的任务，不能把另一次好结果移过来替换失败。

@@ -157,17 +157,35 @@ func (store *Store) Evaluation(ctx context.Context, value EvaluationInput) (stri
 	if err != nil {
 		return "", err
 	}
-	var target, group, model, runID, profile, provider, account, savedCurrency string
-	var savedInput []byte
-	var start time.Time
-	if err = tx.QueryRowContext(ctx, "SELECT id,target,eval_group,eval_expected_model,fault_started_at,input,eval_run_id,eval_profile,eval_provider,eval_account,currency FROM diagnoses WHERE eval_key=?", value.Key).Scan(&id, &target, &group, &model, &start, &savedInput, &runID, &profile, &provider, &account, &savedCurrency); err != nil {
+	var saved struct {
+		id, target, group, model                    string
+		runID, profile, provider, account, currency string
+		input                                       []byte
+		start                                       time.Time
+	}
+	if err = tx.QueryRowContext(ctx, "SELECT id,target,eval_group,eval_expected_model,fault_started_at,input,eval_run_id,eval_profile,eval_provider,eval_account,currency FROM diagnoses WHERE eval_key=?", value.Key).Scan(
+		&saved.id,
+		&saved.target,
+		&saved.group,
+		&saved.model,
+		&saved.start,
+		&saved.input,
+		&saved.runID,
+		&saved.profile,
+		&saved.provider,
+		&saved.account,
+		&saved.currency,
+	); err != nil {
 		return "", err
 	}
 	// MySQL 的 JSON 会调整空白，解码后比较规范编码，不能靠原始字节判断同一份输入。
-	if target != value.Target || group != value.Group || model != value.ExpectedModel || runID != value.RunID || profile != value.ExecutionProfile || provider != value.Provider || account != value.Account || (profile != "" && savedCurrency != currency) || !start.Equal(value.FaultStartedAt.UTC().Truncate(time.Microsecond)) || !sameJSON(savedInput, clean) {
+	if saved.target != value.Target || saved.group != value.Group || saved.model != value.ExpectedModel ||
+		saved.runID != value.RunID || saved.profile != value.ExecutionProfile || saved.provider != value.Provider ||
+		saved.account != value.Account || (saved.profile != "" && saved.currency != currency) ||
+		!saved.start.Equal(value.FaultStartedAt.UTC().Truncate(time.Microsecond)) || !sameJSON(saved.input, clean) {
 		return "", fmt.Errorf("同一评测编号已有不同配置，拒绝覆盖或重新收费")
 	}
-	return id, tx.Commit()
+	return saved.id, tx.Commit()
 }
 
 // sameJSON 忽略数据库的 JSON 排版变化，但保留内容差异。
