@@ -44,20 +44,31 @@ func StartOps(parent context.Context, stop context.CancelFunc, database *sql.DB,
 	if err != nil {
 		return nil, err
 	}
-	// 沿用进程的统一注册表与 service 标签，实验工具不需要访问内部写端口。
-	if err = metrics.Register(prometheus.NewGaugeFunc(prometheus.GaugeOpts{Name: "db_pool_runtime_changed", Help: "本进程的连接池是否被运行时修改过。"}, func() float64 {
+	if err := registerPoolMetric(metrics, handler); err != nil {
+		return nil, err
+	}
+	return listenOps(parent, stop, address, handler)
+}
+
+func registerPoolMetric(metrics *telemetry.Metrics, handler *ops.Handler) error {
+	options := prometheus.GaugeOpts{Name: "db_pool_runtime_changed", Help: "本进程的连接池是否被运行时修改过。"}
+	return metrics.Register(prometheus.NewGaugeFunc(options, func() float64 {
 		if handler.Modified() {
 			return 1
 		}
 		return 0
-	})); err != nil {
-		return nil, err
-	}
+	}))
+}
+
+func listenOps(parent context.Context, stop context.CancelFunc, address string, handler http.Handler) (func() error, error) {
 	listener, err := net.Listen("tcp", address)
 	if err != nil {
 		return nil, fmt.Errorf("监听运维入口：%w", err)
 	}
-	server := &http.Server{Addr: address, Handler: handler, ReadHeaderTimeout: 3 * time.Second, ReadTimeout: 5 * time.Second, WriteTimeout: 35 * time.Second, IdleTimeout: 30 * time.Second}
+	server := &http.Server{
+		Addr: address, Handler: handler, ReadHeaderTimeout: 3 * time.Second,
+		ReadTimeout: 5 * time.Second, WriteTimeout: 35 * time.Second, IdleTimeout: 30 * time.Second,
+	}
 	finished := make(chan error, 1)
 	// 容量一让 Serve 无论何时结束都能交回结果；关闭函数会读齐并归还 goroutine。
 	go func() {
