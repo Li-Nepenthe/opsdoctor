@@ -22,7 +22,7 @@ import (
 func testRouter(output *bytes.Buffer, handler gin.HandlerFunc) *gin.Engine {
 	router := gin.New()
 	logger := logging.New(output, "test-http", slog.LevelInfo)
-	// 顺序很重要：恢复 panic 和访问日志都需要最先写入的 request_id。
+	// Recovery 接住 panic 后，外层的 RequestIDs 才能继续记录这次请求的 500 访问日志。
 	router.Use(RequestIDs(logger), Recovery(logger), BodyLimit(DefaultBodyLimit))
 	router.POST("/test", handler)
 	return router
@@ -57,6 +57,20 @@ func TestRequestIDAndRecovery(t *testing.T) {
 			if strings.Contains(logs.String()+response.Body.String(), "private-") || !strings.Contains(logs.String(), actual) {
 				t.Fatal("日志泄露了输入，或缺少请求标识")
 			}
+			for line := range bytes.Lines(logs.Bytes()) {
+				var entry struct {
+					Message   string `json:"msg"`
+					Status    int    `json:"status"`
+					RequestID string `json:"request_id"`
+				}
+				if err := json.Unmarshal(line, &entry); err != nil {
+					t.Fatalf("日志不是有效的 JSON：%v", err)
+				}
+				if entry.Message == "HTTP 请求完成" && entry.Status == http.StatusInternalServerError && entry.RequestID == actual {
+					return
+				}
+			}
+			t.Fatalf("缺少请求 %q 的 500 访问日志，实际日志：%s", actual, logs.String())
 		})
 	}
 }

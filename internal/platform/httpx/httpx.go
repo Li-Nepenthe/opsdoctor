@@ -26,7 +26,7 @@ func RequestID(ctx *gin.Context) string {
 	return logging.FromContext(ctx.Request.Context()).RequestID
 }
 
-// RequestIDs 将同一标识写入响应和访问日志。它必须先于 Recovery 安装，使异常响应也带有这次请求的标识。
+// RequestIDs 给请求分配标识，写进响应头和访问日志。它必须装在 Recovery 外层：panic 被 Recovery 接住后正常返回，这里才能写出状态为 500 的访问日志。
 func RequestIDs(logger *slog.Logger) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		id := ctx.GetHeader("X-Request-ID")
