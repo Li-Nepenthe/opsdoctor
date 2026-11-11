@@ -89,56 +89,82 @@ func (backend *Backend) prepare(ctx context.Context, id, tool string, raw json.R
 	if err != nil {
 		return Record{}, err
 	}
-	for _, text := range []string{input.Reason, input.Expected, input.Risk} {
-		if strings.TrimSpace(text) == "" || len(text) > 2048 {
-			return Record{}, fmt.Errorf("理由、预期效果和风险都必须填写，且各不超过 2048 字节")
-		}
-	}
-	if len(input.Evidence) < 1 || len(input.Evidence) > 10 {
-		return Record{}, fmt.Errorf("证据需要 1–10 个本次诊断的步骤号")
-	}
-	// 证据必须来自这次诊断，不能拿另一份报告的步骤号当授权依据。
-	seen := map[int]bool{}
-	for _, step := range input.Evidence {
-		if !steps[step] || seen[step] {
-			return Record{}, fmt.Errorf("证据步骤不存在或重复")
-		}
-		seen[step] = true
+	if err := input.validateEvidenceAndReasons(steps); err != nil {
+		return Record{}, err
 	}
 	plan := Plan{Tool: tool}
 	switch tool {
 	case "create_index":
 		plan, err = backend.indexPlan(ctx, id, input)
-		if err != nil {
-			return Record{}, err
-		}
 	case "set_db_pool_size":
-		if backend.ops.Services[input.Service] == "" || input.Size < backend.ops.PoolMin || input.Size > backend.ops.PoolMax {
-			return Record{}, fmt.Errorf("服务未配置，或连接池值不在 %d–%d 内", backend.ops.PoolMin, backend.ops.PoolMax)
-		}
-		var before PoolState
-		err = backend.opsRequest(ctx, input.Service, "GET", "/ops/pool", nil, &before)
-		if err == nil {
-			plan = Plan{Tool: tool, Service: input.Service, Size: input.Size, Before: before, Preview: fmt.Sprintf("把 %s 当前进程的连接池上限从 %d 改为 %d；实例 %s，修订 %d", input.Service, before.Current, input.Size, before.Instance, before.Revision), Rollback: fmt.Sprintf("重启 %s，连接池恢复启动配置 %d；或由人另行提交审批恢复旧值 %d。", input.Service, before.Initial, before.Current)}
-		}
+		plan, err = backend.poolPlan(ctx, input)
 	case "warm_cache":
-		if backend.ops.WarmService == "" || len(input.IDs) < 1 || len(input.IDs) > 100 {
-			return Record{}, fmt.Errorf("未配置商品预热服务，或商品 ID 数量不在 1–100 内")
-		}
-		ids := map[int64]bool{}
-		for _, id := range input.IDs {
-			if id < 1 || ids[id] {
-				return Record{}, fmt.Errorf("商品 ID 必须为正整数且不重复")
-			}
-			ids[id] = true
-		}
-		encoded, _ := json.Marshal(input.IDs)
-		plan = Plan{Tool: tool, Service: backend.ops.WarmService, IDs: input.IDs, Preview: "只补充以下商品缺失的缓存：" + string(encoded), Rollback: "不修改业务数据，无需撤销。缓存按原 TTL 自然过期。"}
+		plan, err = backend.warmPlan(input)
 	}
 	if err != nil {
-		return Record{}, fmt.Errorf("准备审批时读取真实状态失败，请检查数据源后重试")
+		return Record{}, err
 	}
-	return Record{Tool: tool, Args: raw, Plan: plan, Reason: input.Reason, Evidence: input.Evidence, Expected: input.Expected, Risk: input.Risk}, nil
+	return Record{
+		Tool: tool, Args: raw, Plan: plan, Reason: input.Reason,
+		Evidence: input.Evidence, Expected: input.Expected, Risk: input.Risk,
+	}, nil
+}
+
+func (input proposal) validateEvidenceAndReasons(steps map[int]bool) error {
+	for _, text := range []string{input.Reason, input.Expected, input.Risk} {
+		if strings.TrimSpace(text) == "" || len(text) > 2048 {
+			return fmt.Errorf("理由、预期效果和风险都必须填写，且各不超过 2048 字节")
+		}
+	}
+	if len(input.Evidence) < 1 || len(input.Evidence) > 10 {
+		return fmt.Errorf("证据需要 1–10 个本次诊断的步骤号")
+	}
+	// 证据必须来自这次诊断，不能拿另一份报告的步骤号当授权依据。
+	seen := map[int]bool{}
+	for _, step := range input.Evidence {
+		if !steps[step] || seen[step] {
+			return fmt.Errorf("证据步骤不存在或重复")
+		}
+		seen[step] = true
+	}
+	return nil
+}
+
+// poolPlan 把当前实例和修订号写进计划，批准后可据此识别重启或其他人的修改。
+func (backend *Backend) poolPlan(ctx context.Context, input proposal) (Plan, error) {
+	if backend.ops.Services[input.Service] == "" || input.Size < backend.ops.PoolMin || input.Size > backend.ops.PoolMax {
+		return Plan{}, fmt.Errorf("服务未配置，或连接池值不在 %d–%d 内", backend.ops.PoolMin, backend.ops.PoolMax)
+	}
+	var before PoolState
+	if err := backend.opsRequest(ctx, input.Service, "GET", "/ops/pool", nil, &before); err != nil {
+		return Plan{}, fmt.Errorf("准备审批时读取真实状态失败，请检查数据源后重试")
+	}
+	return Plan{
+		Tool: "set_db_pool_size", Service: input.Service, Size: input.Size, Before: before,
+		Preview: fmt.Sprintf("把 %s 当前进程的连接池上限从 %d 改为 %d；实例 %s，修订 %d",
+			input.Service, before.Current, input.Size, before.Instance, before.Revision),
+		Rollback: fmt.Sprintf("重启 %s，连接池恢复启动配置 %d；或由人另行提交审批恢复旧值 %d。",
+			input.Service, before.Initial, before.Current),
+	}, nil
+}
+
+func (backend *Backend) warmPlan(input proposal) (Plan, error) {
+	if backend.ops.WarmService == "" || len(input.IDs) < 1 || len(input.IDs) > 100 {
+		return Plan{}, fmt.Errorf("未配置商品预热服务，或商品 ID 数量不在 1–100 内")
+	}
+	ids := map[int64]bool{}
+	for _, id := range input.IDs {
+		if id < 1 || ids[id] {
+			return Plan{}, fmt.Errorf("商品 ID 必须为正整数且不重复")
+		}
+		ids[id] = true
+	}
+	encoded, _ := json.Marshal(input.IDs)
+	return Plan{
+		Tool: "warm_cache", Service: backend.ops.WarmService, IDs: input.IDs,
+		Preview:  "只补充以下商品缺失的缓存：" + string(encoded),
+		Rollback: "不修改业务数据，无需撤销。缓存按原 TTL 自然过期。",
+	}, nil
 }
 
 // indexPlan 先核对表、列，再引用标识符；只允许常规名字，不让字符串变成 SQL 片段。
