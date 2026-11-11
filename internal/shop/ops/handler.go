@@ -58,7 +58,17 @@ func New(token string, pool Pool, products product.Repository, cache product.Cac
 	var nonce [16]byte
 	_, _ = rand.Read(nonce[:])
 	initial := pool.Stats().MaxOpenConnections
-	return &Handler{token: sha256.Sum256([]byte(token)), poolSource: pool, products: products, cache: cache, state: PoolState{Instance: hex.EncodeToString(nonce[:]), Initial: initial, Current: initial}}, nil
+	return &Handler{
+		token:      sha256.Sum256([]byte(token)),
+		poolSource: pool,
+		products:   products,
+		cache:      cache,
+		state: PoolState{
+			Instance: hex.EncodeToString(nonce[:]),
+			Initial:  initial,
+			Current:  initial,
+		},
+	}, nil
 }
 
 // ServeHTTP 先鉴权再解析，错误响应不带令牌、数据库错误或商品内容。

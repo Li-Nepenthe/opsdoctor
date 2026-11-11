@@ -52,7 +52,13 @@ func NewReader(brokers []string) *kafka.Reader {
 }
 
 // NewConsumer 要求有限的处理预算，停止服务时不能无限等一条消息。
-func NewConsumer(reader MessageReader, handle func(context.Context, OrderCreated) (bool, error), timeout time.Duration, logger *slog.Logger, runtime *telemetry.Runtime) (*Consumer, error) {
+func NewConsumer(
+	reader MessageReader,
+	handle func(context.Context, OrderCreated) (bool, error),
+	timeout time.Duration,
+	logger *slog.Logger,
+	runtime *telemetry.Runtime,
+) (*Consumer, error) {
 	if reader == nil || handle == nil || timeout <= 0 || runtime == nil {
 		return nil, fmt.Errorf("消息消费者需要读取器、处理函数和正超时")
 	}

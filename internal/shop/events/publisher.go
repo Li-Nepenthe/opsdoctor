@@ -67,7 +67,12 @@ func (publisher *Publisher) Publish(ctx context.Context, event OrderCreated) (re
 	// 同一订单重发时沿用相同的分区键。
 	headers := telemetry.KafkaHeaders{}
 	publisher.telemetry.Propagator.Inject(ctx, &headers)
-	return publisher.writer.WriteMessages(ctx, kafka.Message{Key: []byte(strconv.FormatInt(event.OrderID, 10)), Value: data, Time: event.CreatedAt, Headers: headers})
+	return publisher.writer.WriteMessages(ctx, kafka.Message{
+		Key:     []byte(strconv.FormatInt(event.OrderID, 10)),
+		Value:   data,
+		Time:    event.CreatedAt,
+		Headers: headers,
+	})
 }
 
 // Close 等发送中的调用结束后再执行，避免关闭过程与新的 Publish 争抢资源。

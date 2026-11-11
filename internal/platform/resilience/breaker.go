@@ -29,7 +29,8 @@ type Breaker struct {
 
 // NewBreaker 由调用方说明哪些错误算下游故障，避免库存不足也把服务“熔断”。
 func NewBreaker(name string, config BreakerConfig, logger *slog.Logger, successful, excluded func(error) bool) (*Breaker, error) {
-	if config.MinRequests == 0 || config.FailurePercent == 0 || config.FailurePercent > 100 || config.Interval <= 0 || config.OpenTimeout <= 0 || config.HalfOpenMax == 0 {
+	if config.MinRequests == 0 || config.FailurePercent == 0 || config.FailurePercent > 100 ||
+		config.Interval <= 0 || config.OpenTimeout <= 0 || config.HalfOpenMax == 0 {
 		return nil, fmt.Errorf("熔断配置不合法：样本数、时间、试探数须为正，失败百分比须为 1..100")
 	}
 	settings := gobreaker.Settings{Name: name, MaxRequests: config.HalfOpenMax, Interval: config.Interval, Timeout: config.OpenTimeout,
