@@ -109,6 +109,7 @@ func restock(parent context.Context, client inventoryv1.InventoryServiceClient, 
 			return fmt.Errorf("补库存中止：前 %d 个商品已确认；sku=%d 结果需先查询，不能直接重跑整批：%w", offset, skuID, err)
 		}
 	}
-	_, err := fmt.Fprintf(output, "restocked_from=%d restocked_through=%d added_each=%d confirmed=%d\n", options.skuID, options.skuID+options.count-1, options.quantity, options.count)
+	_, err := fmt.Fprintf(output, "restocked_from=%d restocked_through=%d added_each=%d confirmed=%d\n",
+		options.skuID, options.skuID+options.count-1, options.quantity, options.count)
 	return err
 }
