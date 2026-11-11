@@ -389,7 +389,10 @@ func recordDemoEvaluator(ctx context.Context, options generalizationCommand, rep
 	if len(options.versions) == 0 || !equalJSON(options.versions, versions) {
 		return fmt.Errorf("阶段 9 冻结代码、场景、说明书或手册已改变，暂停本批次")
 	}
-	return repository.RecordEvalExecution(ctx, options.runID, options.scenario, options.iteration, operation, key, versions)
+	return repository.RecordEvalExecution(ctx, store.EvalExecution{
+		RunID: options.runID, Scenario: options.scenario, Iteration: options.iteration,
+		Operation: operation, ResultKey: key, Versions: versions,
+	})
 }
 
 // coolDemoTrial 用数据库的恢复时间等五分钟，窗口结束后再检查全部服务基线。

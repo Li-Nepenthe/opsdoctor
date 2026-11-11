@@ -17,5 +17,8 @@ func recordEvaluator(ctx context.Context, options command, repository *store.Sto
 	if err != nil {
 		return err
 	}
-	return repository.RecordEvalExecution(ctx, options.runID, options.scenario, options.iteration, operation, key, versions)
+	return repository.RecordEvalExecution(ctx, store.EvalExecution{
+		RunID: options.runID, Scenario: options.scenario, Iteration: options.iteration,
+		Operation: operation, ResultKey: key, Versions: versions,
+	})
 }

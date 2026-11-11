@@ -97,11 +97,15 @@ func TestIntegrationEvalBaselineAmendment(t *testing.T) {
 	}
 	// 每次运行追加自己的版本。两次操作不能合并成一条、也不能让版本缺失。
 	for _, operation := range []string{"run", "injecting"} {
-		if err := repository.RecordEvalExecution(ctx, input.RunID, "S08", 1, operation, "", after); err != nil {
+		if err := repository.RecordEvalExecution(ctx, EvalExecution{
+			RunID: input.RunID, Scenario: "S08", Iteration: 1, Operation: operation, Versions: after,
+		}); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := repository.RecordEvalExecution(ctx, input.RunID, "S08", 1, "slot", "key", json.RawMessage(`{}`)); err == nil {
+	if err := repository.RecordEvalExecution(ctx, EvalExecution{
+		RunID: input.RunID, Scenario: "S08", Iteration: 1, Operation: "slot", ResultKey: "key", Versions: json.RawMessage(`{}`),
+	}); err == nil {
 		t.Fatal("版本缺失仍执行")
 	}
 	var count int
