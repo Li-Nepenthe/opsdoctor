@@ -111,18 +111,23 @@ func (registry *Registry) Run(ctx context.Context, name string, raw json.RawMess
 	}
 	bounded, cancel := context.WithTimeout(ctx, Timeout)
 	defer cancel()
+	item.execute(bounded, raw, &result)
+	return
+}
+
+func (item tool) execute(ctx context.Context, raw json.RawMessage, result *Result) {
 	args, err := item.parameters.validate(raw)
 	if err != nil {
 		result.Status = "invalid_argument"
 		result.Summary = err.Error()
 		return
 	}
-	value, err := item.run(bounded, args)
-	if bounded.Err() != nil {
-		err = bounded.Err()
+	value, err := item.run(ctx, args)
+	if ctx.Err() != nil {
+		err = ctx.Err()
 	}
 	if err != nil {
-		setFailure(&result, err)
+		setFailure(result, err)
 		return
 	}
 	data, err := json.Marshal(value.data)
@@ -133,7 +138,6 @@ func (registry *Registry) Run(ctx context.Context, name string, raw json.RawMess
 	result.Status = "ok"
 	result.Summary = value.summary
 	result.Data = data
-	return
 }
 
 // setFailure 只放行适配器明确筛选的查询错误；其他后端错误可能带地址和凭据。
