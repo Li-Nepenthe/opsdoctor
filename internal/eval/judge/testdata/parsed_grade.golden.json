@@ -1,0 +1,1 @@
+{"mechanism":"partial","reason":"缺少因果环节","milestones":[{"milestone":1,"achieved":true,"method":"judge","steps":[4],"reason":"观察到返回值"},{"milestone":2,"achieved":false,"method":"judge","steps":[],"reason":"未查询"}],"unrelated_action":false,"action_reason":"没有写操作"}

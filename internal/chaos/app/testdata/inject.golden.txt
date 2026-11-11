@@ -1,0 +1,7 @@
+Usage of inject:
+  -latency-ms int
+    覆盖网络延迟，单位毫秒 (default -1)
+  -qps int
+    覆盖流量动作的目标速率 (default -1)
+  -sku int
+    覆盖热点商品与单商品缓存操作的编号 (default -1)

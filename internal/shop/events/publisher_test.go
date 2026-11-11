@@ -19,6 +19,7 @@ import (
 	"io"
 	"log/slog"
 	"net"
+	"os"
 	"sync"
 	"testing"
 	"time"
@@ -105,4 +106,35 @@ func pendingPublisher(t *testing.T) (*Publisher, *waitingBroker, func(), <-chan 
 	confirmed := make(chan error, 1) // Writer 的完成回调写一次，主测试核对最终结果。
 	publisher.writer.Completion = func(_ []kafka.Message, err error) { confirmed <- err }
 	return publisher, broker, release, confirmed
+}
+
+// TestOrderCreatedMessageGolden 读取 Writer 确认的消息，避免只测结构体编码而漏掉发布时的改写。
+func TestOrderCreatedMessageGolden(t *testing.T) {
+	publisher, _, release, _ := pendingPublisher(t)
+	release()
+	var sent []kafka.Message
+	publisher.writer.Completion = func(messages []kafka.Message, _ error) {
+		sent = append(sent, messages...)
+	}
+	created := time.Date(2026, 2, 3, 4, 5, 6, 789000000, time.UTC)
+	ctx, cancel := context.WithTimeout(t.Context(), 3*time.Second)
+	defer cancel()
+	if err := publisher.Publish(ctx, OrderCreated{OrderID: 123, UserID: 42, SKUID: 8, Quantity: 3, AmountCents: 1299, CreatedAt: created}); err != nil {
+		t.Fatal(err)
+	}
+	// Publish 同步等待确认。这时可以同时核对分区键、主题和消费者实际收到的 JSON。
+	if len(sent) != 1 {
+		t.Fatalf("发送了 %d 条消息", len(sent))
+	}
+	msg := sent[0]
+	if msg.Topic != "order.created" || string(msg.Key) != "123" || !msg.Time.Equal(created) {
+		t.Fatalf("主题=%q 分区键=%q 时间=%v", msg.Topic, msg.Key, msg.Time)
+	}
+	want, err := os.ReadFile("testdata/order_created.golden.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(msg.Value) != string(want) {
+		t.Fatalf("消息正文\n收到 %q\n期望 %q", msg.Value, want)
+	}
 }

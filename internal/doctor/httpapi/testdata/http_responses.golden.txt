@@ -1,0 +1,41 @@
+GET /api/v1/status
+401 application/json; charset=utf-8
+{"code":"UNAUTHORIZED","message":"请先登录","request_id":"test-request"}
+POST /api/v1/auth/login
+401 application/json; charset=utf-8
+{"code":"UNAUTHORIZED","message":"邮箱或密码不正确","request_id":"test-request"}
+POST /api/v1/auth/login
+200 application/json; charset=utf-8
+{"code":"OK","data":{"access_token":"{issued-jwt}","csrf_token":"{session-csrf}","expires_in":3600,"token_type":"Bearer"},"request_id":"test-request"}
+GET /api/v1/status
+200 application/json; charset=utf-8
+{"code":"OK","data":{"budget":{"currency":"USD","spent_micros":1200,"limit_micros":10000,"blocked":false,"reason":""},"executions":{},"model":"script","provider":"mock"},"request_id":"test-request"}
+GET /api/v1/diagnoses?target=alpha&page=1&page_size=2
+200 application/json; charset=utf-8
+{"code":"OK","data":{"items":[{"currency":"USD","id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","target":"alpha","trigger":"manual","status":"succeeded","title":"示例","created_at":"2026-01-02T03:04:05Z","model":"script","provider":"mock"}],"page":1,"page_size":2},"request_id":"test-request"}
+GET /api/v1/diagnoses/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+200 application/json; charset=utf-8
+{"code":"OK","data":{"duration_ms":null,"last_seq":2,"currency":"USD","id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","target":"alpha","trigger":"manual","status":"succeeded","title":"示例","created_at":"2026-01-02T03:04:05Z","model":"script","provider":"mock","input":null,"alerts":null,"recovery_alerts":null,"steps":[{"currency":"","seq":1,"kind":"tool","tool_name":"service_topology","args":{},"result":"alpha","status":"ok","duration_ms":0,"usage":{"cache_write_tokens":0,"reasoning_tokens":0,"prompt_tokens":0,"completion_tokens":0,"prompt_cache_hit_tokens":0,"prompt_cache_miss_tokens":0},"cost_micros":0,"created_at":"2026-01-02T03:04:05Z"},{"currency":"","seq":2,"kind":"system","args":null,"result":"","status":"succeeded","duration_ms":0,"usage":{"cache_write_tokens":0,"reasoning_tokens":0,"prompt_tokens":0,"completion_tokens":0,"prompt_cache_hit_tokens":0,"prompt_cache_miss_tokens":0},"cost_micros":0,"created_at":"2026-01-02T03:04:06Z"}],"report":null,"error":"","prompt_version":"","tokens_in":0,"tokens_out":0,"cache_hit_tokens":0,"cost_micros":0,"report_mode":"","budget_reason":"","rounds":0,"tool_calls":0,"started_at":null,"finished_at":null},"request_id":"test-request"}
+GET /api/v1/diagnoses/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/events
+200 text/event-stream; charset=utf-8
+id: 1
+event: step
+data: {"currency":"","seq":1,"kind":"tool","tool_name":"service_topology","args":{},"result":"alpha","status":"ok","duration_ms":0,"usage":{"cache_write_tokens":0,"reasoning_tokens":0,"prompt_tokens":0,"completion_tokens":0,"prompt_cache_hit_tokens":0,"prompt_cache_miss_tokens":0},"cost_micros":0,"created_at":"2026-01-02T03:04:05Z"}
+
+id: 2
+event: step
+data: {"currency":"","seq":2,"kind":"system","args":null,"result":"","status":"succeeded","duration_ms":0,"usage":{"cache_write_tokens":0,"reasoning_tokens":0,"prompt_tokens":0,"completion_tokens":0,"prompt_cache_hit_tokens":0,"prompt_cache_miss_tokens":0},"cost_micros":0,"created_at":"2026-01-02T03:04:06Z"}
+
+
+GET /api/v1/diagnoses/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/approvals
+200 application/json; charset=utf-8
+{"code":"OK","data":[{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","diagnosis_id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","target":"alpha","parent_seq":0,"call_id":"","step_seq":0,"tool_name":"test_tool","args":{"size":8},"plan":{"tool":"","before":{"instance":"","initial":0,"current":0,"revision":0,"last_operation":""},"preview":"","rollback":""},"reason":"","evidence_steps":[1],"expected_effect":"","risk":"","status":"pending","expires_at":"2026-01-02T04:04:05Z","decided_by":"","decided_at":null,"executed_at":null,"connection_id":0,"result":{"tool":"","status":"","summary":"","data":null,"truncated":false,"original_bytes":0,"bytes":0,"duration_ms":0}}],"request_id":"test-request"}
+POST /api/v1/approvals/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/approve
+200 application/json; charset=utf-8
+{"code":"OK","data":{"decided":true},"request_id":"test-request"}
+POST /api/v1/approvals/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/reject
+200 application/json; charset=utf-8
+{"code":"OK","data":{"decided":true},"request_id":"test-request"}
+GET /api/v1/eval/runs
+200 application/json; charset=utf-8
+{"code":"OK","data":[{"id":"test","target":"","config":null,"status":"","token_limit":0,"tokens_used":0,"stopped_reason":""}],"request_id":"test-request"}

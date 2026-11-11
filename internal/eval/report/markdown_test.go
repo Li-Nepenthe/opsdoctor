@@ -9,9 +9,11 @@ package report
 import (
 	"bytes"
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/store"
 )
 
@@ -71,5 +73,46 @@ func TestMarkdownCollectionQuality(t *testing.T) {
 	}
 	if strings.Contains(output.String(), "采集正常样本") || strings.Contains(output.String(), "采集受影响 / 采集未知") || !strings.Contains(output.String(), "1.000 [1.000, 1.000] n=1") || !strings.Contains(output.String(), "USD 0.200000") {
 		t.Fatal("阶段 8 的历史导出口径被改变", output.String())
+	}
+}
+
+// TestReportOutputGolden 从固定诊断生成摘要，再将成功和失败样本送进实际报表导出器。
+func TestReportOutputGolden(t *testing.T) {
+	duration := int64(1250)
+	detail := store.Detail{
+		Diagnosis: store.Diagnosis{ID: "demo-1", Model: "mock-a", Status: "succeeded", Currency: "USD"},
+		Steps:     []agent.Step{{Kind: "llm", Model: "mock-a"}}, Report: json.RawMessage(`{"root_cause":{"component":"stock"}}`),
+		DurationMS: &duration, TokensIn: 32, TokensOut: 14, Rounds: 2, ToolCalls: 1, CostMicros: 1200, ReportMode: "voluntary",
+	}
+	raw, err := json.Marshal(Summarize(detail, "stock"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 同层再加一条未定位的报告。它的评委失败应保留费用，但不能稀释机制分数。
+	rows := []store.EvalResult{
+		{Key: "a", Scenario: "sample", Iteration: 1, Group: "E1", DiagnosisID: detail.ID, Data: raw,
+			Judgement: json.RawMessage(`{"status":"ok","coverage":0.5,"cost_micros":200,"grade":{"mechanism":"partial","reason":"取得部分证据"}}`)},
+		{Key: "b", Scenario: "sample", Iteration: 2, Group: "E1", DiagnosisID: "demo-2",
+			Data:      json.RawMessage(`{"status":"failed","model":"mock-a","currency":"USD","cost_micros":400,"error":"没有报告"}`),
+			Judgement: json.RawMessage(`{"status":"failed","cost_micros":100,"error":"评分不可用"}`)},
+	}
+	var output bytes.Buffer
+	if err := Markdown(&output, store.EvalRun{ID: "demo", Target: "shop", TokensUsed: 46, TokenLimit: 1000}, rows); err != nil {
+		t.Fatal(err)
+	}
+	for _, item := range []struct {
+		golden string
+		got    []byte
+	}{
+		{"testdata/summary.golden.json", raw},
+		{"testdata/report.golden.md", output.Bytes()},
+	} {
+		want, err := os.ReadFile(item.golden)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !bytes.Equal(item.got, want) {
+			t.Errorf("%s 与实际评测输出不一致：\n%s", item.golden, item.got)
+		}
 	}
 }

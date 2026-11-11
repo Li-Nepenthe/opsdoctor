@@ -1,0 +1,4 @@
+# HELP circuit_breaker_state 熔断状态：0 关闭，1 半开，2 打开。
+# TYPE circuit_breaker_state gauge
+circuit_breaker_state{method="Deduct",service="order-service",target="inventory-service"} 2
+circuit_breaker_state{method="GetStock",service="order-service",target="inventory-service"} 0

@@ -1,0 +1,24 @@
+  -allow-paid
+    运行已经获得用户授权的真实额度
+  -flagd-url string
+    官方 flagd UI 根地址 (default "http://127.0.0.1:18080")
+  -groups string
+    E1 或 E1,E2，试跑使用 E1 (default "E1,E2")
+  -iteration int
+    紧急恢复的轮次 (default 1)
+  -iterations int
+    冻结的每场景次数，1–3 (default 1)
+  -model string
+    运行中的 primary 模型 (default "gpt-6.1-terra")
+  -prometheus-url string
+    Demo Prometheus 根地址 (default "http://127.0.0.1:19090")
+  -run string
+    阶段 9 独立批次，必须以 phase09- 开头
+  -scenario string
+    仅用于紧急恢复的场景编号
+  -scenario-dir string
+    外部系统场景目录 (default "eval/scenarios/otel-demo")
+  -scenarios string
+    明确选择的外部场景 (default "OT01,OT02,OT03,OT04,OT05")
+  -target string
+    已注册的第二个系统 (default "otel-demo")

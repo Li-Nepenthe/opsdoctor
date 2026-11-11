@@ -1,0 +1,3 @@
+# HELP db_pool_runtime_changed 本进程的连接池是否被运行时修改过。
+# TYPE db_pool_runtime_changed gauge
+db_pool_runtime_changed{service="inventory-service"} 0
