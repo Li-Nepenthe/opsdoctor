@@ -105,7 +105,7 @@ func (store *Store) EndTask(ctx context.Context, id, status string, result agent
 	if status == run.WaitingApproval {
 		_, err := store.changeState(ctx, id, stateChange{
 			from: run.Running, to: status, reason: reason,
-			fields: "active_ms=active_ms+GREATEST(0,TIMESTAMPDIFF(MICROSECOND,lease_updated_at,UTC_TIMESTAMP(6)) DIV 1000),rounds=?,tool_calls=?",
+			fields: waitingApprovalFields,
 			args:   []any{result.Rounds, result.ToolCalls},
 		})
 		return err
@@ -122,7 +122,7 @@ func (store *Store) EndTask(ctx context.Context, id, status string, result agent
 	// 不能拿最后一段冒充整个诊断。评测仍保留报告，但不把未知时长算进平均值。
 	_, err := store.changeState(ctx, id, stateChange{
 		from: run.Running, to: status, reason: reason,
-		fields: "finished_at=UTC_TIMESTAMP(6),duration_ms=IF(execution_segments=1,?,NULL),report=?,error=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cost_micros=?,rounds=?,tool_calls=?,report_mode=?,budget_reason=?",
+		fields: finishedDiagnosisFields,
 		args:   []any{max(0, result.Elapsed.Milliseconds()), report, store.config.Redactor.Text(reason), result.Usage.Input, result.Usage.Output, result.Usage.CacheHit, result.CostMicros, result.Rounds, result.ToolCalls, result.ReportMode, result.BudgetReason},
 	})
 	return err
@@ -254,3 +254,20 @@ WHERE id = ?
                        'running',
                        'waiting_approval')
     AND cancel_requested = FALSE`
+
+const waitingApprovalFields = `active_ms = active_ms + GREATEST(0, TIMESTAMPDIFF(MICROSECOND, lease_updated_at, UTC_TIMESTAMP(6)) DIV 1000),
+rounds = ?,
+tool_calls = ?`
+
+const finishedDiagnosisFields = `finished_at = UTC_TIMESTAMP(6),
+duration_ms = IF(execution_segments = 1, ?, NULL),
+report = ?,
+error = ?,
+tokens_in = ?,
+tokens_out = ?,
+cache_hit_tokens = ?,
+cost_micros = ?,
+rounds = ?,
+tool_calls = ?,
+report_mode = ?,
+budget_reason = ?`
