@@ -1,13 +1,5 @@
-// 本文件：把订单创建消息发送到 Kafka。
-//
-// 订单已经写入后才调用这里。同步等待 Kafka 的答复，调用方才能知道这一步是否失败。
-//
-// 主要内容：
-//   - Publisher、NewPublisher：配置按订单 ID 分区的同步生产者。
-//   - Publish：校验消息，编码 JSON，并等待写入结果。
-//   - Close：在服务停止接收新订单后关闭生产者。
-//
-// 阅读建议：Hash 使用消息 key 选择分区。这里用订单 ID，避免热门商品独占一个分区。
+// 本文件：订单写入后同步等待 Kafka 确认，使用订单号作分区键，避免热门商品集中写入同一分区。
+// 从 Publish 可以看到消息体、分区键和链路上下文如何进入同一条消息。
 
 package events
 
@@ -27,16 +19,16 @@ import (
 
 // Publisher 使用 kafka.Writer 自带的连接复用，不为每个订单重新连接 broker。
 type Publisher struct {
-	writer    *kafka.Writer      // WriteMessages 会等待 broker 确认。
-	transport *kafka.Transport   // Close 时另外关闭空闲连接。
-	telemetry *telemetry.Runtime // 由 app 持有，发送者只借用 span 与指标。
+	writer    *kafka.Writer
+	transport *kafka.Transport // Close 时另外关闭空闲连接。
+	telemetry *telemetry.Runtime
 }
 
 // 发送参数约束 Kafka 的后台批次。调用方的 context 另行限制等待确认的时间；停止等待后，后台批次仍可能继续。
 const (
 	kafkaIOTimeout   = 3 * time.Second       // 与默认 HTTP 预算相当，连接或读写不能无限等待。
 	kafkaIdleTimeout = 30 * time.Second      // 短时间内的订单复用连接，长时间空闲后再归还。
-	publishAttempts  = 3                     // 消息有订单号去重，因此发送失败可以有限重试。
+	publishAttempts  = 3                     // 消费者按订单号去重，发送失败可有限重试。
 	publishBatchWait = 10 * time.Millisecond // 只等很短时间凑批，避免低流量下迟迟不返回。
 )
 
@@ -47,8 +39,7 @@ func NewPublisher(brokers []string, runtime *telemetry.Runtime, logger *slog.Log
 		RequiredAcks: kafka.RequireAll, MaxAttempts: publishAttempts, BatchTimeout: publishBatchWait,
 		ReadTimeout: kafkaIOTimeout, WriteTimeout: kafkaIOTimeout, Transport: transport,
 		ErrorLogger: kafka.LoggerFunc(func(format string, arguments ...interface{}) {
-			// Writer 只在一次底层发送失败时调用这里。Kafka 地址没有凭据，日志也不包含消息正文。
-			// 保留 broker 的错误码或网络错误，才能分清“等待预算先用完”和“Kafka 明确拒绝”。
+			// 底层发送失败时记录错误类别，帮助区分 Kafka 拒绝和调用方等不到确认。
 			logger.Warn("Kafka 发送尝试失败", "error", fmt.Sprintf(format, arguments...))
 		})}
 	return &Publisher{writer: writer, transport: transport, telemetry: runtime}
@@ -73,7 +64,7 @@ func (publisher *Publisher) Publish(ctx context.Context, event OrderCreated) (re
 	if err != nil {
 		return fmt.Errorf("编码订单消息：%w", err)
 	}
-	// key 是十进制订单编号。生产者的 Hash 会把不同订单分散到三个分区。
+	// 同一订单重发时沿用相同的分区键。
 	headers := telemetry.KafkaHeaders{}
 	publisher.telemetry.Propagator.Inject(ctx, &headers)
 	return publisher.writer.WriteMessages(ctx, kafka.Message{Key: []byte(strconv.FormatInt(event.OrderID, 10)), Value: data, Time: event.CreatedAt, Headers: headers})

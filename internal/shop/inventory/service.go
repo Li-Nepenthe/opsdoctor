@@ -1,14 +1,5 @@
-// 本文件：库存请求进入仓储前的业务规则。
-//
-// GRPCServer 调用 Service，Service 只认识它声明的 StockRepository 接口。测试因此可以换成假仓储。
-// 先读接口的原子扣减要求，再看 validate。本层不能先查数量再决定扣减。
-//
-// 主要内容：
-//   - NewService：让 app 把仓储交给业务层。测试可以在同一位置传假仓储，而不必改业务规则。
-//   - GetStock：校验商品 ID 后读取快照。取消或超时不再进入仓储，结果不代表已预留库存。
-//   - Deduct：只接受正数。并发安全由仓储的一条条件 UPDATE 保证，不在这里做先查后改。
-//   - Release：归还正数件库存。没有幂等键，调用方不能因响应丢失就盲目重试。
-//   - validate：把取消检查和参数规则放在一起，防止三个入口对非法输入的处理不一致。
+// 本文件：库存服务校验请求后才交给仓储。并发扣减的判断和更新必须同时生效。
+// 从 Deduct 进入仓储前可以看到，本层只检查参数和取消状态。
 
 package inventory
 
@@ -17,7 +8,7 @@ import (
 	"fmt"
 )
 
-// StockRepository 由库存业务声明最小能力，生产仓储和测试替身遵守同一契约。
+// StockRepository 提供库存查询与原子扣减、归还。
 // 实现必须支持并发，并把 ctx 传给实际 IO。Deduct 必须原子判断和扣减，不能先查再改。
 type StockRepository interface {
 	GetStock(context.Context, int64) (Stock, error)
@@ -25,12 +16,12 @@ type StockRepository interface {
 	Release(context.Context, int64, int32) error
 }
 
-// Service 保存库存规则和只读依赖。构造后没有可变状态，可被多个 RPC 同时调用。
+// Service 可由并发的库存请求共用。
 type Service struct {
-	repository StockRepository // repository 在 app 中注入；测试用假实现，无需启动 MySQL。
+	repository StockRepository
 }
 
-// NewService 让 app 把仓储交给业务层。测试可以在同一位置传假仓储，而不必改业务规则。
+// NewService 使用库存服务装配的仓储。
 func NewService(repository StockRepository) *Service {
 	return &Service{repository: repository}
 }
@@ -59,10 +50,9 @@ func (service *Service) Release(ctx context.Context, skuID int64, quantity int32
 	return service.repository.Release(ctx, skuID, quantity)
 }
 
-// validate 把取消检查和参数规则放在一起，防止三个入口对非法输入的处理不一致。
+// validate 优先处理请求取消，避免继续访问仓储。
 func validate(ctx context.Context, skuID int64, quantity int32) error {
 	if err := ctx.Err(); err != nil {
-		// 请求已经结束时不必继续工作。%w 保留错误身份，让适配层识别超时和主动取消。
 		return fmt.Errorf("库存请求已经结束：%w", err)
 	}
 	if skuID <= 0 || quantity <= 0 {

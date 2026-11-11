@@ -1,11 +1,5 @@
-// 本文件：给每个一元 RPC 加日志和 panic 恢复。
-//
-// 拦截器类似围绕方法调用的包装层：Logging 在外，Recovery 在内，才能记到恢复后的最终状态。
-// 先看 Logging 的 handler 调用，再看 Recovery 的具名返回值与 defer。请求体和 panic 原文不会进入日志。
-//
-// 主要内容：
-//   - Logging：返回最外层拦截器，给每次 RPC 建立关联 ID，并记录内层恢复 panic 后的最终状态。
-//   - Recovery：放在 Logging 内层，把业务 panic 转成 INTERNAL。只恢复当前请求的 goroutine。
+// 本文件：一元 RPC 的访问日志包住 panic 恢复层，才能记录恢复后的最终状态。
+// 从 Logging 调用内层 handler 的位置，可以看到 Recovery 返回的状态如何进入日志。
 
 package grpcx
 
@@ -21,11 +15,10 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// Logging 返回最外层拦截器，给每次 RPC 建立关联 ID，并记录内层恢复 panic 后的最终状态。
-// logger 必须非 nil。不记录请求体、原始错误或 metadata，避免凭据进入日志。
+// Logging 为每次 RPC 生成关联 ID 并记录最终状态。
+// 日志只含方法、耗时和状态，请求体、原始错误和 metadata 可能携带凭据。
 func Logging(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, request any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (any, error) {
-		// rand.Text 生成适合作为标识的随机文本。request_id 不承担鉴权作用。
 		fields := logging.FromContext(ctx)
 		fields.RequestID = rand.Text()
 		ctx = logging.WithFields(ctx, fields)
@@ -43,11 +36,10 @@ func Logging(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	}
 }
 
-// Recovery 放在 Logging 内层，把业务 panic 转成 INTERNAL。只恢复当前请求的 goroutine。
+// Recovery 只恢复当前 RPC 所在 goroutine 的 panic，向客户端返回固定的 Internal 错误。
 func Recovery(logger *slog.Logger) grpc.UnaryServerInterceptor {
 	return func(ctx context.Context, request any, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (response any, result error) {
-		// response/result 是具名返回值：return 先赋值，再运行 defer，所以 defer 可以替换最终结果。
-		// recover 必须直接在 defer 函数中调用。panic 的值可能含密码，故意不输出它。
+		// panic 的值可能包含凭据，不能写入日志。
 		defer func() {
 			if recover() != nil {
 				logger.ErrorContext(ctx, "gRPC 请求发生 panic，已恢复", "method", info.FullMethod, "error", "panic")

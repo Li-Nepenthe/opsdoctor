@@ -1,12 +1,5 @@
-// 本文件：接收商品详情请求，把业务结果转换成统一 HTTP 响应。
-//
-// 请求从 Gin 路由进入这里，再交给 service。这里不读取数据库或 Redis。
-//
-// 主要内容：
-//   - Handler、NewHandler：保存商品服务依赖。
-//   - Get：验证 URL 中的编号，并转换商品查询的错误。
-//
-// 阅读建议：先看编号解析，再看不存在和内部错误为什么返回不同状态。
+// 本文件：商品详情接口区分编号无效、商品缺失和查询失败，库存不可用时仍可展示商品。
+// 订单服务将详情路由接到 Get，由它把业务结果映射为 HTTP 响应。
 
 package product
 
@@ -20,10 +13,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Handler 只保存业务服务，请求参数留在每次调用的局部变量中。
-type Handler struct{ service *Service } // service 决定缓存和降级流程。
+// Handler 接收商品详情请求。
+type Handler struct{ service *Service }
 
-// NewHandler 在 app 装配路由时创建，避免每次请求重复创建服务。
+// NewHandler 把商品查询服务接到 HTTP 路由。
 func NewHandler(service *Service) *Handler { return &Handler{service: service} }
 
 // Get 拒绝非正整数编号，避免无意义的输入继续占用数据库和 RPC 资源。

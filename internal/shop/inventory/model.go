@@ -1,24 +1,18 @@
-// 本文件：库存领域的快照类型与错误分类。
-//
-// gRPC 和 MySQL 都有自己的技术类型，业务层不应依赖它们，因此这里单独定义 Stock 和 Error。
-// 先看两种数值的范围，再看 Error 方法如何满足 Go 的 error 接口。
-//
-// 主要内容：
-//   - Error：把领域分类转换为错误文本，让这个类型能够直接作为 error 返回。
+// 本文件：库存服务与客户端共用快照和业务错误，传输协议及数据库驱动各自在边界处转换。
+// 从 Stock 的数量范围读起，再对照 grpcError 对领域错误的映射。
 
 package inventory
 
 // Stock 是业务层使用的库存快照，不依赖 protobuf 或数据库字段标签。
 type Stock struct {
-	SKUID     int64 // SKUID 等于 products.id，必须大于 0。
-	Available int32 // Available 对应 MySQL 有符号 INT，与 protobuf int32 保持一致。
+	SKUID     int64 // 与 products.id 相同。
+	Available int32 // 与 MySQL 有符号 INT 和 protobuf int32 同范围。
 }
 
-// Error 是可比较的领域错误。用具名字符串常量代替可被重新赋值的包级 error 变量。
-// Go 通过方法集合实现接口：只要有 Error() string 方法，它就满足标准库 error 接口。
+// Error 表示库存业务中可由调用方处理的结果。
 type Error string
 
-// Error 把领域分类转换为错误文本，让这个类型能够直接作为 error 返回。
+// Error 返回领域错误的固定描述。
 func (err Error) Error() string { return string(err) }
 
 // 领域错误描述调用方可以处理的情况。gRPC 状态码在适配层决定。

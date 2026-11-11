@@ -2,12 +2,6 @@
 //
 // 测试直接调用中间件或回调，不访问网络。这样失败只来自我们写的判断，而不是外部服务。
 //
-// 主要内容：
-//   - TestRateLimit：桶里的票用完后，下一次请求应得到 429。
-//   - TestRetryPolicy：检查次数、等待时间和剩余预算。
-//   - TestRetryCancellation：等待期间取消，不再调用下游。
-//   - TestBreakerRecovery：确认打开时不执行回调，试探成功后恢复。
-//
 // 阅读建议：先看每个表格用例旁的说明，再看假的 wait 如何记录等待时间。
 
 package resilience

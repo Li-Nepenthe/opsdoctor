@@ -1,15 +1,5 @@
-// 本文件：给可以重复执行的调用加上有上限的重试。
-//
-// inventoryclient 只把查库存交给这里，扣库存不会经过这里。
-// 重试与业务分开后，测试可以直接检查等待时间，不必真的断开网络。
-//
-// 主要内容：
-//   - RetryPolicy：说明最多重试几次，以及两次尝试之间等多久。
-//   - NewRetrier：检查配置并准备定时等待。
-//   - Do：失败后先判断是否值得再试，再检查剩余时间。
-//   - waitContext：等待退避时间，取消时提前结束。
-//
-// 阅读建议：先读 Do 的三个退出条件，再看 delay 怎样加上随机时间。
+// 本文件：只在调用可以重复执行、错误可恢复且剩余时间足够时重试。库存客户端只对查询使用这份策略。
+// Do 用最近一次调用的结果判断是否继续，并在退避前为下一次调用预留执行时间。
 
 package resilience
 
@@ -20,18 +10,18 @@ import (
 	"time"
 )
 
-// RetryPolicy 把重试限制写在一起，避免每个调用各自决定什么时候再试。
+// RetryPolicy 限制额外的尝试次数与退避时间。
 type RetryPolicy struct {
 	MaxRetries int           // 首次调用之外的尝试次数，0 表示不重试，最多 10。
 	Backoff    time.Duration // 第一次等待的基础时长，后面逐次翻倍；0 表示不等待。
 	MinBudget  time.Duration // 除去等待后，至少还要给下一次调用留下这么长时间。
 }
 
-// Retrier 保存固定策略。wait 和 jitter 由构造函数设置，测试可以换成可预测的实现。
+// Retrier 按固定策略退避，等待可以随请求一起取消。
 type Retrier struct {
-	policy RetryPolicy                                // policy 构造后不再修改。
-	wait   func(context.Context, time.Duration) error // wait 使用 context 响应取消。
-	jitter func(time.Duration) time.Duration          // jitter 返回小于基础等待时间的随机增量。
+	policy RetryPolicy
+	wait   func(context.Context, time.Duration) error
+	jitter func(time.Duration) time.Duration
 }
 
 // maximumRetries 防止配置把重试变成无限循环，也避免计算指数等待时间时溢出。
@@ -61,7 +51,7 @@ func (retry *Retrier) Do(ctx context.Context, operation func() error, retryable 
 		if err == nil || attempt >= retry.policy.MaxRetries || !retryable(err) {
 			return err
 		}
-		// 左移一位相当于乘二。最多十次，构造时也限制了基础时长，不会超出 Duration 范围。
+		// 构造时已限制基础时长和重试次数，逐次翻倍不会溢出。
 		base := retry.policy.Backoff * time.Duration(1<<attempt)
 		delay := base + retry.jitter(base)
 		if deadline, ok := ctx.Deadline(); ok && time.Until(deadline) < delay+retry.policy.MinBudget {
@@ -74,7 +64,6 @@ func (retry *Retrier) Do(ctx context.Context, operation func() error, retryable 
 	}
 }
 
-// waitContext 不使用 Sleep，因为调用方取消时，不应该继续睡到退避时间结束。
 func waitContext(ctx context.Context, delay time.Duration) error {
 	timer := time.NewTimer(delay)
 	defer timer.Stop()

@@ -2,10 +2,6 @@
 //
 // 用标准 health 协议和内存连接制造一个等待 context 的 handler。started 通知保证请求真的开始后才停机。
 // 先看 blockingHealth.Check，再看 TestShutdownDeadline 如何同时回收 RPC 和 Serve goroutine。
-//
-// 主要内容：
-//   - Check：一直等到 RPC 被取消。它模仿响应 context 的数据库查询，不包含固定睡眠。
-//   - TestShutdownDeadline：证明预算耗尽后 Stop 会取消在途 RPC，并且 Shutdown 等待自己的 goroutine 退出。
 
 package grpcx
 
@@ -24,9 +20,9 @@ import (
 
 // blockingHealth 借用标准 health 协议模拟在途 RPC，不引入任何 shop 依赖。
 type blockingHealth struct {
-	grpc_health_v1.UnimplementedHealthServer               // 嵌入默认实现，只重写测试所需的 Check。
-	started                                  chan struct{} // Check 唯一关闭，测试等待开始后才启动停机，避免调度时序让测试空跑。
-	finished                                 chan struct{} // Check 退出时唯一关闭，测试据此确认 handler 没有遗留。
+	grpc_health_v1.UnimplementedHealthServer
+	started  chan struct{} // Check 唯一关闭，测试等待开始后才启动停机，避免调度时序让测试空跑。
+	finished chan struct{} // Check 退出时唯一关闭，测试据此确认 handler 没有遗留。
 }
 
 // Check 一直等到 RPC 被取消。它模仿响应 context 的数据库查询，不包含固定睡眠。

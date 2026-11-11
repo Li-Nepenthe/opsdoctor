@@ -1,13 +1,5 @@
-// 本文件：批量造数的五表参数和事务写入。
-//
-// Run 把商品编号范围交给 insertBatch，它用 makeBatches 生成对应数据，再用同一个事务写入。
-// 先看 inspect 的基线检查，再看每商品四单如何对应销量和去重记录。最后看占位符与回滚，不能拼接实际业务值。
-//
-// 主要内容：
-//   - inspect：拒绝混杂或缺失的基线。这里只校验行数及连续编号，不是对生产数据的完整一致性审计。
-//   - makeBatches：只在内存生成样本，方便单元测试检查 ID、金额和五表之间的对应关系。
-//   - insertBatch：在一个事务里写五张表。result 是具名返回值，defer 可将回滚错误追加到原始错误。
-//   - insertStatement：为非空且等宽的内部数据构造 VALUES。所有实际值都由驱动参数化传输。
+// 本文件：按连续商品编号生成五张表的样本，每批在同一事务写完，供中断后继续造数。
+// Run 调用 insertBatch，由它生成并写入对应批次的样本。
 
 package seed
 
@@ -52,13 +44,13 @@ func inspect(ctx context.Context, database *sql.DB) (int64, error) {
 	return products, nil
 }
 
-// batch 保存一张表一批的参数。二维切片的每一项是一行，any 允许整数、字符串、时间混合。
+// batch 按固定 INSERT 的列序保存每行参数。
 type batch struct {
-	statement string  // statement 是本文件中的固定 INSERT 前缀。
-	rows      [][]any // rows 顺序与 INSERT 列顺序相同，执行时展开为占位符参数。
+	statement string
+	rows      [][]any
 }
 
-// makeBatches 只在内存生成样本，方便单元测试检查 ID、金额和五表之间的对应关系。
+// makeBatches 为同一批商品生成对应的库存、订单、销量和去重凭据。
 func makeBatches(first, last int64, now time.Time) []batch {
 	products := batch{statement: productsInsert}
 	stock := batch{statement: stockInsert}
@@ -68,7 +60,7 @@ func makeBatches(first, last int64, now time.Time) []batch {
 	for skuID := first; skuID <= last; skuID++ {
 		products.rows = append(products.rows, []any{skuID, fmt.Sprintf("商品%d", skuID), priceCents, now})
 		stock.rows = append(stock.rows, []any{skuID, initialStock, now})
-		// 历史订单视为已经统计过，直接写入销量和去重记录，避免阶段 2 的检查误报基线缺口。
+		// 历史订单不会发送消息，须同时写入销量和去重记录，才能按订单件数核对。
 		sales.rows = append(sales.rows, []any{skuID, ordersPerProduct})
 		for offset := int64(1); offset <= ordersPerProduct; offset++ {
 			orderID := (skuID-1)*ordersPerProduct + offset
@@ -80,7 +72,7 @@ func makeBatches(first, last int64, now time.Time) []batch {
 	return []batch{products, stock, orders, sales, processed}
 }
 
-// insertBatch 在一个事务里写五张表。result 是具名返回值，defer 可将回滚错误追加到原始错误。
+// insertBatch 在同一事务写入五张表，任何一张失败都不能留下半批数据。
 func insertBatch(ctx context.Context, database *sql.DB, first, last int64) (result error) {
 	transaction, err := database.BeginTx(ctx, nil)
 	if err != nil {
@@ -111,7 +103,6 @@ func insertStatement(data batch) (string, []any) {
 	placeholders := make([]string, len(data.rows))
 	arguments := make([]any, 0, len(data.rows)*columns)
 	for i, row := range data.rows {
-		// append 的 ... 把一行切片展开。SQL 参数按“第一行全部列、第二行全部列”的顺序排列。
 		placeholders[i] = rowPlaceholder
 		arguments = append(arguments, row...)
 	}

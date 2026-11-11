@@ -1,17 +1,5 @@
-// 本文件：给库存 gRPC 调用加上时间限制和故障保护。
-//
-// product 和 order 的业务流程通过这里访问库存。生成的 protobuf 类型不再向业务层传递。
-// 把客户端单独放置，是为了让两个业务包共用同一套保护规则。
-//
-// 主要内容：
-//   - Config、New：检查超时配置，分别创建查询和扣减的熔断器。
-//   - GetStock：在总预算内重试查询，把结果转换成库存快照。
-//   - queryAttempt：按需缩短一次查询的等待时间，保留整次调用的截止时间。
-//   - Deduct、Release：只发送一次写请求，避免重复扣减或归还。
-//   - convertError：把 RPC 状态转换成业务能理解的错误。
-//   - WriteError：保留“这次写操作是否可能已生效”的信息。
-//
-// 阅读建议：先比较三个公开方法，再看哪些错误算下游故障。
+// 本文件：订单与商品服务在这里调用库存 RPC。读请求共享总时限，扣减和归还各只发送一次。
+// 从 GetStock 对照 Deduct，可以看到查询重试和写入结果不确定的处理为何不同。
 
 package inventoryclient
 
@@ -39,30 +27,30 @@ type Config struct {
 	Breaker        resilience.BreakerConfig // 两个熔断器用相同配置，但各自计数。
 }
 
-// Client 共用一条 gRPC 连接。每次调用的结果都存在局部变量里，不会互相覆盖。
+// Client 在同一连接上分别记录查询和扣减的技术故障。
 type Client struct {
-	rpc            inventoryv1.InventoryServiceClient // app 创建并管理底层连接。
-	timeout        time.Duration                      // 每次调用开始时，用它缩短调用方的预算。
-	attemptTimeout time.Duration                      // 只限制单次查询，让暂时失败后仍可能有时间重试。
-	retry          *resilience.Retrier                // 查询失败后决定是否再试。
-	getBreaker     *resilience.Breaker                // 查询接口自己的失败记录。
-	deductBreaker  *resilience.Breaker                // 扣减接口自己的失败记录。
-	retryCounter   prometheus.Counter                 // app 可选接入；没有接入时测试只验证业务行为。
+	rpc            inventoryv1.InventoryServiceClient
+	timeout        time.Duration
+	attemptTimeout time.Duration
+	retry          *resilience.Retrier
+	getBreaker     *resilience.Breaker
+	deductBreaker  *resilience.Breaker
+	retryCounter   prometheus.Counter
 }
 
 // WriteError 表示写请求的错误。连接断开不等于服务端没有执行，因此需要额外保存结果是否确定。
 type WriteError struct {
-	Cause          error // Cause 用于 errors.Is 继续匹配超时或业务错误。
-	MayHaveApplied bool  // true 表示不能根据这次响应决定是否重新扣减。
+	Cause          error
+	MayHaveApplied bool // true 表示不能根据这次响应决定是否重新扣减。
 }
 
-// Error 提供可读的错误文本，底层原因仍通过 Unwrap 保留。
+// Error 返回本次库存写入的失败原因。
 func (err *WriteError) Error() string { return err.Cause.Error() }
 
-// Unwrap 让 errors.Is 和 errors.As 可以继续查看包裹的原因。
+// Unwrap 保留底层错误的身份，供调用方区分超时与业务拒绝。
 func (err *WriteError) Unwrap() error { return err.Cause }
 
-// OutcomeUnknown 让业务层通过一个小接口识别结果不确定，不必导入本客户端的具体错误类型。
+// OutcomeUnknown 告知调用方库存可能已经改变。
 func (err *WriteError) OutcomeUnknown() bool { return err.MayHaveApplied }
 
 // New 提前检查配置，避免服务已经接流量后才发现保护参数不合法。
@@ -104,7 +92,7 @@ func (client *Client) GetStock(parent context.Context, skuID int64) (inventory.S
 			return err
 		})
 	}, func(err error) bool {
-		// 熔断器已经打开时，等待后重试也不会发出请求，直接把失败交给商品降级。
+		// 只重试技术故障；熔断器直接拒绝或总预算已到期时结束查询。
 		return ctx.Err() == nil && (status.Code(err) == codes.Unavailable || status.Code(err) == codes.DeadlineExceeded)
 	})
 	if err != nil {
@@ -116,10 +104,10 @@ func (client *Client) GetStock(parent context.Context, skuID int64) (inventory.S
 // queryAttempt 给一次查询分配时间。父 context 仍限制整次调用，短预算到期不会取消其他尝试。
 func (client *Client) queryAttempt(ctx context.Context, skuID int64) (*inventoryv1.GetStockResponse, error) {
 	if client.attemptTimeout == 0 {
-		// 默认直接传原 context，保留此前所有尝试共享截止时间的行为。
+		// 没有单次预算时，查询直接使用整次调用的截止时间。
 		return client.rpc.GetStock(ctx, &inventoryv1.GetStockRequest{SkuId: skuID})
 	}
-	// WithTimeout 不会延长父 context。即使只剩一点总预算，本次也必须按时结束。
+	// 本次尝试还受整次查询剩余时间限制。
 	attempt, cancel := context.WithTimeout(ctx, client.attemptTimeout)
 	defer cancel()
 	return client.rpc.GetStock(attempt, &inventoryv1.GetStockRequest{SkuId: skuID})

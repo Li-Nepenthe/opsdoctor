@@ -2,13 +2,6 @@
 //
 // 测试用内存消息队列替代 Kafka，能够明确记录处理与提交的先后顺序。
 //
-// 主要内容：
-//   - fakeReader：记录 Fetch 与 Commit，支持模拟提交失败。
-//   - TestConsumerCommitOrder：验证失败不提交、重复送达可再次提交。
-//   - TestConsumerFinishesCurrentMessage：收到停止信号仍做完当前消息。
-//   - TestRejectInvalidMessage：拒绝损坏内容和与订单编号不符的 key。
-//   - TestConsumerObservations：从消息头延续 trace，并按实际处理结果计数。
-//
 // 阅读建议：先看提交时的断言，它比“函数最后返回 nil”更能证明处理顺序。
 
 package events

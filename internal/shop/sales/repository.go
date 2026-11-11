@@ -1,14 +1,5 @@
-// 本文件：在一个 MySQL 事务里完成订单去重和销量累加。
-//
-// processed_events 的主键相当于“这笔订单已经记过账”的凭据。
-// 凭据与销量必须一起提交，否则可能出现只记凭据、没加销量的漏统计。
-//
-// 主要内容：
-//   - MySQLRepository、NewMySQLRepository：借用 app 的数据库连接池。
-//   - Apply：插入去重凭据，累加销量，然后提交事务。
-//   - Check：在同一个数据库快照里读取订单总件数与已统计销量。
-//
-// 阅读建议：重点看重复键分支，以及 defer 为什么要区分事务已结束和回滚失败。
+// 本文件：订单号去重凭据与销量增量在同一事务提交，避免一边成功、另一边失败。
+// 从 Apply 的重复键分支可以看到消费者重投时为何不再累加。
 
 package sales
 
@@ -35,15 +26,14 @@ const addSalesSQL = `INSERT INTO product_sales (sku_id, sold) VALUES (?, ?) ON D
 const checkSalesSQL = `SELECT (SELECT COALESCE(SUM(quantity), 0) FROM orders), (SELECT COALESCE(SUM(sold), 0) FROM product_sales)`
 
 // MySQLRepository 复用服务级连接池。事务期间会独占借出的那条连接。
-type MySQLRepository struct{ database *sql.DB } // database 的关闭由 app 负责。
+type MySQLRepository struct{ database *sql.DB }
 
 // NewMySQLRepository 不执行查询，启动时的探活和迁移由 app 完成。
 func NewMySQLRepository(database *sql.DB) *MySQLRepository {
 	return &MySQLRepository{database: database}
 }
 
-// Apply 返回的 duplicate 表示已经记过这笔订单，消费者因此能区分“新增”和“重复”。
-// result 是具名返回值，defer 可以把回滚失败也保留在最终错误里。
+// Apply 返回此次是否遇到重复订单。
 func (repository *MySQLRepository) Apply(ctx context.Context, event events.OrderCreated) (duplicate bool, result error) {
 	tx, err := repository.database.BeginTx(ctx, nil)
 	if err != nil {
@@ -52,7 +42,7 @@ func (repository *MySQLRepository) Apply(ctx context.Context, event events.Order
 	defer func() {
 		// 成功 Commit 后 Rollback 返回 ErrTxDone，这是正常的清理路径。
 		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
-			// Join 把两个原因保存在同一个 error 中，errors.Is 仍能匹配其中任意一个。
+			// 回滚失败时也保留最初的写入错误。
 			result = errors.Join(result, fmt.Errorf("回滚销量事务：%w", err))
 		}
 	}()
