@@ -1,15 +1,5 @@
-// 本文件：按指定速率选择请求类型和商品，并交给固定工作者。
-//
-// Zipf 分布就是少数商品更常被访问。随机数只由调度循环使用，不在多个 goroutine 间共用随机源。
-// 工作者都忙时明确记录未发出数，不无限堆积请求或创建新 goroutine。
-//
-// 主要内容：
-//   - requestKind、job：描述一次逻辑请求。
-//   - generator、newGenerator：准备固定依赖与 Zipf 随机源。
-//   - nextJob：按 70/20/10 选择接口，并生成一次下单要共用的幂等键。
-//   - run、schedule：调度和排空固定数量的工作者。
-//
-// 阅读建议：逻辑下单可能发送两次 HTTP，但两次会使用同一个 job 中的 key。
+// 本文件：按目标速率分配订单服务的请求，到固定上限就记录本次未发出。
+// 普通请求与成批商品查询共用工作者。随机抽样和下单幂等键都由一个调度循环生成，工作者只负责执行。
 
 package loadgen
 
@@ -46,7 +36,7 @@ const (
 
 // job 是一次逻辑操作。超时重试继续使用同一份字段。
 type job struct {
-	kind   requestKind // 决定使用哪种 HTTP 接口。
+	kind   requestKind
 	skuID  int64       // 商品查询与下单使用同一套热门分布。
 	userID int64       // 在已造数的常见用户范围内选择。
 	key    string      // 每笔逻辑下单独立生成，重试不更换。
@@ -55,21 +45,20 @@ type job struct {
 
 // generator 把调度数据和发送依赖放在一起，随机源只允许 schedule 所在 goroutine 使用。
 type generator struct {
-	settings Config             // 构造后固定的目标、超时和工作者数量。
+	settings Config
 	control  *controlState      // 控制接口修改速率与热点，内部用锁保护。
 	bursts   *burstState        // 有上限的单次突发也交给同一组工作者。
 	client   *http.Client       // 复用连接，所有工作者共享。
 	metrics  *telemetry.Metrics // app 注入指标，与日志统计同时记下每次尝试。
-	stats    *statistics        // 统计内部保护并发写入。
-	logger   *slog.Logger       // 十秒报告与最终报告均输出 JSON。
-	random   *mathrand.Rand     // 只在调度循环中使用。
-	zipf     *mathrand.Zipf     // 与 random 同属一个调度循环。
-	runID    string             // 每次运行的随机前缀，避免重启后重复使用旧幂等键。
-	sequence uint64             // 仅调度循环增加，和 runID 一起组成键。
+	stats    *statistics
+	logger   *slog.Logger
+	random   *mathrand.Rand
+	zipf     *mathrand.Zipf
+	runID    string // 每次启动换一个前缀，重启后也不会沿用旧幂等键。
+	sequence uint64 // 仅调度循环增加，和 runID 一起组成键。
 }
 
-// newGenerator 用 v=100 分散最热的一小组商品，仍让它们远比长尾商品常见。
-// 这样阶段 1 每件商品的一百件库存能承受五分钟基准。指定 hot_sku_id 则可集中到一个商品。
+// 默认把热门请求分散到一组商品，避免短时间内耗尽单个商品的库存。指定热点时仍然只选该商品。
 func newGenerator(settings Config, control *controlState, client *http.Client, logger *slog.Logger, metrics *telemetry.Metrics) *generator {
 	random := mathrand.New(mathrand.NewPCG(mathrand.Uint64(), mathrand.Uint64()))
 	return &generator{metrics: metrics, settings: settings, control: control, client: client, logger: logger, random: random,
