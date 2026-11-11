@@ -101,61 +101,102 @@ func (service *Service) Create(ctx context.Context, request CreateRequest, key s
 	if request.UserID <= 0 || request.SKUID <= 0 || request.Quantity <= 0 || !validKey(key) {
 		return Created{}, ErrInvalidArgument
 	}
-	reservation := Reservation{Key: key, SKUID: request.SKUID}
-	if key != "" {
-		var owned bool
-		var err error
-		reservation, owned, err = service.idempotency.Reserve(ctx, key, request)
-		if err != nil {
-			return Created{}, err
-		}
-		if !owned {
-			// 重复请求只检查记录，不再查价格、扣库存或发送消息。
-			switch reservation.State {
-			case stateCompleted:
-				if reservation.Result == nil {
-					return Created{}, ErrIdempotencyUnavailable
-				}
-				return *reservation.Result, nil
-			case stateNeedsReview:
-				if reservation.EnteredReview {
-					service.reviews.RecordReview(ctx, reservation.OrderID, reservation.SKUID, key, "processing_budget_expired")
-				}
-				return Created{}, ErrOutcomeUnknown
-			default:
-				return Created{}, ErrInProgress
-			}
-		}
+	reservation, owned, err := service.reserve(ctx, request, key)
+	if err != nil {
+		return Created{}, err
 	}
-	price, err := service.prices.Get(ctx, request.SKUID)
+	if !owned {
+		return service.replay(ctx, reservation, key)
+	}
+	priceCents, err := service.orderPrice(ctx, request)
 	if err != nil {
 		return Created{}, service.safeFailure(ctx, reservation, err)
 	}
-	if price.PriceCents < 0 || price.PriceCents > math.MaxInt64/int64(request.Quantity) {
-		return Created{}, service.safeFailure(ctx, reservation, ErrInvalidArgument)
+	if err := service.deductStock(ctx, request, reservation); err != nil {
+		return Created{}, err
 	}
+	saved, err := service.writeOrder(ctx, request, priceCents, reservation)
+	if err != nil {
+		return Created{}, err
+	}
+	service.publishCreated(ctx, saved)
+	return service.saveResult(ctx, key, reservation, saved)
+}
+
+func (service *Service) reserve(ctx context.Context, request CreateRequest, key string) (Reservation, bool, error) {
+	if key == "" {
+		return Reservation{Key: key, SKUID: request.SKUID}, true, nil
+	}
+	return service.idempotency.Reserve(ctx, key, request)
+}
+
+func (service *Service) replay(ctx context.Context, reservation Reservation, key string) (Created, error) {
+	// 重复请求只检查记录，不再查价格、扣库存或发送消息。
+	switch reservation.State {
+	case stateCompleted:
+		if reservation.Result == nil {
+			return Created{}, ErrIdempotencyUnavailable
+		}
+		return *reservation.Result, nil
+	case stateNeedsReview:
+		if reservation.EnteredReview {
+			service.reviews.RecordReview(ctx, reservation.OrderID, reservation.SKUID, key, "processing_budget_expired")
+		}
+		return Created{}, ErrOutcomeUnknown
+	default:
+		return Created{}, ErrInProgress
+	}
+}
+
+func (service *Service) orderPrice(ctx context.Context, request CreateRequest) (int64, error) {
+	price, err := service.prices.Get(ctx, request.SKUID)
+	if err != nil {
+		return 0, err
+	}
+	if price.PriceCents < 0 || price.PriceCents > math.MaxInt64/int64(request.Quantity) {
+		return 0, ErrInvalidArgument
+	}
+	return price.PriceCents, nil
+}
+
+func (service *Service) deductStock(ctx context.Context, request CreateRequest, reservation Reservation) error {
 	if err := service.stock.Deduct(ctx, request.SKUID, request.Quantity); err != nil {
 		if outcomeUnknown(err) {
-			return Created{}, service.unknown(ctx, reservation, 0, "deduct_outcome_unknown")
+			return service.unknown(ctx, reservation, 0, "deduct_outcome_unknown")
 		}
-		return Created{}, service.safeFailure(ctx, reservation, err)
+		return service.safeFailure(ctx, reservation, err)
 	}
-	draft := Order{UserID: request.UserID, SKUID: request.SKUID, Quantity: request.Quantity, AmountCents: price.PriceCents * int64(request.Quantity), Status: "created", CreatedAt: time.Now().UTC().Truncate(time.Microsecond)}
+	return nil
+}
+
+func (service *Service) writeOrder(ctx context.Context, request CreateRequest, priceCents int64, reservation Reservation) (Order, error) {
+	draft := Order{
+		UserID: request.UserID, SKUID: request.SKUID, Quantity: request.Quantity,
+		AmountCents: priceCents * int64(request.Quantity), Status: "created",
+		CreatedAt: time.Now().UTC().Truncate(time.Microsecond),
+	}
 	saved, err := service.repository.Create(ctx, draft)
 	if err != nil {
 		if outcomeUnknown(err) {
-			return Created{}, service.unknown(ctx, reservation, saved.OrderID, "order_commit_unknown")
+			return Order{}, service.unknown(ctx, reservation, saved.OrderID, "order_commit_unknown")
 		}
 		// 已确认订单没提交才补偿。请求可能已经超时，所以收尾另给一份有限预算。
 		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), service.cleanupTimeout)
 		releaseErr := service.stock.Release(cleanup, request.SKUID, request.Quantity)
 		cancel()
 		if releaseErr != nil {
-			return Created{}, service.unknown(ctx, reservation, saved.OrderID, "compensation_failed")
+			return Order{}, service.unknown(ctx, reservation, saved.OrderID, "compensation_failed")
 		}
-		return Created{}, service.safeFailure(ctx, reservation, err)
+		return Order{}, service.safeFailure(ctx, reservation, err)
 	}
-	event := events.OrderCreated{OrderID: saved.OrderID, UserID: saved.UserID, SKUID: saved.SKUID, Quantity: saved.Quantity, AmountCents: saved.AmountCents, CreatedAt: saved.CreatedAt}
+	return saved, nil
+}
+
+func (service *Service) publishCreated(ctx context.Context, saved Order) {
+	event := events.OrderCreated{
+		OrderID: saved.OrderID, UserID: saved.UserID, SKUID: saved.SKUID,
+		Quantity: saved.Quantity, AmountCents: saved.AmountCents, CreatedAt: saved.CreatedAt,
+	}
 	// 订单已经提交，发送消息也是收尾工作，不能因为客户断开连接就放弃。
 	// WithoutCancel 保留请求中的值（包括调用链），只去掉原来的取消信号和 deadline。
 	// 再加自己的超时，避免 Kafka 不可用时一直占住处理请求的 goroutine。
@@ -170,6 +211,9 @@ func (service *Service) Create(ctx context.Context, request CreateRequest, key s
 		service.logger.WarnContext(ctx, "订单已创建，但创建消息未确认发送", "order_id", saved.OrderID, "sku_id", saved.SKUID,
 			"error_kind", publishErrorKind(publishErr), "publish_elapsed_ms", time.Since(publishStarted).Milliseconds())
 	}
+}
+
+func (service *Service) saveResult(ctx context.Context, key string, reservation Reservation, saved Order) (Created, error) {
 	result := Created{OrderID: saved.OrderID, AmountCents: saved.AmountCents, Status: saved.Status}
 	if key != "" {
 		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), service.cleanupTimeout)
