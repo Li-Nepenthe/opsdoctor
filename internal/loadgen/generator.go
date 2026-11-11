@@ -160,18 +160,28 @@ func (generator *generator) schedule(ctx context.Context, jobs chan<- job) {
 				continue
 			}
 			credit += elapsed * float64(settings.QPS)
-			for credit >= 1 {
-				credit--
-				value := generator.nextJob(settings.HotSKUID)
-				select {
-				case <-ctx.Done():
-					return
-				case jobs <- value:
-				default:
-					// 没有空闲工作者时不排长队，报告 dropped 才能看出生成器自身的容量限制。
-					generator.stats.drop()
-				}
+			var running bool
+			credit, running = generator.dispatchRegular(ctx, jobs, settings.HotSKUID, credit)
+			if !running {
+				return
 			}
 		}
 	}
+}
+
+// 整数额度逐个交给已有工作者，剩下的小数留到下次计时。
+func (generator *generator) dispatchRegular(ctx context.Context, jobs chan<- job, hotSKU int64, credit float64) (float64, bool) {
+	for credit >= 1 {
+		credit--
+		value := generator.nextJob(hotSKU)
+		select {
+		case <-ctx.Done():
+			return credit, false
+		case jobs <- value:
+		default:
+			// 没有空闲工作者时不排长队，报告 dropped 才能看出生成器自身的容量限制。
+			generator.stats.drop()
+		}
+	}
+	return credit, true
 }
