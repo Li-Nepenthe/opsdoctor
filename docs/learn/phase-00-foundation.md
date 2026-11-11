@@ -45,6 +45,8 @@ flowchart TD
     H --> I[关闭数据库连接池，退出]
 ```
 
+图里只画了本阶段的部件。阶段 3 加入可观测性以后，读完配置还会先初始化 telemetry（指标和调用链），退出时最后关闭它。
+
 订单服务对外提供 HTTP 接口，每个请求还会先经过 **httpx** 的公共处理：分配请求编号、接住 panic、限制请求体大小。
 
 ### 2.2 依赖方向
@@ -107,7 +109,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml ps
 
 你应该看到 shop-mysql、redis、kafka 三个都是 `healthy`，端口都以 `127.0.0.1:` 开头（只有本机能访问）。第一次运行要下载镜像，会慢一些。
 
-**第 4 步：跑全部检查和测试。**
+**第 4 步：跑主要的检查和测试。**
 
 ```text
 gofmt -l cmd gen internal tools
@@ -118,7 +120,9 @@ go run ./tools/archcheck ./...
 go test -race ./... -count=1 -timeout=180s
 ```
 
-你应该看到：前三条没有任何输出（没输出就是没问题）；两个检查工具各输出一行“通过”；测试每个包都是 `ok`。如果提示找不到 `staticcheck`，先运行 `go install honnef.co/go/tools/cmd/staticcheck@v0.8.2`。
+你应该看到：前三条没有任何输出（没输出就是没问题）；两个检查工具各输出一行“通过”；测试里有测试文件的包显示 `ok`，没有测试文件的包显示 `? ... [no test files]`。如果提示找不到 `staticcheck`，先运行 `go install honnef.co/go/tools/cmd/staticcheck@v0.8.2`，并确认 Go 的 bin 目录（`go env GOPATH` 下的 `bin`）在 PATH 里。
+
+CI 还会多跑几项：`go mod tidy` 以后 go.mod 和 go.sum 不能有变化、两种构建方式的 golangci-lint、leakbug 版本的编译。完整清单见 [CI 配置](../../.github/workflows/ci.yml)。
 
 **第 5 步：看看集成测试默认会跳过。**
 
@@ -211,17 +215,17 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 | 参数名拼错：`{"sku_id":1001,"qty":2}` | 400，正文 `{"code":"INVALID_ARGUMENT","message":"请求必须是符合接口约定的单个 JSON 值",...}` | 只有一条访问日志，`"status":400`。处理函数在 `BindJSON` 那里就返回了，没有业务日志 |
 | 处理函数里发生 panic | 500，正文 `{"code":"INTERNAL","message":"内部错误",...}` | 先是一条 `"level":"ERROR","msg":"HTTP 请求异常","error":"panic"`，再是 `"status":500` 的访问日志，两条编号相同。panic 的具体内容既没进日志，也没返回给客户端 |
 
-到了阶段 2，启动订单服务以后用 curl 发请求，再运行 `docker compose --env-file .env -f deploy/docker-compose.yml logs order-service`，就能看到同样结构的日志。阶段 3 之后还会多出 `trace_id` 和 `span_id`。
+这次运行用的是现在的代码，所以访问日志里有 `user_agent` 字段，这个字段是阶段 8 才加的。启动订单服务以后用 curl 发请求，再运行 `docker compose --env-file .env -f deploy/docker-compose.yml logs order-service`，能看到同样结构的日志，还会多出阶段 3 加入的 `trace_id` 和 `span_id`。
 
 ### 4.3 两个服务同时启动，迁移怎样排队
 
-假设 shop 库是全新的，库存服务（下表的 A）和 order-worker（B）同时启动。用 Compose 一次启动所有服务时，这种情况很常见。shop 库目前有 5 个迁移文件，从 `0001_products.sql` 到 `0005_processed_events.sql`，是阶段 1、2 陆续加的。
+假设 shop 库是全新的，库存服务（下表的 A）和 order-worker（B）同时启动。用 Compose 一次启动所有服务时，这种情况很常见。shop 库目前有 5 个迁移文件，从 `0001_products.sql` 到 `0005_processed_events.sql`，都是阶段 1 加的。
 
 两边算出的锁名相同：`acquire` 先执行 `SELECT DATABASE()` 得到 `shop`，取它的 SHA-256 摘要的前 16 字节，得到 `opsdoctor:migrate:8d9001d32c6a703d95921a77115050f3`。同一个库永远是同一个锁名；迁移别的库（比如测试库）时锁名不同，互不阻挡。
 
 | 时刻 | 库存服务（A） | order-worker（B） |
 |---|---|---|
-| 1 | `database.Conn` 从连接池借出一条连接，记作 A1，算出锁名 | 借出连接 B1，算出同一个锁名 |
+| 1 | 先读取并检查全部迁移文件，再用 `database.Conn` 从连接池借出一条连接，记作 A1，算出锁名 | 同样先检查文件，再借出连接 B1，算出同一个锁名 |
 | 2 | 在 A1 上执行 `GET_LOCK(锁名, 30)`，返回 1：拿到锁 | 在 B1 上执行 `GET_LOCK(锁名, 30)`：锁在 A1 手里，开始等，最多等 30 秒 |
 | 3 | 建历史表 `schema_migrations`（已存在就跳过）；读历史，是空的；核对历史，没问题 | 还在等 |
 | 4 | 依次执行 0001 到 0005。每执行成功一个，就往历史表插一行：文件名和校验和 | 还在等 |
@@ -231,8 +235,8 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 要注意的几点：
 
 1. **B 一条迁移 SQL 都没执行。** 它是在 A 写完历史以后才读历史的。如果不排队，A、B 可能同时发现“0003 还没执行”，各执行一遍。
-2. **等不到锁会明确失败。** 如果 A 迁移超过 30 秒还没做完，B 的 `GET_LOCK` 返回 0，`Apply` 返回“获取迁移命名锁超时或返回 NULL”，B 启动失败并退出，不会在没拿到锁的情况下硬着头皮迁移。整个迁移还受调用方传进来的 ctx 时限约束。
-3. **解锁失败也不会卡住 B。** 如果第 5 步的 `RELEASE_LOCK` 没有返回 1（比如网络刚好断了），`release` 会调用 `discard` 让连接池扔掉 A1。连接一断，MySQL 自动释放 A1 拿着的锁，B 照样能拿到。
+2. **等不到锁会明确失败。** B 受两个时限约束：`GET_LOCK` 自己最多等 30 秒，等满返回 0；库存服务的整个启动也只有 30 秒（`startupTimeout`），这个时限先到时，查询会被取消。无论哪种情况，`Apply` 都返回错误，B 启动失败并退出，不会在没拿到锁的情况下硬着头皮迁移。
+3. **解锁失败也不会让锁一直挂着。** 如果第 5 步的 `RELEASE_LOCK` 没有返回 1（比如网络刚好断了），`release` 会调用 `discard` 让连接池扔掉 A1。连接一断，MySQL 自动释放 A1 拿着的锁。B 只要还在等待期内，就能拿到锁。
 4. **测试里怎样模拟这件事：** [migrate_integration_test.go](../../internal/platform/migrate/migrate_integration_test.go) 开两个 goroutine 同时调用 `Apply`，等两边都结束后，检查历史表里只记了一条。
 
 ## 5. 系统设计与取舍
@@ -258,22 +262,24 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 **问题。** 配置写错了，比如超时写成了 `5`（少了单位），如果等到第一个请求进来才发现，排查起来很麻烦。最好启动时就报错退出，并说清楚是哪个变量错了。
 
-**做法。** 每个服务启动时，用 [config.Reader](../../internal/platform/config/config.go) 逐项读取配置。每一项都带默认值和允许的范围，不合法就返回错误，服务不会启动。变量名、默认值和范围由各服务自己定，config 包只提供读取和校验的规则。
+**做法。** 每个服务启动时，用 [config.Reader](../../internal/platform/config/config.go) 逐项读取配置。每一项都要给出默认值，数字和时长还要给出允许的范围，不合法就返回错误，服务不会启动。变量名、默认值和范围由各服务自己定，config 包只提供读取和校验的规则。
 
 **一个细节：“没设置”和“设成空值”不一样。**
 
 - 没设置这个变量：使用默认值。
-- 设置了，但值是空的（`DB_DSN=`）：报错。这通常是部署时漏填了值，用默认值反而会掩盖这个错误。
+- 设置了，但值是空的（比如 `HTTP_ADDR=`）：报错。这通常是部署时漏填了值，用默认值反而会掩盖这个错误。
 
 `String` 靠 `os.LookupEnv` 的第二个返回值区分这两种情况：变量存在时为 `true`，不存在时为 `false`。
 
-**错误信息里只有变量名，没有变量的值。** 变量的值可能是密码，比如 `DB_DSN` 里就带着数据库密码。错误信息会进日志，所以只说“哪个变量、要求是什么”。
+必填项的写法是把默认值设成空字符串。比如 shop 的数据库连接串 `MYSQL_DSN`（[shop/app/config.go](../../internal/shop/app/config.go)），没设置时用的默认值是空的，设成空也是空的，两种情况都会报错。
+
+**错误信息里只有变量名，没有变量的值。** 变量的值可能是密码，比如 `MYSQL_DSN` 里就带着数据库密码。错误信息会进日志，所以只说“哪个变量、要求是什么”。
 
 **为什么 `Reader` 保存一个查找函数。** `Reader` 里没有直接调用 `os.LookupEnv`，而是保存了一个“查变量”的函数。真实运行时传 `os.LookupEnv`，测试时传一个查假数据的函数。这样测试不需要修改进程的环境变量，多个测试并行跑也不会互相影响。这种做法叫依赖注入：把一个函数需要的外部能力从参数传进来，而不是在函数里写死。
 
 **放弃了什么。** 没有用配置框架（例如 Viper），也没有用配置文件。环境变量是容器部署最通用的配置方式，同一个镜像换一组变量就能部署到不同环境，密码也不会打进镜像。
 
-**代价。** 改配置要重启服务，不支持热更新。变量一多，名字和默认值容易被无意中改掉，Compose 文件和 `.env.example` 却还按旧的写；可读性改造时专门加了环境变量测试，把每个程序读取的变量名和默认值固定下来。
+**代价。** 改配置要重启服务，不支持热更新。变量一多，名字和默认值容易被无意中改掉，Compose 文件和 `.env.example` 却还按旧的写；可读性改造时专门加了环境变量测试，把各程序读取的变量名和大部分默认值固定下来；worker、alertsink、shopctl 和 eval 还有几个默认值没测到，要等后面的批次补上。
 
 **规模变大十倍。** 服务多了以后，常见做法是把配置放进配置中心（例如 etcd、Nacos），把密码放进专门的密钥管理服务。但“启动时校验、错误里不带值”这两条原则不变。
 
@@ -289,14 +295,14 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 **两个容易写错的地方。**
 
-1. **调用链编号每次写日志时重新取。** 阶段 3 加入调用链以后，一个请求里会有很多个操作（span），比如一次 SQL 查询、一次 gRPC 调用。如果在请求入口取一次 `trace_id` 和 `span_id` 存下来，那么 SQL 里写的日志也会带着入口的 span 编号，定位不到实际出问题的操作。所以 [FromContext](../../internal/platform/logging/logging.go) 每次都从 context 里取**当前**的 span。
+1. **调用链编号每次写日志时重新取。** `Fields` 在阶段 0 就有 `TraceID` 和 `SpanID` 两个字段，阶段 3 接入调用链以后才开始自动填。一个请求里会有很多个操作（span），比如一次 SQL 查询、一次 gRPC 调用。如果在请求入口取一次 `trace_id` 和 `span_id` 存下来，那么 SQL 里写的日志也会带着入口的 span 编号，定位不到实际出问题的操作。所以 [FromContext](../../internal/platform/logging/logging.go) 每次都从 context 里取**当前**的 span。
 2. **派生出来的日志器要复制字段，不能共享。** `logger.With("order_id", 1)` 会派生一个新日志器。如果新旧日志器共用同一份字段列表，一个请求追加的字段可能出现在另一个请求的日志里。所以 `WithAttrs` 和 `Handle` 都先复制一份再追加。
 
 **代价。** 每个写日志的地方都必须传 context，忘了传，这条日志就没有编号。
 
 **规模变大十倍。** 日志量大了，要按级别和采样控制写多少。查询端也要小心：阶段 3 接入 Loki 时，只把服务名和日志级别做成索引标签，trace_id 这种每次都不同的值留在日志正文里，查询时再解析，否则索引会无限膨胀（见 [Alloy 配置](../../deploy/alloy/config.alloy)里的说明）。
 
-> 阶段 3 加入调用链之后，日志还会自动带上 `trace_id` 和 `span_id`。阶段 0 还没有这两个字段。
+> 阶段 0 的日志部件已经能写出 `trace_id` 和 `span_id`，但当时没有地方给它们赋值；阶段 3 接入调用链之后，才会从当前 span 自动取值。
 
 > **对照阅读**：《Golang面试题》[6.1 Go语言里的Context是什么？](https://www.xiaolincoding.com/interview/golang.html#_6-1-go语言里的context是什么) 到 [6.4 Context如何被取消](https://www.xiaolincoding.com/interview/golang.html#_6-4-context如何被取消)。context 有两个用途：携带信息、传递取消通知。本节用的是第一个；5.8 节的优雅停机用的是第二个。
 
@@ -315,11 +321,11 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 **做法：用中间件统一处理。** 中间件是套在处理函数外面的一层层壳，请求从外往里穿过每一层（Gin 的写法见 7.3 节）。httpx 提供四样东西：
 
 1. **`RequestIDs`：分配请求编号。** 客户端自带的编号只接受有限长度的字母、数字、短横线和下划线，因为它会原样写进日志和响应头；不合格就换成随机编号。访问日志只记路由模板（`/orders/:id`），不记原始 URL，因为查询串里可能有密码。
-2. **`Recovery`：接住 panic。** 返回统一的 500 错误；日志里只记“发生了 panic”，不记 panic 的具体内容，因为里面可能有 SQL 或密码。客户端拿到的响应里有 `request_id`，开发者可以用它查日志。
+2. **`Recovery`：接住 panic。** 如果响应还没开始写，就返回统一的 500 错误；如果已经写出了一部分（比如流式响应），状态码改不了，只能中止处理。日志里只记“发生了 panic”，不记 panic 的具体内容，因为里面可能有 SQL 或密码。客户端拿到的响应里有 `request_id`，开发者可以用它查日志。
 3. **`BodyLimit`：请求体限制两次。** 先看请求头里的 `Content-Length`，已经超了就直接拒绝；再把正文包一层 `http.MaxBytesReader`，实际读的时候边读边计数。只看 `Content-Length` 不够：客户端可以不发它（分块传输），也可以谎报。
 4. **`BindJSON`：严格解析。** 出现结构体里没有的字段就报错，因为这通常说明参数名拼错了，悄悄忽略反而让调用方以为成功了。解析完一个 JSON 以后再读一次，必须已经读到结尾，防止正文后面偷偷追加第二个 JSON。
 
-**顺序为什么重要。** `RequestIDs` 要装在 `Recovery` 外面（先安装）。这样即使发生 panic，返回的 500 响应和错误日志里也都有请求编号。反过来装，panic 发生时还没分配编号。
+**顺序为什么重要。** `RequestIDs` 要装在 `Recovery` 外面（先安装）。处理函数 panic 以后，里层的 `Recovery` 把它接住、写出 500 响应，然后正常返回，外层的 `RequestIDs` 才能执行 `ctx.Next()` 之后的代码，写出这次请求的访问日志（状态 500）。反过来装，panic 会一路穿过 `RequestIDs`，跳过它写访问日志的代码，这次失败的请求在访问日志里就查不到了。（请求编号在处理函数执行之前就分配好了，所以两种顺序下，500 响应和错误日志里都有编号。这一点在本地实验里验证过。）
 
 **放弃了什么：在日志里记完整的请求。** 记下请求正文和完整 URL，排查时最方便，但密码、令牌会跟着进日志，日志又会被很多人和系统读取。项目选择只记路由、状态码和耗时。
 
@@ -335,7 +341,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 **补基础：为什么建一条连接很贵。** 程序和 MySQL 之间的每条连接，建立时要先完成 TCP 三次握手，再由 MySQL 校验用户名和密码、读取权限，前后要在网络上来回好几趟。连接池把建好的连接留着反复用，省掉的就是这部分开销。
 
-**做法。** [mysqlx.Open](../../internal/platform/mysqlx/mysql.go) 统一创建连接池。Go 的 `*sql.DB` 本身就是连接池，不是一条连接（7.1 节）。它的几个参数是一种预算：
+**做法。** [mysqlx.Open](../../internal/platform/mysqlx/mysql.go) 统一创建连接池。Go 的 `*sql.DB` 本身就是连接池，不是一条连接（7.2 节）。它的几个参数是一种预算：
 
 | 参数 | 含义 | 设得不对会怎样 |
 |---|---|---|
@@ -372,7 +378,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 **关键：这把锁属于某一条数据库连接（会话）。** MySQL 记录的是“哪条连接拿着锁”，只有这条连接能释放它；连接一断开，锁自动释放。而 `*sql.DB` 是连接池，每次执行可能分到不同的连接：你可能在 3 号连接上拿到锁，执行迁移时用的是 5 号，想解锁时又分到了 7 号，7 号根本没拿过这把锁。
 
-所以 [Apply](../../internal/platform/migrate/migrate.go) 一开头就用 `database.Conn(ctx)` 从池里借出一条固定的连接，加锁、执行迁移、解锁都通过它完成，最后再还回池子。
+所以 [Apply](../../internal/platform/migrate/migrate.go) 检查完迁移文件以后，用 `database.Conn(ctx)` 从池里借出一条固定的连接，加锁、执行迁移、解锁都通过它完成，最后再还回池子。先检查文件再借连接，是为了不让一个写错的文件白白占着锁，让其他实例空等。
 
 **解锁失败怎么办。** 解锁出错时，这条连接可能还拿着锁。如果把它还回池子，下一个借到它的请求就会莫名其妙地拿着一把锁。所以 `release` 解锁失败时调用 `discard`，让连接池直接关掉这条连接，而不是放回池里。连接一断开，MySQL 就自动释放了锁。加锁时也一样：如果取消恰好发生在拿到锁之后，程序无法确认这条连接是否持锁，也会丢弃它。
 
@@ -391,7 +397,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 ### 5.7 迁移的可靠性：不用事务，让每一步都能重跑
 
-**补基础：事务是什么。** 事务是一组 SQL，要么全部生效，要么全部不生效，这叫**原子性**。比如转账要“A 扣 100”和“B 加 100”两步，放进一个事务里，第二步失败时，第一步会被撤销（叫**回滚**）。普通的 INSERT、UPDATE 都可以这样回滚，但下面要说的修改表结构的语句不行。
+**补基础：事务是什么。** 事务是一组 SQL，要么全部生效，要么全部不生效，这叫**原子性**。比如转账要“A 扣 100”和“B 加 100”两步，放进一个事务里，第二步失败时，程序执行回滚（ROLLBACK），第一步也会被撤销。注意 MySQL 遇到普通的语句错误时，通常只撤销出错的那一条语句，整个事务要由程序显式回滚。普通的 INSERT、UPDATE 都可以这样回滚，但下面要说的修改表结构的语句不行。
 
 **问题。** 把所有迁移放进一个事务，出错就回滚，看起来最安全。但在 MySQL 里做不到：`CREATE TABLE`、`ALTER TABLE` 这类修改表结构的语句叫 DDL，MySQL 执行 DDL 时会自动提交当前事务（叫“隐式提交”）。第一条建表成功、第二条失败，第一张表不会因为回滚而消失。
 
@@ -414,7 +420,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 **问题。** 直接杀掉进程，正在处理的请求会被打断，用户收到连接错误，数据库连接也来不及正常关闭。
 
-**补基础：信号。** 信号是操作系统通知进程“发生了某件事”的方式。在终端按 Ctrl+C，进程收到 SIGINT；`docker stop` 先发 SIGTERM，等一段时间进程还没退出，再发 SIGKILL 强制杀掉。程序能接住 SIGINT 和 SIGTERM 去做清理，但接不住 SIGKILL。
+**补基础：信号。** 信号是操作系统通知进程“发生了某件事”的方式。在终端按 Ctrl+C，进程收到 SIGINT；`docker stop` 默认先发 SIGTERM（镜像可以指定别的停止信号），等一段时间进程还没退出，再发 SIGKILL 强制杀掉。程序能接住 SIGINT 和 SIGTERM 去做清理，但接不住 SIGKILL。
 
 **做法分两步。**
 
@@ -423,14 +429,14 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 **两个容易写错的地方。**
 
-1. **清理要另开一个时限。** 调用 `Shutdown` 时，第 1 步的 context 往往已经被取消了。如果把这个已取消的 context 传给服务器的关闭函数，关闭函数会以为“时间到了”，立刻放弃等待，正在处理的请求就被打断了。所以 `Shutdown` 用 `context.WithoutCancel` 生成一个**不带取消状态**、但保留日志字段的新 context，再给它设一个新的时限（7.2 节）。
+1. **清理要另开一个时限。** 调用 `Shutdown` 时，第 1 步的 context 往往已经被取消了。如果把这个已取消的 context 传给服务器的关闭函数，关闭函数会以为“时间到了”，立刻放弃等待，正在处理的请求就被打断了。所以 `Shutdown` 用 `context.WithoutCancel` 生成一个**不带取消状态**、但保留日志字段的新 context，再给它设一个新的时限（7.4 节）。
 2. **一个资源关闭失败，也要继续关后面的。** `Shutdown` 记下错误继续往下关，最后把所有错误合并返回。不能因为服务器没关好，就连数据库连接也不关了。回调全部返回以后，如果总时限已经用完，也要把超时报告出来。
 
 **时间要对得上。** 清理必须在 SIGKILL 到来之前做完。库存服务给在途请求 10 秒（[config.go](../../internal/shop/app/inventoryservice/config.go) 里的 `shutdownTimeout`），Compose 给库存服务的等待时间是 15 秒（`stop_grace_period: 15s`），比 10 秒长，留出了关闭数据库连接的时间。
 
 **放弃了什么：收到信号就退出。** 最简单的写法是收到信号直接 `os.Exit`。代价就是本节开头说的那些问题。
 
-**规模变大十倍。** 在 Kubernetes 上，删除 Pod 时，“把 Pod 从负载均衡里摘掉”和“给容器发 SIGTERM”是同时开始的，服务可能在被摘掉之前就停止接请求了。常见做法是在关闭前先等几秒（preStop），并确认整个流程短于 `terminationGracePeriodSeconds`（默认 30 秒）。
+**规模变大十倍。** 在 Kubernetes 上删除 Pod 时，控制面把 Pod 从负载均衡里摘掉，和节点开始终止容器（先执行 preStop 钩子，再发 SIGTERM）是并行进行的，两者没有先后保证，服务可能在被摘掉之前就停止接请求了。常见做法是在 preStop 里先等几秒，给摘除留出时间，并确认整个流程短于 `terminationGracePeriodSeconds`（默认 30 秒）。
 
 > **对照阅读**：《图解系统》[进程间有哪些通信方式？](https://www.xiaolincoding.com/os/4_process/process_commu.html#信号) 的“信号”一节；《Golang面试题》[6.4 Context如何被取消](https://www.xiaolincoding.com/interview/golang.html#_6-4-context如何被取消)：`Notify` 收到信号后，就是靠取消 context 通知所有拿着它的代码。
 
@@ -449,19 +455,21 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 - 签发方、受众对不对：防止拿别的系统签发的令牌来登录。
 - 有没有过期：医生的登录令牌有效期是一小时。
 
+除了这五项，项目还要求令牌里的用户编号（`sub`）不能为空，签发时间（`iat`）如果有，不能在未来。
+
 **放弃了什么：服务端 Session。** 见八股 4。
 
 > **对照阅读**：《图解网络》[HTTP 常见面试题](https://www.xiaolincoding.com/network/2_http/http_interview.html) 里“HTTPS 是如何解决上面的三个风险的？”中的“摘要算法 + 数字签名”。小林讲的数字签名是“私钥签、公钥验”；本项目的 HS256 签发和验证用**同一个密钥**，道理一样：没有这个密钥就算不出正确的签名，令牌内容被改过，签名就对不上。
 
 ### 5.10 规范怎样落地：机器能查什么，查不了什么
 
-**问题。** 计划书规定了很多规则：包要有说明、依赖不能反向、标准答案只有评测器能读。人会忘，尤其是新增文件的时候。
+**问题。** 计划书规定了很多规则：包要有说明、依赖不能反向、标准答案只有注入器和评测器能读。人会忘，尤其是新增文件的时候。
 
 **做法：把能机械检查的规则写成工具，放进 CI。**
 
 | 手段 | 能发现什么 | 证明不了什么 |
 |---|---|---|
-| commentcheck | 包没有说明、文件没有说明、导出的函数和类型没有文档注释、doc.go 漏列了包里的文件 | 注释写得好不好、对不对 |
+| commentcheck | 包没有说明、文件没有说明、非测试文件里导出的函数和类型没有文档注释、doc.go 漏列了包里的非测试文件 | 注释写得好不好、对不对 |
 | archcheck | 目录布局、标准答案的访问、医生容器的挂载和内部端口 | 运行时才能确定的行为 |
 | depguard | 当前构建中违反规则的导入；默认构建和 leakbug 构建分别检查 | 运行时的账号权限 |
 | `go test -race` | 测试跑到的代码里的并发读写冲突 | 没被测试跑到的代码是否安全 |
@@ -507,7 +515,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 - 信号：SIGINT（Ctrl+C）、SIGTERM（`docker stop`、Kubernetes 删 Pod）可以接住；SIGKILL 接不住。
 - 顺序：停止接新请求 → 等在途请求 → 关后台任务 → 关连接池等底层资源。
-- 时限：程序里的清理时限要小于平台的等待时间。Docker 默认等 10 秒，Kubernetes 默认 30 秒。
+- 时限：程序里的清理时限要小于平台的等待时间。Docker 的 Linux 容器默认等 10 秒，Kubernetes 默认 30 秒。
 - 已取消的 context 不能用来做清理，要另开一个带时限的。
 
 #### 项目里的例子
@@ -518,7 +526,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 #### 常见追问
 
-1. **Kubernetes 上为什么还要加 preStop？** 因为“从负载均衡摘掉 Pod”和“发 SIGTERM”是同时开始的，服务可能先停了、流量还在进来。preStop 里先等几秒，让摘除生效。
+1. **Kubernetes 上为什么还要加 preStop？** 因为摘流量和终止容器是并行进行的，没有先后保证，服务可能先停了、流量还在进来。preStop 钩子在发 SIGTERM 之前执行，在里面先等几秒，让摘除生效。
 2. **消息消费者怎样优雅停机？** 停止拉新消息，处理完手上这一条并提交位点再退出。项目的 order-worker 在阶段 2 就是这样做的，它的宽限期是 45 秒，因为一条消息最多处理 30 秒。
 3. **清理超时了怎么办？** 记录错误，强制关闭剩下的连接并退出。不能无限等。
 
@@ -582,7 +590,7 @@ Session 是服务端保存登录状态，客户端只拿一个编号，每次请
 
 - Session：有状态，作废容易；多实例时要共享存储。
 - JWT：无状态，扩展容易；作废难，有效期要短。
-- 验证 JWT 要检查五项：签名、算法、签发方、受众、有效期。
+- 验证 JWT 至少检查五项：签名、算法、签发方、受众、有效期。项目还检查用户编号非空、签发时间不在未来。
 - 密码：慢哈希 + 随机盐；不截断。
 
 #### 项目里的例子
@@ -600,12 +608,12 @@ Session 是服务端保存登录状态，客户端只拿一个编号，每次请
 
 #### 一分钟口述版
 
-给每个请求一个编号，让它跟着请求走，每条日志都带上这个编号。在一个服务内部，编号放在 context 里，日志部件写日志时自动取出来，业务代码不用手动传；跨服务时，编号放在请求头里传给下游，下游取出来继续放进自己的 context。更完整的做法是分布式追踪：OpenTelemetry 给整个请求一个 trace_id，给每个操作一个 span_id，日志带上这两个编号，就能从一条慢请求跳到它的每一条日志。我的项目两种都有：HTTP 入口分配 request_id，阶段 3 接入调用链后，日志部件每次写日志都取当前 span 的编号，这样 SQL 里写的日志也能定位到具体那次查询。
+给每个请求一个编号，让它跟着请求走，每条日志都带上这个编号。在一个服务内部，编号放在 context 里，日志部件写日志时自动取出来，业务代码不用手动传。跨服务时，更通用的做法是分布式追踪：OpenTelemetry 给整条调用链一个 trace_id，给链上的每个操作一个 span_id，并通过请求头、消息头把它们传给下游；日志带上这两个编号，就能从一条慢请求跳到它在各个服务里的每一条日志。我的项目两种都有：每个服务在入口给请求分配自己的 request_id，只在本服务内有效；跨服务靠 trace_id，HTTP 和 gRPC 由 OpenTelemetry 自动传，Kafka 在消息头里手动注入和提取。日志部件每次写日志都取当前 span 的编号，这样 SQL 里写的日志也能定位到具体那次查询。
 
 #### 要点
 
 - 编号放 context，不放全局变量。
-- 跨进程靠请求头（HTTP 头、gRPC metadata、Kafka 消息头）传递。
+- 跨进程靠请求头（HTTP 头、gRPC metadata、Kafka 消息头）传递追踪上下文。
 - 日志用结构化格式（JSON），编号是字段，方便查询。
 - 每次写日志取当前 span，而不是入口时存下的那个。
 
@@ -617,9 +625,9 @@ Session 是服务端保存登录状态，客户端只拿一个编号，每次请
 
 #### 常见追问
 
-1. **request_id 和 trace_id 有什么区别？** request_id 通常只在一次 HTTP 请求的范围里；trace_id 贯穿整个调用链，还带着父子关系。
+1. **request_id 和 trace_id 有什么区别？** 在这个项目里，request_id 只在一个服务内有效（gRPC 服务端会生成自己的编号）；trace_id 标识整条调用链，链上操作之间的父子关系由 span_id 和父 span_id 表达。
 2. **日志量太大怎么办？** 按级别过滤、对正常请求采样；索引只建在服务名这类取值少的字段上。
-3. **异步任务（比如消息消费）怎样串起来？** 发消息时把编号写进消息头，消费时取出来，作为新操作的父节点。
+3. **异步任务（比如消息消费）怎样串起来？** 发消息时把追踪上下文写进消息头，消费时取出来，作为新操作的父节点。
 
 ## 7. 用到的 Go 写法
 
@@ -629,7 +637,7 @@ Session 是服务端保存登录状态，客户端只拿一个编号，每次请
 
 | 写法 | 本阶段在哪里用 | 去哪里学 |
 |---|---|---|
-| 模块、包、`internal` 和导出规则 | 整个仓库的布局 | [Mini-Redis 第 00 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/00-Go程序的骨架.md)“模块、包和 main”“导出规则和 init” |
+| 模块、包和导出规则（`internal` 目录见 5.1 节） | 整个仓库的布局 | [Mini-Redis 第 00 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/00-Go程序的骨架.md)“模块、包和 main”“导出规则和 init” |
 | 函数也是值、闭包 | `config.Reader` 保存查找函数 | [Mini-Redis 第 00 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/00-Go程序的骨架.md)“函数”和“八股 4” |
 | 切片共享底层数组 | logging 的 `WithAttrs` 先复制再追加 | [Mini-Redis 第 01 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/01-切片与字符串.md)“八股 2：两个切片共享底层数组，会出什么问题？” |
 | goroutine 里的 panic | `Recovery` 管不到业务另起的 goroutine | [Mini-Redis 第 02 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/02-goroutine与调度.md)“goroutine 里的 panic” |
@@ -641,7 +649,7 @@ Session 是服务端保存登录状态，客户端只拿一个编号，每次请
 | 接收系统信号 | `lifecycle.Notify` | [Mini-Redis 第 07 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/07-channel-context与WaitGroup.md)“接收系统信号” |
 | 表格测试、`-race` | config、httpx 的测试 | [Mini-Redis 第 08 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/08-测试.md)“表格驱动测试和子测试”“八股 1” |
 
-下面几节是 Mini-Redis 没有讲过的，只讲本阶段用到的部分。
+下面几节是 Mini-Redis 没有讲过、或者只提了一句的，只讲本阶段用到的部分。其中 `context.WithoutCancel` 在 Mini-Redis 第 07 章“八股 4”里提到过它的作用，这里补一个带清理时限的完整程序。
 
 ### 7.2 database/sql：连接池、固定一条连接、NULL
 
@@ -669,7 +677,7 @@ func main() {
 }
 ```
 
-- **让连接池扔掉一条连接。** 正常情况下，`conn.Close()` 是把连接还回池子。如果这条连接的状态不可靠（比如可能还拿着锁），就要让池子直接关掉它。做法是在 `conn.Raw` 的回调里返回 `driver.ErrBadConn`，这是标准库约定的“这条连接坏了”的信号。下面是项目里 [discard](../../internal/platform/migrate/migrate.go) 的写法，它需要一条真实的连接，不能单独运行：
+- **让连接池扔掉一条连接。** 正常情况下，`conn.Close()` 是把连接还回池子。如果这条连接的状态不可靠（比如可能还拿着锁），就要让池子直接关掉它。做法是在 `conn.Raw` 的回调里返回 `driver.ErrBadConn`，这是标准库约定的“这条连接坏了”的信号。下面是项目里 [discard](../../internal/platform/migrate/migrate.go) 的源码摘录，不是示例程序，它需要一条真实的数据库连接，不能单独运行：
 
 ```go
 func discard(connection *sql.Conn) error {
@@ -734,7 +742,7 @@ commentcheck 和 archcheck 不是用正则表达式搜索源码，而是用标�
 
 - `parser.ParseFile(..., parser.ParseComments)` 解析一个文件，并保留注释。
 - 遍历 `file.Decls` 就能拿到每个顶层声明，函数声明是 `*ast.FuncDecl`，它的 `Doc` 字段就是紧挨着它的文档注释。
-- `ast.Inspect` 深度遍历整棵树，archcheck 用它找出所有读文件的调用。
+- `ast.Inspect` 深度遍历整棵树。archcheck 用它找出 `os`、`io/fs`、`path/filepath` 这几个包里读文件、列目录的调用，再看传进去的路径是不是标准答案目录。它只能判断从源码里推得出的路径；运行时才拼出来的路径查不到，要靠账号权限和部署隔离来挡。
 - `token.FileSet` 负责把节点的位置还原成“文件名:行号”，所以报错能指到具体的行。
 
 用语法树而不用正则，是因为语法树分得清注释、字符串和代码。比如字符串里出现 `func` 不会被当成函数。
@@ -877,7 +885,7 @@ internal\platform\config\config.go:7:2: import 'github.com/Li-Nepenthe/opsdoctor
 
 这些代码在提交 `de44592` 里一起交付。验证方式包括：配置的表格测试、不启动服务器的 HTTP 测试、伪造的 JWT 令牌测试，以及连真实 MySQL 的时区和迁移测试。
 
-**取舍：** 没有引入配置框架（例如 Viper）、ORM 或现成的迁移框架，这些功能都用标准库写，代码少，读起来也更直接。迁移器后来在 2026-11 的换库评估中又和 golang-migrate 对照过一次，结论仍是保留（5.7 节）。
+**取舍：** 没有引入配置框架（例如 Viper）、ORM 或现成的迁移框架，配置读取和迁移调度是自己写的；数据库驱动、HTTP 框架 Gin、JWT 和 bcrypt 则用成熟的第三方库。迁移器后来在 2026-11 的换库评估中又和 golang-migrate 对照过一次，结论仍是保留（5.7 节）。
 
 ### 11.3 写检查工具，并证明它们真的能发现问题
 
@@ -916,10 +924,10 @@ internal\platform\config\config.go:7:2: import 'github.com/Li-Nepenthe/opsdoctor
 
 1. 先固定行为（第 0 批）：新增 37 个测试、27 份 golden，把模型请求、工具结果、HTTP 响应、环境变量等对外行为逐字节固定下来。之后每一批都必须让这些 golden 保持不变。
 2. 改规则：计划书和 AGENTS.md 的注释规则改成“只写思路和设计，不讲语法，不写清单”；commentcheck 只检查导出声明，取消 15 行规则（5.10 节）。
-3. 改注释：platform 的 8 个包、两个检查工具和 cmd 入口，独立的注释行从 755 行减到 235 行。讲 Go 语法的内容挪进了本材料的第 7 节。
-4. 代码只改了 archcheck 的两个函数，把嵌套 5 层的部分拆成独立的小函数。
+3. 改注释：platform 的 8 个包、两个检查工具和 cmd 入口，独立的注释行从 755 行减到 235 行，审核修补后是 225 行。讲 Go 语法的内容挪进了本材料的第 7 节。
+4. 代码只改了 archcheck 的两个函数，把嵌套 5 层的部分拆成独立的小函数；commentcheck 按新规则修改。
 
-**怎么验证：** 除这两个函数和 commentcheck 外，其余 49 个 Go 文件去掉注释后逐个 token 比较，完全相同；30 份 golden 逐字节不变；CI 的集成测试和 Compose 冒烟测试全部通过。
+**怎么验证：** 本批改动的 52 个 Go 文件里，除 commentcheck 和 archcheck 的 6 个代码与测试文件外，其余 46 个去掉注释后逐个 token 比较，完全相同；30 份 golden 逐字节不变；CI 的集成测试和 Compose 冒烟测试全部通过。
 
 **遇到的问题：** 审核时做了变异测试（故意改坏代码，看测试能不能发现），发现 archcheck 有三种情况没有测试覆盖：带引号的嵌入路径、赋值语句里的路径、要扫第二轮才能算出的路径。这三个缺口改造前就存在，但正好落在被拆分的两个函数里，于是补了三个测试用例，让这次拆分有测试来证明。另外，commentcheck 原来要求 doc.go 列出包里的每个文件，连 doc.go 自己也要列，于是每个包都有一句“doc.go 说明……”，这也是为了过检查写的话，这次一并去掉了。
 
@@ -930,11 +938,12 @@ internal\platform\config\config.go:7:2: import 'github.com/Li-Nepenthe/opsdoctor
 | 说法 | 出处 |
 |---|---|
 | `GET_LOCK` 的锁属于会话，会话结束时自动释放；锁名最长 64 个字符 | MySQL 8.4 参考手册 [Locking Functions](https://dev.mysql.com/doc/refman/8.4/en/locking-functions.html) |
-| DDL 会隐式提交当前事务 | MySQL 8.4 参考手册 [Statements That Cause an Implicit Commit](https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html) |
+| 建表、改表这类 DDL 会隐式提交当前事务（`CREATE TEMPORARY TABLE` 等少数语句除外） | MySQL 8.4 参考手册 [Statements That Cause an Implicit Commit](https://dev.mysql.com/doc/refman/8.4/en/implicit-commit.html) |
+| 普通的语句错误通常只回滚出错的语句，整个事务要显式回滚 | MySQL 8.4 参考手册 [InnoDB Error Handling](https://dev.mysql.com/doc/refman/8.4/en/innodb-error-handling.html) |
 | `max_connections` 的默认值是 151 | MySQL 8.4 参考手册 [max_connections](https://dev.mysql.com/doc/refman/8.4/en/server-system-variables.html#sysvar_max_connections) |
-| `docker stop` 先发 SIGTERM，默认等 10 秒后发 SIGKILL | Docker 文档 [docker container stop](https://docs.docker.com/reference/cli/docker/container/stop/) |
-| Kubernetes 删除 Pod 时默认等 30 秒；摘除流量和发信号同时进行 | Kubernetes 文档 [Termination of Pods](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination) |
-| bcrypt 只使用前 72 字节，超长时 Go 的实现返回错误 | [golang.org/x/crypto/bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt) |
+| `docker stop` 默认先发 SIGTERM（可以改成别的停止信号）；Linux 容器默认等 10 秒，还没退出才发 SIGKILL | Docker 文档 [docker container stop](https://docs.docker.com/reference/cli/docker/container/stop/) |
+| Kubernetes 删除 Pod 时默认宽限 30 秒；摘除流量和终止容器并行进行，配置了 preStop 时先执行它再发 SIGTERM | Kubernetes 文档 [Termination of Pods](https://kubernetes.io/docs/concepts/workloads/pods/pod-lifecycle/#pod-termination) |
+| bcrypt 只使用前 72 字节；Go 的 `GenerateFromPassword` 对超长密码返回错误，项目在生成和验证两处都自己先检查长度 | [golang.org/x/crypto/bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt#GenerateFromPassword)、[auth.go](../../internal/doctor/auth/auth.go) |
 | `context.WithoutCancel` 保留值、不继承取消 | Go 文档 [context.WithoutCancel](https://pkg.go.dev/context#WithoutCancel) |
 | `Conn.Raw` 的回调返回 `driver.ErrBadConn` 时，连接不会放回连接池 | Go 文档 [sql.Conn.Raw](https://pkg.go.dev/database/sql#Conn.Raw) |
 | golang-migrate 的对照结论 | 本仓库的[成熟库评估](library-evaluation.md) |
