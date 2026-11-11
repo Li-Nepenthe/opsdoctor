@@ -1,14 +1,4 @@
-// 本文件：用内存 OTLP 服务验证导出连接的 DNS 选项和空闲恢复。
-//
-// 即使没有真实 Jaeger，也能检查导出器是否把选项传给底层 grpc-go。
-// 内存解析器只提供地址，并报告是否收到禁用服务配置的要求。
-//
-// 主要内容：
-//   - TestExporterIdleReconnect：导出一条 span，等连接回收，再导出另一条。
-//   - traceReceiver.Export：统计实际收到的 span，防止只创建导出器却没有发送数据。
-//   - memoryTraceExporter：准备内存后端、解析事件和退出时的清理。
-//
-// 阅读建议：先看两次 ExportSpans，再看 CloseCallback 如何证明连接真的经历过空闲回收。
+// 本文件：以内存 OTLP 后端验证首次连接和空闲重建都跳过 DNS 服务配置查询，并且实际收到记录。
 
 package telemetry
 
@@ -30,8 +20,8 @@ import (
 
 // traceReceiver 只统计收到的记录；RPC goroutine 写、测试读，用原子计数避免竞争。
 type traceReceiver struct {
-	collector.UnimplementedTraceServiceServer              // 未覆盖的方法沿用协议生成代码的默认行为。
-	spans                                     atomic.Int32 // 服务端真正收到的 span 数，不是本地队列长度。
+	collector.UnimplementedTraceServiceServer
+	spans atomic.Int32 // 服务端真正收到的 span 数，不是本地队列长度。
 }
 
 // Export 模拟后端确认接收，允许测试验证恢复后的记录确实跨过了 gRPC 连接。
