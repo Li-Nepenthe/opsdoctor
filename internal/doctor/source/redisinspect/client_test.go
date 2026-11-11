@@ -2,13 +2,6 @@
 //
 // 不需要 Docker，也不碰业务缓存。测试服务器只认识握手、INFO 和 SLOWLOG，
 // 多出别的命令就报错，因此能检查客户端是否偷偷执行了内容查询。
-//
-// 主要内容：
-//   - TestReadContract：验证 INFO 解析与慢日志参数删减。
-//   - TestConfiguration：拒绝匿名、业务账号、错误数据库和无效分区。
-//   - fakeRedis、readCommand：实现本测试用到的最小 RESP 协议。
-//
-// 阅读建议：RESP 用长度标记字符串，因此测试参数里即使有空格也不会被拆错。
 
 package redisinspect
 

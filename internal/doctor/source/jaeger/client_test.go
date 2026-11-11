@@ -1,13 +1,6 @@
 // 本文件：用 Jaeger 2.20.0 的真实样例检查查询契约，并补异常边界。
 //
 // httptest 返回的是已脱敏的本机样例；测试本身不连接运行中的 Jaeger。
-//
-// 主要内容：
-//   - TestRealContract：检查请求路径、时间单位、服务映射和父子关系。
-//   - TestMalformedAndEmpty：空结果、坏属性、跨 trace 引用和后端错误。
-//   - TestDeploymentPrefix、TestInvalidDeploymentPrefix：部署前缀与根路径共用搜索和详情契约。
-//
-// 阅读建议：先对照 testdata/README.md，再看断言为什么不只检查 HTTP 200。
 
 package jaeger
 

@@ -1,15 +1,4 @@
-// 本文件：读取本项目固定的 Jaeger 2.20.0 查询接口。
-//
-// 这里使用实测可用的 /api/traces JSON 接口。它是 Jaeger 的内部接口，升级时
-// 必须重跑真实样例契约测试，不能因为路径没变就假定字段也没变。
-//
-// 主要内容：
-//   - New：只为 Jaeger 接受经过严格校验的部署前缀，其他 HTTP 来源仍只接受根地址。
-//   - Search、Get：搜索请求和按 ID 读取完整调用链。
-//   - decode：合并 process 与 span，并保留父子关系和诊断属性。
-//   - tagAllowed：排除没有必要提供给诊断工具的属性。
-//
-// 阅读建议：先看 wireTrace 的后端结构，再看 decode 如何转换成通用结构。
+// 本文件：通过 Jaeger 2.20.0 的 /api/traces 查询和转换调用链。这个内部接口可能随版本变化，升级时要用真实样例检查字段和父子关系。
 
 package jaeger
 
@@ -68,21 +57,21 @@ func (client *Client) Close() { client.backend.Close() }
 
 // wireTrace 只解码用得上的字段。Jaeger 的其他内容不会自动出现在工具结果里。
 type wireTrace struct {
-	TraceID   string // 整个请求的标识。
+	TraceID   string
 	Processes map[string]struct {
 		ServiceName string // span 通过 processID 引用服务名称。
 	}
 	Spans []struct {
 		TraceID       string // 检查 span 是否属于这条调用链。
-		SpanID        string // 当前步骤标识。
-		OperationName string // 原始操作名。
+		SpanID        string
+		OperationName string
 		ProcessID     string // 对应 Processes 中的键。
 		StartTime     int64  // Unix 微秒。
 		Duration      int64  // 耗时微秒。
 		References    []struct {
 			RefType string // CHILD_OF 是当前调用树需要的父子关系。
 			TraceID string // 不把另一条 trace 的节点接进当前树。
-			SpanID  string // 被引用的父节点。
+			SpanID  string
 		}
 		Tags []wireTag
 	}

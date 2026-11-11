@@ -2,9 +2,6 @@
 //
 // 契约测试关心调用者能依赖什么：相同条件得到相同日志、相同排序和相同取消行为。
 // 测试服务器分别检查 LogQL 和查询 DSL，再返回各自的产品格式，上层期望完全共用。
-//
-// 主要内容：TestLogSourceContract 覆盖所有查询条件；contractRequest 检查翻译；
-// contractResponse 仅负责把同一组模拟日志包装成两个产品的响应。
 
 package source_test
 

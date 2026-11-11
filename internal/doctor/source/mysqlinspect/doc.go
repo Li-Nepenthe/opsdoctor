@@ -1,18 +1,7 @@
-// Package mysqlinspect 让医生查看 MySQL 为什么变慢，而不是查看业务数据内容。
+// Package mysqlinspect 读取指定数据库的执行计划、索引、语句摘要与锁等待，供医生定位慢请求。进程连接池和账号各限三条连接，排队也算在十秒查询预算内。
 //
-// 执行计划说明数据库准备怎样找数据。索引和表统计说明它有哪些查找方式。语句摘要
-// 把具体值换成问号，再统计次数和耗时。锁等待则说明哪些任务正在互相等待。这里
-// 把这些问题各写成一个方法，刻意不提供“传 SQL 就能执行”的万能查询。
+// 从 New 看诊断账号的连接限制，再看 Explain 如何只请求执行计划。
 //
-// 连接池最多三条连接，账号还必须设置 MAX_USER_CONNECTIONS 3。前者限制这个进程，
-// 后者限制这个账号的所有连接。排队也计入十秒预算，医生不能在数据库忙时无限加连接。
-//
-// 文件清单：
-//   - write_metadata.go：只读核对索引结构和旧 DDL 线程。
-//   - doc.go：本包的使用背景、边界和阅读顺序。
-//   - client.go：用一个最多三条连接的只读账号检查 MySQL。
-//   - client_test.go：用 database/sql 的假驱动检查查询模板和连接排队预算。
-//   - permissions_integration_test.go：用真实 diag_ro 账号证明“能看执行计划，不能写业务表”。
-//
-// 阅读顺序：New → Explain → TopQueries → LockWaits → query。
+//   - client.go：通过受限连接池读取运行状态、执行计划和元数据。
+//   - write_metadata.go：为审批和恢复核对列、索引以及旧 DDL 连接。
 package mysqlinspect

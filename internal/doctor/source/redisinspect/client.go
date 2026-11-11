@@ -1,13 +1,4 @@
-// 本文件：通过独立 Redis ACL 账号读取运行信息。
-//
-// ACL 是 Redis 按账号限制命令的规则。这里的客户端也只暴露 INFO，或经过删减的
-// SLOWLOG GET 摘要；两层都不提供 GET、HGETALL、KEYS 这类业务内容读取。
-//
-// 主要内容：
-//   - New：设置固定连接预算，关闭不需要的握手附加命令。
-//   - Info：按允许的分区读 INFO，或只返回慢命令的名称、耗时和参数数量。
-//
-// 阅读建议：先看分区白名单，再看慢日志为什么不返回 Args 原文。
+// 本文件：使用受限账号读取 Redis INFO 和慢日志摘要，只保留命令名、时间、耗时和参数数量，不返回业务 key 或 value。
 
 package redisinspect
 
@@ -70,8 +61,8 @@ func (client *Client) Info(ctx context.Context, section string) (map[string]stri
 
 // slowSummary 只保留排查耗时需要的字段，类型里没有业务参数的位置。
 type slowSummary struct {
-	ID         int64     `json:"id"`          // Redis 分配的慢日志编号。
-	Time       time.Time `json:"time"`        // 命令执行时间。
+	ID         int64     `json:"id"`
+	Time       time.Time `json:"time"`
 	DurationUS int64     `json:"duration_us"` // 服务端执行耗时。
 	Command    string    `json:"command"`     // 只有命令名，不含 key 或 value。
 	Arguments  int       `json:"arguments"`   // 参数个数帮助区分操作规模。
