@@ -106,14 +106,9 @@ func (store *Store) receiveGroup(ctx context.Context, tx *sql.Tx, target, origin
 	}
 	// 静默超时后的 firing 是新一轮，旧任务和告警快照仍留在审计表里。
 	candidate := newID()
-	// 评测期间保留通知和故障开放期，但这条记录直接终止，永远不交给模型收费执行。
-	status, reason := "pending", ""
-	var evaluating bool
-	if err := tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM evaluation_targets WHERE target=? AND enabled=TRUE)", target).Scan(&evaluating); err != nil {
+	decision, err := alertForMode(ctx, tx, target)
+	if err != nil {
 		return alerts.Receipt{}, err
-	}
-	if evaluating {
-		status, reason = "cancelled", "评测期间仅记录告警，自动诊断已暂停"
 	}
 	start := now
 	for _, alert := range value.Alerts {
@@ -121,11 +116,11 @@ func (store *Store) receiveGroup(ctx context.Context, tx *sql.Tx, target, origin
 			start = alert.StartsAt
 		}
 	}
-	if _, err := tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,fault_started_at,error,finished_at) VALUES(?,?,'alert',?,?,?,?,?,?,IF(?='cancelled',UTC_TIMESTAMP(6),NULL))", candidate, target, status, alerts.Title(value), value.GroupKey, input, start, reason, status); err != nil {
+	if _, err := tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,fault_started_at,error,finished_at) VALUES(?,?,'alert',?,?,?,?,?,?,IF(?='cancelled',UTC_TIMESTAMP(6),NULL))", candidate, target, decision.status, alerts.Title(value), value.GroupKey, input, start, decision.reason, decision.status); err != nil {
 		return alerts.Receipt{}, err
 	}
-	_, err := tx.ExecContext(ctx, "UPDATE alert_groups SET diagnosis_id=?,opened_at=?,last_seen_at=?,closed_at=NULL,recovery_until=NULL WHERE group_hash=?", candidate, now, now, key)
-	return alerts.Receipt{DiagnosisID: candidate, Created: true, Suppressed: evaluating}, err
+	_, err = tx.ExecContext(ctx, "UPDATE alert_groups SET diagnosis_id=?,opened_at=?,last_seen_at=?,closed_at=NULL,recovery_until=NULL WHERE group_hash=?", candidate, now, now, key)
+	return alerts.Receipt{DiagnosisID: candidate, Created: true, Suppressed: decision.suppressed}, err
 }
 
 // resolvedBefore 只在通知确实带结束时间时挡住迟到恢复；旧客户端缺时间时保持兼容。

@@ -76,7 +76,8 @@ func (store *Store) readClaim(ctx context.Context, tx *sql.Tx, request claimRequ
 	if err != nil {
 		return row, err
 	}
-	if err := tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM evaluation_targets WHERE target=? AND enabled=TRUE)", row.target).Scan(&row.evaluating); err != nil {
+	row.evaluating, err = evaluationEnabled(ctx, tx, row.target)
+	if err != nil {
 		return row, err
 	}
 	// 此时名额计数仍为零。如果诊断行本身已不准领取，后续名额查询不会改变结论。
@@ -124,21 +125,6 @@ func decideClaim(row claimRow, config Config, request claimRequest) (bool, error
 		return false, nil
 	}
 	return row.undecided <= 0 && row.sameTarget <= 0 && row.active < 2, nil
-}
-
-func claimEvaluationAllowed(row claimRow, config Config, request claimRequest) (bool, error) {
-	// 候选查询之后可能刚进入评测模式，领租约时再核对一次。
-	if row.evaluating && row.trigger != "eval" {
-		return false, nil
-	}
-	if row.trigger == "eval" && (!row.evaluating || row.expectedModel != request.model) {
-		return false, fmt.Errorf("评测模式未开启或运行模型与实验配置不一致")
-	}
-	if row.profile != "" && (row.profile != config.ExecutionProfile || row.expectedProvider != request.provider ||
-		row.account != config.BudgetAccount || row.currency != config.Currency) {
-		return false, fmt.Errorf("评测绑定的执行配置、供应商、账户或币种不一致")
-	}
-	return true, nil
 }
 
 func (store *Store) commitClaim(ctx context.Context, tx *sql.Tx, request claimRequest, row claimRow) (bool, error) {

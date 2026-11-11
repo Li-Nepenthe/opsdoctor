@@ -105,13 +105,9 @@ func (store *Store) CreateApproval(ctx context.Context, value approval.Record) (
 	if err != nil {
 		return value, err
 	}
-	state, message := "pending", "等待人工审批，尚未执行"
-	if trigger == "eval" {
-		// 评测要观察原故障，不能把环境修好了再继续比较。拒绝和原始提议一起保存。
-		state, message = "rejected", "评测策略拒绝全部写操作，已保留提议，未执行"
-		if _, err = tx.ExecContext(ctx, "UPDATE approvals SET status='rejected',decided_by='eval-policy',decided_at=UTC_TIMESTAMP(6) WHERE id=? AND status='pending'", value.ID); err != nil {
-			return value, err
-		}
+	state, message, err := proposalForMode(ctx, tx, trigger, value.ID)
+	if err != nil {
+		return value, err
 	}
 	payload, _ := json.Marshal(map[string]string{"approval_id": value.ID, "status": state, "message": message})
 	step, err := store.appendStep(ctx, tx, value.DiagnosisID, agent.Step{EventKey: "approval:" + value.ID, ParentSeq: value.ParentSeq, CallID: value.CallID, Kind: "approval", ToolName: value.Tool, Args: value.Args, Result: string(payload), Status: state})
@@ -151,8 +147,8 @@ func (store *Store) DecideApproval(ctx context.Context, id, user string, approve
 	if !active {
 		return false, nil
 	}
-	if approved && trigger == "eval" {
-		return false, fmt.Errorf("评测诊断不允许批准写操作")
+	if err := checkDecisionMode(trigger, approved); err != nil {
+		return false, err
 	}
 	state := "rejected"
 	if approved {
@@ -197,8 +193,8 @@ func (store *Store) ClaimApproval(ctx context.Context, diagnosis, id string) (ap
 	if cancelled {
 		return approval.Record{}, fmt.Errorf("诊断已取消，不再执行审批")
 	}
-	if trigger == "eval" {
-		return approval.Record{}, fmt.Errorf("评测诊断不能领取写操作，即使审批记录被误改为批准")
+	if err := checkExecutionMode(trigger); err != nil {
+		return approval.Record{}, err
 	}
 	if err = tx.QueryRowContext(ctx, "SELECT status,execution_owner FROM approvals WHERE id=? AND diagnosis_id=? FOR UPDATE", id, diagnosis).Scan(&state, &owner); err != nil {
 		return approval.Record{}, err
