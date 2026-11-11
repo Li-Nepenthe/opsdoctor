@@ -48,7 +48,7 @@ func Markdown(output io.Writer, run store.EvalRun, rows []store.EvalResult) erro
 
 // resultRows 只展示实际记录；采集受影响的报告也保留原组件判断、用量和费用。
 func resultRows(output io.Writer, rows []store.EvalResult) error {
-	if _, err := fmt.Fprintln(output, "\n| 场景 | 轮次 | 组 | 诊断 | 状态 | 组件一致 | 轮数 | 工具 | 输入 / 输出 token | 账本费用 | 耗时秒 | 提交方式 | 混合模型 |\n|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---:|---|---|"); err != nil {
+	if _, err := fmt.Fprintln(output, "\n| 场景 | 轮次 | 组 | 诊断 | 状态 | 组件一致 | 轮数 | 工具 | 输入 / 输出 token | 账本费用 | 耗时秒 | 提交方式 | 混合模型 |\n|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---|---|"); err != nil {
 		return err
 	}
 	for _, row := range rows {
