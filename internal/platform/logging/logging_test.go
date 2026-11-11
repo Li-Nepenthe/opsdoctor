@@ -15,8 +15,10 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"go.opentelemetry.io/otel/trace"
 )
@@ -92,5 +94,26 @@ func TestGroupedFieldsStayCorrelated(t *testing.T) {
 	group, ok := record["business"].(map[string]any)
 	if !ok || group["dynamic"] != "value" || group["fixed"] != "value" {
 		t.Fatal(record)
+	}
+}
+
+// TestJSONLogRecordGolden 固定事件时间，让日志的 UTC 转换、字段位置和换行都可以逐字节核对。
+func TestJSONLogRecordGolden(t *testing.T) {
+	var output bytes.Buffer
+	logger := New(&output, "order-service", slog.LevelInfo).WithGroup("order").With("operation", "create")
+	ctx := WithFields(t.Context(), Fields{RequestID: "req-7", TraceID: "0123456789abcdef0123456789abcdef", SpanID: "0123456789abcdef"})
+	// 从带时区的真实 Record 入口写入；若只在输出里替换时间，就检查不到 UTC 转换。
+	local := time.Date(2026, 1, 2, 9, 10, 11, 123456000, time.FixedZone("UTC+8", 8*60*60))
+	record := slog.NewRecord(local, slog.LevelWarn, "等待确认", 0)
+	record.AddAttrs(slog.Int("id", 7))
+	if err := logger.Handler().Handle(ctx, record); err != nil {
+		t.Fatal(err)
+	}
+	want, err := os.ReadFile("testdata/order_log.golden.json")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(output.Bytes(), want) {
+		t.Fatalf("日志发生变化\n收到 %q\n期望 %q", output.Bytes(), want)
 	}
 }

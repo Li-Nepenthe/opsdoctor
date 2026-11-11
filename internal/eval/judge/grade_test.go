@@ -6,8 +6,10 @@
 package judge
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"os"
 	"strings"
 	"testing"
 
@@ -76,5 +78,30 @@ func TestEvaluate(t *testing.T) {
 	input.Report = nil
 	if _, _, err := Evaluate(t.Context(), mock, "mock-judge", "audit", input); err == nil || mock.calls != 1 {
 		t.Fatal("没有报告还调用评委")
+	}
+}
+
+// TestParsedGradeGolden 固定 submit_grade 的真实解析结果，包括证据方法和未达成项目。
+func TestParsedGradeGolden(t *testing.T) {
+	input := Input{Milestones: []string{"证据甲", "证据乙"}, Steps: []Observation{{Step: 4}}}
+	response := llm.Response{Message: llm.Message{ToolCalls: []llm.ToolCall{
+		{Function: llm.Function{Name: "submit_grade", Arguments: validGrade}},
+	}}}
+	grade, err := CheckResponse(response, input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// 与评测器保存 grade 字段时一样，直接编码解析后的对象。
+	got, err := json.Marshal(grade)
+	if err != nil {
+		t.Fatal(err)
+	}
+	golden := "testdata/parsed_grade.golden.json"
+	want, err := os.ReadFile(golden)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("%s 与实际评分解析不一致：\n%s", golden, got)
 	}
 }

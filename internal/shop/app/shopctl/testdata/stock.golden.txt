@@ -1,0 +1,8 @@
+  -count int
+    补库存的连续商品数；仅 restock 可大于 1，最多 10000 (default 1)
+  -quantity int
+    每个商品增加或扣减的件数，必须为正 int32 (default 1)
+  -sku int
+    商品 ID，必须大于 0
+  -timeout duration
+    本次调用的超时，包含连接等待 (default 800ms)

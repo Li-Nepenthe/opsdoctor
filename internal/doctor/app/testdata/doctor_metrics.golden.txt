@@ -1,0 +1,26 @@
+doctor_diagnoses_total	COUNTER	诊断进入各状态的次数。
+  service="doctor",status="completed",target="shop"
+doctor_diagnosis_duration_seconds	HISTOGRAM	诊断开始执行至终态的耗时。
+  service="doctor",status="completed",target="shop"
+doctor_llm_budget_blocked	GAUGE	真实诊断是否因费用不足停止启动。
+  service="doctor"
+doctor_llm_budget_blocked_reason	GAUGE	阻止真实诊断的原因，当前原因为1。
+  reason="accounting_guard",service="doctor"
+  reason="other",service="doctor"
+  reason="request_reservation",service="doctor"
+  reason="total_limit",service="doctor"
+doctor_llm_budget_limit	GAUGE	当前账户费用上限，单位由 currency 指定。
+  currency="USD",service="doctor"
+doctor_llm_budget_spent	GAUGE	当前账户费用与预留额，单位由 currency 指定。
+  currency="USD",service="doctor"
+doctor_llm_cache_hit_tokens_total	COUNTER	供应商返回的缓存命中输入 token。
+  model="mock",service="doctor"
+doctor_llm_cost_total	COUNTER	模型结算费用及未知预留额，单位由 currency 指定。
+  currency="USD",model="mock",service="doctor"
+doctor_llm_tokens_total	COUNTER	模型实际 token 用量。
+  direction="input",model="mock",service="doctor"
+  direction="output",model="mock",service="doctor"
+doctor_tool_calls_total	COUNTER	处理过的查看工具结果。
+  result="ok",service="doctor",tool="query_metrics"
+doctor_tool_duration_seconds	HISTOGRAM	查看工具耗时。
+  service="doctor",tool="query_metrics"

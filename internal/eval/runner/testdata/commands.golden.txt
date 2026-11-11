@@ -1,0 +1,22 @@
+  -allow-paid
+    本次允许使用已授权的真实模型额度
+  -interruption int
+    用户批准重启的原中断编号
+  -iteration int
+    本次运行的轮次 (default 1)
+  -iterations int
+    冻结批次的每场景次数，1 到 3 (default 3)
+  -makeup-key string
+    明确允许补跑的原中断槽位
+  -model string
+    明确指定医生模型 (default "mock-script-v1")
+  -reason string
+    用户批准基础设施调整的具体原因
+  -run string
+    持久化批次编号
+  -scenario string
+    已经注入并验证的场景
+  -scenarios string
+    本批两至三个 E1 试跑场景 (default "S01,S03,S10")
+  -target string
+    已经接入的系统 (default "shop")

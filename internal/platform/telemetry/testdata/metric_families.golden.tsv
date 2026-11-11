@@ -1,0 +1,61 @@
+app_build_info	GAUGE	service,version	当前构建版本，值恒为 1。
+cache_concurrent_loads_total	COUNTER	cache,service	查库时同一商品已有查询在途的次数，仅作诊断证据。
+cache_loads_total	COUNTER	cache,service	商品查询真正回源的次数。
+cache_requests_total	COUNTER	cache,result,service	缓存查询次数。
+go_gc_duration_seconds	SUMMARY	service	A summary of the wall-time pause (stop-the-world) duration in garbage collection cycles.
+go_gc_gogc_percent	GAUGE	service	Heap size target percentage configured by the user, otherwise 100. This value is set by the GOGC environment variable, and the runtime/debug.SetGCPercent function. Sourced from /gc/gogc:percent.
+go_gc_gomemlimit_bytes	GAUGE	service	Go runtime memory limit configured by the user, otherwise math.MaxInt64. This value is set by the GOMEMLIMIT environment variable, and the runtime/debug.SetMemoryLimit function. Sourced from /gc/gomemlimit:bytes.
+go_goroutines	GAUGE	service	Number of goroutines that currently exist.
+go_info	GAUGE	service,version	Information about the Go environment.
+go_memstats_alloc_bytes	GAUGE	service	Number of bytes allocated in heap and currently in use. Equals to /memory/classes/heap/objects:bytes.
+go_memstats_alloc_bytes_total	COUNTER	service	Total number of bytes allocated in heap until now, even if released already. Equals to /gc/heap/allocs:bytes.
+go_memstats_buck_hash_sys_bytes	GAUGE	service	Number of bytes used by the profiling bucket hash table. Equals to /memory/classes/profiling/buckets:bytes.
+go_memstats_frees_total	COUNTER	service	Total number of heap objects frees. Equals to /gc/heap/frees:objects + /gc/heap/tiny/allocs:objects.
+go_memstats_gc_sys_bytes	GAUGE	service	Number of bytes used for garbage collection system metadata. Equals to /memory/classes/metadata/other:bytes.
+go_memstats_heap_alloc_bytes	GAUGE	service	Number of heap bytes allocated and currently in use, same as go_memstats_alloc_bytes. Equals to /memory/classes/heap/objects:bytes.
+go_memstats_heap_idle_bytes	GAUGE	service	Number of heap bytes waiting to be used. Equals to /memory/classes/heap/released:bytes + /memory/classes/heap/free:bytes.
+go_memstats_heap_inuse_bytes	GAUGE	service	Number of heap bytes that are in use. Equals to /memory/classes/heap/objects:bytes + /memory/classes/heap/unused:bytes
+go_memstats_heap_objects	GAUGE	service	Number of currently allocated objects. Equals to /gc/heap/objects:objects.
+go_memstats_heap_released_bytes	GAUGE	service	Number of heap bytes released to OS. Equals to /memory/classes/heap/released:bytes.
+go_memstats_heap_sys_bytes	GAUGE	service	Number of heap bytes obtained from system. Equals to /memory/classes/heap/objects:bytes + /memory/classes/heap/unused:bytes + /memory/classes/heap/released:bytes + /memory/classes/heap/free:bytes.
+go_memstats_last_gc_time_seconds	GAUGE	service	Number of seconds since 1970 of last garbage collection.
+go_memstats_mallocs_total	COUNTER	service	Total number of heap objects allocated, both live and gc-ed. Semantically a counter version for go_memstats_heap_objects gauge. Equals to /gc/heap/allocs:objects + /gc/heap/tiny/allocs:objects.
+go_memstats_mcache_inuse_bytes	GAUGE	service	Number of bytes in use by mcache structures. Equals to /memory/classes/metadata/mcache/inuse:bytes.
+go_memstats_mcache_sys_bytes	GAUGE	service	Number of bytes used for mcache structures obtained from system. Equals to /memory/classes/metadata/mcache/inuse:bytes + /memory/classes/metadata/mcache/free:bytes.
+go_memstats_mspan_inuse_bytes	GAUGE	service	Number of bytes in use by mspan structures. Equals to /memory/classes/metadata/mspan/inuse:bytes.
+go_memstats_mspan_sys_bytes	GAUGE	service	Number of bytes used for mspan structures obtained from system. Equals to /memory/classes/metadata/mspan/inuse:bytes + /memory/classes/metadata/mspan/free:bytes.
+go_memstats_next_gc_bytes	GAUGE	service	Number of heap bytes when next garbage collection will take place. Equals to /gc/heap/goal:bytes.
+go_memstats_other_sys_bytes	GAUGE	service	Number of bytes used for other system allocations. Equals to /memory/classes/other:bytes.
+go_memstats_stack_inuse_bytes	GAUGE	service	Number of bytes obtained from system for stack allocator in non-CGO environments. Equals to /memory/classes/heap/stacks:bytes.
+go_memstats_stack_sys_bytes	GAUGE	service	Number of bytes obtained from system for stack allocator. Equals to /memory/classes/heap/stacks:bytes + /memory/classes/os-stacks:bytes.
+go_memstats_sys_bytes	GAUGE	service	Number of bytes obtained from system. Equals to /memory/classes/total:byte.
+go_sched_gomaxprocs_threads	GAUGE	service	The current runtime.GOMAXPROCS setting, or the number of operating system threads that can execute user-level Go code simultaneously. Sourced from /sched/gomaxprocs:threads.
+go_sql_idle_connections	GAUGE	db_name,service	The number of idle connections.
+go_sql_in_use_connections	GAUGE	db_name,service	The number of connections currently in use.
+go_sql_max_idle_closed_total	COUNTER	db_name,service	The total number of connections closed due to SetMaxIdleConns.
+go_sql_max_idle_time_closed_total	COUNTER	db_name,service	The total number of connections closed due to SetConnMaxIdleTime.
+go_sql_max_lifetime_closed_total	COUNTER	db_name,service	The total number of connections closed due to SetConnMaxLifetime.
+go_sql_max_open_connections	GAUGE	db_name,service	Maximum number of open connections to the database.
+go_sql_open_connections	GAUGE	db_name,service	The number of established connections both in use and idle.
+go_sql_wait_count_total	COUNTER	db_name,service	The total number of connections waited for.
+go_sql_wait_duration_seconds_total	COUNTER	db_name,service	The total time blocked waiting for a new connection.
+go_threads	GAUGE	service	Number of OS threads created.
+http_server_request_duration_seconds	HISTOGRAM	method,route,service,status	HTTP 处理耗时。
+idempotency_requests_total	COUNTER	result,service	幂等请求及待核对状态转换。
+kafka_produce_total	COUNTER	result,service,topic	消息发送确认结果。
+loadgen_requests_total	COUNTER	operation,result,service	压测 HTTP 尝试次数。
+process_cpu_seconds_total	COUNTER	service	Total user and system CPU time spent in seconds.
+process_max_fds	GAUGE	service	Maximum number of open file descriptors.
+process_network_receive_bytes_total	COUNTER	service	Number of bytes received by the process over the network.
+process_network_transmit_bytes_total	COUNTER	service	Number of bytes sent by the process over the network.
+process_open_fds	GAUGE	service	Number of open file descriptors.
+process_resident_memory_bytes	GAUGE	service	Resident memory size in bytes.
+process_start_time_seconds	GAUGE	service	Start time of the process since unix epoch in seconds.
+process_virtual_memory_bytes	GAUGE	service	Virtual memory size in bytes.
+process_virtual_memory_max_bytes	GAUGE	service	Maximum amount of virtual memory available in bytes.
+ratelimit_rejected_total	COUNTER	route,service	被入口限流拒绝的次数。
+rpc_client_duration_seconds	HISTOGRAM	code,method,service,target	客户端每次 RPC 尝试耗时。
+rpc_client_retries_total	COUNTER	method,service,target	实际发出的额外 RPC 尝试。
+rpc_server_duration_seconds	HISTOGRAM	code,method,service	服务端 RPC 耗时。
+worker_messages_total	COUNTER	result,service,topic	消息处理结果。
+worker_process_duration_seconds	HISTOGRAM	service,topic	单条消息处理与提交位点的耗时。

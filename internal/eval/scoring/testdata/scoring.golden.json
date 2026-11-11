@@ -1,0 +1,1 @@
+{"component_case_mismatch":false,"component_match":true,"coverage":0.6666666666666666,"evidence":[{"milestone":1,"achieved":true,"method":"rule","steps":[3],"reason":"完整工具表格满足已冻结的规则"},{"milestone":2,"achieved":true,"method":"rule","steps":[5],"reason":"完整工具表格满足已冻结的规则"},{"milestone":3,"achieved":false,"method":"rule","steps":[],"reason":"未取得满足规则的完整工具结果"}]}

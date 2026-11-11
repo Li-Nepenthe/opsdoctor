@@ -1,0 +1,12 @@
+{"tool":"create_index","status":"invalid_argument","summary":"证据步骤不存在或重复","data":null,"truncated":false,"original_bytes":0,"bytes":0,"duration_ms":0}
+{"tool":"create_index","status":"rejected","summary":"审批已拒绝，未执行；请基于已有证据继续","data":null,"truncated":false,"original_bytes":0,"bytes":0,"duration_ms":0}
+{"tool":"create_index","status":"expired","summary":"审批已过期，未执行；请基于已有证据继续","data":null,"truncated":false,"original_bytes":0,"bytes":0,"duration_ms":0}
+{"tool":"create_index","status":"ok","summary":"已按获批参数完成或确认此前已经完成；请继续查询指标验证效果","data":{"confirmed":true,"index":"idx_doctor_98e777894b5d09ae7d45"},"truncated":false,"original_bytes":60,"bytes":0,"duration_ms":0}
+{"tool":"set_db_pool_size","status":"invalid_argument","summary":"证据步骤不存在或重复","data":null,"truncated":false,"original_bytes":0,"bytes":0,"duration_ms":0}
+{"tool":"set_db_pool_size","status":"rejected","summary":"审批已拒绝，未执行；请基于已有证据继续","data":null,"truncated":false,"original_bytes":0,"bytes":0,"duration_ms":0}
+{"tool":"set_db_pool_size","status":"expired","summary":"审批已过期，未执行；请基于已有证据继续","data":null,"truncated":false,"original_bytes":0,"bytes":0,"duration_ms":0}
+{"tool":"set_db_pool_size","status":"ok","summary":"已按获批参数完成或确认此前已经完成；请继续查询指标验证效果","data":{"current":30,"initial":20,"instance":"fixture","last_operation":"fixture-operation","revision":1},"truncated":false,"original_bytes":98,"bytes":0,"duration_ms":0}
+{"tool":"warm_cache","status":"invalid_argument","summary":"证据步骤不存在或重复","data":null,"truncated":false,"original_bytes":0,"bytes":0,"duration_ms":0}
+{"tool":"warm_cache","status":"rejected","summary":"审批已拒绝，未执行；请基于已有证据继续","data":null,"truncated":false,"original_bytes":0,"bytes":0,"duration_ms":0}
+{"tool":"warm_cache","status":"expired","summary":"审批已过期，未执行；请基于已有证据继续","data":null,"truncated":false,"original_bytes":0,"bytes":0,"duration_ms":0}
+{"tool":"warm_cache","status":"ok","summary":"已按获批参数完成或确认此前已经完成；请继续查询指标验证效果","data":{"already_present":1,"loaded":1},"truncated":false,"original_bytes":32,"bytes":0,"duration_ms":0}

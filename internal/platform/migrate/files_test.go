@@ -10,6 +10,9 @@
 package migrate
 
 import (
+	"fmt"
+	"os"
+	"strings"
 	"testing"
 	"testing/fstest"
 )
@@ -43,6 +46,29 @@ func TestLoadAndHistory(t *testing.T) {
 		if err := verifyHistory(items, invalid); err == nil {
 			t.Fatal("接受了被改写、移除或插队的历史")
 		}
+	}
+}
+
+// TestMigrationChecksumsGolden 用迁移器自己的读法核对两套历史；改名、增删文件或只改一个空格都会改变清单。
+func TestMigrationChecksumsGolden(t *testing.T) {
+	root := os.DirFS("../../..")
+	var manifest strings.Builder
+	// 两个数据库都从 0001 编号，要把目录写进清单，才能识别迁移放错数据库。
+	for _, directory := range []string{"internal/shop/migrations", "internal/doctor/store/migrations"} {
+		items, err := load(root, directory)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, item := range items {
+			fmt.Fprintf(&manifest, "%s  %s/%s\n", item.checksum, directory, item.name)
+		}
+	}
+	want, err := os.ReadFile("testdata/migrations.golden.sha256")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manifest.String() != string(want) {
+		t.Fatalf("迁移清单发生变化\n收到：\n%s期望：\n%s", manifest.String(), want)
 	}
 }
 

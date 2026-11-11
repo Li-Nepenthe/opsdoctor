@@ -6,7 +6,9 @@
 package scoring
 
 import (
+	"bytes"
 	"encoding/json"
+	"os"
 	"testing"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
@@ -49,5 +51,34 @@ func TestComponentAndCoverage(t *testing.T) {
 	}
 	if Coverage([]EvidenceResult{{Achieved: true}, {Achieved: false}}) != 0.5 || Coverage(nil) != 0 {
 		t.Fatal("覆盖率分母错误")
+	}
+}
+
+// TestScoringOutputGolden 用同一段工具历史固定命中、未命中和覆盖率的序列化结果。
+func TestScoringOutputGolden(t *testing.T) {
+	steps := []agent.Step{
+		{Seq: 3, Kind: "tool", Status: "ok", ToolName: "mysql_explain", Result: `{"status":"ok","data":{"columns":["type","table"],"rows":[["ALL","stock"]]}}`},
+		{Seq: 5, Kind: "tool", Status: "ok", ToolName: "mysql_show_indexes", Args: json.RawMessage(`{"table":"stock"}`), Result: `{"status":"ok","data":{"columns":["INDEX_NAME"],"rows":[["PRIMARY"]]}}`},
+	}
+	// 同一份索引表可以证明候选索引缺失，也可以推翻“主键缺失”。
+	evidence := []EvidenceResult{
+		Evidence(Rule{Milestone: 1, Kind: "full_scan", Table: "stock"}, steps),
+		Evidence(Rule{Milestone: 2, Kind: "missing_index", Table: "stock", Index: "sku"}, steps),
+		Evidence(Rule{Milestone: 3, Kind: "missing_index", Table: "stock", Index: "PRIMARY"}, steps),
+	}
+	got, err := json.Marshal(map[string]any{
+		"component_match": Component("stock", "stock"), "component_case_mismatch": Component("Stock", "stock"),
+		"evidence": evidence, "coverage": Coverage(evidence),
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	golden := "testdata/scoring.golden.json"
+	want, err := os.ReadFile(golden)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !bytes.Equal(got, want) {
+		t.Fatalf("%s 与实际评分不一致：\n%s", golden, got)
 	}
 }
