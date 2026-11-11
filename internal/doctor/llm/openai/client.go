@@ -111,7 +111,8 @@ func (client *Client) Complete(parent context.Context, request llm.Request) (res
 		if bounded.Err() != nil {
 			return result, bounded.Err()
 		}
-		answer, retry, delay, callErr := client.attempt(bounded, request, raw, attempt)
+		outcome, callErr := client.attempt(bounded, request, raw, attempt)
+		answer := outcome.answer
 		result.CostMicros += answer.CostMicros
 		result.Model, result.Message, result.Usage, result.UsageKnown = answer.Model, answer.Message, answer.Usage, answer.UsageKnown
 		result.AttemptIDs = append(result.AttemptIDs, answer.AttemptIDs...)
@@ -120,38 +121,37 @@ func (client *Client) Complete(parent context.Context, request llm.Request) (res
 			return result, nil
 		}
 		err = callErr
-		if !retry || attempt == maximumRetries {
+		if !outcome.retry || attempt == maximumRetries {
 			return result, err
 		}
-		if err := wait(bounded, delay); err != nil {
+		if err := wait(bounded, outcome.delay); err != nil {
 			return result, err
 		}
 	}
 	return result, err
 }
 
-// attempt 在发送前记录预留额。输入按 UTF-8 字节加协议余量估计，比按中文字数计 token 更保守。
-func (client *Client) attempt(ctx context.Context, request llm.Request, raw []byte, number int) (llm.Response, bool, time.Duration, error) {
-	prices := client.config.Prices
-	if client.config.PricesAt != nil {
-		prices = client.config.PricesAt(time.Now())
-	}
-	// 回调只能在既定峰时上限内选价，不能临时扩大预算或产生负费用。
-	if prices.InputMicros <= 0 || prices.CacheHitMicros <= 0 || prices.CacheHitMicros > prices.InputMicros || prices.OutputMicros <= 0 || prices.InputMicros > client.config.Prices.InputMicros || prices.CacheHitMicros > client.config.Prices.CacheHitMicros || prices.OutputMicros > client.config.Prices.OutputMicros || prices.CacheWriteMicros != client.config.Prices.CacheWriteMicros {
-		return llm.Response{}, false, 0, fmt.Errorf("模型时段价格超出已配置范围")
-	}
-	const protocolTokenMargin = 1024 // 覆盖消息分隔等供应商协议 token，正文按每字节一个 token 预留。
-	inputBound := int64(len(raw) + protocolTokenMargin)
-	// Agent 已有前一轮的真实 token 数时，只对新增部分按字节预留，避免把历史再次高估。
-	if request.InputUpperBound > 0 {
-		inputBound = min(inputBound, request.InputUpperBound)
-	}
-	reserved := prices.ReserveCost(inputBound, int64(request.MaxTokens))
-	id, err := client.ledger.Reserve(ctx, llm.Reservation{MaximumTokens: inputBound + int64(request.MaxTokens), CallID: request.CallID, DiagnosisID: request.DiagnosisID, Model: request.Model, Request: raw, MaximumMicros: reserved, DiagnosisLimitMicros: request.DiagnosisLimitMicros, Prices: prices})
+// attemptResult 把一次尝试的费用与同一次尝试的重试决定交给 Complete。
+type attemptResult struct {
+	answer llm.Response
+	retry  bool
+	delay  time.Duration
+}
+
+// reservedAttempt 把预留编号与预留时的价格绑在一起，不能在结算时按新的时段另选价格。
+type reservedAttempt struct {
+	id          string
+	diagnosisID string
+	prices      llm.Prices
+	answer      llm.Response
+}
+
+// attempt 在记账成功后发送一次请求，按有无响应走各自的结算与重试规则。
+func (client *Client) attempt(ctx context.Context, request llm.Request, raw []byte, number int) (attemptResult, error) {
+	record, err := client.reserveAttempt(ctx, request, raw)
 	if err != nil {
-		return llm.Response{}, false, 0, err
+		return attemptResult{}, err
 	}
-	result := llm.Response{Model: request.Model, CostMicros: reserved, AttemptIDs: []string{id}}
 	path := "/chat/completions"
 	if client.config.Format == "responses" {
 		path = "/responses"
@@ -163,35 +163,76 @@ func (client *Client) attempt(ctx context.Context, request llm.Request, raw []by
 	traced := httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{GotFirstResponseByte: func() { received.Store(true) }})
 	httpRequest, err := http.NewRequestWithContext(traced, http.MethodPost, client.config.BaseURL+path, bytes.NewReader(raw))
 	if err != nil {
-		result.CostMicros = 0
-		return result, false, 0, client.settle(ctx, id, llm.Settlement{Status: "invalid_request"}, err)
+		record.answer.CostMicros = 0
+		return attemptResult{answer: record.answer}, client.settle(ctx, record.id, llm.Settlement{Status: "invalid_request"}, err)
 	}
 	httpRequest.Header.Set("Authorization", "Bearer "+client.config.Key)
 	httpRequest.Header.Set("Content-Type", "application/json")
 	started := time.Now()
-	client.logger.Info("开始模型请求", "diagnosis_id", request.DiagnosisID, "attempt_id", id, "model", request.Model)
+	client.logger.Info("开始模型请求", "diagnosis_id", request.DiagnosisID, "attempt_id", record.id, "model", request.Model)
 	response, err := client.http.Do(httpRequest)
 	if err != nil {
-		status, problem := "network_error", error(fmt.Errorf("模型网络请求未完成，费用待核对"))
-		if ctx.Err() != nil {
-			status, problem = "cancelled", ctx.Err()
-			if errors.Is(context.Cause(ctx), errRequestTimeout) && !received.Load() {
-				status = "network_timeout" // 没收到任何响应；未知费用仍保留，不在已到期的一轮内再重试。
-			}
-		}
-		client.logger.Info("模型请求已中断", "diagnosis_id", request.DiagnosisID, "attempt_id", id, "reason", status, "duration_ms", time.Since(started).Milliseconds())
-		settled := client.settle(ctx, id, llm.Settlement{Unknown: true, Status: status}, problem)
-		// 没拿到响应也可能已经生成过 token，因此保留旧预留额。下一次 attempt
-		// 必须重新 Reserve；审计保存失败、请求取消或已收到响应时都不继续花钱。
-		retry := settled == problem && ctx.Err() == nil && !received.Load()
-		return result, retry, networkRetryDelay << number, settled
+		return client.networkFailure(ctx, record, started, &received, number)
 	}
 	defer response.Body.Close()
-	answer, body, retry, delay, problem := decodeResponse(response, request.Model, client.redactor)
+	return client.settleResponse(ctx, record, started, response)
+}
+
+// reserveAttempt 按 UTF-8 正文字节加协议余量估计输入上界，在请求出站前留下预留记录。
+func (client *Client) reserveAttempt(ctx context.Context, request llm.Request, raw []byte) (reservedAttempt, error) {
+	prices := client.config.Prices
+	if client.config.PricesAt != nil {
+		prices = client.config.PricesAt(time.Now())
+	}
+	// 回调只能在既定峰时上限内选价，不能临时扩大预算或产生负费用。
+	if prices.InputMicros <= 0 || prices.CacheHitMicros <= 0 || prices.CacheHitMicros > prices.InputMicros || prices.OutputMicros <= 0 || prices.InputMicros > client.config.Prices.InputMicros || prices.CacheHitMicros > client.config.Prices.CacheHitMicros || prices.OutputMicros > client.config.Prices.OutputMicros || prices.CacheWriteMicros != client.config.Prices.CacheWriteMicros {
+		return reservedAttempt{}, fmt.Errorf("模型时段价格超出已配置范围")
+	}
+	const protocolTokenMargin = 1024 // 覆盖消息分隔等供应商协议 token，正文按每字节一个 token 预留。
+	inputBound := int64(len(raw) + protocolTokenMargin)
+	// Agent 已有前一轮的真实 token 数时，只对新增部分按字节预留，避免把历史再次高估。
+	if request.InputUpperBound > 0 {
+		inputBound = min(inputBound, request.InputUpperBound)
+	}
+	reserved := prices.ReserveCost(inputBound, int64(request.MaxTokens))
+	id, err := client.ledger.Reserve(ctx, llm.Reservation{
+		MaximumTokens: inputBound + int64(request.MaxTokens),
+		CallID:        request.CallID, DiagnosisID: request.DiagnosisID, Model: request.Model,
+		Request: raw, MaximumMicros: reserved, DiagnosisLimitMicros: request.DiagnosisLimitMicros,
+		Prices: prices,
+	})
+	if err != nil {
+		return reservedAttempt{}, err
+	}
+	result := llm.Response{Model: request.Model, CostMicros: reserved, AttemptIDs: []string{id}}
+	return reservedAttempt{id: id, diagnosisID: request.DiagnosisID, prices: prices, answer: result}, nil
+}
+
+// networkFailure 将未确认的费用留在原预留记录中，确认仍可重试时才告诉 Complete 再开一笔预留。
+func (client *Client) networkFailure(ctx context.Context, record reservedAttempt, started time.Time, received *atomic.Bool, number int) (attemptResult, error) {
+	status, problem := "network_error", error(fmt.Errorf("模型网络请求未完成，费用待核对"))
+	if ctx.Err() != nil {
+		status, problem = "cancelled", ctx.Err()
+		if errors.Is(context.Cause(ctx), errRequestTimeout) && !received.Load() {
+			status = "network_timeout" // 没收到任何响应；未知费用仍保留，不在已到期的一轮内再重试。
+		}
+	}
+	client.logger.Info("模型请求已中断", "diagnosis_id", record.diagnosisID, "attempt_id", record.id, "reason", status, "duration_ms", time.Since(started).Milliseconds())
+	settled := client.settle(ctx, record.id, llm.Settlement{Unknown: true, Status: status}, problem)
+	// 没拿到响应也可能已经生成过 token，因此保留旧预留额。下一次 attempt
+	// 必须重新 Reserve；审计保存失败、请求取消或已收到响应时都不继续花钱。
+	retry := settled == problem && ctx.Err() == nil && !received.Load()
+	return attemptResult{answer: record.answer, retry: retry, delay: networkRetryDelay << number}, settled
+}
+
+// settleResponse 接收到响应后再判断用量是否可信；调用者在结算与日志写完后关闭响应正文。
+func (client *Client) settleResponse(ctx context.Context, record reservedAttempt, started time.Time, response *http.Response) (attemptResult, error) {
+	result := record.answer
+	answer, body, retry, delay, problem := decodeResponse(response, record.answer.Model, client.redactor)
 	// 请求头已经收到也可能仍在等正文。取消这段等待同样要返回 context 的原因。
 	if ctx.Err() != nil {
-		client.logger.Info("模型请求已中断", "diagnosis_id", request.DiagnosisID, "attempt_id", id, "reason", "cancelled", "duration_ms", time.Since(started).Milliseconds())
-		return result, false, 0, client.settle(ctx, id, llm.Settlement{Response: body, Unknown: true, Status: "cancelled"}, ctx.Err())
+		client.logger.Info("模型请求已中断", "diagnosis_id", record.diagnosisID, "attempt_id", record.id, "reason", "cancelled", "duration_ms", time.Since(started).Milliseconds())
+		return attemptResult{answer: result}, client.settle(ctx, record.id, llm.Settlement{Response: body, Unknown: true, Status: "cancelled"}, ctx.Err())
 	}
 	settlement := llm.Settlement{Response: body, Usage: answer.Usage, Status: "ok"}
 	if problem != nil {
@@ -199,20 +240,20 @@ func (client *Client) attempt(ctx context.Context, request llm.Request, raw []by
 		// 明确被拒绝的请求没有生成 token。5xx 或损坏的成功回复不能这样假定。
 		settlement.Unknown = !answer.UsageKnown && (response.StatusCode >= 500 || response.StatusCode < 400)
 		if answer.UsageKnown {
-			settlement.CostMicros = prices.Charge(answer.Usage)
+			settlement.CostMicros = record.prices.Charge(answer.Usage)
 		}
 	} else {
-		settlement.CostMicros = prices.Charge(answer.Usage)
+		settlement.CostMicros = record.prices.Charge(answer.Usage)
 	}
 	if !settlement.Unknown {
 		result.CostMicros = settlement.CostMicros
 	}
 	result.Model, result.Message, result.Usage, result.UsageKnown = answer.Model, answer.Message, answer.Usage, answer.UsageKnown
-	if auditErr := client.settle(ctx, id, settlement, nil); auditErr != nil {
-		return result, false, 0, auditErr
+	if auditErr := client.settle(ctx, record.id, settlement, nil); auditErr != nil {
+		return attemptResult{answer: result}, auditErr
 	}
-	client.logger.Info("模型请求结束", "diagnosis_id", request.DiagnosisID, "attempt_id", id, "status", settlement.Status, "duration_ms", time.Since(started).Milliseconds(), "tokens_in", answer.Usage.Input, "tokens_out", answer.Usage.Output)
-	return result, retry, delay, problem
+	client.logger.Info("模型请求结束", "diagnosis_id", record.diagnosisID, "attempt_id", record.id, "status", settlement.Status, "duration_ms", time.Since(started).Milliseconds(), "tokens_in", answer.Usage.Input, "tokens_out", answer.Usage.Output)
+	return attemptResult{answer: result, retry: retry, delay: delay}, problem
 }
 
 // settle 保留取消信号中的追踪信息，只给记账半秒；失败时预留额已经在库中，不会丢账。
