@@ -167,22 +167,26 @@ func knownSecrets() []string {
 	// 容器可能只有连接串。只提取其中的密码，让脱敏器也能匹配单独出现的密码。
 	for _, entry := range os.Environ() {
 		name, value, _ := strings.Cut(entry, "=")
-		// 各接入系统按约定的后缀识别凭据。
-		if (strings.HasSuffix(name, "_TOKEN") || strings.HasSuffix(name, "_PASSWORD") || strings.HasSuffix(name, "_API_KEY")) && value != "" {
-			values = append(values, value)
-		}
-		if strings.HasSuffix(name, "_DSN") {
-			if parsed, err := mysql.ParseDSN(value); err == nil && parsed.Passwd != "" {
-				values = append(values, parsed.Passwd)
-			}
-		}
-		if strings.HasSuffix(name, "_URL") {
-			if parsed, err := url.Parse(value); err == nil && parsed.User != nil {
-				if password, ok := parsed.User.Password(); ok {
-					values = append(values, password)
-				}
-			}
+		if secret, ok := environmentSecret(name, value); ok {
+			values = append(values, secret)
 		}
 	}
 	return values
+}
+
+// 按各系统约定的后缀识别凭据，连接串只提取其中的密码。
+func environmentSecret(name, value string) (string, bool) {
+	switch {
+	case strings.HasSuffix(name, "_TOKEN"), strings.HasSuffix(name, "_PASSWORD"), strings.HasSuffix(name, "_API_KEY"):
+		return value, value != ""
+	case strings.HasSuffix(name, "_DSN"):
+		if parsed, err := mysql.ParseDSN(value); err == nil && parsed.Passwd != "" {
+			return parsed.Passwd, true
+		}
+	case strings.HasSuffix(name, "_URL"):
+		if parsed, err := url.Parse(value); err == nil && parsed.User != nil {
+			return parsed.User.Password()
+		}
+	}
+	return "", false
 }
