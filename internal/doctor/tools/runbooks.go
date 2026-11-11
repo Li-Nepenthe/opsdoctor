@@ -1,11 +1,5 @@
-// 本文件：从部署者提供的 Markdown 手册建立一个只读关键词索引。
-//
-// 手册是排查方法，不是当前故障的事实。检索只做文字匹配，不调用模型，不读取
-// 场景答案。文件在启动时读一次，正式评测期间不会因为宿主机修改而悄悄换内容。
-//
-// 主要内容：LoadRunbooks 读取有界文件并计算内容哈希；Search 用 BM25 排序；
-// WithRunbooks 把检索接到原有工具注册表；searchWords 处理中英文关键词。
-// 阅读建议：先看 Search 的词频、稀有程度和长度修正，再看统一入口如何限制返回大小。
+// 本文件：在启动时读取部署者的 Markdown 手册，按段建立只读关键词索引。
+// 文件名和原始正文一同参与哈希，运行期间沿用同一份内容。检索返回排查方法，判断现场情况仍需要观测证据。
 
 package tools
 
@@ -63,8 +57,8 @@ func LoadRunbooks(files fs.FS) (*Runbooks, error) {
 	total := 0
 	for _, entry := range entries {
 		if entry.Name() == "README.md" {
-			continue
-		} // 导航说明不是供模型检索的排查正文。
+			continue // 导航说明不参与检索和内容哈希。
+		}
 		raw, err := readRunbook(files, entry)
 		if err != nil {
 			return nil, err
@@ -137,7 +131,7 @@ func (index *Runbooks) addChunk(name, title, text string, part int) int {
 	return len(terms)
 }
 
-// Search 使用固定 BM25 参数，不从当前实验的正确答案学习权重。
+// Search 使用固定的 BM25 权重。相同分数按文件名和段号排序，使返回的手册片段可复现。
 func (index *Runbooks) Search(ctx context.Context, query string, limit int) ([]RunbookHit, error) {
 	if limit < 1 || limit > 3 || utf8.RuneCountInString(query) > 256 {
 		return nil, fmt.Errorf("%w：检索限一至三段，关键词最多 256 字", ErrInvalidArgument)

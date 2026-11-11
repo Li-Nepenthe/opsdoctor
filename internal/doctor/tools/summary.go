@@ -1,14 +1,5 @@
-// 本文件：把长时间线和重复的调用步骤整理成可阅读的证据摘要。
-//
-// 摘要先保留数量、最后值、极值和关系，最后的 4KiB 限制才负责裁掉仍然过长的正文。
-// 不能只把原始 JSON 从中间切断，否则读者既不知道丢了多少，也可能拿不到合法 JSON。
-//
-// 主要内容：
-//   - summarizeMetrics、summarizeTable：保留指标和元数据的关键字段。
-//   - summarizeTraces、summarizeTree：分别显示最慢步骤和父子关系。
-//   - recentChanges：从启动时间与版本指标推导近期变化，不访问 Docker。
-//
-// 阅读建议：先看摘要里明确保留的数量字段，再看缺失父节点和采样时间的限制。
+// 本文件：从有界查询结果中整理指标范围、慢调用、父子关系和近期变化。
+// 先记录采样数量和缺失关系，再将长结果交给统一入口截断，调用者可以区分已经采集的证据与未展示的部分。
 
 package tools
 
@@ -30,7 +21,7 @@ type metricSummary struct {
 	Points  int               `json:"points"`        // 参与本次摘要的采样数量。
 	Last    string            `json:"last"`          // 最后一个值可能是 NaN，保留原样。
 	Minimum *float64          `json:"min,omitempty"` // 只统计有限数字。
-	Maximum *float64          `json:"max,omitempty"` // 指针让“没有有效数字”不同于零。
+	Maximum *float64          `json:"max,omitempty"` // 没有有效数字时省略该字段，要与最大值为零区分。
 }
 
 // summarizeMetrics 的 min/max 来自完整的有界采样，不从最终截断的预览反算。
@@ -56,7 +47,7 @@ func summarizeMetrics(result source.MetricResult) output {
 		rows = append(rows, row)
 	}
 	return output{data: struct {
-		Series  []metricSummary `json:"series"`  // 每条时间线的摘要。
+		Series  []metricSummary `json:"series"`
 		Limited bool            `json:"limited"` // 后端边界造成的省略，与最终输出截断分别说明。
 	}{rows, result.Limited}, summary: fmt.Sprintf("%d 条序列；展示最后值及范围内极值，limited 表示未取得全部数据", len(rows))}
 }
@@ -76,7 +67,6 @@ type slowTrace struct {
 
 // summarizeTraces 复制 span 切片再排序，不改动数据源可能复用的响应对象。
 func summarizeTraces(traces []source.Trace) output {
-	// 先复制再排序，不能因为做一份摘要而改变原始调用链的步骤顺序。
 	rows := make([]slowTrace, 0, len(traces))
 	for _, trace := range traces {
 		spans := append([]source.Span(nil), trace.Spans...)
@@ -219,14 +209,14 @@ func recentChanges(ctx context.Context, metrics source.MetricsSource, seconds in
 
 // restart 是指标记录的启动，不代表我们知道是谁重启了服务。
 type restart struct {
-	Service   string `json:"service"`    // 指标标签中的服务。
+	Service   string `json:"service"`
 	Instance  string `json:"instance"`   // 同服务的不同进程仍分别显示。
 	StartedAt string `json:"started_at"` // 指标记录的启动时间。
 }
 
 // version 保留窗口内的采样范围，不把第一次采到当成精确发布时间。
 type version struct {
-	Service     string `json:"service"`      // 来源服务。
+	Service     string `json:"service"`
 	Value       string `json:"version"`      // 应用公开的版本标签。
 	FirstSample string `json:"first_sample"` // 当前窗口内第一次采到的时间。
 	LastSample  string `json:"last_sample"`  // 当前窗口内最后一次采到的时间。

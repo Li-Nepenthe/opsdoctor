@@ -1,14 +1,5 @@
-// 本文件：让所有工具共用参数校验、十秒预算和四千字节结果限制。
-//
-// HTTP、命令行和以后的 Agent 都调用 Run。不能为某个入口另开一条直接访问数据源的路，
-// 否则同一个工具会有两套权限边界。
-//
-// 主要内容：
-//   - Registry、Definition：保存工具名字、说明、参数结构和执行函数。
-//   - Run：先检查参数，再带截止时间调用工具，最后整理成有界结果。
-//   - finish：保留原始大小和截断标志，不能悄悄丢掉内容却声称结果完整。
-//
-// 阅读建议：从 Run 顺着读，校验失败也返回 Result，不需要调用者处理 panic。
+// 本文件：让 HTTP、命令行和 Agent 共用一个只读工具执行入口。
+// Run 检查工具名、参数和调用时限，再给出至多 4 KiB 的 JSON 结果，所有入口都要遵守同一套限制。
 
 package tools
 
@@ -37,14 +28,14 @@ var ErrInvalidArgument = errors.New("参数不合法")
 type Definition struct {
 	Name           string `json:"name"`            // 稳定工具名，调用时精确匹配。
 	Description    string `json:"description"`     // 解释能查到什么，不给故障预设答案。
-	ReadOnly       bool   `json:"read_only"`       // 本阶段的工具全部只读。
+	ReadOnly       bool   `json:"read_only"`       // 注册表公开的工具都用于只读取证。
 	TimeoutSeconds int    `json:"timeout_seconds"` // 供调用者了解预算，不是可修改参数。
 	Parameters     Schema `json:"parameters"`      // 与运行时校验共用同一份字段定义。
 }
 
-// Result 的失败也是普通结果。以后模型拿到它可以改参数，进程不用退出。
+// Result 把查询失败也作为一次工具结果返回，调用者可以据此调整下一步。
 type Result struct {
-	Tool          string          `json:"tool"`           // 实际调用的工具名。
+	Tool          string          `json:"tool"`
 	Status        string          `json:"status"`         // ok、invalid_argument、timeout、cancelled、unavailable、internal。
 	Summary       string          `json:"summary"`        // 简短说明结果数量或失败原因。
 	Data          json.RawMessage `json:"data"`           // 合法 JSON；超长时改成带 preview 的对象。
@@ -56,7 +47,7 @@ type Result struct {
 
 // output 是内部结果，先保留结构化数据，最后才统一编码和截断。
 type output struct {
-	data    any    // 各工具已经按用途做过的摘要。
+	data    any
 	summary string // 不依赖模型生成的说明。
 }
 
@@ -70,7 +61,7 @@ type tool struct {
 // Registry 创建完成后不再增删工具，不能在一次调用中临时塞进高权限操作。
 type Registry struct{ tools map[string]tool }
 
-// List 按名字排序，保证命令行输出和测试结果不受 Go map 遍历顺序影响。
+// List 按名称稳定排序，使同一系统的工具在各次调用中保持相同顺序。
 func (registry *Registry) List() []Definition {
 	definitions := make([]Definition, 0, len(registry.tools))
 	for _, item := range registry.tools {
@@ -84,7 +75,7 @@ func (registry *Registry) List() []Definition {
 	return definitions
 }
 
-// Run 的具名返回值让 defer 能统一记录耗时，也能把意外 panic 转成固定错误结果。
+// Run 记录整次调用的耗时。参数错误和后端异常都以有大小上限的结果返回给调用者。
 func (registry *Registry) Run(ctx context.Context, name string, raw json.RawMessage) (result Result) {
 	started := time.Now()
 	result = Result{Tool: name, Status: "internal", Summary: "工具未完成", Data: json.RawMessage(`null`)}

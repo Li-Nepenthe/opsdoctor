@@ -1,10 +1,5 @@
-// 本文件：登记六种用途固定的 MySQL 查看工具。
-//
-// 只有 mysql_explain 接受 SQL，但它先按只读规则检查，再由适配器加上 EXPLAIN。
-// 其余工具只接受受限的表名或条数，实际 SQL 模板都在适配器里。
-//
-// 主要内容：addMySQL 绑定本系统的六种查看方法，并为每个结果附上用途说明。
-// 阅读建议：不要把执行计划的行数当成真实业务行；摘要里也不能出现样例 SQL 原文。
+// 本文件：把当前系统的六种 MySQL 只读检查登记为工具。
+// 只有执行计划工具接受受限的 SELECT。其他工具使用固定的元数据查询，执行计划的估计行数不能当作实测结果。
 
 package tools
 
@@ -25,7 +20,7 @@ func (registry *Registry) addMySQL(inspector source.MySQLInspector) {
 		return summarizeTable(result, "执行计划，不是查询结果行"), err
 	})
 	for _, item := range []struct {
-		name        string                                              // 工具名称。
+		name        string
 		description string                                              // 查看目的。
 		run         func(context.Context, string) (source.Table, error) // 绑定本系统的查看方法。
 	}{

@@ -1,10 +1,5 @@
-// 本文件：为一次诊断固定工具菜单和默认查询起点。
-//
-// 一场故障可能已经持续了几分钟。每轮只查“最近五分钟”会把故障刚开始时的证据漏掉。
-// 这里从故障开始前五分钟一直查到当前时刻。模型明确填写回看秒数时，以它的参数为准。
-//
-// 主要内容：ForDiagnosis 复制菜单并绑定起点；diagnosisWindow 在调用时补上默认窗口。
-// 阅读建议：副本只修改自己的参数说明，不会影响另一个系统或同时运行的诊断。
+// 本文件：为一次诊断筛选独立的工具菜单，并设置默认查询时间范围。
+// 故障可能已持续数分钟，默认窗口从故障前五分钟起算，最长一小时。调用者明确指定的回看范围优先。
 
 package tools
 
@@ -19,7 +14,7 @@ import (
 // EvidenceLookback 是故障前的对照时间；评测器也用它决定两场实验至少相隔多久。
 const EvidenceLookback = 5 * time.Minute
 
-// ForDiagnosis 先筛选菜单，再给有时间范围的工具绑定起点。nil 表示不筛选，空 map 表示没有工具。
+// ForDiagnosis 先筛选菜单，再绑定时间起点。未传筛选表会保留全部工具，传入空表则全部移除。
 // 返回的仍是 Registry，所有入口继续经过同一份校验、超时和截断。
 func (registry *Registry) ForDiagnosis(start time.Time, allowed map[string]bool) *Registry {
 	result := &Registry{tools: make(map[string]tool)}
