@@ -33,10 +33,21 @@ func requireLease(ctx context.Context, tx *sql.Tx, id, owner string) error {
 	return nil
 }
 
-// claimLease 用一行短事务锁同时检查全局两个名额、系统一个名额，防止两进程各自超配。
+type claimRequest struct {
+	id, model, prompt, provider, owner string
+}
+
+type claimRow struct {
+	target, status, currency, trigger                 string
+	expectedModel, profile, expectedProvider, account string
+	available, cancelled, recent, evaluating          bool
+	undecided, sameTarget, active                     int
+}
+
+// claimLease 用协调行把全局两个名额和同一系统的一个名额一起锁住，提交后才通知调度器。
 func (store *Store) claimLease(ctx context.Context, id, model, prompt, provider string) (bool, error) {
-	owner := llm.Lease(ctx)
-	if owner == "" {
+	request := claimRequest{id: id, model: model, prompt: prompt, provider: provider, owner: llm.Lease(ctx)}
+	if request.owner == "" {
 		return false, fmt.Errorf("开始诊断缺少租约编号")
 	}
 	tx, err := store.database.BeginTx(ctx, nil)
@@ -44,89 +55,126 @@ func (store *Store) claimLease(ctx context.Context, id, model, prompt, provider 
 		return false, err
 	}
 	defer tx.Rollback()
+
+	row, err := store.readClaim(ctx, tx, request)
+	if err != nil {
+		return false, err
+	}
+	if ok, err := decideClaim(row, store.config, request); !ok {
+		return false, err
+	}
+	return store.commitClaim(ctx, tx, request, row)
+}
+
+func (store *Store) readClaim(ctx context.Context, tx *sql.Tx, request claimRequest) (claimRow, error) {
+	var row claimRow
 	var guard int
-	if err = tx.QueryRowContext(ctx, "SELECT id FROM scheduler_guard WHERE id=1 FOR UPDATE").Scan(&guard); err != nil {
+	if err := tx.QueryRowContext(ctx, "SELECT id FROM scheduler_guard WHERE id=1 FOR UPDATE").Scan(&guard); err != nil {
+		return row, err
+	}
+	err := tx.QueryRowContext(ctx, "SELECT target,status,COALESCE(lease_until<=UTC_TIMESTAMP(6),TRUE),cancel_requested,currency,COALESCE(lease_updated_at>=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)),FALSE),`trigger`,eval_expected_model,eval_profile,eval_provider,eval_account FROM diagnoses WHERE id=? FOR UPDATE",
+		-store.config.ResumeMaxAge.Microseconds(), request.id,
+	).Scan(
+		&row.target, &row.status, &row.available, &row.cancelled, &row.currency, &row.recent,
+		&row.trigger, &row.expectedModel, &row.profile, &row.expectedProvider, &row.account,
+	)
+	if err != nil {
+		return row, err
+	}
+	if err := tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM evaluation_targets WHERE target=? AND enabled=TRUE)", row.target).Scan(&row.evaluating); err != nil {
+		return row, err
+	}
+	// 此时名额计数仍为零。如果诊断行本身已不准领取，后续名额查询不会改变结论。
+	if ok, err := decideClaim(row, store.config, request); !ok {
+		return row, err
+	}
+	err = row.readSlots(ctx, tx, request.id)
+	return row, err
+}
+
+func (row *claimRow) readSlots(ctx context.Context, tx *sql.Tx, id string) error {
+	if row.status == "waiting_approval" {
+		err := tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM approvals WHERE diagnosis_id=? AND status='pending'", id).Scan(&row.undecided)
+		if err != nil || row.undecided > 0 {
+			return err
+		}
+	}
+	// 等待审批也占用该系统名额；全局执行名额只数仍持有有效租约的 running。
+	var occupied int
+	err := tx.QueryRowContext(ctx, "SELECT COUNT(*),COALESCE(SUM(target=?),0) FROM diagnoses WHERE id<>? AND (status='running' OR status='waiting_approval')", row.target, id).Scan(&occupied, &row.sameTarget)
+	if err != nil || row.sameTarget > 0 {
+		return err
+	}
+	return tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM diagnoses WHERE id<>? AND status='running' AND lease_until>UTC_TIMESTAMP(6)", id).Scan(&row.active)
+}
+
+func decideClaim(row claimRow, config Config, request claimRequest) (bool, error) {
+	if ok, err := claimEvaluationAllowed(row, config, request); !ok {
 		return false, err
 	}
-	var target, status, currency, trigger, expectedModel, profile, expectedProvider, account string
-	var available, cancelled, recent bool
-	if err = tx.QueryRowContext(ctx, "SELECT target,status,COALESCE(lease_until<=UTC_TIMESTAMP(6),TRUE),cancel_requested,currency,COALESCE(lease_updated_at>=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)),FALSE),`trigger`,eval_expected_model,eval_profile,eval_provider,eval_account FROM diagnoses WHERE id=? FOR UPDATE", -store.config.ResumeMaxAge.Microseconds(), id).Scan(&target, &status, &available, &cancelled, &currency, &recent, &trigger, &expectedModel, &profile, &expectedProvider, &account); err != nil {
-		return false, err
-	}
-	var evaluating bool
-	if err = tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM evaluation_targets WHERE target=? AND enabled=TRUE)", target).Scan(&evaluating); err != nil {
-		return false, err
-	}
-	if evaluating && trigger != "eval" {
-		return false, nil // 候选查询之后可能刚进入评测模式，领租约时必须再检查一次。
-	}
-	if trigger == "eval" && (!evaluating || expectedModel != model) {
-		return false, fmt.Errorf("评测模式未开启或运行模型与实验配置不一致")
-	}
-	if profile != "" && (profile != store.config.ExecutionProfile || expectedProvider != provider || account != store.config.BudgetAccount || currency != store.config.Currency) {
-		return false, fmt.Errorf("评测绑定的执行配置、供应商、账户或币种不一致")
-	}
-	if status != "pending" && currency != store.config.Currency {
+	if row.status != "pending" && row.currency != config.Currency {
 		return false, fmt.Errorf("不能跨币种恢复诊断，请保持原账户或取消后重新发起")
 	}
-	if cancelled || (status != "pending" && status != "running" && status != "waiting_approval") || (status == "running" && !available) {
+	if row.cancelled {
 		return false, nil
 	}
-	// 即使调用方漏了 Recover，已经过时的 running 也不能直接接手。
-	if status == "running" && !recent {
-		return false, nil
-	}
-	if status == "waiting_approval" {
-		var undecided int
-		if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM approvals WHERE diagnosis_id=? AND status='pending'", id).Scan(&undecided); err != nil {
-			return false, err
-		}
-		if undecided > 0 {
+	switch row.status {
+	case "pending", "waiting_approval":
+	case "running":
+		// 即使调度器尚未清理，过时证据也不能用于接手。
+		if !row.available || !row.recent {
 			return false, nil
 		}
-	}
-	var global, same int
-	if err = tx.QueryRowContext(ctx, "SELECT COUNT(*),COALESCE(SUM(target=?),0) FROM diagnoses WHERE id<>? AND (status='running' OR status='waiting_approval')", target, id).Scan(&global, &same); err != nil {
-		return false, err
-	}
-	// 等待审批仍占系统名额，避免新诊断与未决写操作互相打架；不占模型执行的全局名额。
-	if same > 0 {
+	default:
 		return false, nil
 	}
-	if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM diagnoses WHERE id<>? AND status='running' AND lease_until>UTC_TIMESTAMP(6)", id).Scan(&global); err != nil {
-		return false, err
-	}
-	if global >= 2 {
+	return row.undecided <= 0 && row.sameTarget <= 0 && row.active < 2, nil
+}
+
+func claimEvaluationAllowed(row claimRow, config Config, request claimRequest) (bool, error) {
+	// 候选查询之后可能刚进入评测模式，领租约时再核对一次。
+	if row.evaluating && row.trigger != "eval" {
 		return false, nil
 	}
+	if row.trigger == "eval" && (!row.evaluating || row.expectedModel != request.model) {
+		return false, fmt.Errorf("评测模式未开启或运行模型与实验配置不一致")
+	}
+	if row.profile != "" && (row.profile != config.ExecutionProfile || row.expectedProvider != request.provider ||
+		row.account != config.BudgetAccount || row.currency != config.Currency) {
+		return false, fmt.Errorf("评测绑定的执行配置、供应商、账户或币种不一致")
+	}
+	return true, nil
+}
+
+func (store *Store) commitClaim(ctx context.Context, tx *sql.Tx, request claimRequest, row claimRow) (bool, error) {
 	// 中断到租约过期的时间也保守计入执行预算；接手后的等待不能重新拿五分钟。
 	// 旧版本正在运行的记录还没有段数，接手时直接记成两段，不能误报完整耗时。
-	_, err = tx.ExecContext(ctx, `UPDATE diagnoses SET
+	_, err := tx.ExecContext(ctx, `UPDATE diagnoses SET
  active_ms=active_ms+IF(status='running' AND lease_updated_at IS NOT NULL,GREATEST(0,TIMESTAMPDIFF(MICROSECOND,lease_updated_at,LEAST(UTC_TIMESTAMP(6),lease_until)) DIV 1000),0),
  model=IF(status='pending',?,model),prompt_version=IF(status='pending',?,prompt_version),provider=?,
  currency=?,started_at=COALESCE(started_at,UTC_TIMESTAMP(6)),execution_segments=IF(execution_segments=0 AND status<>'pending',2,execution_segments+1),status='running',lease_owner=?,
- lease_until=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)),lease_updated_at=UTC_TIMESTAMP(6) WHERE id=?`, model, prompt, provider, store.config.Currency, owner, store.config.LeaseTTL.Microseconds(), id)
+ lease_until=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)),lease_updated_at=UTC_TIMESTAMP(6) WHERE id=?`, request.model, request.prompt, request.provider, store.config.Currency, request.owner, store.config.LeaseTTL.Microseconds(), request.id)
 	if err != nil {
 		return false, err
 	}
 	reason := "开始诊断"
-	if status == "waiting_approval" {
+	if row.status == "waiting_approval" {
 		reason = "审批已有决定，从保存的调用继续"
 	}
-	if status == "running" {
+	if row.status == "running" {
 		reason = "租约过期，由新执行者从保存的步骤继续"
 	}
 	payload, _ := json.Marshal(map[string]string{"status": "running", "reason": reason})
-	step, err := store.appendStep(ctx, tx, id, agent.Step{Kind: "system", Status: "running", Result: string(payload)})
+	step, err := store.appendStep(ctx, tx, request.id, agent.Step{Kind: "system", Status: "running", Result: string(payload)})
 	if err != nil {
 		return false, err
 	}
 	if err = tx.Commit(); err != nil {
 		return false, err
 	}
-	store.publish(id, step)
+	store.publish(request.id, step)
 	if store.config.Changed != nil {
-		store.config.Changed(target, "running", 0)
+		store.config.Changed(row.target, "running", 0)
 	}
 	return true, nil
 }
