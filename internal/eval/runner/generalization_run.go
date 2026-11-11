@@ -440,7 +440,9 @@ func demoMatrix(parent context.Context, options generalizationCommand, value dem
 	if err != nil {
 		return err
 	}
-	grader, err := newGraderForAccount(ctx, reader, repository, status, options.paid, output, "phase-09-deepseek")
+	grader, err := newGraderForAccount(ctx, reader, repository, output, judgeExecution{
+		account: "phase-09-deepseek", status: status, paid: options.paid,
+	})
 	if err != nil {
 		return err
 	}

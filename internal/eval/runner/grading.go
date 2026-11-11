@@ -55,24 +55,34 @@ type gradedResult struct {
 
 // newGrader 同时要求运行中的医生与本机显式允许真实调用，填 Key 本身不会启用收费。
 func newGrader(ctx context.Context, reader config.Reader, repository *store.Store, status runtimeStatus, paid bool, output io.Writer) (*grader, error) {
-	return newGraderForAccount(ctx, reader, repository, status, paid, output, "phase-07-08")
+	return newGraderForAccount(ctx, reader, repository, output, judgeExecution{account: "phase-07-08", status: status, paid: paid})
+}
+
+type judgeExecution struct {
+	account string
+	status  runtimeStatus
+	paid    bool
 }
 
 // newGraderForAccount 先固定账本再构造客户端；阶段 9 不能借用阶段 8 的剩余额度。
-func newGraderForAccount(ctx context.Context, reader config.Reader, repository *store.Store, status runtimeStatus, paid bool, output io.Writer, account string) (*grader, error) {
-	if account != "phase-07-08" && account != "phase-09-deepseek" {
+func newGraderForAccount(ctx context.Context, reader config.Reader, repository *store.Store, output io.Writer, execution judgeExecution) (*grader, error) {
+	if execution.account != "phase-07-08" && execution.account != "phase-09-deepseek" {
 		return nil, fmt.Errorf("评委账户未获授权")
 	}
-	value := &grader{client: judge.Mock{}, model: "mock-judge-v1", provider: "mock", account: account, repository: repository.ForExecution("judge", account, "CNY")}
-	if status.Provider == "mock" {
+	value := &grader{
+		client: judge.Mock{}, model: "mock-judge-v1", provider: "mock", account: execution.account,
+		repository: repository.ForExecution("judge", execution.account, "CNY"),
+	}
+	if execution.status.Provider == "mock" {
 		return value, nil
 	}
 	provider, err := reader.String("LLM_PROVIDER", "mock")
-	if err != nil || provider != "openai" || !paid {
+	if err != nil || provider != "openai" || !execution.paid {
 		return nil, fmt.Errorf("真实评委需要 LLM_PROVIDER=openai 和 --allow-paid")
 	}
-	profile, ok := status.Executions["comparison"]
-	if !ok || profile.Model != "deepseek-flash" || profile.Account != account || profile.Budget.Currency != "CNY" || profile.Budget.LimitMicros > 10000000 {
+	profile, ok := execution.status.Executions["comparison"]
+	if !ok || profile.Model != "deepseek-flash" || profile.Account != execution.account ||
+		profile.Budget.Currency != "CNY" || profile.Budget.LimitMicros > 10000000 {
 		return nil, fmt.Errorf("运行中的 DeepSeek 配对账户不符合已授权范围")
 	}
 	key, err := reader.String("DEEPSEEK_API_KEY", "")

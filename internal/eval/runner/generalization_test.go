@@ -234,7 +234,9 @@ func TestGeneralizationScenarioFiles(t *testing.T) {
 	if _, err = loadGeneralizationCases(directory, []string{"OT09"}); err == nil {
 		t.Fatal("接受未授权场景")
 	}
-	if _, err = newGraderForAccount(t.Context(), config.NewReader(func(string) (string, bool) { t.Fatal("Mock 读取付费配置"); return "", false }), store.New(nil), runtimeStatus{Provider: "mock"}, true, io.Discard, "phase-09-deepseek"); err != nil {
+	reader := config.NewReader(func(string) (string, bool) { t.Fatal("Mock 读取付费配置"); return "", false })
+	execution := judgeExecution{account: "phase-09-deepseek", status: runtimeStatus{Provider: "mock"}, paid: true}
+	if _, err = newGraderForAccount(t.Context(), reader, store.New(nil), io.Discard, execution); err != nil {
 		t.Fatal("阶段 9 Mock 评委不应联网", err)
 	}
 }
