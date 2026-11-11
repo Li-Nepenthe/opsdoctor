@@ -5,6 +5,7 @@ package app
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"fmt"
 	"log/slog"
@@ -32,10 +33,7 @@ import (
 func Run(parent context.Context, args ...string) error {
 	// 时钟采样必须在读取凭据、迁移或调度之前分流，预检不启动诊断。
 	if len(args) > 0 {
-		if len(args) != 1 || args[0] != "--clock-samples" {
-			return fmt.Errorf("医生只接受无参数启动服务，或 --clock-samples 只读采样")
-		}
-		return clockcheck.Sample(parent, os.Stdout)
+		return sampleClock(parent, args)
 	}
 	settings, err := loadConfig()
 	if err != nil {
@@ -62,6 +60,17 @@ func Run(parent context.Context, args ...string) error {
 		return err
 	}
 	defer catalog.Close()
+	return serveDoctor(ctx, startup, settings, agentConfig, database, catalog)
+}
+
+func sampleClock(parent context.Context, args []string) error {
+	if len(args) != 1 || args[0] != "--clock-samples" {
+		return fmt.Errorf("医生只接受无参数启动服务，或 --clock-samples 只读采样")
+	}
+	return clockcheck.Sample(parent, os.Stdout)
+}
+
+func serveDoctor(ctx, startup context.Context, settings settings, agentConfig agentSettings, database *sql.DB, catalog *target.Catalog) error {
 	tokens, err := auth.NewTokens(settings.jwtSecret, time.Hour)
 	if err != nil {
 		return err
@@ -79,16 +88,9 @@ func Run(parent context.Context, args ...string) error {
 		return err
 	}
 	defer scheduler.Close()
-	mcpHandlers := map[string]http.Handler{}
-	for _, name := range catalog.Names() {
-		system, _ := catalog.Get(name)
-		handler, err := system.MCPHandler(repository, llm.NewRedactor(knownSecrets()...))
-		if err != nil {
-			return err
-		}
-		if handler != nil {
-			mcpHandlers[name] = handler
-		}
+	mcpHandlers, err := targetMCPHandlers(catalog, repository)
+	if err != nil {
+		return err
 	}
 	router := httpapi.New(httpapi.Options{Evaluations: repository, Executions: scheduler.ExecutionStatuses, Approvals: repository, MCP: mcpHandlers, Targets: catalog, Store: repository, Tokens: tokens, Logger: logger, Ready: database.PingContext,
 		Metrics: promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{}), DummyPasswordHash: settings.passwordHash, Runner: scheduler, Events: hub, Provider: agentConfig.provider, Model: agentConfig.model, SecureCookie: agentConfig.secureCookie})
@@ -97,6 +99,21 @@ func Run(parent context.Context, args ...string) error {
 	// 只打印名字与数量，不输出含密码的 DSN、令牌或完整配置。
 	logger.Info("医生已启动", "address", settings.address, "targets", catalog.Names(), "version", telemetry.Version, "provider", agentConfig.provider, "model", agentConfig.model, "global_budget_micros", agentConfig.totalMicros, "pending_max_age", agentConfig.pendingAge.String(), "fault_silence_timeout", agentConfig.faultSilence.String())
 	return serve(ctx, server)
+}
+
+func targetMCPHandlers(catalog *target.Catalog, repository *store.Store) (map[string]http.Handler, error) {
+	mcpHandlers := map[string]http.Handler{}
+	for _, name := range catalog.Names() {
+		system, _ := catalog.Get(name)
+		handler, err := system.MCPHandler(repository, llm.NewRedactor(knownSecrets()...))
+		if err != nil {
+			return nil, err
+		}
+		if handler != nil {
+			mcpHandlers[name] = handler
+		}
+	}
+	return mcpHandlers, nil
 }
 
 // serve 停止接新请求后等待在途请求；工具最多十秒，停机预算再多留两秒做响应收尾。
