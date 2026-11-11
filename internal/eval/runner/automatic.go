@@ -1,11 +1,5 @@
-// 本文件：按冻结顺序自动完成注入、五组诊断、恢复和下一轮等待。
-//
-// 长时间评测可能遇到 Docker 退出。每一段的完成状态都在数据库里，续跑先读
-// 状态。对执行一半的注入先检查真实症状，不重新执行一遍破坏性的动作。
-//
-// 主要内容：automatic 遍历冻结轮次；advanceTrial 执行一个可恢复阶段；
-// waitBaseline 等待正常流量和告警开放期；matchRecord 防止续接另一场故障。
-// 阅读建议：失败时保留恢复文件和暂停记录，不能把失败轮次偷偷换成新的一轮。
+// 本文件：按冻结的顺序推进实验，每一段的完成状态都存入数据库。续跑先核对状态和现场证据，避免重复注入。
+// 一次失败保留原轮次、恢复文件和中断记录，以便操作者决定如何继续。
 
 package runner
 
@@ -22,7 +16,7 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
 )
 
-// automatic 从已冻结的批次续跑；命令本身不能创建另一份随机安排。
+// automatic 读取批次中已冻结的顺序。续跑仍使用原安排，失败的轮次保留在原位。
 func automatic(parent context.Context, options command, reader config.Reader, repository *store.Store, client *doctorClient, output io.Writer) (problem error) {
 	if err := checkClock(parent); err != nil {
 		return err
@@ -99,7 +93,7 @@ func automatic(parent context.Context, options command, reader config.Reader, re
 	return finish(ctx, options, repository, client, output)
 }
 
-// advanceTrial 每次只前进一段。失败不改状态，下次会重新核对这一段的事实。
+// advanceTrial 一次只推进一段。状态与外部动作之间可能中断，重试前须重新核对现场。
 func advanceTrial(ctx context.Context, options command, trial store.EvalTrial, reader config.Reader, repository *store.Store, client *doctorClient, output io.Writer) error {
 	engine := chaos.Engine{StatePath: ".opsdoctor-chaos.json"}
 	switch trial.State {

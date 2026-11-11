@@ -1,45 +1,29 @@
-// Package runner 让同一次实验能找回相同的输入和诊断，而不是每次重试都重新花钱。
-//
-// prepare/pilot 保留最初试跑入口。正式运行用 freeze 固定五组顺序，再由 run
-// 逐轮调用宿主机的 chaos 注入、诊断与恢复。医生看不到这些控制状态。
-// export 读取已保存结果；calibrate 生成空白盲评表，不代填独立分数。
+// Package runner 组织可续跑的评测。一个批次先冻结场景、执行配置和评分版本，一次故障中的每组诊断占一个固定槽位。
+// 中断后从仓储取回原任务和输入，保留原失败与费用。宿主机负责实验控制，医生只收到诊断所需的症状和告警。
 //
 // 文件清单：
-//   - generalization.go：为第二系统建立独立批次、账户边界和冻结顺序。
-//   - generalization_scenario.go：加载官方故障定义，通过有界 HTTP 修改开关并核对指标。
-//   - generalization_run.go：保存每轮完整恢复文件，推进外部系统注入、诊断、恢复与冷却。
-//   - generalization_baseline.go：同轮健康条件全部通过才继续，独占保存每次基线等待证据。
-//   - generalization_baseline_test.go：用假依赖检查健康重试、查询错误、配置阻断和证据保留。
-//   - generalization_environment.go：按 Docker 实际上限检查外部实验内存，不套用 shop 的暂停线。
-//   - generalization_collection.go：独占保存每份诊断的Collector日志窗口，异常先落摘要再停止评分。
-//   - generalization_collection_test.go：用模拟Docker输出验证最终丢弃、映射错误、窗口与续跑证据。
-//   - generalization_test.go：用假接口验证开关范围、独立账户、异常暂停、恢复快照和说明书哈希。
-//   - generalization_grading_test.go：验证评分返回证明、累计失败停点、Mock单配置与等待边界。
-//   - generalization_timing.go：保留本进程单调锚点，独占保存首次症状与健康观察。
-//   - generalization_timing_test.go：检查计时原件、续跑未知时长与禁止覆盖。
-//   - load.go：从冻结场景计算诊断期的精确流量，并持续核对实际参数。
-//   - load_test.go：遍历全部场景，验证流量、热点及未变基线的严格匹配。
-//   - execution.go：在命令、轮次和槽位执行前追加当时的代码版本。
-//   - baseline_amendment.go：只批准基线检查与审计的变化，重启没有模型槽位的中断轮次。
-//   - baseline_amendment_test.go：证明本次白名单不接受提示、工具、手册、场景或评分变化。
-//   - calibration.go：从原始诊断与固定抽样导出盲评材料，导出后由独立评分者判断。
-//   - automatic.go：按冻结矩阵注入、诊断、恢复和等待，遇到不确定状态停下核对。
-//   - automatic_test.go：核对本机恢复记录只能对应原来的场景和注入时刻。
-//   - injection.go：通过正常商品请求写入安全实验材料，并核对实际暴露和写操作数。
-//   - paired_test.go：验证五配置完整性、账户隔离和 Mock 评委开关。
-//   - paired.go：冻结每次故障的五配置随机顺序，按原输入续跑并保留可靠性补跑。
-//   - grading.go：把评委接到人民币账本，保存评分失败并恢复已收到的回复。
-//   - clock.go：独立预检或花钱前检查一分钟容器时钟，并在等待诊断时持续检查，跳变就停止。
-//   - clock_test.go：验证暂停原因传递与采样取消，不启动 Docker。
-//   - cli.go：解析试跑命令，打开医生自己的数据库，安排模式切换和任务等待。
-//   - client.go：登录并读取正在运行的医生状态、告警和故障开放期。
-//   - environment.go：核对实际压测参数与本项目容器六 GiB 内存暂停线。
-//   - environment_test.go：检查基线变化、异常内存读数和非法命令的拒绝。
-//   - manifest.go：记录提示、代码、手册和模型版本，拒绝把改动后的运行混入旧批次。
-//   - amendment.go：核对只发生已批准的校时修订，并追加独立版本记录。
-//   - amendment_test.go：验证校时例外仍拒绝提示和其他行为变化。
-//   - doc.go：说明批次、槽位和医生之间的职责。
+//   - cli.go：解析命令，安排试跑、诊断等待和恢复后的收尾。
+//   - client.go：登录医生服务，读取运行状态和告警，并在中断时取消原诊断。
+//   - manifest.go：冻结提示、手册、代码和模型版本，续跑时核对原清单。
+//   - execution.go：在命令、轮次和槽位执行前登记当时的评测器版本。
+//   - environment.go：核对 shop 压测的实际负载和本项目容器的内存暂停线。
+//   - load.go：从冻结场景推导流量，在诊断期间持续核对控制接口的读数。
+//   - clock.go：在预检和长时间诊断中监视容器时钟，发现跳变就暂停。
+//   - automatic.go：按冻结顺序推进 shop 实验，保留中断记录和恢复文件。
+//   - paired.go：固定同一故障的五组配置，复用原输入并单独保存补跑。
+//   - injection.go：用普通商品请求产生实验日志，核对医生实际读到的内容和写操作记录。
+//   - grading.go：绑定评委账本，保存评分结果并从原回答恢复中断的评分。
+//   - calibration.go：固定盲评样本，导出原诊断和观察供独立评分。
+//   - generalization.go：为 OpenTelemetry Demo 冻结独立的场景、组序和账户。
+//   - generalization_scenario.go：读取 Demo 场景并核对症状和开关，标准答案仅供宿主机评分。
+//   - generalization_run.go：推进 Demo 轮次，保存并核对现场与本轮恢复文件。
+//   - generalization_baseline.go：等待同一轮的全部健康条件，独立保存每次检查的证据。
+//   - generalization_environment.go：按 Docker 实际资源上限核对 Demo 实验的内存。
+//   - generalization_collection.go：保存每份诊断的 Collector 日志窗口，采集质量不明时停止评分。
+//   - generalization_timing.go：独占保存首次观察，只有同一进程的单调时钟能证明耗时。
+//   - amendment.go：核对历史批次获准的校时修订并追加版本记录。
+//   - baseline_amendment.go：核对历史批次获准的基线修订，记录尚无诊断的轮次重启。
 //
-// 阅读顺序：RunCLI → prepare → pilot → waitDiagnosis。
-// 长跑的入口是 automatic；所有真实模型请求仍经过费用和批次 token 账户。
+// 从 RunCLI、prepare 和 pilot 看一次试跑，再沿 automatic 和 paired.go 看正式运行。
+// 两个修订文件只服务历史批次，初读可以跳过。新批次不产生修订记录，EvalVersions 直接返回冻结版本。
 package runner

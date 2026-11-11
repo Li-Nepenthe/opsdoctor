@@ -1,8 +1,5 @@
 // 本文件：用真实场景文件和假控制接口验证两种流量检查，所有测试都不花模型费用。
 //
-// 主要内容：TestScenarioLoadFiles 遍历场景约定；TestLoadExact 拒绝每一种漂移；
-// TestPartialLoadActions 验证未填写与显式零不同；TestLoadGuard 验证中途变化会取消。
-// TestWorkloadThroughout 验证注入与恢复期间也不能更换工作集或工作者数。
 // 阅读建议：测试读取场景答案的能力只属于评测器，不导入医生包。
 
 package runner

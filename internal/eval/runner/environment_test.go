@@ -1,7 +1,5 @@
 // 本文件：验证试跑的基线检查和内存暂停线不会被无效读数绕过。
 //
-// 主要内容：TestBaseline 用本机假服务模拟控制接口；TestMemorySize 检查单位和异常数。
-// TestCLIValidation 证明错误命令在连接数据库之前就失败。
 // 阅读建议：测试没有 Docker 和模型依赖，也不会发起外部网络请求。
 
 package runner

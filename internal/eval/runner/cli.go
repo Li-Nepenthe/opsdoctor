@@ -1,12 +1,5 @@
-// 本文件：提供阶段 8 第一停点之前的 E1 试跑命令。
-//
-// prepare 先暂停自动诊断；操作者注入并验证真实故障以后，pilot 才创建付费任务。
-// 报告保存后仍需 chaos restore 和 healthy。finish 看到故障开放期结束才解除暂停。
-// freeze/matrix 是用户确认试跑之后的配对入口，必须使用单独批次。
-//
-// 主要内容：RunCLI 装配依赖；prepare 固定版本；pilot 保存槽位和任务；
-// waitDiagnosis 有界等待并处理取消；finish 等待系统开放期结束。
-// 阅读建议：命令重试先取回旧槽位，绝不换一份告警输入或创建第二条诊断。
+// 本文件：提供评测试跑和配对实验的命令入口。prepare 暂停自动诊断，pilot 复用已有槽位和告警，finish 等待恢复后的故障开放期结束才解除暂停。
+// 正式配对实验另行冻结批次，以免把试跑的模型输入和结果混入比较。
 
 package runner
 
@@ -217,7 +210,7 @@ func prepare(ctx context.Context, options command, reader config.Reader, reposit
 	return nil
 }
 
-// pilot 不负责注入，防止第一停点之前误启动正式矩阵。它只接收当前唯一的真实故障。
+// pilot 只对已注入的单个故障试跑。重试取回原槽位，以免换一份告警或重复创建任务。
 func pilot(ctx context.Context, options command, reader config.Reader, repository *store.Store, client *doctorClient, output io.Writer) error {
 	// 输入和结果以槽位编号去重；重试命令不是多跑一次、挑一个更好的答案。
 	if !slices.Contains(options.cases, options.scenario) {

@@ -1,7 +1,5 @@
 // 本文件：检查恢复文件不能把另一场实验接到本轮。
 //
-// 主要内容：TestMatchRecord 验证场景、注入时刻与缺失记录；TestNestedClockGuard
-// 验证长跑、矩阵和单条诊断共用一个采样器。
 // 阅读建议：这些测试只用临时文件，不启动 Docker，也不调用模型。
 
 package runner

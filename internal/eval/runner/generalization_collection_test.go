@@ -3,10 +3,6 @@
 // 单元测试不启动容器或模型。固定窗口检查最终丢弃、嵌套错误、轮转、重启与不可变证据。
 // 只有显式设置TEST_PHASE09_COLLECTOR_DIR时，集成用例才只读现有Collector并保留真实原件；
 // 它不访问数据库、模型或故障开关，CI未设置该变量时跳过。
-//
-// 主要内容：TestCollectorCounts检查计数；TestCollectorWindow检查证据；TestCollectorGate检查暂停。
-// TestCollectorRetainedAnchor覆盖tail先截断的空成功；真正空输出和未来行仍然拒绝。
-// TestIntegrationCollectorWindow另外验证真实Docker命令、解析和日志保留锚点。
 
 package runner
 

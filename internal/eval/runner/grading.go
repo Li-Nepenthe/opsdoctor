@@ -1,12 +1,5 @@
-// 本文件：把评委接入现有预算账本，并保存可续跑的评分结果。
-//
-// 评委和 DeepSeek 对比共用人民币账户。它不借用 Terra 诊断的美元归属，也不
-// 绕过发送前预留。已有 running 评分只从审计恢复，不再发第二轮请求挑分数。
-// 阶段9另存原客户端的返回证明；是否继续批次只由generalization自己的门槛决定。
-//
-// 主要内容：newGrader 装配 Mock 或收费客户端；gradeSlot 保存评分输入、费用和结果；
-// gradeInput 只把医生已保存的观察交给评委。
-// 阅读建议：外层持有批次锁；同一个槽位的评分一旦保存，就原样返回。
+// 本文件：为评委请求预留人民币费用并持久化评分输入和结果。评委与 DeepSeek 对比运行共用人民币账户，Terra 的美元费用单独核算。
+// 中断后从原账本恢复回答，避免重问后挑分。Demo 另存已取得回答的证明，用于决定评分缺失时能否继续。
 
 package runner
 
@@ -32,18 +25,18 @@ import (
 
 // grader 不含靶场客户端，唯一的外部模型入口已经绑定固定账户。
 type grader struct {
-	client                   llm.Client   // Mock 或原有收费客户端。
+	client                   llm.Client
 	model, provider, account string       // 公开配置，用于审计比对。
 	repository               *store.Store // 与账户同为 CNY 的仓储视图。
 }
 
 // gradedResult 失败也保留；coverage 只在评分通过校验时有效。
 type gradedResult struct {
-	Version          string                   `json:"version"`                     // 评分标准版本。
-	Hash             string                   `json:"hash"`                        // 实际标准的字节哈希。
-	Status           string                   `json:"status"`                      // ok 或 failed。
-	Model            string                   `json:"model"`                       // 评委实际使用模型。
-	Error            string                   `json:"error,omitempty"`             // 评分失败的原因。
+	Version          string                   `json:"version"`
+	Hash             string                   `json:"hash"`   // 实际标准的字节哈希。
+	Status           string                   `json:"status"` // ok 或 failed。
+	Model            string                   `json:"model"`
+	Error            string                   `json:"error,omitempty"`
 	Grade            judge.Grade              `json:"grade"`                       // 机制和非规则证据评分。
 	Evidence         []scoring.EvidenceResult `json:"evidence"`                    // 包含规则与评委的全部项目。
 	Coverage         float64                  `json:"coverage"`                    // achieved / 全部项目数。

@@ -1,11 +1,5 @@
-// 本文件：在一次真实故障上依次执行随机排序的五份配置。
-//
-// 随机顺序在注入前随批次保存。续跑读取旧顺序和旧告警，不重新洗牌，也不挑
-// 更容易诊断的一次故障。Terra 四组与 DeepSeek E1 分别绑定自己的账户。
-//
-// 主要内容：freezePaired 保存版本和顺序；matrix 运行当前故障的全部配置；
-// executeSlot 创建或继续同一个任务；pairedPlan 检查冻结配置没有被改变。
-// 阅读建议：原网络失败和一次补跑各占自己的槽位，结果表不会删除原失败。
+// 本文件：把同一次故障的五组配置按预先冻结的随机顺序执行。续跑复用原告警和输入，两个模型分别使用各自的费用账户。
+// 网络失败和获准的补跑各有独立槽位，原失败始终保留。
 
 package runner
 
@@ -34,9 +28,9 @@ import (
 
 // pairedConfiguration 只固定身份，不保存随调用增长的预算余额。
 type pairedConfiguration struct {
-	Profile  string `json:"profile"`  // primary 或 comparison。
-	Group    string `json:"group"`    // E0–E3。
-	Model    string `json:"model"`    // 开始时选择的模型。
+	Profile  string `json:"profile"` // primary 或 comparison。
+	Group    string `json:"group"`   // E0–E3。
+	Model    string `json:"model"`
 	Provider string `json:"provider"` // mock 或 openai。
 	Account  string `json:"account"`  // 费用账户，创建任务时再次绑定。
 	Currency string `json:"currency"` // 不能在恢复时改变。
@@ -51,12 +45,12 @@ type trialOrder struct {
 
 // pairedManifest 同时冻结医生行为和评分规则；公开清单不含 Key 或账号密码。
 type pairedManifest struct {
-	Kind          string          `json:"kind"`           // paired，与历史试跑分开。
-	Versions      json.RawMessage `json:"versions"`       // 提示、手册、代码哈希。
-	RubricVersion string          `json:"rubric_version"` // 评分标准版本。
-	RubricHash    string          `json:"rubric_hash"`    // 防止只改正文不升版本。
-	Iterations    int             `json:"iterations"`     // 正式固定三次，最后检查可为一次。
-	Orders        []trialOrder    `json:"orders"`         // 冻结的完整矩阵。
+	Kind          string          `json:"kind"`     // paired，与历史试跑分开。
+	Versions      json.RawMessage `json:"versions"` // 提示、手册、代码哈希。
+	RubricVersion string          `json:"rubric_version"`
+	RubricHash    string          `json:"rubric_hash"` // 防止只改正文不升版本。
+	Iterations    int             `json:"iterations"`  // 正式固定三次，最后检查可为一次。
+	Orders        []trialOrder    `json:"orders"`
 }
 
 // configurations 从运行中的白名单读取身份。不能根据命令行里的模型名猜账户。
@@ -335,7 +329,7 @@ func s12OrderURL(reader config.Reader) (string, error) {
 	return reader.String("CHAOS_ORDER_URL", "http://127.0.0.1:8081")
 }
 
-// executeSlot 即使已有失败也不覆盖；只有明确的可靠性失败才创建一个新补跑槽位。
+// executeSlot 复用槽位里的原诊断。只有明确的可靠性失败才能占用新槽位补跑，原失败留在原位。
 func executeSlot(ctx context.Context, options command, configuration pairedConfiguration, slot store.EvalResult, scenario scenario.Scenario, repository *store.Store, client *doctorClient, grader *grader, output io.Writer) error {
 	// 只有第二系统增加宿主采集窗口；旧shop流程、诊断参数和评分标准保持原样。
 	if ctx.Value(generalizationGuardKey{}) != nil && len(slot.Data) == 0 {

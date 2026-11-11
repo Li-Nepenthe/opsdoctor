@@ -1,10 +1,5 @@
-// 本文件：为外部 Demo 单独测量 Docker 实际内存，避免套用 shop 的六 GiB 暂停线。
-//
-// 两套靶场轮流运行，医生仍然要在线。这里统计当前全部运行容器的内存，并给
-// Docker 虚拟机保留两 GiB 余量；达到边界就停止实验，不改系统资源设置。
-//
-// 主要内容：diagnosisMemory 选择当前实验的测量方法；demoMemoryBytes 读取真实占用。
-// 阅读建议：context 中的函数只影响本次外部实验，旧 shop 命令仍走原测量函数。
+// 本文件：为 Demo 单独测量 Docker 的内存占用。它与 shop 轮流运行，医生始终在线，因此统计所有运行中容器，并给 Docker 虚拟机留两 GiB 余量。
+// 这个边界只用于本轮外部实验，达到时停下，不调整主机资源。
 
 package runner
 
@@ -21,7 +16,7 @@ import (
 // diagnosisMemoryKey 只在宿主机当前评测上下文传递，不写入诊断参数或开放给模型。
 type diagnosisMemoryKey struct{}
 
-// demoClockKey 让第二系统采样专用医生容器；原医生和阶段 8 的命令保持原样。
+// demoClockKey 指定 Demo 使用的医生容器，两个系统分别采样自己的时钟。
 type demoClockKey struct{}
 
 // clockSampleArguments 只选择固定容器，不接受任意 shell 或模型传入的命令。

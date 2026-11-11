@@ -1,10 +1,5 @@
-// 本文件：给阶段9的健康基线留出观察窗口，并独占保存每次调用的真实证据。
-//
-// 保持资源、开关、健康、故障开放期的原检查顺序。只有健康条件允许等待，
-// 同一轮全部场景通过才继续；配置不符或查询错误都不靠下一轮掩盖。
-//
-// 主要内容：demoBaseline装配真实依赖；runDemoBaseline记录整次调用；
-// waitDemoBaselineHealth执行五秒轮询，不改变场景谓词或医生能力。
+// 本文件：为 Demo 留出健康恢复的观察时间，并分别保存每次调用的证据。先核对资源和开关，再等待同一轮的所有场景健康，最后核对故障开放期。
+// 配置偏离、查询失败或证据落盘失败时停止，不能拼接不同轮次的样本证明健康。
 
 package runner
 
@@ -19,10 +14,10 @@ import (
 	"time"
 )
 
-// demoBaselineInterval固定生产轮询间隔，测试替换等待动作但不改变传入的间隔。
+// demoBaselineInterval 固定生产轮询间隔，测试替换等待动作但不改变传入的间隔。
 const demoBaselineInterval = 5 * time.Second
 
-// demoBaselineSources让单元测试模拟所有外部依赖，不访问Docker或医生接口。
+// demoBaselineSources 让单元测试模拟所有外部依赖，不访问Docker或医生接口。
 type demoBaselineSources struct {
 	memory func(context.Context) error
 	flags  func(context.Context) (json.RawMessage, error)
@@ -32,7 +27,7 @@ type demoBaselineSources struct {
 	root   string // 测试使用临时目录；生产缺省与其他阶段9证据相邻。
 }
 
-// demoBaselineObservation记录一次调用，失败也保留耗时与实际轮数，不拼接别次健康样本。
+// demoBaselineObservation 记录一次调用，失败也保留耗时与实际轮数，不拼接别次健康样本。
 type demoBaselineObservation struct {
 	RunID                string     `json:"run_id"`
 	Scenario             string     `json:"scenario"` // freeze尚无轮次，明确保存空字符串和0。
@@ -57,7 +52,7 @@ type demoBaselineObservation struct {
 	Error                string     `json:"error,omitempty"`
 }
 
-// demoBaseline保持原调用接口，freeze和每轮注入前分别标记来源。
+// demoBaseline 分开标记冻结前和每轮注入前的检查，便于核对证据来源。
 func demoBaseline(ctx context.Context, options generalizationCommand, cases map[string]demoScenario, client *doctorClient) error {
 	phase := "pre-inject"
 	if options.action == "freeze" {
@@ -66,7 +61,7 @@ func demoBaseline(ctx context.Context, options generalizationCommand, cases map[
 	return demoBaselinePhase(ctx, options, cases, client, phase)
 }
 
-// demoBaselinePhase只增加观察与证据，不修改原资源、开关和故障开放期的判断。
+// demoBaselinePhase 只增加观察与证据，不修改原资源、开关和故障开放期的判断。
 func demoBaselinePhase(ctx context.Context, options generalizationCommand, cases map[string]demoScenario, client *doctorClient, phase string) error {
 	sources := demoBaselineSources{
 		memory: func(ctx context.Context) error { _, err := demoMemoryBytes(ctx); return err },
@@ -80,14 +75,14 @@ func demoBaselinePhase(ctx context.Context, options generalizationCommand, cases
 		},
 		wait: waitTick,
 	}
-	// run沿用其他观察原件目录，freeze没有计时状态时使用同一个生产缺省目录。
+	// run 沿用其他观察原件目录，freeze没有计时状态时使用同一个生产缺省目录。
 	if state, ok := ctx.Value(demoTimingKey{}).(*demoTimingState); ok && state != nil {
 		sources.root = state.root
 	}
 	return runDemoBaseline(ctx, options, cases, phase, sources)
 }
 
-// runDemoBaseline使用本调用原始time.Now单调时钟；任何落盘错误都阻止下一步。
+// runDemoBaseline 使用本调用原始time.Now单调时钟；任何落盘错误都阻止下一步。
 func runDemoBaseline(ctx context.Context, options generalizationCommand, cases map[string]demoScenario, phase string, sources demoBaselineSources) (problem error) {
 	started := time.Now()
 	if !regexp.MustCompile(`^phase09-[A-Za-z0-9_-]{1,56}$`).MatchString(options.runID) || phase != "freeze" && phase != "pre-inject" && phase != "post-cool" {
@@ -146,7 +141,7 @@ func runDemoBaseline(ctx context.Context, options generalizationCommand, cases m
 	return nil
 }
 
-// waitDemoBaselineHealth每轮重新判断全部场景，不能把不同轮的成功拼成同时健康。
+// waitDemoBaselineHealth 每轮重新判断全部场景，不能把不同轮的成功拼成同时健康。
 func waitDemoBaselineHealth(parent context.Context, options generalizationCommand, cases map[string]demoScenario, sources demoBaselineSources, observation *demoBaselineObservation) error {
 	started := time.Now()
 	startUTC := started.UTC()
@@ -195,7 +190,7 @@ func waitDemoBaselineHealth(parent context.Context, options generalizationComman
 	}
 }
 
-// demoBaselineDeadline还核对实际截止时刻，不能在context定时通知尚未调度时晚到放行。
+// demoBaselineDeadline 还核对实际截止时刻，不能在context定时通知尚未调度时晚到放行。
 func demoBaselineDeadline(ctx context.Context) error {
 	if err := ctx.Err(); err != nil {
 		return err

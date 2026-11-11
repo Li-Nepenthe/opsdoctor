@@ -1,6 +1,5 @@
 // 本文件：用虚构运行状态检查配对身份、随机排列和续跑矩阵。
 //
-// 主要内容：TestPairedPlanBoundary 验证每轮五配置各一次；TestGraderMock 检查免费总开关。
 // 阅读建议：测试不启动容器、不注入故障，也不会读取模型 Key。
 
 package runner
