@@ -65,51 +65,13 @@ func LoadRunbooks(files fs.FS) (*Runbooks, error) {
 		if entry.Name() == "README.md" {
 			continue
 		} // 导航说明不是供模型检索的排查正文。
-		if !entry.Type().IsRegular() || !strings.HasSuffix(entry.Name(), ".md") {
-			return nil, fmt.Errorf("手册目录只能包含普通 Markdown 文件")
-		}
-		file, err := files.Open(entry.Name())
+		raw, err := readRunbook(files, entry)
 		if err != nil {
 			return nil, err
 		}
-		raw, readErr := io.ReadAll(io.LimitReader(file, 32769))
-		closeErr := file.Close()
-		if readErr != nil {
-			return nil, readErr
-		}
-		if closeErr != nil {
-			return nil, closeErr
-		}
-		if len(raw) > 32768 || !utf8.Valid(raw) {
-			return nil, fmt.Errorf("手册必须是最多 32KiB 的 UTF-8 文本")
-		}
 		fmt.Fprintf(digest, "%s\x00%d\x00", entry.Name(), len(raw))
 		_, _ = digest.Write(raw)
-		body := strings.ReplaceAll(string(raw), "\r\n", "\n")
-		title := strings.TrimSpace(strings.TrimPrefix(strings.SplitN(body, "\n", 2)[0], "#"))
-		part := 0
-		for _, paragraph := range strings.Split(body, "\n\n") {
-			paragraph = strings.TrimSpace(paragraph)
-			if paragraph == "" || strings.HasPrefix(paragraph, "# ") {
-				continue
-			}
-			// 超长段分成多个完整 UTF-8 片段，后半段也进入索引，而不是被丢弃。
-			for paragraph != "" {
-				text := prefix(paragraph, 1500)
-				paragraph = paragraph[len(text):]
-				terms := searchWords(title + " " + text)
-				part++
-				counts := map[string]int{}
-				for _, term := range terms {
-					counts[term]++
-				}
-				for term := range counts {
-					index.frequency[term]++
-				}
-				index.chunks = append(index.chunks, runbookChunk{entry.Name(), title, text, counts, len(terms), part})
-				total += len(terms)
-			}
-		}
+		total += index.addRunbook(entry.Name(), raw)
 	}
 	if len(index.chunks) == 0 || total == 0 {
 		return nil, fmt.Errorf("排障手册没有可检索正文")
@@ -117,6 +79,62 @@ func LoadRunbooks(files fs.FS) (*Runbooks, error) {
 	index.average = float64(total) / float64(len(index.chunks))
 	index.Hash = hex.EncodeToString(digest.Sum(nil))
 	return index, nil
+}
+
+func readRunbook(files fs.FS, entry fs.DirEntry) ([]byte, error) {
+	if !entry.Type().IsRegular() || !strings.HasSuffix(entry.Name(), ".md") {
+		return nil, fmt.Errorf("手册目录只能包含普通 Markdown 文件")
+	}
+	file, err := files.Open(entry.Name())
+	if err != nil {
+		return nil, err
+	}
+	raw, readErr := io.ReadAll(io.LimitReader(file, 32769))
+	closeErr := file.Close()
+	if readErr != nil {
+		return nil, readErr
+	}
+	if closeErr != nil {
+		return nil, closeErr
+	}
+	if len(raw) > 32768 || !utf8.Valid(raw) {
+		return nil, fmt.Errorf("手册必须是最多 32KiB 的 UTF-8 文本")
+	}
+	return raw, nil
+}
+
+func (index *Runbooks) addRunbook(name string, raw []byte) int {
+	total := 0
+	body := strings.ReplaceAll(string(raw), "\r\n", "\n")
+	title := strings.TrimSpace(strings.TrimPrefix(strings.SplitN(body, "\n", 2)[0], "#"))
+	part := 0
+	for _, paragraph := range strings.Split(body, "\n\n") {
+		paragraph = strings.TrimSpace(paragraph)
+		if paragraph == "" || strings.HasPrefix(paragraph, "# ") {
+			continue
+		}
+		// 超长段分成多个完整 UTF-8 片段，后半段也进入索引，而不是被丢弃。
+		for paragraph != "" {
+			text := prefix(paragraph, 1500)
+			paragraph = paragraph[len(text):]
+			part++
+			total += index.addChunk(name, title, text, part)
+		}
+	}
+	return total
+}
+
+func (index *Runbooks) addChunk(name, title, text string, part int) int {
+	terms := searchWords(title + " " + text)
+	counts := map[string]int{}
+	for _, term := range terms {
+		counts[term]++
+	}
+	for term := range counts {
+		index.frequency[term]++
+	}
+	index.chunks = append(index.chunks, runbookChunk{name, title, text, counts, len(terms), part})
+	return len(terms)
 }
 
 // Search 使用固定 BM25 参数，不从当前实验的正确答案学习权重。
