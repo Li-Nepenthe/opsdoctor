@@ -29,10 +29,17 @@ import (
 
 // replaceReservationLua 在 Redis 内原子比较完整旧值，避免读与写之间被另一个请求插入。
 // KEEPTTL 保留原占位的有效期，重复请求不能不断把二十四小时往后延长。
-const replaceReservationLua = `if redis.call('GET', KEYS[1]) == ARGV[1] then redis.call('SET', KEYS[1], ARGV[2], 'XX', 'KEEPTTL'); return 1 end; return 0`
+const replaceReservationLua = `if redis.call('GET', KEYS[1]) == ARGV[1] then
+	redis.call('SET', KEYS[1], ARGV[2], 'XX', 'KEEPTTL');
+	return 1
+end;
+return 0`
 
 // deleteReservationLua 只删除自己看到的记录，旧请求不能删除过期后新建的同名占位。
-const deleteReservationLua = `if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end; return 0`
+const deleteReservationLua = `if redis.call('GET', KEYS[1]) == ARGV[1] then
+	return redis.call('DEL', KEYS[1])
+end;
+return 0`
 
 // RedisIdempotency 保存固定策略。真实状态只保存在 Redis，不依靠单个进程的内存锁。
 type RedisIdempotency struct {
@@ -58,7 +65,11 @@ func requestFingerprint(request CreateRequest) string {
 
 // Reserve 只有 SET NX 成功才授予执行权。Redis 故障时直接拒绝，不退回无保护下单。
 func (store *RedisIdempotency) Reserve(ctx context.Context, key string, request CreateRequest) (Reservation, bool, error) {
-	reservation := Reservation{Key: key, Owner: rand.Text(), Fingerprint: requestFingerprint(request), State: stateProcessing, SKUID: request.SKUID, ReviewAfter: time.Now().Add(store.processingBudget).UnixMilli()}
+	reservation := Reservation{
+		Key: key, Owner: rand.Text(), Fingerprint: requestFingerprint(request),
+		State: stateProcessing, SKUID: request.SKUID,
+		ReviewAfter: time.Now().Add(store.processingBudget).UnixMilli(),
+	}
 	data, err := json.Marshal(reservation)
 	if err != nil {
 		return Reservation{}, false, ErrIdempotencyUnavailable
@@ -96,24 +107,29 @@ func (store *RedisIdempotency) existing(ctx context.Context, key, fingerprint st
 		case stateCompleted, stateNeedsReview:
 			return reservation, nil
 		case stateProcessing:
-			if time.Now().UnixMilli() < reservation.ReviewAfter {
-				return reservation, nil
+			updated, err := store.reviewIfExpired(ctx, reservation)
+			if errors.Is(err, ErrOutcomeUnknown) {
+				continue
 			}
-			updated := reservation
-			updated.State = stateNeedsReview
-			if err := store.replace(ctx, reservation, updated); err != nil {
-				if errors.Is(err, ErrOutcomeUnknown) {
-					continue
-				}
-				return Reservation{}, err
-			}
-			updated.EnteredReview = true
-			return updated, nil
+			return updated, err
 		default:
 			return Reservation{}, ErrIdempotencyUnavailable
 		}
 	}
 	return Reservation{}, ErrIdempotencyUnavailable
+}
+
+func (store *RedisIdempotency) reviewIfExpired(ctx context.Context, reservation Reservation) (Reservation, error) {
+	if time.Now().UnixMilli() < reservation.ReviewAfter {
+		return reservation, nil
+	}
+	updated := reservation
+	updated.State = stateNeedsReview
+	if err := store.replace(ctx, reservation, updated); err != nil {
+		return Reservation{}, err
+	}
+	updated.EnteredReview = true
+	return updated, nil
 }
 
 // Complete 只把自己的处理中记录替换成完成结果，已经转成待核对的记录不能偷偷改回成功。
