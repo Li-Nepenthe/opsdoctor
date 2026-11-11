@@ -83,37 +83,43 @@ func DecodeSavedResponse(raw []byte, fallback string) (llm.Response, error) {
 	return result, nil
 }
 
-// decodeResponses 缓存读和缓存写都已经包含在输入总数里；推理量也包含在输出总数里。
+// responsesUsage 保留供应商拆出的命中、写入及推理量，结算时要区分其归属。
+type responsesUsage struct {
+	Input        int64 `json:"input_tokens"`
+	Output       int64 `json:"output_tokens"`
+	InputDetails struct {
+		Cached  int64 `json:"cached_tokens"`
+		Written int64 `json:"cache_write_tokens"`
+		Writes  struct {
+			Short int64 `json:"ttl_30m_tokens"`
+			Long  int64 `json:"ttl_12h_tokens"`
+		} `json:"cache_write_tokens_details"`
+	} `json:"input_tokens_details"`
+	OutputDetails struct {
+		Reasoning int64 `json:"reasoning_tokens"`
+	} `json:"output_tokens_details"`
+}
+
+// responseItem 按原顺序携带工具调用或文本，一个回复可以有多个条目。
+type responseItem struct {
+	Type      string `json:"type"`
+	CallID    string `json:"call_id"`
+	Name      string `json:"name"`
+	Arguments string `json:"arguments"`
+	Content   []struct {
+		Type string `json:"type"`
+		Text string `json:"text"`
+	} `json:"content"`
+}
+
+// decodeResponses 先确认费用是否已知，再解析回答。回答不完整时仍带回已确认的用量。
 func decodeResponses(raw []byte, fallback string) (llm.Response, error) {
 	result := llm.Response{Model: fallback, Message: llm.Message{Role: "assistant"}}
 	var body struct {
-		Model  string `json:"model"`
-		Status string `json:"status"`
-		Usage  *struct {
-			Input        int64 `json:"input_tokens"`
-			Output       int64 `json:"output_tokens"`
-			InputDetails struct {
-				Cached  int64 `json:"cached_tokens"`
-				Written int64 `json:"cache_write_tokens"`
-				Writes  struct {
-					Short int64 `json:"ttl_30m_tokens"`
-					Long  int64 `json:"ttl_12h_tokens"`
-				} `json:"cache_write_tokens_details"`
-			} `json:"input_tokens_details"`
-			OutputDetails struct {
-				Reasoning int64 `json:"reasoning_tokens"`
-			} `json:"output_tokens_details"`
-		} `json:"usage"`
-		Output []struct {
-			Type      string `json:"type"`
-			CallID    string `json:"call_id"`
-			Name      string `json:"name"`
-			Arguments string `json:"arguments"`
-			Content   []struct {
-				Type string `json:"type"`
-				Text string `json:"text"`
-			} `json:"content"`
-		} `json:"output"`
+		Model  string          `json:"model"`
+		Status string          `json:"status"`
+		Usage  *responsesUsage `json:"usage"`
+		Output []responseItem  `json:"output"`
 	}
 	if json.Unmarshal(raw, &body) != nil || body.Usage == nil {
 		return result, fmt.Errorf("模型 Responses 回复缺少用量，费用待核对")
@@ -134,11 +140,17 @@ func decodeResponses(raw []byte, fallback string) (llm.Response, error) {
 	if body.Status != "completed" {
 		return result, fmt.Errorf("模型 Responses 未完成完整回答（%s），已记录接口返回的用量", body.Status)
 	}
+	err := readResponseItems(body.Output, &result.Message)
+	return result, err
+}
+
+// readResponseItems 保留工具调用的供应商编号。遇到未支持的条目时返回已读到的调用，不把未读完的文本作为完整回答。
+func readResponseItems(items []responseItem, message *llm.Message) error {
 	var text []string
-	for _, item := range body.Output {
+	for _, item := range items {
 		switch item.Type {
 		case "function_call":
-			result.Message.ToolCalls = append(result.Message.ToolCalls, llm.ToolCall{ID: item.CallID, Type: "function", Function: llm.Function{Name: item.Name, Arguments: item.Arguments}})
+			message.ToolCalls = append(message.ToolCalls, llm.ToolCall{ID: item.CallID, Type: "function", Function: llm.Function{Name: item.Name, Arguments: item.Arguments}})
 		case "message":
 			for _, part := range item.Content {
 				if part.Type == "output_text" {
@@ -147,13 +159,13 @@ func decodeResponses(raw []byte, fallback string) (llm.Response, error) {
 			}
 		case "reasoning":
 			// 当前明确使用 none；若供应商仍返回推理条目，不丢弃后假装可安全续接。
-			return result, fmt.Errorf("非思考模式返回了推理条目，需核对协议后继续")
+			return fmt.Errorf("非思考模式返回了推理条目，需核对协议后继续")
 		default:
-			return result, fmt.Errorf("模型 Responses 返回了未注册的条目类型")
+			return fmt.Errorf("模型 Responses 返回了未注册的条目类型")
 		}
 	}
-	result.Message.Content = strings.Join(text, "\n")
-	return result, nil
+	message.Content = strings.Join(text, "\n")
+	return nil
 }
 
 // validateUsage 既防负数，也防把同一批输入同时当成命中和写入来重复抵扣费用。
