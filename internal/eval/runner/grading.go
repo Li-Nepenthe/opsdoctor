@@ -229,7 +229,10 @@ func (value *grader) gradeSlot(ctx context.Context, slot store.EvalResult, scena
 	// 取消只中断付费请求，收尾仍留短预算保存已发生的费用与失败。
 	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
 	defer cancel()
-	if err = value.repository.FinishEvalJudge(cleanup, slot.Key, audit.ID, encoded, response, elapsed, grade.Error); err != nil {
+	if err = value.repository.FinishEvalJudge(cleanup, store.EvalJudgeResult{
+		ResultKey: slot.Key, JudgeID: audit.ID, Judgement: encoded,
+		Response: response, Elapsed: elapsed, Problem: grade.Error,
+	}); err != nil {
 		return err
 	}
 	if errors.Is(problem, llm.ErrBudget) || errors.Is(problem, llm.ErrEvaluationBudget) {

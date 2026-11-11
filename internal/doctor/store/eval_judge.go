@@ -128,12 +128,22 @@ func (store *Store) SavedEvalJudgeResponse(ctx context.Context, id string) (llm.
 	return result, rows.Err()
 }
 
+// EvalJudgeResult 将评分和模型用量记入同一份审计。跨进程恢复时 Elapsed 为空。
+type EvalJudgeResult struct {
+	ResultKey string
+	JudgeID   string
+	Judgement json.RawMessage
+	Response  llm.Response
+	Elapsed   *time.Duration
+	Problem   string
+}
+
 // FinishEvalJudge 同时保存评分和终态；失败、费用、原回复都保留，不允许换成更好的一次。
-func (store *Store) FinishEvalJudge(ctx context.Context, key, id string, data json.RawMessage, response llm.Response, elapsed *time.Duration, problem string) error {
-	if !json.Valid(data) || len(data) > 65536 {
+func (store *Store) FinishEvalJudge(ctx context.Context, result EvalJudgeResult) error {
+	if !json.Valid(result.Judgement) || len(result.Judgement) > 65536 {
 		return fmt.Errorf("评分结果不合法")
 	}
-	clean, err := store.config.Redactor.JSON(data)
+	clean, err := store.config.Redactor.JSON(result.Judgement)
 	if err != nil {
 		return err
 	}
@@ -144,10 +154,10 @@ func (store *Store) FinishEvalJudge(ctx context.Context, key, id string, data js
 	defer tx.Rollback()
 	var previous []byte
 	var savedID string
-	if err = tx.QueryRowContext(ctx, "SELECT judge_id,judgement FROM eval_results WHERE result_key=? FOR UPDATE", key).Scan(&savedID, &previous); err != nil {
+	if err = tx.QueryRowContext(ctx, "SELECT judge_id,judgement FROM eval_results WHERE result_key=? FOR UPDATE", result.ResultKey).Scan(&savedID, &previous); err != nil {
 		return err
 	}
-	if savedID != id {
+	if savedID != result.JudgeID {
 		return fmt.Errorf("评分与结果槽位不一致")
 	}
 	if len(previous) > 0 {
@@ -157,15 +167,15 @@ func (store *Store) FinishEvalJudge(ctx context.Context, key, id string, data js
 		return nil
 	}
 	status := "succeeded"
-	if problem != "" {
+	if result.Problem != "" {
 		status = "failed"
 	}
 	var duration any
-	if elapsed != nil {
-		duration = max(0, elapsed.Milliseconds())
+	if result.Elapsed != nil {
+		duration = max(0, result.Elapsed.Milliseconds())
 	}
 	// 跨进程恢复缺少完整单调时钟，时长保留 NULL；不拿当前处理时间冒充总时长。
-	changed, err := tx.ExecContext(ctx, "UPDATE diagnoses SET status=?,report=?,error=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cost_micros=?,duration_ms=?,finished_at=UTC_TIMESTAMP(6) WHERE id=? AND `trigger`='judge' AND status='running'", status, clean, store.config.Redactor.Text(problem), response.Usage.Input, response.Usage.Output, response.Usage.CacheHit, response.CostMicros, duration, id)
+	changed, err := tx.ExecContext(ctx, "UPDATE diagnoses SET status=?,report=?,error=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cost_micros=?,duration_ms=?,finished_at=UTC_TIMESTAMP(6) WHERE id=? AND `trigger`='judge' AND status='running'", status, clean, store.config.Redactor.Text(result.Problem), result.Response.Usage.Input, result.Response.Usage.Output, result.Response.Usage.CacheHit, result.Response.CostMicros, duration, result.JudgeID)
 	if err != nil {
 		return err
 	}
@@ -176,7 +186,7 @@ func (store *Store) FinishEvalJudge(ctx context.Context, key, id string, data js
 	if count != 1 {
 		return fmt.Errorf("评分审计已被取消或不在运行状态")
 	}
-	if _, err = tx.ExecContext(ctx, "UPDATE eval_results SET judgement=? WHERE result_key=?", clean, key); err != nil {
+	if _, err = tx.ExecContext(ctx, "UPDATE eval_results SET judgement=? WHERE result_key=?", clean, result.ResultKey); err != nil {
 		return err
 	}
 	return tx.Commit()

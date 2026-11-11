@@ -102,11 +102,16 @@ func TestIntegrationEvalJudge(t *testing.T) {
 		t.Fatalf("恢复=%+v %v", response, err)
 	}
 	for range 2 {
-		if err = repository.FinishEvalJudge(ctx, slot.Key, value.ID, json.RawMessage(`{"status":"failed","reason":"中断"}`), response, nil, "中断"); err != nil {
+		if err = repository.FinishEvalJudge(ctx, EvalJudgeResult{
+			ResultKey: slot.Key, JudgeID: value.ID, Judgement: json.RawMessage(`{"status":"failed","reason":"中断"}`),
+			Response: response, Problem: "中断",
+		}); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err = repository.FinishEvalJudge(ctx, slot.Key, value.ID, json.RawMessage(`{"status":"ok"}`), response, nil, ""); err == nil {
+	if err = repository.FinishEvalJudge(ctx, EvalJudgeResult{
+		ResultKey: slot.Key, JudgeID: value.ID, Judgement: json.RawMessage(`{"status":"ok"}`), Response: response,
+	}); err == nil {
 		t.Fatal("评分失败被覆盖")
 	}
 	status, err := ledger.Status(ctx)
