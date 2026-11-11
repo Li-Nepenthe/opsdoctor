@@ -171,19 +171,26 @@ func gradingRows(output io.Writer, rows []store.EvalResult, requireAudit bool) e
 		} else if grade.Status == "failed" {
 			label, reason = "评分失败", grade.Error
 		}
-		if requireAudit || requiresCollectionAudit(row) {
-			quality := CollectionQuality(result)
-			if quality != QualityNormal {
-				note := "不计入正常统计"
-				if len(row.Judgement) > 0 {
-					note = "仅保留原评分"
-				}
-				label += "（采集 " + quality + "；" + note + "）"
-			}
-		}
+		label += collectionGradeNote(row, result, requireAudit)
 		if _, err := fmt.Fprintf(output, "| %s | %s | %s | %s | %s | CNY %.6f | %t | %d / %d |\n", cell(row.Key), cell(result.Error+" "+result.BudgetReason), cell(label), cell(reason), coverage, float64(grade.CostMicros)/1e6, result.InjectionObserved, result.ApprovalProposals, result.WriteExecutions); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// collectionGradeNote 给未通过窗口审计的槽位注明分母口径，已有的评分仍可查看。
+func collectionGradeNote(row store.EvalResult, result Summary, requireAudit bool) string {
+	if !requireAudit && !requiresCollectionAudit(row) {
+		return ""
+	}
+	quality := CollectionQuality(result)
+	if quality == QualityNormal {
+		return ""
+	}
+	note := "不计入正常统计"
+	if len(row.Judgement) > 0 {
+		note = "仅保留原评分"
+	}
+	return "（采集 " + quality + "；" + note + "）"
 }
