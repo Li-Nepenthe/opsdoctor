@@ -68,39 +68,8 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 		return fmt.Errorf("用法：eval check-clock；或 eval prepare|pilot|finish|export|freeze|matrix|run|calibrate|amend-clock|amend-baseline --run 批次 [--model 模型 --scenario 场景 --allow-paid]")
 	}
 	options := command{action: args[0]}
-	flags := flag.NewFlagSet("eval "+args[0], flag.ContinueOnError)
-	flags.SetOutput(output)
-	flags.StringVar(&options.runID, "run", "", "持久化批次编号")
-	flags.Int64Var(&options.interruption, "interruption", 0, "用户批准重启的原中断编号")
-	flags.StringVar(&options.reason, "reason", "", "用户批准基础设施调整的具体原因")
-	flags.StringVar(&options.makeupKey, "makeup-key", "", "明确允许补跑的原中断槽位")
-	flags.StringVar(&options.target, "target", "shop", "已经接入的系统")
-	flags.StringVar(&options.model, "model", "mock-script-v1", "明确指定医生模型")
-	flags.StringVar(&options.scenario, "scenario", "", "已经注入并验证的场景")
-	flags.IntVar(&options.iterations, "iterations", 3, "冻结批次的每场景次数，1 到 3")
-	flags.IntVar(&options.iteration, "iteration", 1, "本次运行的轮次")
-	flags.BoolVar(&options.paid, "allow-paid", false, "本次允许使用已授权的真实模型额度")
-	cases := flags.String("scenarios", "S01,S03,S10", "本批两至三个 E1 试跑场景")
-	if err := flags.Parse(args[1:]); err != nil {
+	if err := options.parseFlags(args, output); err != nil {
 		return err
-	}
-	if flags.NArg() != 0 || options.runID == "" {
-		return fmt.Errorf("请指定 --run，且不要提供额外位置参数")
-	}
-	options.cases = strings.Split(*cases, ",")
-	paired := options.action == "freeze" || options.action == "matrix" || options.action == "run"
-	if options.iterations < 1 || options.iterations > 3 || options.iteration < 1 || options.iteration > options.iterations {
-		return fmt.Errorf("次数须为 1 到 3，当前轮次不能超出批次")
-	}
-	if !paired && (len(options.cases) < 2 || len(options.cases) > 3) {
-		return fmt.Errorf("第一停点前只安排两至三个试跑场景")
-	}
-	seen := map[string]bool{}
-	for _, name := range options.cases {
-		if !slices.Contains([]string{"S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "S13"}, name) || seen[name] {
-			return fmt.Errorf("试跑清单必须是不重复的已实现故障场景")
-		}
-		seen[name] = true
 	}
 	var err error
 	options.tokens, err = evalTokenBudget(reader)
@@ -173,6 +142,45 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 		return finish(ctx, options, repository, client, output)
 	}
 	return fmt.Errorf("未知操作")
+}
+
+// parseFlags 完成普通评测命令的参数校验后，RunCLI 才会读取预算和连接配置。
+func (options *command) parseFlags(args []string, output io.Writer) error {
+	flags := flag.NewFlagSet("eval "+args[0], flag.ContinueOnError)
+	flags.SetOutput(output)
+	flags.StringVar(&options.runID, "run", "", "持久化批次编号")
+	flags.Int64Var(&options.interruption, "interruption", 0, "用户批准重启的原中断编号")
+	flags.StringVar(&options.reason, "reason", "", "用户批准基础设施调整的具体原因")
+	flags.StringVar(&options.makeupKey, "makeup-key", "", "明确允许补跑的原中断槽位")
+	flags.StringVar(&options.target, "target", "shop", "已经接入的系统")
+	flags.StringVar(&options.model, "model", "mock-script-v1", "明确指定医生模型")
+	flags.StringVar(&options.scenario, "scenario", "", "已经注入并验证的场景")
+	flags.IntVar(&options.iterations, "iterations", 3, "冻结批次的每场景次数，1 到 3")
+	flags.IntVar(&options.iteration, "iteration", 1, "本次运行的轮次")
+	flags.BoolVar(&options.paid, "allow-paid", false, "本次允许使用已授权的真实模型额度")
+	cases := flags.String("scenarios", "S01,S03,S10", "本批两至三个 E1 试跑场景")
+	if err := flags.Parse(args[1:]); err != nil {
+		return err
+	}
+	if flags.NArg() != 0 || options.runID == "" {
+		return fmt.Errorf("请指定 --run，且不要提供额外位置参数")
+	}
+	options.cases = strings.Split(*cases, ",")
+	paired := options.action == "freeze" || options.action == "matrix" || options.action == "run"
+	if options.iterations < 1 || options.iterations > 3 || options.iteration < 1 || options.iteration > options.iterations {
+		return fmt.Errorf("次数须为 1 到 3，当前轮次不能超出批次")
+	}
+	if !paired && (len(options.cases) < 2 || len(options.cases) > 3) {
+		return fmt.Errorf("第一停点前只安排两至三个试跑场景")
+	}
+	seen := map[string]bool{}
+	for _, name := range options.cases {
+		if !slices.Contains([]string{"S01", "S02", "S03", "S04", "S05", "S06", "S07", "S08", "S09", "S10", "S11", "S12", "S13"}, name) || seen[name] {
+			return fmt.Errorf("试跑清单必须是不重复的已实现故障场景")
+		}
+		seen[name] = true
+	}
+	return nil
 }
 
 // prepare 先核对健康环境，再保存版本和暂停状态；此命令本身不会调用付费模型。
