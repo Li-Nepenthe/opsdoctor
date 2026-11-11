@@ -13,7 +13,7 @@ func (store *Store) EvalReliability(ctx context.Context, id string) (bool, error
 	// 只认评测任务的终态；普通诊断和执行中的中间状态不能变成“可补跑”。
 	var state string
 	var hasReport bool
-	if err := store.database.QueryRowContext(ctx, "SELECT status,(report IS NOT NULL AND JSON_TYPE(report)<>'NULL') FROM diagnoses WHERE id=? AND `trigger`='eval'", id).Scan(&state, &hasReport); err != nil {
+	if err := store.database.QueryRowContext(ctx, readEvalReliabilitySQL, id).Scan(&state, &hasReport); err != nil {
 		return false, err
 	}
 	rows, err := store.database.QueryContext(ctx, "SELECT status FROM llm_attempts WHERE diagnosis_id=? ORDER BY created_at,id", id)
@@ -79,9 +79,44 @@ func (store *Store) PrepareEvalMakeup(ctx context.Context, originalKey string) (
 		return EvalResult{}, fmt.Errorf("原槽位编号过长，无法附加补跑编号")
 	}
 	// 所有复制字段来自已保存的原槽位，调用方不能借补跑换模型输入或故障时间。
-	_, err = store.database.ExecContext(ctx, "INSERT INTO eval_results(result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,attempt,retry_of,execution_profile) SELECT ?,original.run_id,original.scenario,original.iteration,original.experiment_group,original.position,original.fault_started_at,original.input,1,original.result_key,original.execution_profile FROM eval_results AS original WHERE original.result_key=? ON DUPLICATE KEY UPDATE result_key=eval_results.result_key", key, original.Key)
+	_, err = store.database.ExecContext(ctx, insertMakeupSlotSQL, key, original.Key)
 	if err != nil {
 		return EvalResult{}, err
 	}
 	return store.readEvalResult(ctx, key)
 }
+
+const readEvalReliabilitySQL = `SELECT status,(report IS NOT NULL
+               AND JSON_TYPE(report) <> 'NULL')
+FROM diagnoses
+WHERE id = ?
+    AND ` + "`trigger`" + ` = 'eval'`
+
+const insertMakeupSlotSQL = `INSERT INTO eval_results (
+    result_key,
+    run_id,
+    scenario,
+    iteration,
+    experiment_group,
+    position,
+    fault_started_at,
+    input,
+    attempt,
+    retry_of,
+    execution_profile
+)
+SELECT
+    ?,
+    original.run_id,
+    original.scenario,
+    original.iteration,
+    original.experiment_group,
+    original.position,
+    original.fault_started_at,
+    original.input,
+    1,
+    original.result_key,
+    original.execution_profile
+FROM eval_results AS original
+WHERE original.result_key = ?
+ON DUPLICATE KEY UPDATE result_key = eval_results.result_key`

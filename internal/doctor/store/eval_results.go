@@ -46,7 +46,7 @@ func (store *Store) PrepareEvalResult(ctx context.Context, value EvalResult) (Ev
 		return value, err
 	}
 	// 与恢复文件的比较统一用微秒截断，不能交给数据库自行四舍五入。
-	_, err = store.database.ExecContext(ctx, "INSERT INTO eval_results(result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,execution_profile) VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE result_key=result_key", value.Key, value.RunID, value.Scenario, value.Iteration, value.Group, value.Position, value.FaultStartedAt.UTC().Truncate(time.Microsecond), clean, value.ExecutionProfile)
+	_, err = store.database.ExecContext(ctx, freezeEvalSlotSQL, value.Key, value.RunID, value.Scenario, value.Iteration, value.Group, value.Position, value.FaultStartedAt.UTC().Truncate(time.Microsecond), clean, value.ExecutionProfile)
 	if err != nil {
 		return value, err
 	}
@@ -67,7 +67,7 @@ func (store *Store) readEvalResult(ctx context.Context, key string) (EvalResult,
 		EvalResult
 		data, judgement []byte // 结果和评分在各自结束前可以是 SQL NULL。
 	}
-	err := store.database.QueryRowContext(ctx, "SELECT result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,COALESCE(diagnosis_id,''),result,attempt,COALESCE(retry_of,''),execution_profile,COALESCE(judge_id,''),judgement FROM eval_results WHERE result_key=?", key).Scan(
+	err := store.database.QueryRowContext(ctx, readEvalResultSQL, key).Scan(
 		&row.Key,
 		&row.RunID,
 		&row.Scenario,
@@ -90,7 +90,7 @@ func (store *Store) readEvalResult(ctx context.Context, key string) (EvalResult,
 
 // AttachEvalDiagnosis 只接受同批次、同幂等编号的任务，不能把另一次好结果移过来替换失败。
 func (store *Store) AttachEvalDiagnosis(ctx context.Context, key, id string) error {
-	changed, err := store.database.ExecContext(ctx, "UPDATE eval_results r JOIN diagnoses d ON d.id=? AND d.eval_key=r.result_key AND d.eval_run_id=r.run_id AND d.eval_profile=r.execution_profile SET r.diagnosis_id=d.id WHERE r.result_key=? AND (r.diagnosis_id IS NULL OR r.diagnosis_id=d.id)", id, key)
+	changed, err := store.database.ExecContext(ctx, attachEvalDiagnosisSQL, id, key)
 	if err != nil {
 		return err
 	}
@@ -117,7 +117,7 @@ func (store *Store) FinishEvalResult(ctx context.Context, key string, result jso
 	if err != nil {
 		return err
 	}
-	if _, err = store.database.ExecContext(ctx, "UPDATE eval_results r JOIN diagnoses d ON d.id=r.diagnosis_id SET r.result=?,r.finished_at=UTC_TIMESTAMP(6) WHERE r.result_key=? AND r.result IS NULL AND d.status IN ('succeeded','failed','cancelled','budget_exceeded')", clean, key); err != nil {
+	if _, err = store.database.ExecContext(ctx, finishEvalResultSQL, clean, key); err != nil {
 		return err
 	}
 	saved, err := store.readEvalResult(ctx, key)
@@ -164,3 +164,69 @@ func (store *Store) EvalResults(ctx context.Context, runID string) ([]EvalResult
 	}
 	return values, nil
 }
+
+const freezeEvalSlotSQL = `INSERT INTO eval_results (
+    result_key,
+    run_id,
+    scenario,
+    iteration,
+    experiment_group,
+    position,
+    fault_started_at,
+    input,
+    execution_profile
+)
+VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
+)
+ON DUPLICATE KEY UPDATE result_key = result_key`
+
+const readEvalResultSQL = `SELECT
+    result_key,
+    run_id,
+    scenario,
+    iteration,
+    experiment_group,
+    position,
+    fault_started_at,
+    input,
+    COALESCE(diagnosis_id, ''),
+    result,
+    attempt,
+    COALESCE(retry_of, ''),
+    execution_profile,
+    COALESCE(judge_id, ''),
+    judgement
+FROM eval_results
+WHERE result_key = ?`
+
+const attachEvalDiagnosisSQL = `UPDATE eval_results r
+JOIN diagnoses d ON d.id = ?
+AND d.eval_key = r.result_key
+AND d.eval_run_id = r.run_id
+AND d.eval_profile = r.execution_profile
+SET r.diagnosis_id = d.id
+WHERE r.result_key = ?
+    AND (r.diagnosis_id IS NULL
+         OR r.diagnosis_id = d.id)`
+
+const finishEvalResultSQL = `UPDATE eval_results r
+JOIN diagnoses d ON d.id = r.diagnosis_id
+SET
+    r.result = ?,
+    r.finished_at = UTC_TIMESTAMP(6)
+WHERE r.result_key = ?
+    AND r.result IS NULL
+    AND d.status IN (
+                         'succeeded',
+                         'failed',
+                         'cancelled',
+                         'budget_exceeded')`

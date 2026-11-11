@@ -28,11 +28,11 @@ func (store *Store) EvalTrial(ctx context.Context, runID, scenario string, itera
 	if !validEvalTrial(runID, scenario, iteration) {
 		return value, fmt.Errorf("实验轮次不合法")
 	}
-	_, err := store.database.ExecContext(ctx, "INSERT INTO eval_trials(run_id,scenario,iteration) VALUES(?,?,?) ON DUPLICATE KEY UPDATE run_id=run_id", runID, scenario, iteration)
+	_, err := store.database.ExecContext(ctx, ensureEvalTrialSQL, runID, scenario, iteration)
 	if err != nil {
 		return value, err
 	}
-	err = store.database.QueryRowContext(ctx, "SELECT state,fault_started_at,restored_at,GREATEST(0,300-TIMESTAMPDIFF(SECOND,COALESCE(restored_at,UTC_TIMESTAMP(6)),UTC_TIMESTAMP(6))) FROM eval_trials WHERE run_id=? AND scenario=? AND iteration=?", runID, scenario, iteration).Scan(&value.State, &value.FaultStartedAt, &value.RestoredAt, &value.CooldownSeconds)
+	err = store.database.QueryRowContext(ctx, readEvalTrialSQL, runID, scenario, iteration).Scan(&value.State, &value.FaultStartedAt, &value.RestoredAt, &value.CooldownSeconds)
 	return value, err
 }
 
@@ -65,7 +65,7 @@ func (store *Store) AdvanceEvalTrial(ctx context.Context, value EvalTrial, next 
 		value := fault.UTC().Truncate(time.Microsecond)
 		persistedFault = &value
 	}
-	result, err := store.database.ExecContext(ctx, "UPDATE eval_trials SET state=?,fault_started_at=COALESCE(fault_started_at,?),restored_at=IF(?='cooling',UTC_TIMESTAMP(6),restored_at),updated_at=UTC_TIMESTAMP(6) WHERE run_id=? AND scenario=? AND iteration=? AND state=?", next, persistedFault, next, value.RunID, value.Scenario, value.Iteration, value.State)
+	result, err := store.database.ExecContext(ctx, advanceEvalTrialSQL, next, persistedFault, next, value.RunID, value.Scenario, value.Iteration, value.State)
 	if err != nil {
 		return err
 	}
@@ -78,7 +78,7 @@ func (store *Store) AdvanceEvalTrial(ctx context.Context, value EvalTrial, next 
 
 // InterruptEval 保存每次失败，不覆盖旧原因；内容仍先经过统一脱敏。
 func (store *Store) InterruptEval(ctx context.Context, value EvalTrial, reason string) error {
-	_, err := store.database.ExecContext(ctx, "INSERT INTO eval_interruptions(run_id,scenario,iteration,state,reason) VALUES(?,?,?,?,?)", value.RunID, value.Scenario, value.Iteration, value.State, store.config.Redactor.Text(reason))
+	_, err := store.database.ExecContext(ctx, interruptEvalTrialSQL, value.RunID, value.Scenario, value.Iteration, value.State, store.config.Redactor.Text(reason))
 	return err
 }
 
@@ -90,3 +90,41 @@ func (store *Store) SetEvalRunState(ctx context.Context, id, state string) error
 	_, err := store.database.ExecContext(ctx, "UPDATE eval_runs SET status=?,updated_at=UTC_TIMESTAMP(6) WHERE id=?", state, id)
 	return err
 }
+
+const ensureEvalTrialSQL = `INSERT INTO eval_trials (
+    run_id,
+    scenario,
+    iteration
+)
+VALUES (?, ?, ?)
+ON DUPLICATE KEY UPDATE run_id = run_id`
+
+const readEvalTrialSQL = `SELECT
+    state,
+    fault_started_at,
+    restored_at,
+    GREATEST(0, 300 - TIMESTAMPDIFF(SECOND, COALESCE(restored_at, UTC_TIMESTAMP(6)), UTC_TIMESTAMP(6)))
+FROM eval_trials
+WHERE run_id = ?
+    AND scenario = ?
+    AND iteration = ?`
+
+const advanceEvalTrialSQL = `UPDATE eval_trials
+SET
+    state = ?,
+    fault_started_at = COALESCE(fault_started_at, ?),
+    restored_at = IF(? = 'cooling', UTC_TIMESTAMP(6), restored_at),
+    updated_at = UTC_TIMESTAMP(6)
+WHERE run_id = ?
+    AND scenario = ?
+    AND iteration = ?
+    AND state = ?`
+
+const interruptEvalTrialSQL = `INSERT INTO eval_interruptions (
+    run_id,
+    scenario,
+    iteration,
+    state,
+    reason
+)
+VALUES (?, ?, ?, ?, ?)`

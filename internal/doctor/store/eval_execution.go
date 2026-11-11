@@ -36,6 +36,16 @@ func (store *Store) RecordEvalExecution(ctx context.Context, audit EvalExecution
 	if audit.Operation != "run" && !validEvalTrial(audit.RunID, audit.Scenario, audit.Iteration) {
 		return fmt.Errorf("执行审计轮次不合法")
 	}
-	_, err := store.database.ExecContext(ctx, "INSERT INTO eval_execution_audits(run_id,scenario,iteration,operation,result_key,versions) VALUES(?,?,?,?,?,?)", audit.RunID, audit.Scenario, audit.Iteration, audit.Operation, audit.ResultKey, audit.Versions)
+	_, err := store.database.ExecContext(ctx, insertExecutionAuditSQL, audit.RunID, audit.Scenario, audit.Iteration, audit.Operation, audit.ResultKey, audit.Versions)
 	return err
 }
+
+const insertExecutionAuditSQL = `INSERT INTO eval_execution_audits (
+    run_id,
+    scenario,
+    iteration,
+    operation,
+    result_key,
+    versions
+)
+VALUES (?, ?, ?, ?, ?, ?)`

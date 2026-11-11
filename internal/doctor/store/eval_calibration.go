@@ -33,7 +33,7 @@ func (store *Store) SaveEvalCalibration(ctx context.Context, id string, keys []s
 		seen[key] = true
 		// 核对归属，调用者不能把其他批次的报告移进这一轮校准。
 		var count int
-		if err := store.database.QueryRowContext(ctx, "SELECT COUNT(*) FROM eval_results r JOIN eval_runs e ON e.id=r.run_id WHERE r.result_key=? AND r.run_id=? AND r.result IS NOT NULL AND r.judgement IS NOT NULL AND e.status='completed'", key, id).Scan(&count); err != nil {
+		if err := store.database.QueryRowContext(ctx, completedCalibrationSlotSQL, key, id).Scan(&count); err != nil {
 			return nil, err
 		}
 		if count != 1 {
@@ -47,3 +47,12 @@ func (store *Store) SaveEvalCalibration(ctx context.Context, id string, keys []s
 	}
 	return store.EvalCalibration(ctx, id)
 }
+
+const completedCalibrationSlotSQL = `SELECT COUNT(*)
+FROM eval_results r
+JOIN eval_runs e ON e.id = r.run_id
+WHERE r.result_key = ?
+    AND r.run_id = ?
+    AND r.result IS NOT NULL
+    AND r.judgement IS NOT NULL
+    AND e.status = 'completed'`

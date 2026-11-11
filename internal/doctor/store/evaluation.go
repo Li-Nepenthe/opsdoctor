@@ -79,7 +79,7 @@ func (store *Store) SetEvaluationMode(ctx context.Context, target, runID string,
 			return fmt.Errorf("评测批次绑定了另一个系统")
 		}
 	}
-	if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM diagnoses WHERE target=? AND (status IN ('running','waiting_approval') OR (`trigger`='eval' AND status='pending'))", target).Scan(&busy); err != nil {
+	if err = tx.QueryRowContext(ctx, activeTargetDiagnosesSQL, target).Scan(&busy); err != nil {
 		return err
 	}
 	if busy != 0 {
@@ -88,19 +88,19 @@ func (store *Store) SetEvaluationMode(ctx context.Context, target, runID string,
 	if !enabled {
 		// 退出时还要等告警观察期结束，否则刚解除暂停就可能为上一场故障再次花钱。
 		now := store.config.Now().UTC()
-		if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM alert_groups WHERE target=? AND diagnosis_id IS NOT NULL AND ((closed_at IS NULL AND last_seen_at>?) OR recovery_until>?)", target, now.Add(-store.config.FaultSilence), now).Scan(&busy); err != nil {
+		if err = tx.QueryRowContext(ctx, targetFaultWindowSQL, target, now.Add(-store.config.FaultSilence), now).Scan(&busy); err != nil {
 			return err
 		}
 		if busy != 0 {
 			return fmt.Errorf("故障仍开放或正在恢复观察，暂不能恢复自动诊断")
 		}
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO evaluation_targets(target,run_id,enabled) VALUES(?,?,?) ON DUPLICATE KEY UPDATE run_id=?,enabled=?,updated_at=UTC_TIMESTAMP(6)", target, runID, enabled, runID, enabled); err != nil {
+	if _, err = tx.ExecContext(ctx, setTargetModeSQL, target, runID, enabled, runID, enabled); err != nil {
 		return err
 	}
 	if enabled {
 		// 已排队的旧告警也不能留到退出模式后付费执行；保留明确原因供页面说明。
-		_, err = tx.ExecContext(ctx, "UPDATE diagnoses SET status='cancelled',error='进入评测模式，告警自动诊断已暂停',finished_at=UTC_TIMESTAMP(6) WHERE target=? AND `trigger`='alert' AND status='pending'", target)
+		_, err = tx.ExecContext(ctx, cancelPendingTargetAlertsSQL, target)
 		if err != nil {
 			return err
 		}
@@ -135,7 +135,7 @@ func (store *Store) Evaluation(ctx context.Context, value EvaluationInput) (stri
 	if err = tx.QueryRowContext(ctx, "SELECT id FROM scheduler_guard WHERE id=1 FOR UPDATE").Scan(&guard); err != nil {
 		return "", err
 	}
-	if err = tx.QueryRowContext(ctx, "SELECT enabled,run_id FROM evaluation_targets WHERE target=? FOR UPDATE", value.Target).Scan(&mode.Enabled, &mode.RunID); err != nil {
+	if err = tx.QueryRowContext(ctx, lockTargetModeSQL, value.Target).Scan(&mode.Enabled, &mode.RunID); err != nil {
 		return "", err
 	}
 	if !mode.Enabled || mode.RunID != value.RunID {
@@ -147,7 +147,7 @@ func (store *Store) Evaluation(ctx context.Context, value EvaluationInput) (stri
 		currency = store.config.Currency // 仅兼容原来没有配对配置的入口。
 	}
 	// 入库和下方幂等比较使用同一种精度；否则纳秒被四舍五入后会立即比较失败。
-	_, err = tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,fault_started_at,eval_group,eval_expected_model,eval_key,eval_run_id,eval_profile,eval_provider,eval_account,currency) VALUES(?,?,'eval','pending',?,'',?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE id=id", id, value.Target, "评测 "+value.Group, clean, value.FaultStartedAt.UTC().Truncate(time.Microsecond), value.Group, value.ExpectedModel, value.Key, value.RunID, value.ExecutionProfile, value.Provider, value.Account, currency)
+	_, err = tx.ExecContext(ctx, insertEvalDiagnosisSQL, id, value.Target, "评测 "+value.Group, clean, value.FaultStartedAt.UTC().Truncate(time.Microsecond), value.Group, value.ExpectedModel, value.Key, value.RunID, value.ExecutionProfile, value.Provider, value.Account, currency)
 	if err != nil {
 		return "", err
 	}
@@ -157,7 +157,7 @@ func (store *Store) Evaluation(ctx context.Context, value EvaluationInput) (stri
 		input                                       []byte
 		start                                       time.Time
 	}
-	if err = tx.QueryRowContext(ctx, "SELECT id,target,eval_group,eval_expected_model,fault_started_at,input,eval_run_id,eval_profile,eval_provider,eval_account,currency FROM diagnoses WHERE eval_key=?", value.Key).Scan(
+	if err = tx.QueryRowContext(ctx, readFrozenEvalInputSQL, value.Key).Scan(
 		&saved.id,
 		&saved.target,
 		&saved.group,
@@ -192,3 +192,101 @@ func sameJSON(left, right []byte) bool {
 	y, _ := json.Marshal(b)
 	return string(x) == string(y)
 }
+
+const activeTargetDiagnosesSQL = `SELECT COUNT(*)
+FROM diagnoses
+WHERE target = ?
+    AND (status IN (
+                        'running',
+                        'waiting_approval')
+         OR (` + "`trigger`" + ` = 'eval'
+             AND status = 'pending'))`
+
+const targetFaultWindowSQL = `SELECT COUNT(*)
+FROM alert_groups
+WHERE target = ?
+    AND diagnosis_id IS NOT NULL
+    AND ((closed_at IS NULL
+          AND last_seen_at > ?)
+         OR recovery_until > ?)`
+
+const setTargetModeSQL = `INSERT INTO evaluation_targets (
+    target,
+    run_id,
+    enabled
+)
+VALUES (?, ?, ?)
+ON DUPLICATE KEY UPDATE
+    run_id = ?,
+    enabled = ?,
+    updated_at = UTC_TIMESTAMP(6)`
+
+const cancelPendingTargetAlertsSQL = `UPDATE diagnoses
+SET
+    status = 'cancelled',
+    error = '进入评测模式，告警自动诊断已暂停',
+    finished_at = UTC_TIMESTAMP(6)
+WHERE target = ?
+    AND ` + "`trigger`" + ` = 'alert'
+    AND status = 'pending'`
+
+const lockTargetModeSQL = `SELECT
+    enabled,
+    run_id
+FROM evaluation_targets
+WHERE target = ?
+    FOR
+    UPDATE`
+
+const insertEvalDiagnosisSQL = `INSERT INTO diagnoses (
+    id,
+    target,
+    ` + "`trigger`" + `,
+    status,
+    title,
+    alert_group_key,
+    input,
+    fault_started_at,
+    eval_group,
+    eval_expected_model,
+    eval_key,
+    eval_run_id,
+    eval_profile,
+    eval_provider,
+    eval_account,
+    currency
+)
+VALUES (
+    ?,
+    ?,
+    'eval',
+    'pending',
+    ?,
+    '',
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
+)
+ON DUPLICATE KEY UPDATE id = id`
+
+const readFrozenEvalInputSQL = `SELECT
+    id,
+    target,
+    eval_group,
+    eval_expected_model,
+    fault_started_at,
+    input,
+    eval_run_id,
+    eval_profile,
+    eval_provider,
+    eval_account,
+    currency
+FROM diagnoses
+WHERE eval_key = ?`

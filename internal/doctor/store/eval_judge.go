@@ -48,7 +48,7 @@ func (store *Store) PrepareEvalJudge(ctx context.Context, request EvalJudgeInput
 	defer tx.Rollback()
 	var target, runID string
 	var finished, graded bool
-	if err = tx.QueryRowContext(ctx, "SELECT r.run_id,e.target,COALESCE(r.judge_id,''),r.result IS NOT NULL,r.judgement IS NOT NULL FROM eval_results r JOIN eval_runs e ON e.id=r.run_id WHERE r.result_key=? FOR UPDATE", request.ResultKey).Scan(&runID, &target, &value.ID, &finished, &graded); err != nil {
+	if err = tx.QueryRowContext(ctx, lockJudgeSlotSQL, request.ResultKey).Scan(&runID, &target, &value.ID, &finished, &graded); err != nil {
 		return value, err
 	}
 	if !finished {
@@ -56,7 +56,7 @@ func (store *Store) PrepareEvalJudge(ctx context.Context, request EvalJudgeInput
 	}
 	if value.ID == "" {
 		value.ID = newID()
-		_, err = tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,model,provider,prompt_version,eval_account,currency,eval_run_id) VALUES(?,?,'judge','pending','评委审阅','',?,?,?,?,?,'CNY',?)", value.ID, target, clean, request.Model, request.Provider, request.RubricVersion, request.Account, runID)
+		_, err = tx.ExecContext(ctx, insertJudgeDiagnosisSQL, value.ID, target, clean, request.Model, request.Provider, request.RubricVersion, request.Account, runID)
 		if err != nil {
 			return value, err
 		}
@@ -65,7 +65,7 @@ func (store *Store) PrepareEvalJudge(ctx context.Context, request EvalJudgeInput
 		}
 	}
 	var saved struct{ model, provider, account, version string }
-	if err = tx.QueryRowContext(ctx, "SELECT status,input,model,provider,eval_account,prompt_version FROM diagnoses WHERE id=?", value.ID).Scan(
+	if err = tx.QueryRowContext(ctx, readJudgeIdentitySQL, value.ID).Scan(
 		&value.Status,
 		&value.Input,
 		&saved.model,
@@ -100,10 +100,10 @@ func (store *Store) StartEvalJudge(ctx context.Context, id string) (bool, error)
 func (store *Store) SavedEvalJudgeResponse(ctx context.Context, id string) (llm.Response, error) {
 	var result llm.Response
 	// 锁由调用者持有，旧进程已不再负责这次评分；未结算金额不退回。
-	if _, err := store.database.ExecContext(ctx, "UPDATE llm_attempts SET status='interrupted',settled_at=UTC_TIMESTAMP(6) WHERE diagnosis_id=? AND settled_at IS NULL", id); err != nil {
+	if _, err := store.database.ExecContext(ctx, interruptJudgeAttemptsSQL, id); err != nil {
 		return result, err
 	}
-	rows, err := store.database.QueryContext(ctx, "SELECT id,requested_model,response,status,charged_micros FROM llm_attempts WHERE diagnosis_id=? ORDER BY created_at,id", id)
+	rows, err := store.database.QueryContext(ctx, readJudgeAttemptsSQL, id)
 	if err != nil {
 		return result, err
 	}
@@ -155,7 +155,7 @@ func (store *Store) FinishEvalJudge(ctx context.Context, result EvalJudgeResult)
 	defer tx.Rollback()
 	var previous []byte
 	var savedID string
-	if err = tx.QueryRowContext(ctx, "SELECT judge_id,judgement FROM eval_results WHERE result_key=? FOR UPDATE", result.ResultKey).Scan(&savedID, &previous); err != nil {
+	if err = tx.QueryRowContext(ctx, lockJudgeResultSQL, result.ResultKey).Scan(&savedID, &previous); err != nil {
 		return err
 	}
 	if savedID != result.JudgeID {
@@ -176,7 +176,7 @@ func (store *Store) FinishEvalJudge(ctx context.Context, result EvalJudgeResult)
 		duration = max(0, result.Elapsed.Milliseconds())
 	}
 	// 跨进程恢复缺少完整单调时钟，时长保留 NULL；不拿当前处理时间冒充总时长。
-	changed, err := tx.ExecContext(ctx, "UPDATE diagnoses SET status=?,report=?,error=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cost_micros=?,duration_ms=?,finished_at=UTC_TIMESTAMP(6) WHERE id=? AND `trigger`='judge' AND status='running'", status, clean, store.config.Redactor.Text(result.Problem), result.Response.Usage.Input, result.Response.Usage.Output, result.Response.Usage.CacheHit, result.Response.CostMicros, duration, result.JudgeID)
+	changed, err := tx.ExecContext(ctx, finishJudgeDiagnosisSQL, status, clean, store.config.Redactor.Text(result.Problem), result.Response.Usage.Input, result.Response.Usage.Output, result.Response.Usage.CacheHit, result.Response.CostMicros, duration, result.JudgeID)
 	if err != nil {
 		return err
 	}
@@ -192,3 +192,99 @@ func (store *Store) FinishEvalJudge(ctx context.Context, result EvalJudgeResult)
 	}
 	return tx.Commit()
 }
+
+const lockJudgeSlotSQL = `SELECT
+    r.run_id,
+    e.target,
+    COALESCE(r.judge_id, ''),
+    r.result IS
+    NOT NULL,
+    r.judgement IS NOT NULL
+FROM eval_results r
+JOIN eval_runs e ON e.id = r.run_id
+WHERE r.result_key = ?
+    FOR
+    UPDATE`
+
+const insertJudgeDiagnosisSQL = `INSERT INTO diagnoses (
+    id,
+    target,
+    ` + "`trigger`" + `,
+    status,
+    title,
+    alert_group_key,
+    input,
+    model,
+    provider,
+    prompt_version,
+    eval_account,
+    currency,
+    eval_run_id
+)
+VALUES (
+    ?,
+    ?,
+    'judge',
+    'pending',
+    '评委审阅',
+    '',
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    'CNY',
+    ?
+)`
+
+const readJudgeIdentitySQL = `SELECT
+    status,
+    input,
+    model,
+    provider,
+    eval_account,
+    prompt_version
+FROM diagnoses
+WHERE id = ?`
+
+const interruptJudgeAttemptsSQL = `UPDATE llm_attempts
+SET
+    status = 'interrupted',
+    settled_at = UTC_TIMESTAMP(6)
+WHERE diagnosis_id = ?
+    AND settled_at IS NULL`
+
+const readJudgeAttemptsSQL = `SELECT
+    id,
+    requested_model,
+    response,
+    status,
+    charged_micros
+FROM llm_attempts
+WHERE diagnosis_id = ?
+ORDER BY
+    created_at,
+    id`
+
+const lockJudgeResultSQL = `SELECT
+    judge_id,
+    judgement
+FROM eval_results
+WHERE result_key = ?
+    FOR
+    UPDATE`
+
+const finishJudgeDiagnosisSQL = `UPDATE diagnoses
+SET
+    status = ?,
+    report = ?,
+    error = ?,
+    tokens_in = ?,
+    tokens_out = ?,
+    cache_hit_tokens = ?,
+    cost_micros = ?,
+    duration_ms = ?,
+    finished_at = UTC_TIMESTAMP(6)
+WHERE id = ?
+    AND ` + "`trigger`" + ` = 'judge'
+    AND status = 'running'`

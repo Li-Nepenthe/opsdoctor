@@ -35,7 +35,7 @@ func (store *Store) CreateEvalRun(ctx context.Context, value EvalRun) error {
 	if err != nil {
 		return err
 	}
-	_, err = store.database.ExecContext(ctx, "INSERT INTO eval_runs(id,target,config,token_limit) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE id=id", value.ID, value.Target, clean, value.TokenLimit)
+	_, err = store.database.ExecContext(ctx, freezeEvalRunSQL, value.ID, value.Target, clean, value.TokenLimit)
 	if err != nil {
 		return err
 	}
@@ -52,7 +52,7 @@ func (store *Store) CreateEvalRun(ctx context.Context, value EvalRun) error {
 // EvalRun 只读这一批的 token 状态；费用必须另查对应币种的 Ledger。
 func (store *Store) EvalRun(ctx context.Context, id string) (EvalRun, error) {
 	var value EvalRun
-	err := store.database.QueryRowContext(ctx, "SELECT id,target,config,status,token_limit,tokens_used,stopped_reason FROM eval_runs WHERE id=?", id).Scan(
+	err := store.database.QueryRowContext(ctx, readEvalRunSQL, id).Scan(
 		&value.ID,
 		&value.Target,
 		&value.Config,
@@ -76,7 +76,7 @@ func reserveEvalTokens(ctx context.Context, tx *sql.Tx, attempt string, value ll
 	if value.MaximumTokens <= 0 || value.MaximumTokens > 1_000_000_000 {
 		return fmt.Errorf("评测请求缺少 token 预留量")
 	}
-	changed, err := tx.ExecContext(ctx, "UPDATE eval_runs SET tokens_used=tokens_used+?,updated_at=UTC_TIMESTAMP(6) WHERE id=? AND tokens_used+?<=token_limit AND stopped_reason=''", value.MaximumTokens, runID.String, value.MaximumTokens)
+	changed, err := tx.ExecContext(ctx, reserveEvalTokensSQL, value.MaximumTokens, runID.String, value.MaximumTokens)
 	if err != nil {
 		return err
 	}
@@ -87,7 +87,7 @@ func reserveEvalTokens(ctx context.Context, tx *sql.Tx, attempt string, value ll
 	if count != 1 {
 		return llm.ErrEvaluationBudget
 	}
-	_, err = tx.ExecContext(ctx, "INSERT INTO eval_attempts(attempt_id,run_id,maximum_tokens,charged_tokens) VALUES(?,?,?,?)", attempt, runID.String, value.MaximumTokens, value.MaximumTokens)
+	_, err = tx.ExecContext(ctx, insertEvalAttemptSQL, attempt, runID.String, value.MaximumTokens, value.MaximumTokens)
 	return err
 }
 
@@ -111,9 +111,52 @@ func settleEvalTokens(ctx context.Context, tx *sql.Tx, attempt string, value llm
 	if actual > charged {
 		reason = "实际 token 超过预留上界，请核对后再继续评测"
 	}
-	if _, err = tx.ExecContext(ctx, "UPDATE eval_runs SET tokens_used=tokens_used-?+?,stopped_reason=IF(?='',stopped_reason,?),updated_at=UTC_TIMESTAMP(6) WHERE id=?", charged, actual, reason, reason, runID); err != nil {
+	if _, err = tx.ExecContext(ctx, settleEvalTokensSQL, charged, actual, reason, reason, runID); err != nil {
 		return false, err
 	}
 	_, err = tx.ExecContext(ctx, "UPDATE eval_attempts SET charged_tokens=? WHERE attempt_id=?", actual, attempt)
 	return actual > charged, err
 }
+
+const freezeEvalRunSQL = `INSERT INTO eval_runs (
+    id,
+    target,
+    config,
+    token_limit
+)
+VALUES (?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE id = id`
+
+const readEvalRunSQL = `SELECT
+    id,
+    target,
+    config,
+    status,
+    token_limit,
+    tokens_used,
+    stopped_reason
+FROM eval_runs
+WHERE id = ?`
+
+const reserveEvalTokensSQL = `UPDATE eval_runs
+SET
+    tokens_used = tokens_used + ?,
+    updated_at = UTC_TIMESTAMP(6)
+WHERE id = ?
+    AND tokens_used + ? <= token_limit
+    AND stopped_reason = ''`
+
+const insertEvalAttemptSQL = `INSERT INTO eval_attempts (
+    attempt_id,
+    run_id,
+    maximum_tokens,
+    charged_tokens
+)
+VALUES (?, ?, ?, ?)`
+
+const settleEvalTokensSQL = `UPDATE eval_runs
+SET
+    tokens_used = tokens_used - ? + ?,
+    stopped_reason = IF(? = '', stopped_reason, ?),
+    updated_at = UTC_TIMESTAMP(6)
+WHERE id = ?`
