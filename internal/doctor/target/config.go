@@ -89,12 +89,28 @@ func readFile(directory, name string, limit int64) ([]byte, error) {
 	return data, nil
 }
 
+var (
+	targetNamePattern         = regexp.MustCompile(`^[a-z][a-z0-9-]{0,31}$`)
+	credentialVariablePattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]+$`)
+)
+
 // validateConfigs 先检查所有系统的重名和凭据冲突，再按配置检查各自的接入边界。
 func validateConfigs(configs []Config) error {
-	names, variables := map[string]bool{}, map[string]string{}
-	namePattern := regexp.MustCompile(`^[a-z][a-z0-9-]{0,31}$`)
+	if err := validateConfigNames(configs); err != nil {
+		return err
+	}
 	for _, config := range configs {
-		if !namePattern.MatchString(config.Name) {
+		if err := config.validateSettings(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateConfigNames(configs []Config) error {
+	names, variables := map[string]bool{}, map[string]string{}
+	for _, config := range configs {
+		if !targetNamePattern.MatchString(config.Name) {
 			return fmt.Errorf("系统名必须是小写字母开头，且只含字母、数字或短横线")
 		}
 		if names[config.Name] {
@@ -111,28 +127,30 @@ func validateConfigs(configs []Config) error {
 			variables[variable] = config.Name
 		}
 	}
-	for _, config := range configs {
-		prefix := strings.ToUpper(strings.ReplaceAll(config.Name, "-", "_")) + "_"
-		for _, variable := range config.variables() {
-			if variable != "" && (!strings.HasPrefix(variable, prefix) || !regexp.MustCompile(`^[A-Z][A-Z0-9_]+$`).MatchString(variable)) {
-				return fmt.Errorf("系统 %s 的凭据变量必须以 %s 开头", config.Name, prefix)
-			}
+	return nil
+}
+
+func (config Config) validateSettings() error {
+	prefix := strings.ToUpper(strings.ReplaceAll(config.Name, "-", "_")) + "_"
+	for _, variable := range config.variables() {
+		if variable != "" && (!strings.HasPrefix(variable, prefix) || !credentialVariablePattern.MatchString(variable)) {
+			return fmt.Errorf("系统 %s 的凭据变量必须以 %s 开头", config.Name, prefix)
 		}
-		if config.AlertTokenEnv == "" || !strings.HasSuffix(config.Profile, ".profile.md") {
-			return fmt.Errorf("系统 %s 缺少告警令牌变量或 .profile.md 说明文件", config.Name)
-		}
-		if err := config.validateLogs(); err != nil {
-			return fmt.Errorf("系统 %s：%w", config.Name, err)
-		}
-		// 不能用全局默认掩盖缺项：每个系统的告警持续时间可能不同。
-		window, err := time.ParseDuration(config.AlertRecoveryWindow)
-		if err != nil || window <= 0 || window > 24*time.Hour {
-			return fmt.Errorf("系统 %s 的 alert_recovery_window 必须是大于 0、且不超过 24h 的时长", config.Name)
-		}
-		for service := range config.Pprof {
-			if !namePattern.MatchString(service) {
-				return fmt.Errorf("系统 %s 的 pprof 服务名不合法", config.Name)
-			}
+	}
+	if config.AlertTokenEnv == "" || !strings.HasSuffix(config.Profile, ".profile.md") {
+		return fmt.Errorf("系统 %s 缺少告警令牌变量或 .profile.md 说明文件", config.Name)
+	}
+	if err := config.validateLogs(); err != nil {
+		return fmt.Errorf("系统 %s：%w", config.Name, err)
+	}
+	// 不能用全局默认掩盖缺项：每个系统的告警持续时间可能不同。
+	window, err := time.ParseDuration(config.AlertRecoveryWindow)
+	if err != nil || window <= 0 || window > 24*time.Hour {
+		return fmt.Errorf("系统 %s 的 alert_recovery_window 必须是大于 0、且不超过 24h 的时长", config.Name)
+	}
+	for service := range config.Pprof {
+		if !targetNamePattern.MatchString(service) {
+			return fmt.Errorf("系统 %s 的 pprof 服务名不合法", config.Name)
 		}
 	}
 	return nil
