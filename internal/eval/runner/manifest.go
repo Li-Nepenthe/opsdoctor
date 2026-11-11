@@ -14,6 +14,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -63,31 +64,34 @@ func sourceHashUsing(overrides map[string][]byte) (string, error) {
 			if !entry.Type().IsRegular() {
 				return fmt.Errorf("版本清单拒绝非普通文件")
 			}
-			data, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			if prior, ok := overrides[filepath.ToSlash(path)]; ok {
-				if prior == nil {
-					return nil
-				} // 新增的批准实现不应出现在旧版本哈希里。
-				data = prior
-			}
-			fmt.Fprintf(digest, "%s\x00%d\x00", filepath.ToSlash(path), len(data))
-			_, _ = digest.Write(data)
-			return nil
+			return appendSourceFile(digest, path, overrides)
 		})
 		if err != nil {
 			return "", err
 		}
 	}
 	for _, path := range []string{"go.mod", "go.sum"} {
-		data, err := os.ReadFile(path)
-		if err != nil {
+		if err := appendSourceFile(digest, path, nil); err != nil {
 			return "", err
 		}
-		fmt.Fprintf(digest, "%s\x00%d\x00", path, len(data))
-		_, _ = digest.Write(data)
 	}
 	return hex.EncodeToString(digest.Sum(nil)), nil
+}
+
+// appendSourceFile 按路径、字节数和原始内容依次写入哈希。修订快照中值为 nil 的文件在旧版本还不存在。
+func appendSourceFile(digest io.Writer, path string, overrides map[string][]byte) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	name := filepath.ToSlash(path)
+	if prior, ok := overrides[name]; ok {
+		if prior == nil {
+			return nil
+		}
+		data = prior
+	}
+	fmt.Fprintf(digest, "%s\x00%d\x00", name, len(data))
+	_, _ = digest.Write(data)
+	return nil
 }
