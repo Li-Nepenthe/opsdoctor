@@ -1,14 +1,5 @@
-// 本文件：把 protobuf 请求接到库存业务并映射状态码。
-//
-// 本文件位于网络契约和业务对象之间，不直接使用 database/sql。
-// 先看 GRPCServer 的嵌入方式，再沿 GetStock/Deduct/Release 追到 Service。最后读 grpcError，理解为什么只向客户端返回固定错误消息。
-//
-// 主要内容：
-//   - NewGRPCServer：把业务对象接到 RPC 适配层。app 再把这个适配器注册到 gRPC 服务器。
-//   - GetStock：转换领域快照。生成的 Get 方法允许 nil 请求，缺失字段按零值进入业务校验。
-//   - Deduct：沿用 gRPC 收到的 ctx。不能换成 Background，否则调用方 deadline 会在这里丢失。
-//   - Release：成功返回空消息。不要把无字段误认为无结果，gRPC OK 本身就是操作成功的反馈。
-//   - grpcError：集中落实第 5.8.1 节契约。错误消息只使用固定中文，不能把驱动详情泄露给客户端。
+// 本文件：把库存 RPC 接到业务层，并把领域错误转换为对外稳定的状态码和固定消息。
+// 从 Deduct 可以看到调用方的截止时间如何穿过服务端到达仓储。
 
 package inventory
 
@@ -21,14 +12,13 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-// GRPCServer 只适配协议。嵌入生成的 Unimplemented 实现，让未来新增 RPC 时仍能向前兼容。
-// 新增 RPC 尚未接线时，使用生成代码的默认实现返回 Unimplemented。
+// GRPCServer 将库存方法交给 Service，尚未接入的新 RPC 返回 Unimplemented。
 type GRPCServer struct {
-	inventoryv1.UnimplementedInventoryServiceServer          // 必须按值嵌入，避免未初始化的嵌入指针造成 panic。
-	service                                         *Service // service 执行业务规则，本层不直接访问数据库。
+	inventoryv1.UnimplementedInventoryServiceServer
+	service *Service
 }
 
-// NewGRPCServer 把业务对象接到 RPC 适配层。app 再把这个适配器注册到 gRPC 服务器。
+// NewGRPCServer 创建供库存服务注册的 RPC 实现。
 func NewGRPCServer(service *Service) *GRPCServer {
 	return &GRPCServer{service: service}
 }
@@ -42,7 +32,7 @@ func (server *GRPCServer) GetStock(ctx context.Context, request *inventoryv1.Get
 	return &inventoryv1.GetStockResponse{SkuId: stock.SKUID, Available: stock.Available}, nil
 }
 
-// Deduct 沿用 gRPC 收到的 ctx。不能换成 Background，否则调用方 deadline 会在这里丢失。
+// Deduct 传递调用方的 ctx，改用 Background 会切断数据库操作的截止时间。
 func (server *GRPCServer) Deduct(ctx context.Context, request *inventoryv1.DeductRequest) (*inventoryv1.DeductResponse, error) {
 	if err := server.service.Deduct(ctx, request.GetSkuId(), request.GetQuantity()); err != nil {
 		return nil, grpcError(err)
@@ -50,7 +40,7 @@ func (server *GRPCServer) Deduct(ctx context.Context, request *inventoryv1.Deduc
 	return &inventoryv1.DeductResponse{}, nil
 }
 
-// Release 成功返回空消息。不要把无字段误认为无结果，gRPC OK 本身就是操作成功的反馈。
+// Release 成功时以 gRPC OK 确认库存已归还。
 func (server *GRPCServer) Release(ctx context.Context, request *inventoryv1.ReleaseRequest) (*inventoryv1.ReleaseResponse, error) {
 	if err := server.service.Release(ctx, request.GetSkuId(), request.GetQuantity()); err != nil {
 		return nil, grpcError(err)
@@ -58,7 +48,7 @@ func (server *GRPCServer) Release(ctx context.Context, request *inventoryv1.Rele
 	return &inventoryv1.ReleaseResponse{}, nil
 }
 
-// grpcError 集中落实第 5.8.1 节契约。错误消息只使用固定中文，不能把驱动详情泄露给客户端。
+// grpcError 向客户端返回固定消息，驱动错误只用于选择状态码。
 func grpcError(err error) error {
 	switch {
 	case errors.Is(err, context.DeadlineExceeded):

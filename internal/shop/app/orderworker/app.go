@@ -1,12 +1,4 @@
-// 本文件：启动订单消息消费者，并管理它的停机顺序。
-//
-// cmd 把控制权交给 Run。这里建立数据库和 Kafka 连接，销量事务由 sales 包完成。
-//
-// 主要内容：
-//   - Run：读取配置、应用迁移，创建消息读取器与销量服务。
-//   - serve：同时运行消费循环和管理端口，收到停止信号后等待当前消息。
-//
-// 阅读建议：消费循环拿到的是可取消 context，手中那条消息的收尾预算则由 events.Consumer 提供。
+// 本文件：启动订单消费者与管理端口，停机时等当前消息处理完，再释放 Kafka 和数据库连接。
 
 package orderworker
 
@@ -18,7 +10,6 @@ import (
 	"net"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/adminserver"
@@ -41,34 +32,22 @@ const (
 
 // Run 先停消费者，再关闭 Kafka 和数据库，不能在当前事务尚未完成时拆掉连接。
 func Run(parent context.Context) (result error) {
-	reader := config.New()
-	databaseConfig, databaseErr := app.DatabaseConfig(reader)
-	address, addressErr := reader.String("ADMIN_ADDR", ":6063")
-	rawBrokers, brokersErr := reader.String("KAFKA_BROKERS", "127.0.0.1:9092")
-	messageTimeout, timeoutErr := reader.Duration("WORKER_MESSAGE_TIMEOUT", 10*time.Second, time.Second, 30*time.Second)
-	if err := errors.Join(databaseErr, addressErr, brokersErr, timeoutErr); err != nil {
+	settings, err := loadConfig(config.New())
+	if err != nil {
 		return err
-	}
-	brokers := strings.Split(rawBrokers, ",")
-	for index, broker := range brokers {
-		broker = strings.TrimSpace(broker)
-		if host, port, err := net.SplitHostPort(broker); err != nil || host == "" || port == "" {
-			return fmt.Errorf("KAFKA_BROKERS 必须是逗号分隔的主机:端口")
-		}
-		brokers[index] = broker
 	}
 	observability, err := telemetry.New(parent, "order-worker")
 	if err != nil {
 		return err
 	}
 	defer func() { result = errors.Join(result, observability.Shutdown(parent)) }()
-	databaseConfig.TracerProvider = observability.Provider
+	settings.Database.TracerProvider = observability.Provider
 	logger := logging.New(os.Stdout, observability.Service, slog.LevelInfo)
 	ctx, stop := lifecycle.Notify(parent)
 	defer stop()
 	startup, cancel := context.WithTimeout(ctx, startupTimeout)
 	defer cancel()
-	database, err := mysqlx.Open(startup, databaseConfig)
+	database, err := mysqlx.Open(startup, settings.Database)
 	if err != nil {
 		return err
 	}
@@ -79,17 +58,17 @@ func Run(parent context.Context) (result error) {
 	if err := migrations.Apply(startup, database); err != nil {
 		return err
 	}
-	if err := events.EnsureTopic(startup, brokers); err != nil {
+	if err := events.EnsureTopic(startup, settings.KafkaBrokers); err != nil {
 		return err
 	}
-	kafkaReader := events.NewReader(brokers)
+	kafkaReader := events.NewReader(settings.KafkaBrokers)
 	defer func() { result = errors.Join(result, kafkaReader.Close()) }()
 	service := sales.NewService(sales.NewMySQLRepository(database))
-	consumer, err := events.NewConsumer(kafkaReader, service.Handle, messageTimeout, logger, observability)
+	consumer, err := events.NewConsumer(kafkaReader, service.Handle, settings.MessageTimeout, logger, observability)
 	if err != nil {
 		return err
 	}
-	admin := adminserver.New(address, database.PingContext, observability.Metrics.Registry)
+	admin := adminserver.New(settings.AdminAddress, database.PingContext, observability.Metrics.Registry)
 	closeOps, err := app.StartOps(ctx, stop, database, nil, observability.Metrics)
 	if err != nil {
 		return err
@@ -97,8 +76,9 @@ func Run(parent context.Context) (result error) {
 	defer func() { result = errors.Join(result, closeOps()) }()
 	cancel()
 	// 只输出生效参数，不输出 DSN。消费组名固定，重启才能接着上次的位置读。
-	logger.Info("订单消费者配置已加载", "version", telemetry.Version, "admin_addr", address, "group", "order-worker", "message_timeout", messageTimeout.String())
-	return serve(ctx, consumer, admin, messageTimeout+shutdownMargin, logger)
+	logger.Info("订单消费者配置已加载", "version", telemetry.Version, "admin_addr", settings.AdminAddress,
+		"group", "order-worker", "message_timeout", settings.MessageTimeout.String())
+	return serve(ctx, consumer, admin, settings.MessageTimeout+shutdownMargin, logger)
 }
 
 // serve 在管理端口可用后启动消费，任意循环失败都会取消另一侧并读齐退出结果。

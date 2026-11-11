@@ -1,10 +1,5 @@
-// 本文件：只接收调整连接池和预热缓存这两类运维请求。
-//
-// 请求不能指定 SQL、缓存键或后端地址。连接池修改还要带上审批时看到的进程编号
-// 和旧值，避免审批期间服务重启或被别人修改后，执行器仍照旧操作。
-//
-// 主要内容：New 绑定本进程资源；ServeHTTP 鉴权与分流；pool 条件修改；warm 逐个补缓存。
-// 阅读建议：PoolState 的 Initial 来自启动配置，供实验工具发现运行时改动。
+// 本文件：校验运维请求的身份和参数，只开放本进程的连接池调整与商品缓存预热。
+// ServeHTTP 先鉴权，再把请求交给 pool 或 warm。
 
 package ops
 
@@ -28,7 +23,9 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/product"
 )
 
-// Pool 只暴露当前上限与修改方法，测试可以用小型替身而不连接 MySQL。
+var approvalIDPattern = regexp.MustCompile(`^[a-f0-9]{32}$`)
+
+// Pool 只开放读取连接池状态和调整上限。
 type Pool interface {
 	Stats() sql.DBStats
 	SetMaxOpenConns(int)
@@ -36,11 +33,11 @@ type Pool interface {
 
 // PoolState 把进程身份与旧值一起交给审批，重启后的同一个数值不代表同一份状态。
 type PoolState struct {
-	Instance      string `json:"instance"`       // 每次进程启动重新生成。
-	Initial       int    `json:"initial"`        // 配置文件给的起始上限。
-	Current       int    `json:"current"`        // 此刻真实连接池上限。
-	Revision      int    `json:"revision"`       // 每次有效修改增加一次。
-	LastOperation string `json:"last_operation"` // 最近成功执行的审批编号。
+	Instance      string `json:"instance"` // 重启时重新生成，旧审批不能用于新进程。
+	Initial       int    `json:"initial"`
+	Current       int    `json:"current"`
+	Revision      int    `json:"revision"` // 每次有效修改增加一次。
+	LastOperation string `json:"last_operation"`
 }
 
 // Handler 的锁只保护池状态；预热按最多一百个 ID 顺序处理，不无限开 goroutine。
@@ -61,12 +58,22 @@ func New(token string, pool Pool, products product.Repository, cache product.Cac
 	var nonce [16]byte
 	_, _ = rand.Read(nonce[:])
 	initial := pool.Stats().MaxOpenConnections
-	return &Handler{token: sha256.Sum256([]byte(token)), poolSource: pool, products: products, cache: cache, state: PoolState{Instance: hex.EncodeToString(nonce[:]), Initial: initial, Current: initial}}, nil
+	return &Handler{
+		token:      sha256.Sum256([]byte(token)),
+		poolSource: pool,
+		products:   products,
+		cache:      cache,
+		state: PoolState{
+			Instance: hex.EncodeToString(nonce[:]),
+			Initial:  initial,
+			Current:  initial,
+		},
+	}, nil
 }
 
 // ServeHTTP 先鉴权再解析，错误响应不带令牌、数据库错误或商品内容。
 func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	// 保存的是令牌摘要，所以这里只移除精确前缀；没有前缀直接拒绝。
+	// 进程只存令牌的 SHA-256 摘要，使用常量时间比较传入令牌的摘要。
 	value := r.Header.Get("Authorization")
 	if len(value) < 7 || value[:7] != "Bearer " {
 		http.Error(w, "运维鉴权失败", http.StatusUnauthorized)
@@ -90,7 +97,7 @@ func (handler *Handler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// pool 的比较与修改在同一把锁中，两个审批不会同时依据同一个旧值执行。
+// pool 在同一把锁下核对进程编号、修订号和旧上限，再修改连接池。
 func (handler *Handler) pool(w http.ResponseWriter, r *http.Request) {
 	handler.mu.Lock()
 	defer handler.mu.Unlock()
@@ -106,7 +113,7 @@ func (handler *Handler) pool(w http.ResponseWriter, r *http.Request) {
 		Before    int    `json:"before"`
 		Size      int    `json:"size"`
 	}
-	if decode(w, r, &input) != nil || !regexp.MustCompile(`^[a-f0-9]{32}$`).MatchString(input.Operation) || input.Size < 5 || input.Size > 200 {
+	if decode(w, r, &input) != nil || !approvalIDPattern.MatchString(input.Operation) || input.Size < 5 || input.Size > 200 {
 		http.Error(w, "连接池参数不合法，允许范围为 5–200", http.StatusBadRequest)
 		return
 	}

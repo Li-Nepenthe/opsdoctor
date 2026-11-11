@@ -1,13 +1,5 @@
-// 本文件：从现有熔断器读取状态，并记录真正发送的查询重试。
-//
-// app 在创建客户端后、接收流量前调用 RegisterMetrics。采集时读取当前状态，
-// 而不是只在状态变化时写 Gauge，这样等待期结束后的半开状态也不会一直显示为打开。
-//
-// 主要内容：
-//   - RegisterMetrics：为两个熔断器登记只读采集函数。
-//   - breakerValue：把库的状态名转换成计划书规定的 0、1、2。
-//
-// 阅读建议：状态值是项目契约，不能直接使用第三方库的枚举整数。
+// 本文件：采集时读取查询与扣减熔断器的当前状态，让等待期结束后的半开状态也能及时反映到指标上。
+// RegisterMetrics 在订单服务接流量前注册指标，查询路径只在再次实际发送时增加重试计数。
 
 package inventoryclient
 
@@ -30,7 +22,7 @@ func (client *Client) RegisterMetrics(metrics *telemetry.Metrics) error {
 	return nil
 }
 
-// breakerValue 显式列出三种状态，读者可以直接与告警表达式对照。
+// breakerValue 将状态映射为告警使用的固定数值。
 func breakerValue(state string) float64 {
 	switch state {
 	case "open":

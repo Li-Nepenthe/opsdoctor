@@ -2,14 +2,6 @@
 //
 // fakeRepository 用调用次数证明无效请求没有触碰数据层。
 // 先读 TestServiceValidation 的边界案例，再读 TestServiceCancellationAndError。并发防超卖由真实数据库测试承担，假仓储不冒充锁实现。
-//
-// 主要内容：
-//   - GetStock：返回固定快照，把业务层测试与 MySQL 分离。
-//   - Deduct：只统计调用，用来验证参数校验发生在仓储之前。
-//   - Release：与 Deduct 使用相同的假错误来源，验证补偿入口同样遵守业务规则。
-//   - TestServiceValidation：检查三种入口的边界，并证明仓储错误不会被业务层吞掉。
-//   - callService：让同一组边界案例覆盖三个公开方法，保持测试断言集中。
-//   - TestServiceCancellationAndError：确认取消不访问仓储、仓储错误保持可识别，不被重新制造成普通字符串。
 
 package inventory
 

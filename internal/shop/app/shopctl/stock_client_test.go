@@ -2,9 +2,6 @@
 //
 // TestParseStock 在建立网络连接前检查缺商品 ID、负件数、int32 溢出和多余参数。
 // 先看每行用例解释，再对照 parseStock 的边界。实际 RPC 由库存包测试和 Compose 冒烟覆盖。
-//
-// 主要内容：
-//   - TestParseStock：在无网络环境检查 CLI 边界，尤其防止 int64 到 int32 的静默截断。
 
 package shopctl
 

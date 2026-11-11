@@ -2,9 +2,6 @@
 //
 // 测试固定用 14 号数据库，使用独立商品编号，只删除自己的 key，不清空其他记录。
 //
-// 主要内容：
-//   - TestIntegrationRedisCache：检查未命中、正常商品、空值和 TTL。
-//
 // 阅读建议：把这里观察到的 Redis 行为与 cache_test.go 的纯函数测试对照。
 
 package product

@@ -2,15 +2,6 @@
 //
 // 测试使用内存替身，不连接外部服务。断言不只看错误码，还检查有没有重复扣减或错误删除占位。
 //
-// 主要内容：
-//   - fakeRepository、fakePrice、fakeStock、fakePublisher：记录业务步骤执行次数。
-//   - memoryIdempotency：模拟有所有者的幂等记录。
-//   - TestCreateFailureBoundaries：验证每个失败位置的补偿和待核对规则。
-//   - TestConcurrentIdempotency：重复请求并发进入，只有一个实际创建订单。
-//   - TestCompensationSurvivesCancellation：上游取消后仍给补偿有限预算。
-//   - TestPublishSurvivesCancellation：订单提交后客户断开，仍发送消息并保留上下文里的值。
-//   - TestValidateCreate：无效参数在扣库存前被拒绝。
-//
 // 阅读建议：先读失败表格旁的解释，再对照 Create 中对应的分支。
 
 package order
@@ -109,7 +100,7 @@ func (publisher *fakePublisher) Publish(ctx context.Context, _ events.OrderCreat
 // TestPublishSurvivesCancellation 模拟数据库刚提交，客户端就断开连接的时刻。
 func TestPublishSurvivesCancellation(t *testing.T) {
 	value := newFixture()
-	type requestKey struct{} // 自己的键类型不会和其他包保存的上下文值混在一起。
+	type requestKey struct{}
 	ctx, cancel := context.WithCancel(context.WithValue(context.Background(), requestKey{}, "trace-value"))
 	defer cancel()
 	value.repository.onCreate = cancel
@@ -208,7 +199,12 @@ type fixture struct {
 // newFixture 默认全部成功，失败用例只覆盖一个环节。
 func newFixture() fixture {
 	value := fixture{repository: &fakeRepository{}, price: &fakePrice{price: 100}, stock: &fakeStock{}, publisher: &fakePublisher{}, store: &memoryIdempotency{}, reviews: &fakeReviews{}}
-	value.service = NewService(value.repository, value.price, value.stock, value.publisher, value.store, value.reviews, time.Second, time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	value.service = NewService(Dependencies{
+		Repository: value.repository, Prices: value.price, Stock: value.stock,
+		Publisher: value.publisher, Idempotency: value.store, Reviews: value.reviews,
+		CleanupTimeout: time.Second, PublishTimeout: time.Second,
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	})
 	return value
 }
 

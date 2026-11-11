@@ -3,16 +3,6 @@
 // 测试只替换 MessageReader，不启动 Kafka，也不改变销量事务。这里关注的边界是：
 // 尚未取到消息时可以等协调器恢复，已经拿到消息后的失败仍由原消费循环处理。
 //
-// 主要内容：
-//   - fetchErrorReader：按顺序返回协议错误或真实测试消息，记录取消息和提交次数。
-//   - TestConsumerRetriesCoordinatorErrors：错误 14、15、16 后只处理和提交一次。
-//   - TestConsumerPermanentFetchError：鉴权、配置和未知错误立即返回。
-//   - TestConsumerCoordinatorRetryBudget：持续不可用时预算耗尽，不进入业务处理。
-//   - TestConsumerCoordinatorBudgetResets：每次成功取到消息后，下一条有自己的连续错误预算。
-//   - TestConsumerCoordinatorRecoveryIdleContext：恢复后空闲等待沿用原 context，不附加短 deadline。
-//   - TestConsumerCoordinatorErrorAfterFetch：已拿到消息之后的错误 16 仍立即失败，不取下一条。
-//   - TestConsumerCancelCoordinatorRetry、TestFetchRetryWaitCancellation：取消能及时打断恢复等待。
-//
 // 阅读建议：先看错误 16 的用例，再看预算与取消，理解“允许恢复”仍然有明确边界。
 
 package events

@@ -1,7 +1,7 @@
 // Package order 负责下单和查订单，以及防止同一个下单请求被执行两次（接口幂等）。
 //
 // 一次下单的步骤（service.go 的 Create）：
-//  1. 占位：用请求头里的 Idempotency-Key 在 Redis 里登记“这个请求我正在处理”。
+//  1. 占位：请求带有 Idempotency-Key 时，在 Redis 里登记“这个请求我正在处理”。
 //     同一个键的重复请求会看到这条记录，不会再执行一遍。
 //  2. 查价格（通过 product 包）。
 //  3. 扣库存（调用库存服务）。
@@ -15,21 +15,13 @@
 //   - 不确定有没有发生（比如扣库存超时）：保留占位，标记为“结果待核对”，记告警日志，等人工检查。
 //     这时绝不能让客户端重试，否则可能扣两次库存、下两笔订单。
 //
-// 谁调用它：订单服务的 HTTP 接口。价格查询、库存扣减、发消息这三种能力由 orderservice 传进来，
-// 本包只依赖它们的接口，测试时可以全部换成假的。
+// 订单服务的 HTTP 接口把请求交给这个包，orderservice 提供价格查询、库存和消息客户端。
+// 阅读时先看 service.go 的 Create，再到失败发生的那一步看它怎样处理依赖返回的错误。
 //
-// 文件清单：
-//   - doc.go：本说明。
-//   - model.go：订单、下单请求、分页结果和错误类型。
-//   - idempotency.go：幂等记录的三种状态（处理中、已完成、待核对），以及存取这些记录的接口。
-//   - service.go：下单的六个步骤，以及每一步失败时该怎么办。
-//   - repository.go：写订单、查订单详情、按用户分页查订单的 SQL。
-//   - cache.go：幂等记录在 Redis 里的实现：占位、保存结果、标记待核对、删除占位。
-//   - http_handler.go：下单和查订单的 HTTP 接口。
-//   - service_test.go：用假的依赖，把每一种失败情况都走一遍。
-//   - cache_integration_test.go：连真实 Redis，测试多个请求同时抢占位时只有一个成功。
-//   - repository_integration_test.go：连真实 MySQL，测试写订单和分页查询。
-//   - http_handler_test.go：测试请求格式、状态码和响应格式。
-//
-// 阅读顺序：model.go → idempotency.go → service.go 的 Create（对照上面六步）→ cache.go。
+//   - service.go：依次执行下单六步，根据失败位置决定补偿、放弃占位或留待核对。
+//   - model.go：定义下单请求、回放结果、订单快照和业务错误。
+//   - idempotency.go：定义占位的三种状态，以及下单流程读写占位的接口。
+//   - cache.go：在 Redis 中取得处理权、保存结果并阻止旧请求改写新占位。
+//   - repository.go：在 MySQL 中写订单、查订单详情和按用户分页。
+//   - http_handler.go：解析 HTTP 请求，把订单结果和错误映射到对外响应。
 package order

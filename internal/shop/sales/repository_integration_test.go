@@ -2,12 +2,6 @@
 //
 // 只允许 opsdoctor_sales_test 专用库，测试准备不会接触 shop 的真实造数结果。
 //
-// 主要内容：
-//   - integrationDatabase：检查库名，应用迁移，再清理测试数据。
-//   - TestIntegrationDuplicateSales：同一订单并发送达，只累加一次。
-//   - TestIntegrationSalesRollback：加销量失败后，去重记录也必须撤回。
-//   - TestIntegrationCheckSales：按件数核对订单与销量，而不是按订单笔数。
-//
 // 阅读建议：先看测试库白名单，再看溢出实验为什么能证明事务没有只成功一半。
 
 package sales

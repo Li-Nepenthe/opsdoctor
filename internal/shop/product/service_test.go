@@ -2,13 +2,6 @@
 //
 // 内存替身只记录访问次数，测试因此可以证明有没有重复查询，而不依赖 Redis 或 MySQL 的速度。
 //
-// 主要内容：
-//   - memoryCache、fakeRepository、fakeStock：提供可观察的测试依赖。
-//   - TestCacheAside：检查命中、空值缓存和数据库故障。
-//   - TestSingleflight：比较开启与关闭防护时的回源次数。
-//   - TestDetailDegradation：库存失败仍返回商品，缺失的库存数值不写入 JSON。
-//   - waitUntil：等待明确的并发条件，超时后让测试失败。
-//
 // 阅读建议：先看 CacheAside 的计数断言，再看并发测试如何挡住第一次查询。
 
 package product

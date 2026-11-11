@@ -1,14 +1,5 @@
-// 本文件：保存商品缓存，并把过期时间打散。
-//
-// service 决定何时读写缓存，本文件只负责 Redis 编码和过期规则。
-// TTL 就是记录还能保存多久。加一点随机时间，可以避免一批商品同时失效。
-//
-// 主要内容：
-//   - NewRedisCache：检查随机时间范围，复用 Redis 客户端。
-//   - Get、decodeProduct：识别未命中、空值和正常商品。
-//   - Set、expiration：写入 JSON，并选择正常商品或空值的过期时间。
-//
-// 阅读建议：先区分 Redis 没有 key 和 key 里保存 null，这两种情况处理不同。
+// 本文件：分别缓存正常商品和查无此商品的结果。正常商品的过期时间加随机抖动，减少集中回源。
+// 从 Get 可以区分 Redis 中没有键与已知查无商品，写入期限由 expiration 决定。
 
 package product
 
@@ -30,13 +21,13 @@ const (
 	missingTTL = 30 * time.Second
 )
 
-// RedisCache 构造后只读 jitter，每次 Set 单独计算随机时间。
+// RedisCache 复用订单服务的客户端，正常商品每次写入时单独取抖动值。
 type RedisCache struct {
-	client *redis.Client // app 负责创建、探活和关闭客户端。
+	client *redis.Client
 	jitter time.Duration // 为 0 时关闭抖动，最大允许一分钟。
 }
 
-// NewRedisCache 把配置错误留在启动阶段，不让请求走到一半才失败。
+// NewRedisCache 在启动时校验抖动范围。
 func NewRedisCache(client *redis.Client, jitter time.Duration) (*RedisCache, error) {
 	if client == nil || jitter < 0 || jitter > time.Minute {
 		return nil, fmt.Errorf("商品缓存需要 Redis 客户端，抖动范围须为 0..60s")

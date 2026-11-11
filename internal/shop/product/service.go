@@ -1,17 +1,5 @@
-// 本文件：串起商品缓存、数据库查询和库存展示。
-//
-// HTTP 详情和订单价格查询都先进入这里。具体 Redis、MySQL 和 gRPC 操作由接口隔开。
-// Cache Aside 可以理解成“应用自己照看缓存”：先查缓存，没命中再查数据库并补回缓存。
-// 下文的“回源”就是缓存没有拿到结果，转去查询数据库。
-//
-// 主要内容：
-//   - Repository、Cache、StockReader：列出商品流程需要的外部能力。
-//   - NewService：选择是否合并同时查询同一商品的请求。
-//   - Get：按缓存优先的顺序读取商品。
-//   - load：确认缓存仍未命中后，只向数据库查询一次。
-//   - Detail：附加库存信息，库存失败时保留商品详情。
-//
-// 阅读建议：先读 Get 的命中路径，再读 DoChan 怎样让多个请求等待同一次查询。
+// 本文件：商品和价格优先从缓存读取。未命中时回源 MySQL，库存查询失败只影响详情中的库存展示。
+// 从 Get 到 load 可以看到同一商品的并发查询如何共用一次回源。
 
 package product
 
@@ -25,7 +13,7 @@ import (
 	"golang.org/x/sync/singleflight"
 )
 
-// Repository 由使用者定义，测试可以换成内存实现，不必真的连接 MySQL。
+// Repository 从商品数据源读取价格和名称。
 type Repository interface {
 	Get(context.Context, int64) (Product, error)
 }
@@ -41,17 +29,17 @@ type StockReader interface {
 	GetStock(context.Context, int64) (inventory.Stock, error)
 }
 
-// Service 保存商品查询依赖。同一实例的 group 才能把相同商品的请求合并起来。
+// Service 在同一进程内合并同一商品的并发回源。
 type Service struct {
-	repository Repository         // 数据库是商品信息的最终来源。
-	cache      Cache              // 缓存失败允许回到数据库，不能把故障误当商品不存在。
-	stock      StockReader        // 库存失败只影响展示中的 stock 字段。
-	merge      bool               // false 时每个未命中的请求都自行回源，用于对比防护效果。
-	group      singleflight.Group // singleflight 让相同 key 的并发调用共享一个执行结果。
-	logger     *slog.Logger       // 只记录故障分类，不把缓存内容写进日志。
+	repository Repository
+	cache      Cache
+	stock      StockReader
+	merge      bool // 关闭后，每个未命中的请求都自行回源。
+	group      singleflight.Group
+	logger     *slog.Logger
 }
 
-// NewService 接收已经装配好的依赖，让测试和真实服务使用相同的业务流程。
+// NewService 设置商品查询的依赖与回源合并策略。
 func NewService(repository Repository, cache Cache, stock StockReader, merge bool, logger *slog.Logger) *Service {
 	return &Service{repository: repository, cache: cache, stock: stock, merge: merge, logger: logger}
 }
@@ -67,8 +55,8 @@ func (service *Service) Get(ctx context.Context, id int64) (Product, error) {
 	if !service.merge {
 		return service.load(ctx, id)
 	}
-	// DoChan 返回一个结果通道，等待者可以在自己的请求取消时先离开。
-	// 实际查询仍使用第一个请求的 context。它取消时，这一批等待者都会收到查询失败。
+	// 等待者可以随自己的请求取消而离开。实际查询沿用第一个请求的 context，
+	// 它取消时，其他共享这次查询的等待者也会收到失败。
 	result := service.group.DoChan(strconv.FormatInt(id, 10), func() (any, error) {
 		return service.load(ctx, id)
 	})

@@ -2,12 +2,6 @@
 //
 // 直接让 Gin 处理内存请求，不开启监听端口。业务服务用替身，测试聚焦响应格式与参数传递。
 //
-// 主要内容：
-//   - stubHTTPService：记录 handler 传入的参数并返回指定结果。
-//   - handlerRouter：安装真实请求标识、恢复和请求体限制中间件。
-//   - TestCreateHTTP：检查创建结果、错误码和损坏请求。
-//   - TestQueryHTTP：检查详情、分页默认值和超范围参数。
-//
 // 阅读建议：先看原始 JSON 输入，再看断言为什么要检查 request_id。
 
 package order

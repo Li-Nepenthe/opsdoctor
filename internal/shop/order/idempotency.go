@@ -1,14 +1,5 @@
-// 本文件：描述一个幂等键从占位到完成或待核对的状态。
-//
-// 幂等的意思是“同一请求重复发送，也只产生一次业务效果”。本阶段的保证有保存时限。
-// service 只使用这里的接口，Redis 如何原子更新由 cache.go 实现。
-//
-// 主要内容：
-//   - Reservation：保存请求所有者、状态和已创建结果。
-//   - IdempotencyStore：占位、完成、删除安全占位、进入待核对四个动作。
-//   - validKey：检查公开契约允许的幂等键格式。
-//
-// 阅读建议：Owner 与客户端的 Key 不同。Owner 是服务端随机生成的，用来防止旧请求误改新记录。
+// 本文件：约定一个幂等键的状态，以及下单流程可以怎样改变它。
+// 客户端的键标识一次下单，服务端生成的 Owner 区分这个键过期前后的两次占位。
 
 package order
 
@@ -23,13 +14,13 @@ const (
 
 // Reservation 保存为 JSON。raw 和 EnteredReview 只用于本次调用，不写进 Redis。
 type Reservation struct {
-	Key           string   `json:"-"`                // 客户端幂等键，用来定位 Redis key。
-	Owner         string   `json:"owner"`            // 服务端随机编号，避免同名键过期后被旧请求修改。
-	Fingerprint   string   `json:"fingerprint"`      // 请求参数摘要，防止同一键被拿来提交另一个订单。
-	State         string   `json:"state"`            // 处理中、完成、待核对三选一。
+	Key           string   `json:"-"`           // 客户端幂等键，用来定位 Redis key。
+	Owner         string   `json:"owner"`       // 服务端随机编号，避免同名键过期后被旧请求修改。
+	Fingerprint   string   `json:"fingerprint"` // 请求参数摘要，防止同一键被拿来提交另一个订单。
+	State         string   `json:"state"`
 	SKUID         int64    `json:"sku_id"`           // 待核对日志需要的商品编号。
 	OrderID       int64    `json:"order_id"`         // 未拿到数据库编号前为 0。
-	ReviewAfter   int64    `json:"review_after_ms"`  // 超过这个时间的处理中记录不能继续声称仍在正常执行。
+	ReviewAfter   int64    `json:"review_after_ms"`  // Unix 毫秒时间戳，此后仍在处理中的占位须转为待核对。
 	Result        *Created `json:"result,omitempty"` // 只有完成状态有可回放结果。
 	EnteredReview bool     `json:"-"`                // 本次读取是否把过期处理记录转成待核对。
 	raw           string   // 读取时的完整 JSON，用于比较后再更新，避免覆盖他人的记录。

@@ -3,12 +3,6 @@
 // 假 RPC 等待 context 到期，模拟真实慢响应；测试不连接网络。
 // 单独放置这些测试，方便对照默认行为与显式缩短单次等待后的区别。
 //
-// 主要内容：
-//   - expiringRPC.GetStock：让前两次查询用完分配的时间。
-//   - TestAttemptTimeout：检查默认共享预算和分次预算的不同结果。
-//   - TestAttemptConfiguration：拒绝无效时限和重试次数。
-//   - TestAttemptBudgetNeverRetriesDeduct：确认提高查询重试上限不会重复扣减。
-//
 // 阅读建议：先看两个超时用例，再看为什么扣减次数始终是一。
 
 package inventoryclient

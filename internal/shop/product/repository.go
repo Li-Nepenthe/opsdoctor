@@ -1,12 +1,5 @@
-// 本文件：按商品主键读取名称和价格。
-//
-// service 在缓存未命中时调用这里。把 SQL 放在仓储文件，便于检查索引是否符合访问方式。
-//
-// 主要内容：
-//   - MySQLRepository、NewMySQLRepository：借用 app 管理的连接池。
-//   - Get：读取单个商品，并把“没有记录”转换成业务错误。
-//
-// 阅读建议：注意查询只有一个主键条件，没有扫描商品列表。
+// 本文件：缓存未命中后，按商品主键向 MySQL 查询名称和价格。
+// 商品服务回源时调用 Get，只有确实没有记录才返回商品不存在。
 
 package product
 
@@ -20,10 +13,10 @@ import (
 // getProductSQL 使用 products 的主键定位一行。普通 SELECT 不主动持有排他行锁。
 const getProductSQL = `SELECT id, name, price_cents FROM products WHERE id = ?`
 
-// MySQLRepository 不创建连接池，也不关闭它。这些生命周期工作属于 app。
-type MySQLRepository struct{ database *sql.DB } // database 会为查询借还连接。
+// MySQLRepository 借用订单服务的连接池。
+type MySQLRepository struct{ database *sql.DB }
 
-// NewMySQLRepository 复用已有连接池，避免每个业务包重复占用数据库连接。
+// NewMySQLRepository 把已有连接池用于商品查询。
 func NewMySQLRepository(database *sql.DB) *MySQLRepository {
 	return &MySQLRepository{database: database}
 }

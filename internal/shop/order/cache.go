@@ -1,16 +1,5 @@
-// 本文件：用 Redis 保存幂等占位、创建结果和待核对状态。
-//
-// NX 表示“只有 key 不存在时才写入”，让同时到达的重复请求只有一个拿到处理权。
-// 后续修改要比较原记录，不能让一个执行很慢的旧请求覆盖同名的新占位。
-//
-// 主要内容：
-//   - NewRedisIdempotency：检查保存时长与处理预算。
-//   - Reserve、existing：占位，或读取已有请求的结果。
-//   - Complete、Review、Abandon：仅修改本次请求拥有的记录。
-//   - replace：用 Lua 把“比较再写入”作为一个不可插队的操作。
-//   - requestFingerprint：把请求参数压缩成固定摘要，用于比较内容是否一致。
-//
-// 阅读建议：先比较 SET NX 与普通 SET，再看 Lua 为什么要保留原来的过期时间。
+// 本文件：用 Redis 记录哪些下单请求已经取得处理权，重复请求应该看到什么结果。
+// Reserve 只有在键不存在时才能占位。后续的保存和删除都要核对完整的旧记录，避免过期请求改写新订单。
 
 package order
 
@@ -29,10 +18,17 @@ import (
 
 // replaceReservationLua 在 Redis 内原子比较完整旧值，避免读与写之间被另一个请求插入。
 // KEEPTTL 保留原占位的有效期，重复请求不能不断把二十四小时往后延长。
-const replaceReservationLua = `if redis.call('GET', KEYS[1]) == ARGV[1] then redis.call('SET', KEYS[1], ARGV[2], 'XX', 'KEEPTTL'); return 1 end; return 0`
+const replaceReservationLua = `if redis.call('GET', KEYS[1]) == ARGV[1] then
+	redis.call('SET', KEYS[1], ARGV[2], 'XX', 'KEEPTTL');
+	return 1
+end;
+return 0`
 
 // deleteReservationLua 只删除自己看到的记录，旧请求不能删除过期后新建的同名占位。
-const deleteReservationLua = `if redis.call('GET', KEYS[1]) == ARGV[1] then return redis.call('DEL', KEYS[1]) end; return 0`
+const deleteReservationLua = `if redis.call('GET', KEYS[1]) == ARGV[1] then
+	return redis.call('DEL', KEYS[1])
+end;
+return 0`
 
 // RedisIdempotency 保存固定策略。真实状态只保存在 Redis，不依靠单个进程的内存锁。
 type RedisIdempotency struct {
@@ -58,7 +54,11 @@ func requestFingerprint(request CreateRequest) string {
 
 // Reserve 只有 SET NX 成功才授予执行权。Redis 故障时直接拒绝，不退回无保护下单。
 func (store *RedisIdempotency) Reserve(ctx context.Context, key string, request CreateRequest) (Reservation, bool, error) {
-	reservation := Reservation{Key: key, Owner: rand.Text(), Fingerprint: requestFingerprint(request), State: stateProcessing, SKUID: request.SKUID, ReviewAfter: time.Now().Add(store.processingBudget).UnixMilli()}
+	reservation := Reservation{
+		Key: key, Owner: rand.Text(), Fingerprint: requestFingerprint(request),
+		State: stateProcessing, SKUID: request.SKUID,
+		ReviewAfter: time.Now().Add(store.processingBudget).UnixMilli(),
+	}
 	data, err := json.Marshal(reservation)
 	if err != nil {
 		return Reservation{}, false, ErrIdempotencyUnavailable
@@ -78,7 +78,7 @@ func (store *RedisIdempotency) Reserve(ctx context.Context, key string, request 
 
 // existing 在总处理预算已过时把遗留占位转为待核对，覆盖进程退出或 Redis 写状态失败的情况。
 func (store *RedisIdempotency) existing(ctx context.Context, key, fingerprint string) (Reservation, error) {
-	// 比较后更新失败，可能是持有者刚完成了请求，再读一次即可。次数有上限，不能无限循环。
+	// 比较失败可能是原请求刚刚完成，重新读才能看到它的结果。一次占位请求最多读三次。
 	for range 3 {
 		raw, err := store.client.Get(ctx, "idempotency:"+key).Result()
 		if err != nil {
@@ -96,24 +96,29 @@ func (store *RedisIdempotency) existing(ctx context.Context, key, fingerprint st
 		case stateCompleted, stateNeedsReview:
 			return reservation, nil
 		case stateProcessing:
-			if time.Now().UnixMilli() < reservation.ReviewAfter {
-				return reservation, nil
+			updated, err := store.reviewIfExpired(ctx, reservation)
+			if errors.Is(err, ErrOutcomeUnknown) {
+				continue
 			}
-			updated := reservation
-			updated.State = stateNeedsReview
-			if err := store.replace(ctx, reservation, updated); err != nil {
-				if errors.Is(err, ErrOutcomeUnknown) {
-					continue
-				}
-				return Reservation{}, err
-			}
-			updated.EnteredReview = true
-			return updated, nil
+			return updated, err
 		default:
 			return Reservation{}, ErrIdempotencyUnavailable
 		}
 	}
 	return Reservation{}, ErrIdempotencyUnavailable
+}
+
+func (store *RedisIdempotency) reviewIfExpired(ctx context.Context, reservation Reservation) (Reservation, error) {
+	if time.Now().UnixMilli() < reservation.ReviewAfter {
+		return reservation, nil
+	}
+	updated := reservation
+	updated.State = stateNeedsReview
+	if err := store.replace(ctx, reservation, updated); err != nil {
+		return Reservation{}, err
+	}
+	updated.EnteredReview = true
+	return updated, nil
 }
 
 // Complete 只把自己的处理中记录替换成完成结果，已经转成待核对的记录不能偷偷改回成功。

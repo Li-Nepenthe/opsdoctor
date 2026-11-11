@@ -1,15 +1,5 @@
-// 本文件：把订单 HTTP 请求转换成业务调用。
-//
-// 这里检查 URL、查询参数和 JSON 格式，再把业务错误映射成计划书约定的状态码。
-// 订单流程留在 service.go，handler 不直接操作数据库或 Redis。
-//
-// 主要内容：
-//   - HTTPService、Handler、NewHandler：声明 handler 所需能力并接收实现。
-//   - Create：读取幂等键和请求体，成功时返回 201。
-//   - Get、List：解析订单编号或分页参数。
-//   - respondError：统一转换错误，特别区分处理中与结果待核对。
-//
-// 阅读建议：先看 Create 的输入校验，再对照 respondError 与计划书的错误码表。
+// 本文件：解析下单和查询请求，把业务结果或错误转换成约定的 HTTP 响应。
+// Create 先检查幂等键与 JSON 格式，再由订单服务执行业务；重复请求的状态决定客户端能否重试。
 
 package order
 
@@ -32,10 +22,10 @@ type HTTPService interface {
 	List(context.Context, int64, int, int) (Page, error)
 }
 
-// Handler 只保存服务依赖，每个请求的参数都使用局部变量。
-type Handler struct{ service HTTPService } // service 负责所有订单业务判断。
+// Handler 处理创建订单、订单详情和用户订单列表的 HTTP 请求。
+type Handler struct{ service HTTPService }
 
-// NewHandler 在 app 组装路由时调用一次。
+// NewHandler 把三条订单路由接到同一个业务服务。
 func NewHandler(service HTTPService) *Handler { return &Handler{service: service} }
 
 // Create 不接受多个幂等键，避免代理与服务对“到底用哪一个”产生不同理解。

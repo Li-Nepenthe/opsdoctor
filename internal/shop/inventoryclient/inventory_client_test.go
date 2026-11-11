@@ -2,12 +2,6 @@
 //
 // 测试不连接库存服务。每次调用由 fakeRPC 记录，便于确认写操作没有被悄悄重试。
 //
-// 主要内容：
-//   - fakeRPC：记录调用次数，按测试要求返回错误。
-//   - TestReadRetryAndDeadline：查询最多尝试三次，所有尝试共用截止时间。
-//   - TestWriteOnceAndBreaker：区分业务拒绝、结果不明和未发送请求。
-//   - TestCanceledRequest：已取消的请求不发送到下游。
-//
 // 阅读建议：先看表格每行的说明，再看 wantedCalls 为什么包含首次尝试。
 
 package inventoryclient

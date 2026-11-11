@@ -1,10 +1,5 @@
-// 本文件：给 gRPC 的优雅停机加上总预算。
-//
-// GracefulStop 会等在途请求，但没有 context 参数，所以 Shutdown 在预算耗尽时补调 Stop。
-// 先看 done 的关闭者，再看超时分支如何等待后台调用结束，防止清理函数自己留下 goroutine。
-//
-// 主要内容：
-//   - Shutdown：先停止接收新 RPC 并等待在途请求，清理预算耗尽时用 Stop 取消剩余 RPC。
+// 本文件：gRPC 服务排空在途请求时仍要遵守进程的清理时限。
+// 服务清理时调用 Shutdown，先等待 GracefulStop，再在预算耗尽时终止仍在执行的 RPC。
 
 package grpcx
 
@@ -15,13 +10,11 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Shutdown 先停止接收新 RPC 并等待在途请求，清理预算耗尽时用 Stop 取消剩余 RPC。
-// 调用方必须提供有限 deadline。返回前等待内部 goroutine 退出，不把清理工作遗留在后台。
+// Shutdown 停止接收新 RPC，等待在途请求完成。
+// 调用方须传入有限的 deadline；返回时后台停机操作已经结束。
 func Shutdown(ctx context.Context, server *grpc.Server) error {
-	// done 只传递“已结束”，不传值。后台 goroutine 是唯一关闭者，本函数是唯一接收者，无需缓冲。
 	done := make(chan struct{})
 	go func() {
-		// GracefulStop 正常排空会返回。超时分支调用 Stop 后也会返回，因此这个 goroutine 有退出路径。
 		server.GracefulStop()
 		close(done)
 	}()

@@ -2,11 +2,6 @@
 //
 // 用 gRPC 的内存连接进行握手，不监听真实网络端口。失败测试直接返回拨号错误。
 //
-// 主要内容：
-//   - TestConnectInventory：检查握手成功和启动预算耗尽两条路径。
-//   - TestInventoryIdleReconnect：真实回收并重建内存连接，检查两次解析都禁用服务配置。
-//   - memoryInventoryConnection：准备独立解析器、内存服务和清理步骤。
-//
 // 阅读建议：Ready 证明传输连接可用，不代表某个商品存在，因此启动检查不查询固定商品。
 
 package orderservice

@@ -2,13 +2,6 @@
 //
 // 测试只接受专用库，避免准备数据时碰到 shop。
 // 先读 integrationDatabase，再读 100 个 goroutine 的同步起跑与结果收集。slowRepository 仅在测试中延迟查询，生产代码没有故障开关。
-//
-// 主要内容：
-//   - integrationDatabase：只允许专用测试库。每个测试串行清理 stock，不可能清空 shop 业务库。
-//   - TestIntegrationConcurrentDeduct：让 100 个 goroutine 同时争抢 50 件。真实 InnoDB 锁与条件更新决定胜负。
-//   - TestIntegrationStockBoundaries：检查不存在、归还和整数上界，覆盖单条 UPDATE 的零影响行数分支。
-//   - GetStock：用 uk_stock_sku 找行后人为等待五秒。普通 SELECT 不持有排他行锁，ctx 应提前结束驱动等待。
-//   - TestIntegrationDeadline：验证真实 gRPC deadline 穿过 service，令驱动查询等待和服务端 handler 提前返回。
 
 package inventory
 
@@ -128,7 +121,7 @@ func TestIntegrationStockBoundaries(t *testing.T) {
 
 // slowRepository 仅用于集成测试：保留正常扣减/归还，用带 SLEEP 的真实查询延迟 GetStock。
 type slowRepository struct {
-	*MySQLStockRepository            // 嵌入正常仓储，复用其他方法；生产实现没有故障开关。
+	*MySQLStockRepository            // 只在测试仓储里延迟查询。
 	finished              chan error // 查询 goroutine 写一次，测试读一次；容量 1 保证测试提前失败也不阻塞写入。
 }
 

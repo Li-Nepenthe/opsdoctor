@@ -3,11 +3,6 @@
 // 旧告警里的订单后来都被消费，这并不能证明当时收到了发送确认。
 // 测试保留真实 kafka.Writer，只把网络传输换成内存对象，手动控制确认何时到达。
 //
-// 主要内容：
-//   - waitingBroker.RoundTrip：返回分区信息，并等测试允许后再确认发送。
-//   - TestPublisherCancellationDoesNotCancelBatch：证明两个 context 的生命周期不同。
-//   - pendingPublisher：准备测试替身，并安排正确的清理顺序。
-//
 // 阅读建议：按“进入发送 → 取消调用者 → 调用返回 → 允许批次确认”读主测试。
 
 package events

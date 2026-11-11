@@ -1,13 +1,4 @@
-// 本文件：解析库存命令并通过正式 gRPC 契约调用服务。
-//
-// parseStock 先拒绝非法输入，runStock 再建立客户端与 deadline。
-// 它不直接改库存表，便于用户走完整请求链。
-// 先读参数范围，尤其是 int64 转 int32 前的检查，再看 Deduct 为什么只调用一次。
-//
-// 主要内容：
-//   - parseStock：在建立客户端前拒绝错误参数，防止“敲错命令却已经改了数据”。
-//   - runStock：创建一个短生命周期客户端，分派查询、扣减或补库存。
-//   - restock：在实验前按明确范围调用 Release；遇到结果不确定立即停止。
+// 本文件：在调用库存服务前校验命令参数，扣减和补货都走正式 gRPC 接口。
 
 package shopctl
 
@@ -28,11 +19,11 @@ import (
 
 // stockOptions 是已经通过本地校验的命令参数，不含数据库配置。
 type stockOptions struct {
-	operation string        // get 查询，deduct 扣减，restock 通过正式 Release 接口补充实验库存。
-	skuID     int64         // skuID 对应 --sku，必须为正数。
-	quantity  int32         // quantity 对应 --quantity；每个商品增加或扣减的件数。
-	count     int64         // --count 只用于 restock，表示从 sku 开始的连续商品数。
-	timeout   time.Duration // timeout 对应 --timeout，覆盖本次 RPC 的连接与执行等待。
+	operation string
+	skuID     int64
+	quantity  int32
+	count     int64 // 只在补货时表示一段连续的商品编号。
+	timeout   time.Duration
 }
 
 // parseStock 在建立客户端前拒绝错误参数，防止“敲错命令却已经改了数据”。
@@ -57,8 +48,13 @@ func parseStock(arguments []string, output io.Writer) (stockOptions, error) {
 	if *count < 1 || *count > maximumRestockCount || *skuID > math.MaxInt64-(*count-1) || (arguments[0] != "restock" && *count != 1) {
 		return stockOptions{}, fmt.Errorf("count 必须为 1..10000，仅 restock 可批量操作，商品编号不得溢出")
 	}
-	// 先检查范围再转 int32。Go 的整数转换不会抛异常，直接转换过大的值会截断。
+	// 库存契约使用 int32，超出范围的命令必须在发起 RPC 前拒绝。
 	return stockOptions{operation: arguments[0], skuID: *skuID, quantity: int32(*quantity), count: *count, timeout: *timeout}, nil
+}
+
+// stockTarget 默认指向宿主机上的库存端口，Compose 可用环境变量指定服务名。
+func stockTarget(reader config.Reader) (string, error) {
+	return reader.String("INVENTORY_GRPC_TARGET", "127.0.0.1:9001")
 }
 
 // runStock 创建一个短生命周期客户端。本机靶场使用明文 HTTP/2，不能原样部署到公网。
@@ -67,13 +63,14 @@ func runStock(parent context.Context, arguments []string, reader config.Reader, 
 	if err != nil {
 		return err
 	}
-	target, err := reader.String("INVENTORY_GRPC_TARGET", "127.0.0.1:9001")
+	target, err := stockTarget(reader)
 	if err != nil {
 		return err
 	}
 	// NewClient 只组装连接管理器，不在这里阻塞连接。首次 RPC 的 context 也覆盖连接等待。
 	// 命令也可能使用 Compose 主机名。只查 IP，不等待本项目不使用的 DNS TXT 服务配置。
-	connection, err := grpc.NewClient(target, grpc.WithDisableServiceConfig(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDisableRetry())
+	connection, err := grpc.NewClient(target,
+		grpc.WithDisableServiceConfig(), grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDisableRetry())
 	if err != nil {
 		return fmt.Errorf("创建库存客户端：%w", err)
 	}
@@ -113,6 +110,7 @@ func restock(parent context.Context, client inventoryv1.InventoryServiceClient, 
 			return fmt.Errorf("补库存中止：前 %d 个商品已确认；sku=%d 结果需先查询，不能直接重跑整批：%w", offset, skuID, err)
 		}
 	}
-	_, err := fmt.Fprintf(output, "restocked_from=%d restocked_through=%d added_each=%d confirmed=%d\n", options.skuID, options.skuID+options.count-1, options.quantity, options.count)
+	_, err := fmt.Fprintf(output, "restocked_from=%d restocked_through=%d added_each=%d confirmed=%d\n",
+		options.skuID, options.skuID+options.count-1, options.quantity, options.count)
 	return err
 }

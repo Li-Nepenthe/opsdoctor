@@ -2,12 +2,6 @@
 //
 // 测试固定使用 Redis 的 15 号数据库。每次生成独立键，结束时只删除自己创建的键，不清空整个库。
 //
-// 主要内容：
-//   - integrationStore：显式开启测试，并创建有时间上限的 Redis 客户端。
-//   - TestIntegrationReservationCompetition：同时占位只能有一个处理者，完成后可以回放。
-//   - TestIntegrationReservationOwnership：旧所有者不能改写或删除新记录。
-//   - TestIntegrationExpiredProcessing：超出处理预算的记录转成待核对，不重新执行业务。
-//
 // 阅读建议：先看测试如何隔离数据，再看 Lua 脚本在真实 Redis 中返回的比较结果。
 
 package order
