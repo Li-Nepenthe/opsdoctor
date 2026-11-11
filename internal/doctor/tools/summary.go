@@ -97,14 +97,49 @@ func summarizeTraces(traces []source.Trace) output {
 
 // summarizeTree 给丢失父节点和环路留出明确标记，不能因为后端数据不完整而无限递归。
 func summarizeTree(trace source.Trace) output {
-	// 先索引步骤，再连接父子关系；最后用 seen 防止坏数据中的环路让递归停不下来。
+	tree := indexSpanTree(trace.Spans)
+	var lines []string
+	seen := make(map[string]bool)
+	var walk func(string, int)
+	walk = func(id string, depth int) {
+		if seen[id] || len(seen) >= 200 || depth > 32 {
+			return
+		}
+		seen[id] = true
+		span := tree.byID[id]
+		line := treeLine(span, depth, tree.byID)
+		lines = append(lines, line)
+		for _, child := range tree.children[id] {
+			walk(child, depth+1)
+		}
+	}
+	for _, id := range tree.roots {
+		walk(id, 0)
+	}
+	for _, span := range trace.Spans {
+		if !seen[span.ID] && len(seen) < 200 {
+			lines = append(lines, "（未连到已知根节点，可能存在环路或过深关系）")
+			walk(span.ID, 0)
+		}
+	}
+	return output{data: map[string]any{"trace_id": trace.ID, "span_count": len(trace.Spans), "shown_spans": len(seen), "tree": strings.Join(lines, "\n")}, summary: fmt.Sprintf("采集到 %d 个 span，树中显示 %d 个；最多 200 个、32 层", len(trace.Spans), len(seen))}
+}
+
+type spanTree struct {
+	byID     map[string]source.Span
+	children map[string][]string
+	roots    []string
+}
+
+// 关系建好后再遍历，各组兄弟节点和根节点都按开始时间稳定排序。
+func indexSpanTree(spans []source.Span) spanTree {
 	byID := make(map[string]source.Span)
 	children := make(map[string][]string)
-	for _, span := range trace.Spans {
+	for _, span := range spans {
 		byID[span.ID] = span
 	}
 	var roots []string
-	for _, span := range trace.Spans {
+	for _, span := range spans {
 		if _, exists := byID[span.ParentID]; span.ParentID == "" || !exists {
 			roots = append(roots, span.ID)
 		} else {
@@ -118,31 +153,7 @@ func summarizeTree(trace source.Trace) output {
 	for _, ids := range children {
 		less(ids)
 	}
-	var lines []string
-	seen := make(map[string]bool)
-	var walk func(string, int)
-	walk = func(id string, depth int) {
-		if seen[id] || len(seen) >= 200 || depth > 32 {
-			return
-		}
-		seen[id] = true
-		span := byID[id]
-		line := treeLine(span, depth, byID)
-		lines = append(lines, line)
-		for _, child := range children[id] {
-			walk(child, depth+1)
-		}
-	}
-	for _, id := range roots {
-		walk(id, 0)
-	}
-	for _, span := range trace.Spans {
-		if !seen[span.ID] && len(seen) < 200 {
-			lines = append(lines, "（未连到已知根节点，可能存在环路或过深关系）")
-			walk(span.ID, 0)
-		}
-	}
-	return output{data: map[string]any{"trace_id": trace.ID, "span_count": len(trace.Spans), "shown_spans": len(seen), "tree": strings.Join(lines, "\n")}, summary: fmt.Sprintf("采集到 %d 个 span，树中显示 %d 个；最多 200 个、32 层", len(trace.Spans), len(seen))}
+	return spanTree{byID: byID, children: children, roots: roots}
 }
 
 // treeLine 把一个步骤写成一行，缺失父节点和 SQL 模板都归到这个步骤上。
