@@ -107,13 +107,9 @@ func New(config Config, repository Repository, agent *agent.Agent, logger *slog.
 	if repository == nil || agent == nil || logger == nil || config.Resolve == nil || config.Budget == nil || config.Concurrent < 1 || config.Concurrent > 2 || config.PerTarget != 1 || config.PendingAge <= 0 || (config.Provider != "mock" && config.Provider != "openai") {
 		return nil, fmt.Errorf("调度依赖或并发配置不合法")
 	}
-	// 拷贝白名单，调用方之后改 map 也不能改变一份已创建实验的执行路径。
-	executions := make(map[string]Execution, len(config.Executions))
-	for name, execution := range config.Executions {
-		if name == "" || execution.Model == "" || execution.Agent == nil || execution.Repository == nil || execution.Budget == nil || (execution.Provider != "mock" && execution.Provider != "openai") || (config.Provider == "mock" && execution.Provider != "mock") {
-			return nil, fmt.Errorf("评测执行配置不完整")
-		}
-		executions[name] = execution
+	executions, err := configuredExecutions(config)
+	if err != nil {
+		return nil, err
 	}
 	config.Executions = executions
 	return &Scheduler{config: config, repository: repository, agent: agent, logger: logger, running: map[string]running{}, accountBlocked: map[string]bool{}, wake: make(chan struct{}, 1)}, nil
@@ -213,18 +209,9 @@ func (scheduler *Scheduler) dispatchTask(parent, lookup context.Context, task Ta
 	if err != nil {
 		return err
 	}
-	status, err := execution.Budget(lookup)
-	if err != nil {
+	allowed, err := scheduler.canDispatch(lookup, execution)
+	if err != nil || !allowed {
 		return err
-	}
-	scheduler.mu.Lock()
-	blocked := scheduler.accountBlocked[execution.Account]
-	if execution.Account == scheduler.config.BudgetAccount {
-		blocked = scheduler.blocked
-	}
-	scheduler.mu.Unlock()
-	if execution.Provider != "mock" && (status.Blocked || blocked) {
-		return nil // 只跳过这个账户；其他币种仍按自己的余额判断。
 	}
 	var nonce [16]byte
 	_, _ = rand.Read(nonce[:])
@@ -322,29 +309,22 @@ func (scheduler *Scheduler) runTask(ctx context.Context, task Task, execution Ex
 
 // taskOutcome 按取消、账户预算、评测预算、执行错误和报告状态的顺序决定终态。
 func (scheduler *Scheduler) taskOutcome(ctx context.Context, account string, result agent.Result, err error) (string, string) {
-	status, reason := Succeeded, ""
-	switch {
-	case ctx.Err() != nil || errors.Is(err, context.Canceled):
-		status, reason = Cancelled, "用户取消或服务停止"
-	case errors.Is(err, llm.ErrBudget):
-		status, reason = BudgetExceeded, llm.ErrBudget.Error()
-		scheduler.mu.Lock()
-		if account == scheduler.config.BudgetAccount {
-			scheduler.blocked = true
-		} else {
-			scheduler.accountBlocked[account] = true
-		}
-		scheduler.mu.Unlock()
-	case errors.Is(err, llm.ErrEvaluationBudget):
-		status, reason = BudgetExceeded, err.Error()
-	case err != nil:
-		status, reason = Failed, err.Error()
-	case result.WaitingApproval:
-		status, reason = WaitingApproval, "等待人工审批，活动时间已暂停"
-	case result.BudgetExceeded:
-		status, reason = BudgetExceeded, "查证预算已用尽，最后一次机会未提交合法报告"
+	if ctx.Err() != nil || errors.Is(err, context.Canceled) {
+		return Cancelled, "用户取消或服务停止"
 	}
-	return status, reason
+	if reason, exhausted := scheduler.budgetFailure(account, err); exhausted {
+		return BudgetExceeded, reason
+	}
+	switch {
+	case err != nil:
+		return Failed, err.Error()
+	case result.WaitingApproval:
+		return WaitingApproval, "等待人工审批，活动时间已暂停"
+	case result.BudgetExceeded:
+		return BudgetExceeded, "查证预算已用尽，最后一次机会未提交合法报告"
+	default:
+		return Succeeded, ""
+	}
 }
 
 // Cancel 取消正在运行的 context；排队任务直接以条件更新改为 cancelled。

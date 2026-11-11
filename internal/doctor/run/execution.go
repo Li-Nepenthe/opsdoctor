@@ -11,9 +11,11 @@ package run
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/agent"
+	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/llm"
 )
 
 // Execution 的内容在启动时固定，各任务只持有引用，不会修改其他正在执行的任务。
@@ -73,4 +75,50 @@ func (scheduler *Scheduler) executionFor(task Task) (Execution, error) {
 		return Execution{}, fmt.Errorf("评测任务的模型与执行配置不一致")
 	}
 	return value, nil
+}
+
+// configuredExecutions 在启动时复制执行配置。默认使用 Mock 时，评测也不能切到真实模型。
+func configuredExecutions(config Config) (map[string]Execution, error) {
+	// 拷贝白名单，调用方之后改 map 也不能改变一份已创建实验的执行路径。
+	executions := make(map[string]Execution, len(config.Executions))
+	for name, execution := range config.Executions {
+		if name == "" || execution.Model == "" || execution.Agent == nil || execution.Repository == nil || execution.Budget == nil || (execution.Provider != "mock" && execution.Provider != "openai") || (config.Provider == "mock" && execution.Provider != "mock") {
+			return nil, fmt.Errorf("评测执行配置不完整")
+		}
+		executions[name] = execution
+	}
+	return executions, nil
+}
+
+// canDispatch 每次分派都检查本配置绑定的账本；Mock 也会读取余额，但不会因余额不足而停用。
+func (scheduler *Scheduler) canDispatch(lookup context.Context, execution Execution) (bool, error) {
+	status, err := execution.Budget(lookup)
+	if err != nil {
+		return false, err
+	}
+	scheduler.mu.Lock()
+	blocked := scheduler.accountBlocked[execution.Account]
+	if execution.Account == scheduler.config.BudgetAccount {
+		blocked = scheduler.blocked
+	}
+	scheduler.mu.Unlock()
+	return execution.Provider == "mock" || (!status.Blocked && !blocked), nil
+}
+
+// budgetFailure 只在账户预留不足时停用这个账户。单次评测用尽预算不会影响下一次诊断。
+func (scheduler *Scheduler) budgetFailure(account string, err error) (string, bool) {
+	if errors.Is(err, llm.ErrBudget) {
+		scheduler.mu.Lock()
+		if account == scheduler.config.BudgetAccount {
+			scheduler.blocked = true
+		} else {
+			scheduler.accountBlocked[account] = true
+		}
+		scheduler.mu.Unlock()
+		return llm.ErrBudget.Error(), true
+	}
+	if errors.Is(err, llm.ErrEvaluationBudget) {
+		return err.Error(), true
+	}
+	return "", false
 }
