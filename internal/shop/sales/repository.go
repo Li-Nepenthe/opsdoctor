@@ -14,6 +14,8 @@ import (
 	"github.com/go-sql-driver/mysql"
 )
 
+const errDuplicateEntry = 1062
+
 // insertProcessedSQL 用 order_id 主键竞争处理权。重复消息会在唯一键处等待或得到 1062。
 const insertProcessedSQL = `INSERT INTO processed_events (order_id, processed_at) VALUES (?, ?)`
 
@@ -49,7 +51,7 @@ func (repository *MySQLRepository) Apply(ctx context.Context, event events.Order
 	_, err = tx.ExecContext(ctx, insertProcessedSQL, event.OrderID, time.Now().UTC())
 	if err != nil {
 		var mysqlError *mysql.MySQLError
-		if errors.As(err, &mysqlError) && mysqlError.Number == 1062 {
+		if errors.As(err, &mysqlError) && mysqlError.Number == errDuplicateEntry {
 			// 已有凭据说明此前事务已提交。本次不再加销量，回滚这个空事务即可。
 			return true, nil
 		}
