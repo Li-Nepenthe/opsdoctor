@@ -69,43 +69,11 @@ func (ledger *Ledger) Reserve(ctx context.Context, value llm.Reservation) (strin
 		return "", err
 	}
 	defer tx.Rollback()
-	// 直接调用账本也不能跨过任务的绑定，防止调度之外的评委或补跑用错账户。
-	var expectedAccount string
-	if err = tx.QueryRowContext(ctx, "SELECT eval_account FROM diagnoses WHERE id=?", value.DiagnosisID).Scan(&expectedAccount); err != nil {
+	if err := ledger.reserveAccount(ctx, tx, value); err != nil {
 		return "", err
 	}
-	if expectedAccount != "" && expectedAccount != ledger.account {
-		return "", fmt.Errorf("评测诊断与模型预算账户不一致")
-	}
-	result, err := tx.ExecContext(ctx, "UPDATE llm_budget SET spent_micros=spent_micros+? WHERE account=? AND spent_micros<=? AND stopped_reason=''", value.MaximumMicros, ledger.account, ledger.limit-value.MaximumMicros)
-	if err != nil {
+	if err := ledger.checkDiagnosisLimit(ctx, tx, value); err != nil {
 		return "", err
-	}
-	count, err := result.RowsAffected()
-	if err != nil {
-		return "", err
-	}
-	if count != 1 {
-		return "", llm.ErrBudget
-	}
-	// 账户行已锁住，同账户的两次预留不能同时读到旧的诊断费用。
-	// 失败尝试和未结算请求也在 charged_micros 中，重启不能让它们从预算里消失。
-	if value.DiagnosisLimitMicros > 0 {
-		// 同一诊断即使在改账户后恢复，也只允许一份预算。锁诊断行使不同账户的预留串行。
-		var diagnosis, currency string
-		if err = tx.QueryRowContext(ctx, "SELECT id,currency FROM diagnoses WHERE id=? FOR UPDATE", value.DiagnosisID).Scan(&diagnosis, &currency); err != nil {
-			return "", err
-		}
-		if currency != ledger.currency {
-			return "", fmt.Errorf("诊断与费用账户币种不同，拒绝混记")
-		}
-		var spent int64
-		if err = tx.QueryRowContext(ctx, "SELECT COALESCE(SUM(charged_micros),0) FROM llm_attempts WHERE diagnosis_id=?", value.DiagnosisID).Scan(&spent); err != nil {
-			return "", err
-		}
-		if spent+value.MaximumMicros > value.DiagnosisLimitMicros {
-			return "", llm.ErrDiagnosisBudget
-		}
 	}
 	if owner := llm.Lease(ctx); owner != "" {
 		if err = requireLease(ctx, tx, value.DiagnosisID, owner); err != nil {
@@ -125,6 +93,53 @@ func (ledger *Ledger) Reserve(ctx context.Context, value llm.Reservation) (strin
 		return "", err
 	}
 	return id, nil
+}
+
+// reserveAccount 在绑定诊断的账户上扣出预留额。条件更新使并发请求不能同时花掉同一笔余额。
+func (ledger *Ledger) reserveAccount(ctx context.Context, tx *sql.Tx, value llm.Reservation) error {
+	// 直接调用账本也不能跨过任务的绑定，防止调度之外的评委或补跑用错账户。
+	var expectedAccount string
+	if err := tx.QueryRowContext(ctx, "SELECT eval_account FROM diagnoses WHERE id=?", value.DiagnosisID).Scan(&expectedAccount); err != nil {
+		return err
+	}
+	if expectedAccount != "" && expectedAccount != ledger.account {
+		return fmt.Errorf("评测诊断与模型预算账户不一致")
+	}
+	result, err := tx.ExecContext(ctx, "UPDATE llm_budget SET spent_micros=spent_micros+? WHERE account=? AND spent_micros<=? AND stopped_reason=''", value.MaximumMicros, ledger.account, ledger.limit-value.MaximumMicros)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return llm.ErrBudget
+	}
+	return nil
+}
+
+// checkDiagnosisLimit 在账户行已锁住时核对诊断预算，未结算和失败尝试仍计入已花费用。
+func (ledger *Ledger) checkDiagnosisLimit(ctx context.Context, tx *sql.Tx, value llm.Reservation) error {
+	if value.DiagnosisLimitMicros <= 0 {
+		return nil
+	}
+	// 同一诊断即使在改账户后恢复，也只允许一份预算。锁诊断行使不同账户的预留串行。
+	var diagnosis, currency string
+	if err := tx.QueryRowContext(ctx, "SELECT id,currency FROM diagnoses WHERE id=? FOR UPDATE", value.DiagnosisID).Scan(&diagnosis, &currency); err != nil {
+		return err
+	}
+	if currency != ledger.currency {
+		return fmt.Errorf("诊断与费用账户币种不同，拒绝混记")
+	}
+	var spent int64
+	if err := tx.QueryRowContext(ctx, "SELECT COALESCE(SUM(charged_micros),0) FROM llm_attempts WHERE diagnosis_id=?", value.DiagnosisID).Scan(&spent); err != nil {
+		return err
+	}
+	if spent+value.MaximumMicros > value.DiagnosisLimitMicros {
+		return llm.ErrDiagnosisBudget
+	}
+	return nil
 }
 
 // Settle 可重复调用但只结算一次，避免重试数据库写入时重复退钱。
