@@ -1,13 +1,4 @@
-// 本文件：用已经准备好的依赖装配业务，并创建两个 HTTP 入口。
-//
-// dependencies.go 只关心连接。这里把连接交给仓储，再把仓储和客户端交给业务服务。
-// 监控包装也在这一层安装，业务规则不需要知道 Prometheus 的接口。
-//
-// 主要内容：
-//   - services：装配商品缓存、订单幂等和待核对记录。
-//   - servers：创建业务与管理服务器，统一设置请求和停机预算。
-//
-// 阅读建议：processingBudget 包含客户端断开后仍要完成的收尾，不能只用 HTTPBudget。
+// 本文件：订单进程用已经打开的连接组装商品与下单服务，再创建业务端口和管理端口。
 
 package orderservice
 
@@ -63,7 +54,7 @@ func services(settings Config, resources *dependencies, runtime *telemetry.Runti
 	return shopServices{products: products, orders: orders}, nil
 }
 
-// servers 只创建对象，不开始监听。serve 会先确认两个端口都能绑定，再开放流量。
+// servers 只完成组装，serve 会在两个端口都绑定成功后才开放流量。
 func servers(settings Config, resources *dependencies, logger *slog.Logger, runtime *telemetry.Runtime) (httpServers, error) {
 	// 消息确认有自己的预算，幂等占位和 HTTP 排空必须一并容纳它。
 	budget := processingBudget(settings)

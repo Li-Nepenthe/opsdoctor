@@ -3,11 +3,6 @@
 // 同一条 Release 重发可能把库存再加一次。这里用假客户端记录调用，
 // 让第二个商品返回超时，检查命令既不会重试它，也不会继续处理后面的商品。
 //
-// 主要内容：
-//   - restockClient.Release：记录收到的商品编号，并模拟一次超时。
-//   - TestRestockStopsOnUncertainty：核对部分成功后的停止位置与提示。
-//   - TestRestockRange：核对正常批次只处理明确指定的连续范围。
-//
 // 阅读建议：先看失败用例，理解为什么这里不能自动重跑整批。
 
 package shopctl
@@ -24,7 +19,7 @@ import (
 	"google.golang.org/grpc"
 )
 
-// restockClient 只替换命令真正会用到的 Release，其余方法由嵌入接口补齐类型要求。
+// restockClient 只替换命令真正会用到的 Release。
 type restockClient struct {
 	inventoryv1.InventoryServiceClient         // 测试没有查询或扣减调用；误调用会立刻暴露。
 	calls                              []int64 // restock 顺序调用，测试返回后读取，不需要并发锁。

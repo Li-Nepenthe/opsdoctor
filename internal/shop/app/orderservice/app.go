@@ -1,15 +1,4 @@
-// 本文件：装配订单服务的依赖、路由和退出流程。
-//
-// cmd 只调用 Run。本文件先建立连接并迁移，再启动业务与管理端口，退出时先排空请求再关闭连接。
-//
-// 主要内容：
-//   - Run：创建 MySQL、Redis、库存客户端、消息生产者和业务服务。
-//   - connectInventory：在开放业务前等待库存连接完成首次握手。
-//   - routes：安装 HTTP 保护并登记四个公开接口。
-//   - serve：同时管理业务与管理端口，任意一侧异常都会触发停机。
-//   - normalHTTPError：只过滤正常关闭的标准错误。
-//
-// 阅读建议：注意 defer 的后进先出顺序。业务入口关闭以后，底层连接才会被释放。
+// 本文件：订单进程在所有依赖就绪后才接收流量，退出时先排空请求，再关闭底层连接。
 
 package orderservice
 
@@ -51,7 +40,7 @@ const (
 	shutdownMargin   = 5 * time.Second  // 在最慢业务路径之外给连接排空留余量。
 )
 
-// Run 的 result 是具名返回值，defer 可以把关闭连接的错误一并交给入口。
+// Run 把清理失败也交给命令入口；请求排空后才释放下游连接。
 func Run(parent context.Context) (result error) {
 	settings, err := loadConfig(config.New())
 	if err != nil {
@@ -68,7 +57,7 @@ func Run(parent context.Context) (result error) {
 	defer stop()
 	startup, cancel := context.WithTimeout(ctx, startupTimeout)
 	defer cancel()
-	// Run 只持有整组依赖的关闭责任。具体连接顺序放在 dependencies.go，失败时也会清理。
+	// 所有连接就绪以后，关闭责任才从 openDependencies 交给 Run。
 	resources, err := openDependencies(startup, settings, observability, logger)
 	if err != nil {
 		return err
@@ -100,7 +89,6 @@ func Run(parent context.Context) (result error) {
 }
 
 // connectInventory 把首次 DNS 查询和握手放进启动预算，避免第一位用户替服务承担建连等待。
-// NewClient 默认只创建一个空闲连接管理器。Connect 触发建连，Ready 表示传输已经可以接收 RPC。
 func connectInventory(ctx context.Context, connection *grpc.ClientConn) error {
 	connection.Connect()
 	for {
@@ -167,7 +155,7 @@ func serve(ctx context.Context, business, admin *http.Server, timeout time.Durat
 		remaining--
 	}
 	serveErr = normalHTTPError(serveErr)
-	// 先排空业务，再关管理端口。Run 的 defer 最后才关闭连接和生产者。
+	// 先排空业务，再关管理端口；底层连接在这两步完成后才能关闭。
 	closeErr := lifecycle.Shutdown(ctx, timeout,
 		lifecycle.Hook{Name: "订单 HTTP", Close: func(cleanup context.Context) error { return adminserver.Shutdown(cleanup, business) }},
 		lifecycle.Hook{Name: "订单管理端口", Close: func(cleanup context.Context) error { return adminserver.Shutdown(cleanup, admin) }})

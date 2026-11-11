@@ -1,14 +1,4 @@
-// 本文件：在订单服务的接口外面加计数，不把 Prometheus 类型传进业务流程。
-//
-// 这些包装器仍实现原接口。它们先调用真实依赖，再根据结果记一次指标。
-// 这样 product 和 order 仍然只描述业务顺序，具体监控方式由 app 决定。
-//
-// 主要内容：
-//   - observedCache.Get：区分正常命中、空值命中、未命中和读取失败。
-//   - observedProducts.Get：统计真正查询数据库的次数，并观察同一商品是否正在重复查库。
-//   - observedIdempotency.Reserve：统计新请求、回放和处理中的重复请求。
-//
-// 阅读建议：嵌入的接口会转发没改写的方法，例如 Cache.Set；这里只包需要计数的动作。
+// 本文件：在业务接口外记录缓存读取、重复回源和幂等占位的结果，让业务包独立于监控实现。
 
 package orderservice
 
@@ -46,10 +36,10 @@ func (cache observedCache) Get(ctx context.Context, id int64) (product.Product, 
 
 // observedProducts 放在 singleflight 后面的仓储接口上，合并后的查询只计一次回源。
 type observedProducts struct {
-	product.Repository                    // 实际查询仍使用原 MySQL 仓储。
-	metrics            *telemetry.Metrics // 只记次数，不把商品编号变成标签。
-	mu                 sync.Mutex         // 只保护在途计数，不能拿着这把锁执行数据库查询。
-	active             map[int64]int      // 只保存还没查完的商品，最后一个查询结束就删除。
+	product.Repository
+	metrics *telemetry.Metrics // 只记次数，不把商品编号变成标签。
+	mu      sync.Mutex         // 只保护在途计数，不能拿着这把锁执行数据库查询。
+	active  map[int64]int      // 只保存还没查完的商品，最后一个查询结束就删除。
 }
 
 // Get 在调用仓储前记录一次回源尝试，包括后面的借连接和 SQL 执行。失败的尝试也保留。
@@ -82,8 +72,8 @@ func (repository *observedProducts) Get(ctx context.Context, id int64) (product.
 
 // observedIdempotency 不改变占位逻辑，其余完成、放弃和待核对动作仍由原实现处理。
 type observedIdempotency struct {
-	order.IdempotencyStore                    // 嵌入接口，不复制 Redis 的原子状态转换。
-	metrics                *telemetry.Metrics // needs_review 由 reviewRecorder 在状态进入时统计。
+	order.IdempotencyStore
+	metrics *telemetry.Metrics // needs_review 由 reviewRecorder 在状态进入时统计。
 }
 
 // Reserve 只统计成功读到的确定状态。读取失败不能冒充新请求或正在处理。

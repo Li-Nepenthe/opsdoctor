@@ -2,9 +2,6 @@
 //
 // 测试直接读取独立注册表，不启动 HTTP，也不连接监控系统。
 //
-// 主要内容：
-//   - TestReviewRecorder：核对必需日志字段、累计值和有限的指标标签。
-//
 // 阅读建议：计数器只有 result 和 service 标签，具体订单只出现在日志里。
 
 package orderservice

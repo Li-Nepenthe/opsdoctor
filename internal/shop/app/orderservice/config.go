@@ -1,12 +1,4 @@
-// 本文件：读取订单进程的配置，并检查各层时间预算。
-//
-// Run 在连接外部服务前调用 loadConfig。参数错误应在启动时说明，不留到第一笔订单才发现。
-//
-// 主要内容：
-//   - Config：列出这个进程真正使用的参数。
-//   - loadConfig：读取环境变量，检查下游超时与上游预算的关系。
-//
-// 阅读建议：先看 HTTPBudget、CleanupBudget、Inventory.Timeout 的关系，再看它们如何决定旧占位的处理预算。
+// 本文件：订单服务在启动前校验整个请求、库存调用和订单收尾的预算，并据此确定幂等占位的处理期限。
 
 package orderservice
 
@@ -31,23 +23,23 @@ const (
 
 // Config 中的 Database 含密码，禁止把整个结构体写进日志。
 type Config struct {
-	Database             mysqlx.Config          // MYSQL_DSN 与连接池设置。
-	HTTPAddress          string                 // HTTP_ADDR，默认 :8081。
-	AdminAddress         string                 // ADMIN_ADDR，默认 :6061。
-	RedisPassword        string                 // REDIS_PASSWORD，业务账号密码；禁止写入日志。
-	RedisAddress         string                 // REDIS_ADDR，运行时缓存与幂等记录共用 DB 0。
-	KafkaBrokers         []string               // KAFKA_BROKERS，逗号分隔后逐项检查。
-	InventoryTarget      string                 // INVENTORY_GRPC_TARGET，复用一条 gRPC 连接。
-	InventoryIdleTimeout time.Duration          // INVENTORY_GRPC_IDLE_TIMEOUT，无 RPC 多久后释放连接；0 表示不因空闲释放。
-	Inventory            inventoryclient.Config // 库存调用的超时、重试和熔断参数。
-	HTTPBudget           time.Duration          // HTTP_REQUEST_TIMEOUT，整次请求的上游预算。
-	CleanupBudget        time.Duration          // ORDER_CLEANUP_TIMEOUT，每次补偿或状态收尾的预算。
-	PublishBudget        time.Duration          // ORDER_PUBLISH_TIMEOUT，已提交订单等待消息确认的预算，默认五秒。
-	IdempotencyTTL       time.Duration          // IDEMPOTENCY_TTL，默认 24 小时。
-	Singleflight         bool                   // CACHE_SINGLEFLIGHT，是否合并同商品回源。
-	CacheJitter          time.Duration          // CACHE_TTL_JITTER，0 表示关闭随机过期增量。
-	RateRPS              int                    // RATE_LIMIT_RPS，令牌每秒补充数。
-	RateBurst            int                    // RATE_LIMIT_BURST，桶最多保存的令牌数。
+	Database             mysqlx.Config
+	HTTPAddress          string
+	AdminAddress         string
+	RedisPassword        string
+	RedisAddress         string // 商品缓存和幂等记录共用 DB 0。
+	KafkaBrokers         []string
+	InventoryTarget      string
+	InventoryIdleTimeout time.Duration // 设为零会一直保留空闲连接。
+	Inventory            inventoryclient.Config
+	HTTPBudget           time.Duration
+	CleanupBudget        time.Duration
+	PublishBudget        time.Duration
+	IdempotencyTTL       time.Duration
+	Singleflight         bool
+	CacheJitter          time.Duration
+	RateRPS              int
+	RateBurst            int
 }
 
 // configValues 记下每个变量的校验错误，让启动日志一次列出所有需要修改的配置。

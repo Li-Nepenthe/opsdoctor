@@ -1,16 +1,4 @@
-// 本文件：准备订单进程需要的连接，并明确由谁关闭它们。
-//
-// 监控接入后，Run 里挤进了连接、探活、注册和清理细节。把这些步骤搬到这里，
-// 入口就可以按“读配置 → 准备连接 → 装配服务 → 接流量”的顺序阅读。
-//
-// 主要内容：
-//   - dependencies、openDependencies：按依赖顺序建立连接，失败时收回已经打开的资源。
-//   - openRedis：先装追踪插件，再探测 Redis 是否可用。
-//   - openInventory：创建带追踪和指标的连接，并等待首次握手完成。
-//   - inventoryDialOptions：集中说明 DNS 查询、空闲回收和监控选项。
-//   - close：按与打开相反的顺序归还连接。
-//
-// 阅读建议：先看 openDependencies 的失败分支，再看 Run 成功以后安排的 defer。
+// 本文件：为订单进程创建数据库、Redis、库存和 Kafka 连接，启动失败和正常停机都按打开的逆序清理。
 
 package orderservice
 
@@ -119,7 +107,6 @@ func openInventory(ctx context.Context, target string, idleTimeout time.Duration
 }
 
 // inventoryDialOptions 保留按主机名找 IP 的能力，但不从 DNS 读取本项目不用的服务配置。
-// 测试也使用同一组选项，确认首次解析和空闲后重建都收到“无需查询服务配置”的标志。
 func inventoryDialOptions(idleTimeout time.Duration, runtime *telemetry.Runtime) []grpc.DialOption {
 	return []grpc.DialOption{
 		grpc.WithTransportCredentials(insecure.NewCredentials()), grpc.WithDisableRetry(),

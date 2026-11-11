@@ -1,10 +1,4 @@
-// 本文件：为三个业务进程装配独立的运维监听器。
-//
-// 运维接口不能混到公开业务端口。Compose 只在内部网络暴露这个监听器；没有配置
-// OPS_ADDR 时不启动，便于本机单独调试旧的业务入口。
-//
-// 主要内容：StartOps 读取令牌、先绑定端口，再返回必须调用的关闭函数。
-// 阅读建议：服务器意外退出会取消业务进程；正常退出则先排空，再读回 Serve 的结果。
+// 本文件：读取内部运维入口配置，在业务进程的指标注册表上登记连接池变更。只有设置 OPS_ADDR 才启动独立监听。
 
 package app
 
@@ -70,7 +64,7 @@ func listenOps(parent context.Context, stop context.CancelFunc, address string, 
 		ReadTimeout: 5 * time.Second, WriteTimeout: 35 * time.Second, IdleTimeout: 30 * time.Second,
 	}
 	finished := make(chan error, 1)
-	// 容量一让 Serve 无论何时结束都能交回结果；关闭函数会读齐并归还 goroutine。
+	// 监听意外退出也能先交回结果，关闭函数在端口排空后取回它。
 	go func() {
 		err := server.Serve(listener)
 		if !errors.Is(err, http.ErrServerClosed) {
