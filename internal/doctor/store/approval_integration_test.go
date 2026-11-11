@@ -2,9 +2,6 @@
 //
 // 不执行任何 shop 写操作。这里检查的是两个批准请求争抢同一张单时谁能成功，
 // 以及进程退出后是否还能读到同一份参数和执行线索。
-//
-// 主要内容：TestIntegrationApproval 验证等待、决定和执行领取；TestIntegrationApprovalExpiry 验证过期与取消。
-// 阅读建议：等待时间通过移动专用任务的时间字段模拟，不真的等待半小时。
 
 package store
 

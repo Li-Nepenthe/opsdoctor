@@ -1,52 +1,31 @@
-// Package store 保存医生自己的用户、告警、诊断步骤和费用账本。
+// Package store 把医生自己的工作保存到 doctor 库。页面、调度器和模型客户端使用这里的连接记录诊断、步骤和费用。
+// 靶场的业务数据由独立的只读数据源查询，不与医生的写入账号共用连接。
 //
-// 医生既要查看别的系统，也要记录自己的工作。这是两种不同的权限：source 里的
-// 连接只能查看靶场；这里的连接可以写 doctor 库，但不连接 shop。把两者分开，
-// 才不会因为需要保存任务，就顺便把业务库的写权限交给医生。
+// 从 alerts.go 的 ReceiveAlerts 看告警如何成为一份诊断，再沿 tasks.go、leases.go 和 steps.go 看任务如何领取、续跑和结束。
+// 一次模型尝试的预留和退款在 budget.go。评测另有冻结输入和结果，第一次阅读诊断流程时可以跳过 eval_ 开头的文件。
 //
-// 文件清单：
-//   - eval_execution.go：追加每次评测动作所用的提交号和源码哈希。
-//   - eval_baseline_amendment.go：保留旧版本和原注入时间，原子审计零模型轮次的重启。
-//   - eval_baseline_amendment_integration_test.go：证明重启只能批准一次、不能重做已有模型槽位。
-//   - eval_calibration.go：保存第一次抽中的二十份编号，不填写人的评分。
-//   - eval_listing.go：提供页面的批次列表，复用相同的结果查询。
-//   - eval_trials.go：保存整轮注入、恢复、冷却进度与追加的暂停原因。
-//   - eval_generalization_test.go：证明外部系统编号只能用于阶段 9 独立批次。
-//   - eval_trials_integration_test.go：证明中断续读不会回退、跳过或覆盖故障轮次。
-//   - eval_judge.go：保存独立的评委收费归属，恢复已有回复并固定评分结果。
-//   - eval_lock.go：用数据库连接锁拒绝重复启动，连接丢失时取消评测。
-//   - eval_judge_integration_test.go：验证评委账户、调度隔离和同批互斥。
-//   - eval_execution_integration_test.go：验证配对诊断的配置、币种、账户绑定与独立槽位。
-//   - timing_integration_test.go：验证统一数据库时间戳与单调时钟耗时。
-//   - eval_results.go：保存实验槽位、冻结的告警输入和不可覆盖的终态结果。
-//   - eval_results_integration_test.go：验证输入冻结、重复续跑和失败结果不可覆盖。
-//   - eval_reliability.go：依据请求审计区分可靠性失败，只为原槽位安排一次补跑。
-//   - eval_clock_amendment.go：保存用户批准的校时版本变更与指定中断的补跑许可。
-//   - eval_clock_amendment_integration_test.go：证明普通取消不获豁免，批准与旧结果不可改写。
-//   - eval_reliability_test.go：验证网络、格式、预算和取消不能混为同一种失败。
-//   - eval_budget.go：把整批 token 预留、结算和中断保留接到真实费用事务。
-//   - eval_budget_integration_test.go：验证批次 token 与费用原子记账，以及未知用量不因重启消失。
-//   - evaluation.go：保存评测模式和可重试的实验诊断，防止重复自动付费。
-//   - evaluation_integration_test.go：验证评测任务去重、暂停告警执行和写操作拒绝。
-//   - approvals.go：事务保存审批、一次决定和执行线索。
-//   - approval_integration_test.go：验证等待、争抢、过期和执行恢复。
-//   - leases.go：领取和续租执行权，过时断点不再继续。
-//   - model_recovery.go：从费用审计找回崩溃前已收到的回答。
-//   - lease_integration_test.go：验证租约争抢、回复恢复和币种隔离。
-//   - mcp_integration_test.go：用专用库验证外部调用审计和脱敏。
-//   - mcp.go：把外部 MCP 调用的开始和结果单独保存。
-//   - agent_integration_test.go：在专用数据库验证故障开放期、任务清理、步骤编号和累计费用。
-//   - budget.go：把真实模型的费用预留与结算保存到医生数据库。
-//   - steps.go：给步骤分配编号，并为页面断线后的补发提供有序读取。
-//   - tasks.go：保存调度状态变化，隔离启动清理、排队和结束操作。
-//   - doc.go：本包的使用背景、边界和阅读顺序。
-//   - alerts.go：在一个事务中去重告警分组、创建任务、保存告警快照。
-//   - diagnoses.go：读取已经创建的诊断任务，供验收和后续页面使用。
-//   - faults.go：读取故障开放状态，以及恢复观察期补入的告警。
-//   - recovery_integration_test.go：用可控时间和真实事务核对晚到告警、期限与任务数。
-//   - store.go：建立医生仓储并应用医生自己的迁移。
-//   - store_integration_test.go：在专用医生测试库验证迁移、通知事务和分组去重。
-//   - users.go：保存首次登录账号，并按邮箱查找密码摘要。
-//
-// 阅读顺序：Migrate → ReceiveAlerts → StartTask → RecordStep → EndTask；费用另从 budget.go 阅读。
+//   - store.go：装配 doctor 数据库连接池、仓储回调与迁移。
+//   - users.go：按邮箱创建或查找账号，保存密码摘要。
+//   - alerts.go：在接收告警的事务内判断故障归属，保存诊断和告警快照。
+//   - faults.go：查询故障恢复观察期和告警快照的来源。
+//   - diagnoses.go：读取诊断列表和详情。
+//   - tasks.go：按原状态条件更新任务，记录状态步骤并在提交后通知。
+//   - leases.go：领取和续租执行权，阻止持有旧租约的执行者继续写入。
+//   - steps.go：锁住诊断后分配步骤编号，支持按序补读。
+//   - budget.go：在模型调用前预留费用，在得到回复后结算已知用量。
+//   - model_recovery.go：从尝试审计中找回已收到但中断前未保存到步骤的回答。
+//   - approvals.go：保存审批计划、决定和执行结果。
+//   - mcp.go：单独保存外部工具调用的开始和结束审计。
+//   - evaluation.go：记录评测模式，按调用者标识创建可重复提交而不会重复执行的评测诊断。
+//   - eval_budget.go：在费用事务里一起预留和结算评测批次的 token。
+//   - eval_execution.go：保存每次评测执行所用的提交号和代码哈希。
+//   - eval_results.go：冻结每个实验的告警输入，记录各组终态结果，阻止结论被覆盖。
+//   - eval_trials.go：记录整轮实验的故障注入、恢复、冷却进度与中断原因。
+//   - eval_judge.go：绑定评委任务的输入、模型和账户，按已存回复恢复评分。
+//   - eval_listing.go：查询页面使用的批次列表和结果。
+//   - eval_lock.go：以数据库连接锁防止两份进程同时执行同一评测，丢锁时取消执行。
+//   - eval_reliability.go：依据请求审计区分失败原因，并限制同一位置的补跑次数。
+//   - eval_calibration.go：保存首次抽取的人工核对样本编号。
+//   - eval_clock_amendment.go：保存历史批次中获批的校时版本变更及指定的补跑许可。
+//   - eval_baseline_amendment.go：保存历史批次获准重启前的版本和注入时间，便于核对重启前后分别执行了哪些轮次。
 package store

@@ -2,10 +2,6 @@
 //
 // 这些断言依赖真实事务与行锁，内存替身不能证明它们。仍然只连医生测试库，
 // 模型请求用内存数据代替，不访问供应商，也不产生费用。
-//
-// 主要内容：TestIntegrationFaultPeriod 检查一次故障；TestIntegrationTasks 检查状态；
-// TestIntegrationBudget 检查并发预留与结算。
-// 阅读建议：时间通过 Now 注入；测试跨过十五分钟不需要真的等待十五分钟。
 
 package store
 

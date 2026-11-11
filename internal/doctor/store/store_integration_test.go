@@ -2,14 +2,6 @@
 //
 // 不连接保存真实诊断任务的 doctor 库。每个用例用独立系统名和邮箱，只清理自己
 // 创建的记录；不清空整张表，也不删除别人的验收数据。
-//
-// 主要内容：
-//   - TestIntegrationAlertDeduplication：三次推送和并发推送都只创建一个任务。
-//   - TestIntegrationAlertRollback：告警行写失败时，任务也必须回滚。
-//   - TestIntegrationUserBootstrap：重复初始化不能重置已有密码。
-//   - integrationStore、testNotification：准备专用库和虚构告警。
-//
-// 阅读建议：这里证明真实唯一约束和事务，HTTP 的令牌隔离另在 httpapi 测试。
 
 package store
 

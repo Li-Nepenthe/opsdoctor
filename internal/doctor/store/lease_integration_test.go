@@ -2,10 +2,6 @@
 //
 // 不真的等待租约过期，而是在测试专用任务上移动数据库时间字段。所有模型回复由
 // 测试构造；这样能证明事务边界和费用保留，不会产生付费调用。
-//
-// 主要内容：TestIntegrationLeaseTakeover 检查续租、接手和旧写入；
-// TestIntegrationModelRecovery 检查已结算回复回放与未知费用保留。
-// 阅读建议：测试只改本次随机任务，清理由 integrationStore 按系统完成。
 
 package store
 

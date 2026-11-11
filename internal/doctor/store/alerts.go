@@ -1,11 +1,4 @@
-// 本文件：把同一次故障的反复通知归到同一个诊断，并判断故障何时结束。
-//
-// 报告提交并不代表故障恢复。分组行独立保存开放状态，只有整组 resolved 或长时间
-// 没有通知才结束这一轮。整组恢复后还会观察一段时间，等较慢的告警到齐。
-// 锁住分组行后再建任务，并发通知不会同时创建两份。
-//
-// 主要内容：ReceiveAlerts 保存通知事务；receiveGroup 判断新旧故障；saveAlerts 更新快照。
-// 阅读建议：诊断的终态不参与 receiveGroup 的判定，所以结束的诊断仍能接收补充告警。
+// 本文件：按分组锁接收告警，在一个事务里选择故障、创建诊断并保存快照。诊断结束后仍可接收迟到的告警，故障按恢复通知和观察窗口关闭。
 
 package store
 
@@ -35,7 +28,7 @@ func (store *Store) ReceiveAlerts(ctx context.Context, target string, value aler
 	if err != nil {
 		return alerts.Receipt{}, err
 	}
-	// 结构体按值传入仍共享里面的 map 和 slice，必须解析到新对象，不能改调用者的数据。
+	// 脱敏后的通知要写进新对象，避免改动调用方仍在使用的标签和告警。
 	var cleaned alerts.Notification
 	if err = json.Unmarshal(clean, &cleaned); err != nil {
 		return alerts.Receipt{}, err
