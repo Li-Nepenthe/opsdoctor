@@ -2,11 +2,6 @@
 //
 // 只允许 opsdoctor_order_test 专用库。测试不删除或修改 shop 中已有的两百万条订单。
 //
-// 主要内容：
-//   - integrationDatabase：检查库名并准备独立测试表。
-//   - TestIntegrationOrderQueries：保存订单，核对详情、用户隔离和稳定分页。
-//   - TestIntegrationOrderRejectedBeforeCommit：验证数据库拒绝时能明确说明订单未提交。
-//
 // 阅读建议：测试故意使用相同创建时间，确认列表仍按订单编号稳定排序。
 
 package order

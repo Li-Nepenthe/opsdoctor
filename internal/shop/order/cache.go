@@ -1,16 +1,5 @@
-// 本文件：用 Redis 保存幂等占位、创建结果和待核对状态。
-//
-// NX 表示“只有 key 不存在时才写入”，让同时到达的重复请求只有一个拿到处理权。
-// 后续修改要比较原记录，不能让一个执行很慢的旧请求覆盖同名的新占位。
-//
-// 主要内容：
-//   - NewRedisIdempotency：检查保存时长与处理预算。
-//   - Reserve、existing：占位，或读取已有请求的结果。
-//   - Complete、Review、Abandon：仅修改本次请求拥有的记录。
-//   - replace：用 Lua 把“比较再写入”作为一个不可插队的操作。
-//   - requestFingerprint：把请求参数压缩成固定摘要，用于比较内容是否一致。
-//
-// 阅读建议：先比较 SET NX 与普通 SET，再看 Lua 为什么要保留原来的过期时间。
+// 本文件：用 Redis 记录哪些下单请求已经取得处理权，重复请求应该看到什么结果。
+// Reserve 只有在键不存在时才能占位。后续的保存和删除都要核对完整的旧记录，避免过期请求改写新订单。
 
 package order
 
@@ -89,7 +78,7 @@ func (store *RedisIdempotency) Reserve(ctx context.Context, key string, request 
 
 // existing 在总处理预算已过时把遗留占位转为待核对，覆盖进程退出或 Redis 写状态失败的情况。
 func (store *RedisIdempotency) existing(ctx context.Context, key, fingerprint string) (Reservation, error) {
-	// 比较后更新失败，可能是持有者刚完成了请求，再读一次即可。次数有上限，不能无限循环。
+	// 比较失败可能是原请求刚刚完成，重新读才能看到它的结果。一次占位请求最多读三次。
 	for range 3 {
 		raw, err := store.client.Get(ctx, "idempotency:"+key).Result()
 		if err != nil {

@@ -1,15 +1,5 @@
-// 本文件：保存订单，并按主键或用户读取订单。
-//
-// service 扣库存成功后才调用 Create。这里的事务只覆盖 MySQL，不能同时提交远端库存或 Kafka。
-// 单独放 SQL，方便核对列表是否使用了阶段 1 创建的联合索引。
-//
-// 主要内容：
-//   - Create：插入订单并提交，保留“提交可能成功”的错误信息。
-//   - Get：通过主键读取订单详情。
-//   - List：使用用户与创建时间索引分页。
-//   - scanOrder：共用字段扫描顺序，避免详情和列表的字段对错位置。
-//
-// 阅读建议：先看 Commit 失败为什么区别于 INSERT 失败，再看分页偏移量的限制。
+// 本文件：下单时把订单写进 MySQL，查询时按主键读取或按用户分页。
+// Create 返回提交状态和已分配的编号，供下单流程判断能否归还库存；List 按创建时间和编号倒序返回。
 
 package order
 
@@ -31,8 +21,8 @@ const getOrderSQL = `SELECT id, user_id, sku_id, quantity, amount_cents, status,
 const listOrdersSQL = `SELECT id, user_id, sku_id, quantity, amount_cents, status, created_at FROM orders ` +
 	`WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`
 
-// MySQLRepository 只借用连接池。一个写事务会借用一条连接直到提交或回滚。
-type MySQLRepository struct{ database *sql.DB } // database 的关闭由 app 负责。
+// MySQLRepository 借用订单服务的连接池，各包共用同一份连接预算。
+type MySQLRepository struct{ database *sql.DB }
 
 // NewMySQLRepository 让订单与商品查询复用服务级连接池，不为每个包创建新池。
 func NewMySQLRepository(database *sql.DB) *MySQLRepository {
@@ -47,7 +37,7 @@ func (repository *MySQLRepository) Create(ctx context.Context, draft Order) (sav
 		return saved, &PersistenceError{Cause: fmt.Errorf("开始订单事务：%w", err)}
 	}
 	defer func() {
-		// result 是具名返回值，defer 可以在返回前补充回滚失败原因。
+		// 回滚失败也要保留最初的错误，便于判断业务是否可以补偿。
 		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 			result = errors.Join(result, fmt.Errorf("回滚订单事务：%w", err))
 		}
@@ -104,7 +94,7 @@ func (repository *MySQLRepository) List(ctx context.Context, userID int64, page,
 		}
 		result.Items = append(result.Items, value)
 	}
-	// Next 返回 false 也可能是连接读取失败，必须再检查 Err。
+	// 读到半页时连接可能中断，这种情况不能把不完整的数据当作成功结果。
 	if err := rows.Err(); err != nil {
 		return Page{}, fmt.Errorf("遍历用户订单：%w", err)
 	}

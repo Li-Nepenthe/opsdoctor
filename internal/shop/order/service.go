@@ -1,17 +1,5 @@
-// 本文件：按顺序完成下单，并在失败时判断能否安全重试。
-//
-// HTTP 请求先到这里。价格、库存、数据库和消息都通过小接口调用，测试可以逐步模拟失败。
-// 跨服务操作没有共同事务，因此每个失败分支都要说明已经发生了什么。
-//
-// 主要内容：
-//   - NewService：装配订单所需能力和收尾预算。
-//   - Create：占位、查价、扣库存、写订单、发消息、保存回放结果。
-//   - safeFailure：确认没有业务变更后才删除占位。
-//   - unknown：保留占位，记录告警与待核对计数。
-//   - Get、List：校验查询参数后读取订单。
-//   - outcomeUnknown：用错误携带的信息判断写入结果是否确定。
-//
-// 阅读建议：先看 Create 的成功路径，再逐一看三个写操作失败后为什么处理不同。
+// 本文件：协调从幂等占位到保存回放结果的六步下单流程。
+// Create 通过各自的接口查价、扣库存、写订单和发消息；能否归还库存或允许重试，取决于失败时已经完成了什么。
 
 package order
 
@@ -55,20 +43,20 @@ type ReviewRecorder interface {
 	RecordReview(context.Context, int64, int64, string, string)
 }
 
-// Service 只保存依赖和固定配置，每次下单的中间结果放在局部变量中。
+// Service 协调订单写入、库存变更和幂等占位，跨服务的失败由它决定能否补偿。
 type Service struct {
-	repository     Repository       // 保存与查询订单。
-	prices         PriceReader      // 商品价格来自缓存或数据库。
-	stock          StockWriter      // 负责真实库存变化。
-	publisher      Publisher        // 订单落库后发送消息。
-	idempotency    IdempotencyStore // Redis 不可用时不能绕过占位。
-	reviews        ReviewRecorder   // 记录结果待核对事件。
-	cleanupTimeout time.Duration    // 请求取消后，补偿或保存结果仍有有限的收尾时间。
-	publishTimeout time.Duration    // Kafka 确认可能慢于 Redis 收尾，阶段 4 起单独给它预算。
-	logger         *slog.Logger     // 记录已落库但未发出消息的缺口。
+	repository     Repository
+	prices         PriceReader
+	stock          StockWriter
+	publisher      Publisher
+	idempotency    IdempotencyStore
+	reviews        ReviewRecorder
+	cleanupTimeout time.Duration
+	publishTimeout time.Duration
+	logger         *slog.Logger
 }
 
-// Dependencies 由订单服务装配；价格、库存与消息客户端跟随服务进程复用。
+// Dependencies 由订单服务装配，同一进程的请求复用价格、库存和消息客户端。
 type Dependencies struct {
 	Repository     Repository
 	Prices         PriceReader
@@ -197,11 +185,7 @@ func (service *Service) publishCreated(ctx context.Context, saved Order) {
 		OrderID: saved.OrderID, UserID: saved.UserID, SKUID: saved.SKUID,
 		Quantity: saved.Quantity, AmountCents: saved.AmountCents, CreatedAt: saved.CreatedAt,
 	}
-	// 订单已经提交，发送消息也是收尾工作，不能因为客户断开连接就放弃。
-	// WithoutCancel 保留请求中的值（包括调用链），只去掉原来的取消信号和 deadline。
-	// 再加自己的超时，避免 Kafka 不可用时一直占住处理请求的 goroutine。
-	// 原来和 Redis 收尾共用两秒，甚至短于 Kafka 自己一次三秒的写入预算。
-	// 现在单独配置确认时间，让调用方有机会等到正常的发送答复；有限时间耗尽仍如实记录未确认。
+	// 订单已经提交，客户断开也要等发送确认。Kafka 一次写入最多三秒，因此它有独立于 Redis 收尾的有限预算。
 	publishCtx, cancelPublish := context.WithTimeout(context.WithoutCancel(ctx), service.publishTimeout)
 	publishStarted := time.Now()
 	publishErr := service.publisher.Publish(publishCtx, event)
