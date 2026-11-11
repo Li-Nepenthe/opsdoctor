@@ -1,10 +1,5 @@
-// 本文件：为一个系统绑定索引账号和有限的运维地址。
-//
-// 写工具没有“连接哪里”的参数。所有地址、账号和服务名在启动时确定，发送请求
-// 时也不跟随重定向。这样一个后端的回复不能把运维令牌带到另一个地址。
-//
-// 主要内容：OpsConfig 保存部署者给的范围；NewBackend 收窄连接能力；opsRequest 发送固定协议。
-// 阅读建议：diag_ddl 最多一条连接，元数据查询仍借用已有 diag_ro 池。
+// 本文件：为每个系统绑定索引账号和运维服务的固定根地址。运维请求禁用重定向，以免令牌被带到另一台主机。
+// 索引账号最多占一条连接，读取元数据仍用原有的 diag_ro 连接池。
 
 package approval
 
@@ -26,11 +21,11 @@ import (
 
 // OpsConfig 来自接入配置，不接受模型的同名字段覆盖。
 type OpsConfig struct {
-	Services    map[string]string // 服务名与固定根地址。
-	Token       string            // 只进 Authorization，不进审批单或日志。
-	PoolMin     int               // 默认五条。
-	PoolMax     int               // 默认两百条。
-	WarmService string            // 只有提供商品缓存的那个服务可以预热。
+	Services    map[string]string
+	Token       string // 只进 Authorization，不进审批单或日志。
+	PoolMin     int    // 默认五条。
+	PoolMax     int    // 默认两百条。
+	WarmService string // 只有提供商品缓存的那个服务可以预热。
 }
 
 // Backend 只保存本系统的资源，不包含目录或其他系统的连接。
@@ -43,7 +38,7 @@ type Backend struct {
 	timeout  time.Duration
 }
 
-// NewBackend 不立即连接数据库；启动配置检查失败时关闭已经创建的池。
+// NewBackend 校验服务范围和索引账号后建立连接池，第一次使用时才连接数据库。
 func NewBackend(dsn string, metadata Metadata, tables []string, ops OpsConfig, timeout time.Duration) (*Backend, error) {
 	if timeout < 30*time.Second || timeout > 3*time.Minute {
 		return nil, fmt.Errorf("写工具时限必须在 30s–3m 内")

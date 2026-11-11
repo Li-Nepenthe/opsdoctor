@@ -1,10 +1,5 @@
-// 本文件：定义一张审批单保存什么，以及执行器需要哪些能力。
-//
-// 参数和预览一起保存。后续用户批准的是这份已经确定的计划，而不是允许模型以后
-// 任意修改同一类资源。重新选参数必须产生另一张审批单。
-//
-// 主要内容：Plan 保存最终执行参数；Record 保存审批和执行过程；Repository 隔开数据库。
-// 阅读建议：执行中的 ConnectionID 是断点线索，不是新的工具参数。
+// 本文件：定义审批单保存的参数、预览和结果，以及领取、执行所需的接口。
+// 人批准的是已保存的计划，改变参数要重新申请。ConnectionID 供恢复时核对旧连接，不能由模型指定。
 
 package approval
 
@@ -22,7 +17,7 @@ var ErrNotFound = errors.New("审批单不存在")
 
 // PoolState 与运维协议对应；医生不导入任何 shop 代码，只通过接口认识这个结构。
 type PoolState struct {
-	Instance      string `json:"instance"`       // 审批时进程实例。
+	Instance      string `json:"instance"`
 	Initial       int    `json:"initial"`        // 启动配置，方便人撤销运行时修改。
 	Current       int    `json:"current"`        // 审批时真实上限。
 	Revision      int    `json:"revision"`       // 审批后变化会让执行失败。
@@ -77,7 +72,7 @@ type Repository interface {
 	FinishApproval(context.Context, string, string, tools.Result) error
 }
 
-// Metadata 复用原来的 diag_ro 三连接池，只读取列、索引与线程是否存在。
+// Metadata 复用 diag_ro 的三条只读连接，只读取列、索引与线程是否存在。
 type Metadata interface {
 	Columns(context.Context, string) ([]string, error)
 	IndexShape(context.Context, string, string) ([]string, bool, bool, error)

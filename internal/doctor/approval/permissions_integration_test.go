@@ -3,7 +3,6 @@
 // 先建立和撤销一个专用测试索引，证明账号确实可用。然后执行不会改动业务行的
 // 语句，逐一检查权限错误号；连接失败或语法错误都不能冒充“写入已被拒绝”。
 //
-// 主要内容：TestIntegrationIndexPermissions 验证 INDEX 能力与越权拒绝。
 // 阅读建议：这个测试只认显式的 TEST_SHOP_MYSQL_DDL_DSN，不借用医生或业务账号。
 
 package approval

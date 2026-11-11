@@ -1,10 +1,5 @@
-// 本文件：执行已经领取的审批，并在恢复时先核对目标系统的真实状态。
-//
-// 进程可能在 MySQL 已完成建索引、医生还没保存结果时退出。如果直接再执行一次，
-// 就会把成功误报成失败。因此先查索引形状；旧连接还在时也不能盲目发第二次 DDL。
-//
-// 主要内容：execute 分派三种已批准操作；createIndex 查真实状态并执行；setPool 比较当前进程。
-// 阅读建议：本文件不接受模型原始参数，只有审批单中的 Plan 能到达这里。
+// 本文件：执行已领取的审批单，只使用人审阅过的计划。
+// 远端可能已经修改成功，本地还没来得及保存结果。恢复时先核对索引或连接池，旧 DDL 仍在运行时继续等待。
 
 package approval
 
@@ -92,8 +87,7 @@ func (backend *Backend) createIndex(ctx context.Context, record Record, saveConn
 		return nil, fmt.Errorf("获取索引连接失败")
 	}
 	defer connection.Close()
-	// Raw 返回 ErrBadConn 告诉 database/sql 丢弃这条连接。即便取消时 MySQL 仍在做 DDL，
-	// 也不能把这条状态不明的连接交给下一次审批；恢复会先核对线程和索引。
+	// 请求取消时 MySQL 可能仍在执行 DDL。用 ErrBadConn 丢弃专用连接，下一次恢复先核对线程和索引。
 	defer func() { _ = connection.Raw(func(any) error { return driver.ErrBadConn }) }()
 	var id int64
 	if err = connection.QueryRowContext(ctx, "SELECT CONNECTION_ID()").Scan(&id); err != nil {
