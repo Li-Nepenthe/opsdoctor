@@ -68,9 +68,32 @@ type Service struct {
 	logger         *slog.Logger     // 记录已落库但未发出消息的缺口。
 }
 
-// NewService 由 app 统一传入依赖，cleanupTimeout 必须大于库存调用超时。
-func NewService(repository Repository, prices PriceReader, stock StockWriter, publisher Publisher, idempotency IdempotencyStore, reviews ReviewRecorder, cleanupTimeout, publishTimeout time.Duration, logger *slog.Logger) *Service {
-	return &Service{repository: repository, prices: prices, stock: stock, publisher: publisher, idempotency: idempotency, reviews: reviews, cleanupTimeout: cleanupTimeout, publishTimeout: publishTimeout, logger: logger}
+// Dependencies 由订单服务装配；价格、库存与消息客户端跟随服务进程复用。
+type Dependencies struct {
+	Repository     Repository
+	Prices         PriceReader
+	Stock          StockWriter
+	Publisher      Publisher
+	Idempotency    IdempotencyStore
+	Reviews        ReviewRecorder
+	CleanupTimeout time.Duration // 补偿预算必须大于库存调用超时。
+	PublishTimeout time.Duration // Kafka 的发送确认有独立的时间预算。
+	Logger         *slog.Logger
+}
+
+// NewService 用同一组依赖处理下单和订单查询。
+func NewService(deps Dependencies) *Service {
+	return &Service{
+		repository:     deps.Repository,
+		prices:         deps.Prices,
+		stock:          deps.Stock,
+		publisher:      deps.Publisher,
+		idempotency:    deps.Idempotency,
+		reviews:        deps.Reviews,
+		cleanupTimeout: deps.CleanupTimeout,
+		publishTimeout: deps.PublishTimeout,
+		logger:         deps.Logger,
+	}
 }
 
 // Create 遇到结果不明就停止自动处理，不能把“没有收到成功答复”当成“什么都没发生”。

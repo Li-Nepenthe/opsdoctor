@@ -38,11 +38,17 @@ func services(settings Config, resources *dependencies, runtime *telemetry.Runti
 	if err != nil {
 		return nil, nil, err
 	}
-	orders := order.NewService(
-		order.NewMySQLRepository(resources.database), products, resources.stock, resources.publisher,
-		observedIdempotency{IdempotencyStore: idempotency, metrics: runtime.Metrics},
-		newReviewRecorder(logger, runtime.Metrics), settings.CleanupBudget, settings.PublishBudget, logger,
-	)
+	orders := order.NewService(order.Dependencies{
+		Repository:     order.NewMySQLRepository(resources.database),
+		Prices:         products,
+		Stock:          resources.stock,
+		Publisher:      resources.publisher,
+		Idempotency:    observedIdempotency{IdempotencyStore: idempotency, metrics: runtime.Metrics},
+		Reviews:        newReviewRecorder(logger, runtime.Metrics),
+		CleanupTimeout: settings.CleanupBudget,
+		PublishTimeout: settings.PublishBudget,
+		Logger:         logger,
+	})
 	return products, orders, nil
 }
 

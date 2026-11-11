@@ -208,7 +208,12 @@ type fixture struct {
 // newFixture 默认全部成功，失败用例只覆盖一个环节。
 func newFixture() fixture {
 	value := fixture{repository: &fakeRepository{}, price: &fakePrice{price: 100}, stock: &fakeStock{}, publisher: &fakePublisher{}, store: &memoryIdempotency{}, reviews: &fakeReviews{}}
-	value.service = NewService(value.repository, value.price, value.stock, value.publisher, value.store, value.reviews, time.Second, time.Second, slog.New(slog.NewTextHandler(io.Discard, nil)))
+	value.service = NewService(Dependencies{
+		Repository: value.repository, Prices: value.price, Stock: value.stock,
+		Publisher: value.publisher, Idempotency: value.store, Reviews: value.reviews,
+		CleanupTimeout: time.Second, PublishTimeout: time.Second,
+		Logger: slog.New(slog.NewTextHandler(io.Discard, nil)),
+	})
 	return value
 }
 
