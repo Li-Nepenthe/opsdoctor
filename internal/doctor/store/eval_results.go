@@ -1,11 +1,5 @@
-// 本文件：保存实验槽位、最初告警和最终结果，供评测器断点续跑。
-//
-// 槽位就是“某个场景的第几次、哪个实验组”。它先于模型任务保存。即使在创建
-// 任务后丢了回复，再次运行也会拿回同一个输入和编号，不会再付一次钱。
-//
-// 主要内容：PrepareEvalResult 保存不可变输入；AttachEvalDiagnosis 关联幂等任务；
-// FinishEvalResult 只保存一次终态；EvalResults 为导出和页面返回结果。
-// 阅读建议：不覆盖失败结果；需要重新运行时使用新的批次或明确的新轮次。
+// 本文件：每个实验组在故障的一轮注入中占一个结果槽位。先保存槽位和告警再创建模型任务，断点续跑才能取回原输入和诊断编号。
+// 终态只写一次，包括失败结果。需要再运行时须使用新批次、新轮次或获准的补跑槽位。
 
 package store
 
@@ -23,16 +17,16 @@ type EvalResult struct {
 	ExecutionProfile string          `json:"execution_profile"`  // 同组的不同模型分别占槽位。
 	Attempt          int             `json:"attempt"`            // 0 是原运行，1 是唯一一次基础设施补跑。
 	RetryOf          string          `json:"retry_of,omitempty"` // 指回原失败，导出时不能把两次尝试混成一次成功。
-	Key              string          `json:"key"`                // 全局唯一槽位编号。
-	RunID            string          `json:"run_id"`             // 批次拥有自己的 token 额度。
-	Scenario         string          `json:"scenario"`           // 仅评测器和结果页使用，不发给诊断模型。
-	Iteration        int             `json:"iteration"`          // 从一开始的重复轮次。
-	Group            string          `json:"group"`              // E0–E3。
-	Position         int             `json:"position"`           // 同次故障中实际执行的先后位置。
-	FaultStartedAt   time.Time       `json:"fault_started_at"`   // 配对组共用的开始时间。
-	Input            json.RawMessage `json:"input"`              // 最初告警快照，续跑不重抓一份来替换。
-	DiagnosisID      string          `json:"diagnosis_id"`       // 与诊断表的唯一关联。
-	Data             json.RawMessage `json:"result"`             // 不可变终态摘要；完整步骤仍在诊断表。
+	Key              string          `json:"key"`
+	RunID            string          `json:"run_id"`    // 批次拥有自己的 token 额度。
+	Scenario         string          `json:"scenario"`  // 仅评测器和结果页使用，不发给诊断模型。
+	Iteration        int             `json:"iteration"` // 从一开始的重复轮次。
+	Group            string          `json:"group"`
+	Position         int             `json:"position"`         // 同次故障中实际执行的先后位置。
+	FaultStartedAt   time.Time       `json:"fault_started_at"` // 配对组共用的开始时间。
+	Input            json.RawMessage `json:"input"`            // 最初告警快照，续跑不重抓一份来替换。
+	DiagnosisID      string          `json:"diagnosis_id"`
+	Data             json.RawMessage `json:"result"` // 不可变终态摘要；完整步骤仍在诊断表。
 }
 
 // EvalDiagnosisState 的轮询只取一个状态字段，不反复加载可能很长的模型对话。

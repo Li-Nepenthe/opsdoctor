@@ -2,7 +2,11 @@
 // 靶场的业务数据由独立的只读数据源查询，不与医生的写入账号共用连接。
 //
 // 从 alerts.go 的 ReceiveAlerts 看告警如何成为一份诊断，再沿 tasks.go、leases.go 和 steps.go 看任务如何领取、续跑和结束。
-// 一次模型尝试的预留和退款在 budget.go。评测另有冻结输入和结果，第一次阅读诊断流程时可以跳过 eval_ 开头的文件。
+// 一次模型尝试的预留和退款在 budget.go。看评测时，从 evaluation.go 进入评测模式，沿 eval_trials.go、eval_results.go 和
+// eval_judge.go 读一轮故障的进度、各实验组的结果和评分。单个动作使用的执行器版本另记在 eval_execution.go。
+//
+// 第一次读评测流程可以跳过两份 amendment 文件。它们只供历史批次核对获批的校时、基线修订，保留旧记录和版本链。
+// 新批次不会产生修订记录，EvalVersions 直接返回冻结的版本。
 //
 //   - store.go：装配 doctor 数据库连接池、仓储回调与迁移。
 //   - users.go：按邮箱创建或查找账号，保存密码摘要。

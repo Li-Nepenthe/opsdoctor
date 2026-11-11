@@ -1,11 +1,5 @@
-// 本文件：在模型费用记账的同一个事务里限制整批评测的 token 消耗。
-//
-// 只在命令行进程里数 token 不够：进程崩溃以后，医生可能仍在完成请求。这里让
-// 每次真实发送先在数据库预留。已知用量才退差额，未知结果保留，重启不清零。
-//
-// 主要内容：CreateEvalRun 固定批次配置；EvalRun 读取额度；reserveEvalTokens 和
-// settleEvalTokens 跟随费用事务一起提交或回滚。
-// 阅读建议：token 不是钱，美元和人民币仍由原有的两个费用账户分别限制。
+// 本文件：评测命令退出后医生仍可能完成模型请求，因此批次的 token 随每次发送预留在数据库中。只有用量已知才退还差额，续跑沿用原余额。
+// token 上限与美元、人民币费用上限分别检查，预留和结算都与费用账本在同一事务提交。
 
 package store
 
@@ -22,8 +16,8 @@ import (
 
 // EvalRun 是批次的公开进度，配置只保存版本与运行安排，不保存 Key。
 type EvalRun struct {
-	ID            string          `json:"id"`             // 操作者指定的稳定批次编号，续跑沿用。
-	Target        string          `json:"target"`         // 评测的唯一系统。
+	ID            string          `json:"id"` // 操作者指定的稳定批次编号，续跑沿用。
+	Target        string          `json:"target"`
 	Config        json.RawMessage `json:"config"`         // 创建后不允许悄悄换组、模型或版本。
 	Status        string          `json:"status"`         // preparing、running、completed、interrupted。
 	TokenLimit    int64           `json:"token_limit"`    // 输入与输出合计，缓存命中也计入。

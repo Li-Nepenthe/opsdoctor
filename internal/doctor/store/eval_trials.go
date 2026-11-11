@@ -1,11 +1,5 @@
-// 本文件：记录一轮故障执行到哪一步，让宿主机评测器安全续跑。
-//
-// 注入和恢复是数据库之外的动作，无法与 SQL 一起提交。先写“正在执行”，
-// 再操作外部系统；重启后遇到不确定状态，先核对恢复文件，不能直接再注入。
-//
-// 主要内容：EvalTrial 取回原状态；AdvanceEvalTrial 条件推进；
-// InterruptEval 追加暂停原因；SetEvalRunState 更新页面上的批次状态。
-// 阅读建议：restored_at 由数据库取时，冷却等待以数据库的时间差为准。
+// 本文件：注入、恢复是数据库外的操作。先在数据库记录要执行的动作，重启后核对本机恢复文件，才知道是否还需注入。
+// 恢复时刻和剩余冷却时间由数据库计时，免受宿主机时钟变化影响。
 
 package store
 
@@ -19,7 +13,7 @@ import (
 
 // EvalTrial 是一个场景的一次注入；五个实验组共享这份恢复进度。
 type EvalTrial struct {
-	RunID           string     `json:"run_id"`           // 已经冻结的批次。
+	RunID           string     `json:"run_id"`
 	Scenario        string     `json:"scenario"`         // 不交给医生的实验标识。
 	Iteration       int        `json:"iteration"`        // 不超过三轮。
 	State           string     `json:"state"`            // pending 到 done 只向前走。

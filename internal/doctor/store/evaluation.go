@@ -1,11 +1,5 @@
-// 本文件：保存评测期间的调度边界和评测器创建的诊断。
-//
-// 告警仍然要接收，否则评测器看不到真实症状。暂停的是自动执行；捕获的通知保留
-// 为已取消记录。评测器再用同一份通知创建各组任务，任务的工具组和模型在创建时固定。
-//
-// 主要内容：SetEvaluationMode 暂停或恢复自动调度；Evaluation 创建可重试的实验任务；
-// EvaluationMode 供页面和命令行确认当前模式。
-// 阅读建议：模式切换与调度领取共用协调锁，不能在检查空闲之后偷偷启动一条付费任务。
+// 本文件：评测模式暂停自动执行，仍接收告警并把通知记在已取消的诊断里。评测器用同一份症状创建各组任务，在创建时绑定工具组和模型。
+// 模式切换与调度器领取任务共用一把锁，避免刚确认空闲便启动另一条付费任务。
 
 package store
 
@@ -28,15 +22,15 @@ type EvaluationMode struct {
 
 // EvaluationInput 只含实验安排和捕获的症状，标准答案始终留在评测器一侧。
 type EvaluationInput struct {
-	ExecutionProfile string          // 启动时已经注册的执行配置名。
-	Provider         string          // 和配置名一起保存，防止另一供应商接手。
-	Account          string          // 费用账户，不能在恢复时变更。
-	Currency         string          // USD 或 CNY；空配置沿用旧试跑入口。
-	Target           string          // 已接入的系统。
-	RunID            string          // 当前拥有评测模式的批次。
-	Key              string          // 批次、场景轮次和组的唯一编号，重试不能重复收费。
-	Group            string          // E0–E3 决定工具菜单。
-	ExpectedModel    string          // 启动时必须使用这个模型。
+	ExecutionProfile string // 启动时已经注册的执行配置名。
+	Provider         string // 和配置名一起保存，防止另一供应商接手。
+	Account          string // 费用账户，不能在恢复时变更。
+	Currency         string // USD 或 CNY；空配置沿用旧试跑入口。
+	Target           string
+	RunID            string // 当前拥有评测模式的批次。
+	Key              string // 批次、场景轮次和组的唯一编号，重试不能重复收费。
+	Group            string // E0–E3 决定工具菜单。
+	ExpectedModel    string
 	FaultStartedAt   time.Time       // 注入前保存的时间，所有配对组共用。
 	Symptoms         json.RawMessage // 告警快照或例行检查说明，不含答案。
 }
@@ -116,7 +110,7 @@ func (store *Store) SetEvaluationMode(ctx context.Context, target, runID string,
 
 // Evaluation 用唯一键收回同一个任务；返回旧 ID 前核对配置，不能把不同实验误认成重试。
 func (store *Store) Evaluation(ctx context.Context, value EvaluationInput) (string, error) {
-	// 老试跑的空配置仍兼容；新配对实验必须一次给全，不能留一个靠进程默认猜。
+	// 未绑定执行配置的试跑沿用默认账户；配对实验必须同时指定供应商、账户和币种。
 	if value.ExecutionProfile != "" {
 		if !regexp.MustCompile(`^[a-z][a-z0-9-]{0,31}$`).MatchString(value.ExecutionProfile) || (value.Provider != "mock" && value.Provider != "openai") || value.Account == "" || len(value.Account) > 64 || (value.Currency != "CNY" && value.Currency != "USD") {
 			return "", fmt.Errorf("评测执行配置、供应商、账户或币种不完整")
