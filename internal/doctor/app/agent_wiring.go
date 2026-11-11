@@ -25,11 +25,28 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
 )
 
+type agentDependencies struct {
+	startup  context.Context
+	settings agentSettings
+	database *sql.DB
+	catalog  *target.Catalog
+	logger   *slog.Logger
+	metrics  *telemetry.Metrics
+}
+
+type agentRuntime struct {
+	repository *store.Store
+	scheduler  *run.Scheduler
+	hub        *events.Hub
+}
+
 // assembleAgent 在调度开始之前装配依赖，装配阶段不发模型请求。
-func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB, catalog *target.Catalog, logger *slog.Logger, common *telemetry.Metrics) (*store.Store, *run.Scheduler, *events.Hub, error) {
+func assembleAgent(input agentDependencies) (agentRuntime, error) {
+	settings := input.settings
+	catalog := input.catalog
 	runbooks, err := tools.LoadRunbooks(os.DirFS(settings.runbooks))
 	if err != nil {
-		return nil, nil, nil, err
+		return agentRuntime{}, err
 	}
 	toolNames := map[string]bool{}
 	toolNames["runbook_search"] = true
@@ -44,42 +61,42 @@ func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB
 	for _, name := range []string{"create_index", "set_db_pool_size", "warm_cache"} {
 		toolNames[name] = true
 	}
-	metrics, err := newDoctorMetrics(common, toolNames)
+	metrics, err := newDoctorMetrics(input.metrics, toolNames)
 	if err != nil {
-		return nil, nil, nil, err
+		return agentRuntime{}, err
 	}
-	if err = common.Database(database, "doctor"); err != nil {
-		return nil, nil, nil, err
+	if err = input.metrics.Database(input.database, "doctor"); err != nil {
+		return agentRuntime{}, err
 	}
 	redactor := llm.NewRedactor(append(knownSecrets(), settings.key)...)
 	hub := events.New()
-	repository := store.NewConfigured(database, store.Config{Currency: settings.currency, LeaseTTL: settings.leaseTTL, ResumeMaxAge: settings.resumeMaxAge, RecoveryWindows: recoveryWindows, FaultSilence: settings.faultSilence, Redactor: redactor, Changed: metrics.changed, Published: func(id string, step agent.Step) {
+	repository := store.NewConfigured(input.database, store.Config{Currency: settings.currency, LeaseTTL: settings.leaseTTL, ResumeMaxAge: settings.resumeMaxAge, RecoveryWindows: recoveryWindows, FaultSilence: settings.faultSilence, Redactor: redactor, Changed: metrics.changed, Published: func(id string, step agent.Step) {
 		// 数据库提交以后只做内存工作，不在这里等待浏览器读取或另发网络请求。
 		metrics.step(step)
 		raw, _ := json.Marshal(step)
 		hub.Publish(id, events.Event{ID: step.Seq, Data: raw})
 	}})
-	ledger, err := repository.NewCurrencyLedger(ctx, settings.budgetAccount, settings.totalMicros, settings.currency)
+	ledger, err := repository.NewCurrencyLedger(input.startup, settings.budgetAccount, settings.totalMicros, settings.currency)
 	if err != nil {
-		return nil, nil, nil, err
+		return agentRuntime{}, err
 	}
-	model, err := createModel(settings, ledger, redactor, logger)
+	model, err := createModel(settings, ledger, redactor, input.logger)
 	if err != nil {
-		return nil, nil, nil, err
+		return agentRuntime{}, err
 	}
 	limits := agent.DefaultLimits()
 	limits.CostMicros = settings.diagnosisMicros
 	loop, err := agent.New(model, settings.model, redactor, limits)
 	if err != nil {
-		return nil, nil, nil, err
+		return agentRuntime{}, err
 	}
 	executions := map[string]run.Execution{"primary": {Model: settings.model, Provider: settings.provider, Account: settings.budgetAccount, Agent: loop, Repository: repository.ForExecution("primary", settings.budgetAccount, settings.currency), Budget: ledger.Status}}
 	if settings.comparison != nil {
 		// 第二家客户端用同一套脱敏规则，Key 也加入精确替换清单。
 		comparisonRedactor := llm.NewRedactor(append(knownSecrets(), settings.key, settings.comparison.key)...)
-		execution, err := comparisonExecution(ctx, *settings.comparison, repository, comparisonRedactor, logger)
+		execution, err := comparisonExecution(input.startup, *settings.comparison, repository, comparisonRedactor, input.logger)
 		if err != nil {
-			return nil, nil, nil, err
+			return agentRuntime{}, err
 		}
 		executions["comparison"] = execution
 	}
@@ -89,8 +106,8 @@ func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB
 			return agent.Input{}, fmt.Errorf("任务绑定的系统已不在接入配置中")
 		}
 		return agent.Input{Profile: system.Profile(), Unavailable: system.Unavailable(), Components: system.Components(), Tools: system.Tools().WithRunbooks(runbooks), Approvals: approval.New(name, system.Actions(), repository, redactor)}, nil
-	}}, repository, loop, logger)
-	return repository, scheduler, hub, err
+	}}, repository, loop, input.logger)
+	return agentRuntime{repository: repository, scheduler: scheduler, hub: hub}, err
 }
 
 // createModel 不做探测调用；真实配置不完整时返回错误，不回退成误导用户的脚本报告。

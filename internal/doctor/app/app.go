@@ -77,23 +77,42 @@ func serveDoctor(ctx, startup context.Context, settings settings, agentConfig ag
 	}
 	logger := logging.New(os.Stdout, "doctor", slog.LevelInfo)
 	metrics := telemetry.NewMetrics("doctor")
-	repository, scheduler, hub, err := assembleAgent(startup, agentConfig, database, catalog, logger, metrics)
+	doctor, err := assembleAgent(agentDependencies{
+		startup: startup, settings: agentConfig, database: database,
+		catalog: catalog, logger: logger, metrics: metrics,
+	})
 	if err != nil {
 		return err
 	}
-	if err = repository.EnsureUser(startup, settings.email, settings.passwordHash); err != nil {
+	if err = doctor.repository.EnsureUser(startup, settings.email, settings.passwordHash); err != nil {
 		return err
 	}
-	if err = scheduler.Start(ctx); err != nil {
+	if err = doctor.scheduler.Start(ctx); err != nil {
 		return err
 	}
-	defer scheduler.Close()
-	mcpHandlers, err := targetMCPHandlers(catalog, repository)
+	defer doctor.scheduler.Close()
+	mcpHandlers, err := targetMCPHandlers(catalog, doctor.repository)
 	if err != nil {
 		return err
 	}
-	router := httpapi.New(httpapi.Options{Evaluations: repository, Executions: scheduler.ExecutionStatuses, Approvals: repository, MCP: mcpHandlers, Targets: catalog, Store: repository, Tokens: tokens, Logger: logger, Ready: database.PingContext,
-		Metrics: promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{}), DummyPasswordHash: settings.passwordHash, Runner: scheduler, Events: hub, Provider: agentConfig.provider, Model: agentConfig.model, SecureCookie: agentConfig.secureCookie})
+	router := httpapi.New(httpapi.Options{
+		Evaluations:       doctor.repository,
+		Executions:        doctor.scheduler.ExecutionStatuses,
+		Approvals:         doctor.repository,
+		MCP:               mcpHandlers,
+		Targets:           catalog,
+		Store:             doctor.repository,
+		Tokens:            tokens,
+		Logger:            logger,
+		Ready:             database.PingContext,
+		Metrics:           promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{}),
+		DummyPasswordHash: settings.passwordHash,
+		Runner:            doctor.scheduler,
+		Events:            doctor.hub,
+		Provider:          agentConfig.provider,
+		Model:             agentConfig.model,
+		SecureCookie:      agentConfig.secureCookie,
+	})
 	// SSE 不能用整个响应十五秒的时限；每帧在处理器中设置五秒写入时限。
 	server := &http.Server{Addr: settings.address, Handler: router, ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 10 * time.Second, IdleTimeout: time.Minute, MaxHeaderBytes: 16 << 10, BaseContext: func(net.Listener) context.Context { return ctx }}
 	// 只打印名字与数量，不输出含密码的 DSN、令牌或完整配置。
