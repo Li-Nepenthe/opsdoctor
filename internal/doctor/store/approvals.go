@@ -22,7 +22,29 @@ func (store *Store) FindApproval(ctx context.Context, diagnosis, id string) (app
 }
 
 // approvalSelect 所有查询共用固定列序，JSON 计划只读，不允许调用方拼字段。
-const approvalSelect = `SELECT a.id,a.diagnosis_id,d.target,a.parent_seq,a.call_id,a.step_seq,a.tool_name,a.args,a.plan,a.reason,a.evidence_steps,a.expected_effect,a.risk,a.status,a.expires_at,a.decided_by,a.decided_at,a.executed_at,a.connection_id,a.result FROM approvals a JOIN diagnoses d ON d.id=a.diagnosis_id`
+const approvalSelect = `SELECT
+    a.id,
+    a.diagnosis_id,
+    d.target,
+    a.parent_seq,
+    a.call_id,
+    a.step_seq,
+    a.tool_name,
+    a.args,
+    a.plan,
+    a.reason,
+    a.evidence_steps,
+    a.expected_effect,
+    a.risk,
+    a.status,
+    a.expires_at,
+    a.decided_by,
+    a.decided_at,
+    a.executed_at,
+    a.connection_id,
+    a.result
+FROM approvals a
+JOIN diagnoses d ON d.id = a.diagnosis_id`
 
 // scanner 让 QueryRow 和 Rows 使用同一套解码，避免列表与执行读出不同参数。
 type scanner interface{ Scan(...any) error }
@@ -101,7 +123,7 @@ func (store *Store) CreateApproval(ctx context.Context, value approval.Record) (
 	// 计划和可回放步骤一起提交，避免崩溃后页面有申请、数据库却没有执行依据。
 	plan, _ := json.Marshal(value.Plan)
 	evidence, _ := json.Marshal(value.Evidence)
-	_, err = tx.ExecContext(ctx, `INSERT INTO approvals(id,diagnosis_id,parent_seq,call_id,tool_name,args,plan,reason,evidence_steps,expected_effect,risk,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(6)+INTERVAL 30 MINUTE) ON DUPLICATE KEY UPDATE id=id`, value.ID, value.DiagnosisID, value.ParentSeq, value.CallID, value.Tool, value.Args, plan, value.Reason, evidence, value.Expected, value.Risk)
+	_, err = tx.ExecContext(ctx, insertApprovalSQL, value.ID, value.DiagnosisID, value.ParentSeq, value.CallID, value.Tool, value.Args, plan, value.Reason, evidence, value.Expected, value.Risk)
 	if err != nil {
 		return value, err
 	}
@@ -141,7 +163,7 @@ func (store *Store) DecideApproval(ctx context.Context, id, user string, approve
 	// 先锁诊断，防止用户取消与批准并发时还放行写操作。
 	var active bool
 	var trigger string
-	if err = tx.QueryRowContext(ctx, "SELECT status IN ('running','waiting_approval') AND cancel_requested=FALSE,`trigger` FROM diagnoses WHERE id=? FOR UPDATE", diagnosis).Scan(&active, &trigger); err != nil {
+	if err = tx.QueryRowContext(ctx, lockApprovalDiagnosisSQL, diagnosis).Scan(&active, &trigger); err != nil {
 		return false, err
 	}
 	if !active {
@@ -154,7 +176,7 @@ func (store *Store) DecideApproval(ctx context.Context, id, user string, approve
 	if approved {
 		state = "approved"
 	}
-	changed, err := tx.ExecContext(ctx, "UPDATE approvals SET status=?,decided_by=?,decided_at=UTC_TIMESTAMP(6) WHERE id=? AND status='pending' AND expires_at>UTC_TIMESTAMP(6)", state, user, id)
+	changed, err := tx.ExecContext(ctx, decidePendingApprovalSQL, state, user, id)
 	if err != nil {
 		return false, err
 	}
@@ -196,7 +218,7 @@ func (store *Store) ClaimApproval(ctx context.Context, diagnosis, id string) (ap
 	if err := checkExecutionMode(trigger); err != nil {
 		return approval.Record{}, err
 	}
-	if err = tx.QueryRowContext(ctx, "SELECT status,execution_owner FROM approvals WHERE id=? AND diagnosis_id=? FOR UPDATE", id, diagnosis).Scan(&state, &owner); err != nil {
+	if err = tx.QueryRowContext(ctx, lockApprovalExecutionSQL, id, diagnosis).Scan(&state, &owner); err != nil {
 		return approval.Record{}, err
 	}
 	// 相同租约不能同时启动两次执行；新租约才允许接手并核对远端状态。
@@ -252,7 +274,7 @@ func (store *Store) FinishApproval(ctx context.Context, diagnosis, id string, re
 		state = "executed"
 	}
 	raw, _ := json.Marshal(result)
-	res, err := tx.ExecContext(ctx, "UPDATE approvals SET status=?,executed_at=UTC_TIMESTAMP(6),result=? WHERE id=? AND diagnosis_id=? AND status='executing'", state, raw, id, diagnosis)
+	res, err := tx.ExecContext(ctx, finishApprovalSQL, state, raw, id, diagnosis)
 	if err != nil {
 		return err
 	}
@@ -312,7 +334,7 @@ func (store *Store) expireApproval(ctx context.Context, id, diagnosis string) er
 	if err = tx.QueryRowContext(ctx, "SELECT id FROM diagnoses WHERE id=? FOR UPDATE", diagnosis).Scan(&locked); err != nil {
 		return err
 	}
-	res, err := tx.ExecContext(ctx, "UPDATE approvals SET status='expired',decided_at=UTC_TIMESTAMP(6) WHERE id=? AND status='pending' AND expires_at<=UTC_TIMESTAMP(6)", id)
+	res, err := tx.ExecContext(ctx, expirePendingApprovalSQL, id)
 	if err != nil {
 		return err
 	}
@@ -332,3 +354,79 @@ func (store *Store) expireApproval(ctx context.Context, id, diagnosis string) er
 	store.publish(diagnosis, step)
 	return nil
 }
+
+const insertApprovalSQL = `INSERT INTO approvals (
+    id,
+    diagnosis_id,
+    parent_seq,
+    call_id,
+    tool_name,
+    args,
+    plan,
+    reason,
+    evidence_steps,
+    expected_effect,
+    risk,
+    expires_at
+)
+VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    UTC_TIMESTAMP(6) + INTERVAL 30 MINUTE
+)
+ON DUPLICATE KEY UPDATE id = id`
+
+const lockApprovalDiagnosisSQL = `SELECT status IN (
+                      'running',
+                      'waiting_approval')
+AND cancel_requested =
+    FALSE,
+    ` + "`trigger`" + `
+FROM diagnoses
+WHERE id = ?
+    FOR
+    UPDATE`
+
+const decidePendingApprovalSQL = `UPDATE approvals
+SET
+    status = ?,
+    decided_by = ?,
+    decided_at = UTC_TIMESTAMP(6)
+WHERE id = ?
+    AND status = 'pending'
+    AND expires_at > UTC_TIMESTAMP(6)`
+
+const lockApprovalExecutionSQL = `SELECT
+    status,
+    execution_owner
+FROM approvals
+WHERE id = ?
+    AND diagnosis_id = ?
+    FOR
+    UPDATE`
+
+const finishApprovalSQL = `UPDATE approvals
+SET
+    status = ?,
+    executed_at = UTC_TIMESTAMP(6),
+    result = ?
+WHERE id = ?
+    AND diagnosis_id = ?
+    AND status = 'executing'`
+
+const expirePendingApprovalSQL = `UPDATE approvals
+SET
+    status = 'expired',
+    decided_at = UTC_TIMESTAMP(6)
+WHERE id = ?
+    AND status = 'pending'
+    AND expires_at <= UTC_TIMESTAMP(6)`

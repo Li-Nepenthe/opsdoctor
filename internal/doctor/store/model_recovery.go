@@ -14,7 +14,7 @@ import (
 
 // recoverModelCalls 只查看本次诊断的发送意图，不能用另一个诊断的回答续接对话。
 func (store *Store) recoverModelCalls(ctx context.Context, id string) error {
-	rows, err := store.database.QueryContext(ctx, "SELECT seq,args FROM diagnosis_steps AS intent WHERE diagnosis_id=? AND kind='system' AND status='llm_pending' AND NOT EXISTS(SELECT 1 FROM diagnosis_steps AS answer WHERE answer.diagnosis_id=intent.diagnosis_id AND answer.event_key=CONCAT('request:',intent.seq)) ORDER BY seq", id)
+	rows, err := store.database.QueryContext(ctx, unansweredIntentsSQL, id)
 	if err != nil {
 		return err
 	}
@@ -48,11 +48,11 @@ func (store *Store) recoverModelCalls(ctx context.Context, id string) error {
 // recoverOneCall 把 HTTP 重试仍合成一轮模型调用，所有失败尝试的费用都保留。
 func (store *Store) recoverOneCall(ctx context.Context, id, key string, request json.RawMessage) error {
 	// 已失去执行权的旧网络请求即使以后返回，也不能把这笔未知费用悄悄当成零。
-	_, err := store.database.ExecContext(ctx, "UPDATE llm_attempts SET status='interrupted',settled_at=UTC_TIMESTAMP(6) WHERE diagnosis_id=? AND call_id=? AND settled_at IS NULL", id, key)
+	_, err := store.database.ExecContext(ctx, interruptPendingAttemptsSQL, id, key)
 	if err != nil {
 		return err
 	}
-	rows, err := store.database.QueryContext(ctx, "SELECT id,requested_model,response,charged_micros,status FROM llm_attempts WHERE diagnosis_id=? AND call_id=? ORDER BY created_at,id", id, key)
+	rows, err := store.database.QueryContext(ctx, attemptsForIntentSQL, id, key)
 	if err != nil {
 		return err
 	}
@@ -97,3 +97,38 @@ func (store *Store) recoverOneCall(ctx context.Context, id, key string, request 
 	_, err = store.RecordStep(ctx, id, agent.Step{EventKey: key, CallID: key, Kind: "llm", Model: result.Model, Args: request, Result: string(raw), Status: status, Usage: result.Usage, CostMicros: result.CostMicros})
 	return err
 }
+
+const unansweredIntentsSQL = `SELECT
+    seq,
+    args
+FROM diagnosis_steps AS intent
+WHERE diagnosis_id = ?
+    AND kind = 'system'
+    AND status = 'llm_pending'
+    AND NOT EXISTS
+        (SELECT 1
+         FROM diagnosis_steps AS answer
+         WHERE answer.diagnosis_id = intent.diagnosis_id
+             AND answer.event_key = CONCAT('request:', intent.seq))
+ORDER BY seq`
+
+const interruptPendingAttemptsSQL = `UPDATE llm_attempts
+SET
+    status = 'interrupted',
+    settled_at = UTC_TIMESTAMP(6)
+WHERE diagnosis_id = ?
+    AND call_id = ?
+    AND settled_at IS NULL`
+
+const attemptsForIntentSQL = `SELECT
+    id,
+    requested_model,
+    response,
+    charged_micros,
+    status
+FROM llm_attempts
+WHERE diagnosis_id = ?
+    AND call_id = ?
+ORDER BY
+    created_at,
+    id`

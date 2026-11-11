@@ -10,7 +10,53 @@ import (
 )
 
 // pendingCandidatesSQL 保留每个系统排在最前的候选，由数据库在同一次查询内排除评测中系统的普通诊断。
-const pendingCandidatesSQL = "SELECT id,target,input,created_at,COALESCE(fault_started_at,created_at),eval_group,eval_expected_model,eval_profile FROM (SELECT id,target,input,created_at,fault_started_at,eval_group,eval_expected_model,eval_profile,ROW_NUMBER() OVER (PARTITION BY target ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'waiting_approval' THEN 1 ELSE 2 END,created_at,id) AS position_in_target FROM diagnoses WHERE `trigger`<>'judge' AND (status='pending' OR (status='running' AND lease_until<=UTC_TIMESTAMP(6)) OR (status='waiting_approval' AND NOT EXISTS(SELECT 1 FROM approvals WHERE diagnosis_id=diagnoses.id AND status='pending'))) AND (`trigger`='eval' OR NOT EXISTS(SELECT 1 FROM evaluation_targets WHERE target=diagnoses.target AND enabled=TRUE))) AS candidates WHERE position_in_target=1 ORDER BY created_at,id LIMIT 128"
+const pendingCandidatesSQL = `SELECT
+    id,
+    target,
+    input,
+    created_at,
+    COALESCE(fault_started_at, created_at),
+    eval_group,
+    eval_expected_model,
+    eval_profile
+FROM
+    (SELECT
+         id,
+         target,
+         input,
+         created_at,
+         fault_started_at,
+         eval_group,
+         eval_expected_model,
+         eval_profile,
+         ROW_NUMBER() OVER (PARTITION BY target
+                            ORDER BY CASE status
+                                         WHEN 'running' THEN 0
+                                         WHEN 'waiting_approval' THEN 1
+                                         ELSE 2
+                                     END, created_at, id) AS position_in_target
+     FROM diagnoses
+     WHERE ` + "`trigger`" + ` <> 'judge'
+         AND (status = 'pending'
+              OR (status = 'running'
+                  AND lease_until <= UTC_TIMESTAMP(6))
+              OR (status = 'waiting_approval'
+                  AND NOT EXISTS
+                      (SELECT 1
+                       FROM approvals
+                       WHERE diagnosis_id = diagnoses.id
+                           AND status = 'pending')))
+         AND (` + "`trigger`" + ` = 'eval'
+              OR NOT EXISTS
+                  (SELECT 1
+                   FROM evaluation_targets
+                   WHERE target = diagnoses.target
+                       AND enabled = TRUE))) AS candidates
+WHERE position_in_target = 1
+ORDER BY
+    created_at,
+    id
+LIMIT 128`
 
 func evaluationEnabled(ctx context.Context, tx *sql.Tx, target string) (bool, error) {
 	var enabled bool
@@ -56,7 +102,7 @@ func proposalForMode(ctx context.Context, tx *sql.Tx, trigger, id string) (strin
 	if trigger == "eval" {
 		// 评测要观察原故障，不能把环境修好了再继续比较。拒绝和原始提议一起保存。
 		state, message = "rejected", "评测策略拒绝全部写操作，已保留提议，未执行"
-		if _, err := tx.ExecContext(ctx, "UPDATE approvals SET status='rejected',decided_by='eval-policy',decided_at=UTC_TIMESTAMP(6) WHERE id=? AND status='pending'", id); err != nil {
+		if _, err := tx.ExecContext(ctx, rejectEvaluationApprovalSQL, id); err != nil {
 			return "", "", err
 		}
 	}
@@ -76,3 +122,11 @@ func checkExecutionMode(trigger string) error {
 	}
 	return nil
 }
+
+const rejectEvaluationApprovalSQL = `UPDATE approvals
+SET
+    status = 'rejected',
+    decided_by = 'eval-policy',
+    decided_at = UTC_TIMESTAMP(6)
+WHERE id = ?
+    AND status = 'pending'`

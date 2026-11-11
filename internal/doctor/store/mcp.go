@@ -16,7 +16,7 @@ func (store *Store) BeginMCP(ctx context.Context, entry mcpserver.Entry) (string
 	}
 	id := newID()
 	// 主键随机生成，结果更新走主键；系统时间索引用于后续按系统查阅，不记录凭据。
-	_, err := store.database.ExecContext(ctx, "INSERT INTO mcp_audit(id,target,tool_name,arguments_summary,created_at,status) VALUES(?,?,?,?,?,'running')", id, entry.Target, entry.Tool, store.config.Redactor.Text(entry.Arguments), store.config.Now().UTC())
+	_, err := store.database.ExecContext(ctx, beginMCPAuditSQL, id, entry.Target, entry.Tool, store.config.Redactor.Text(entry.Arguments), store.config.Now().UTC())
 	return id, err
 }
 
@@ -30,3 +30,13 @@ func (store *Store) EndMCP(ctx context.Context, id, status string) error {
 	_, err := store.database.ExecContext(ctx, "UPDATE mcp_audit SET status=?,finished_at=? WHERE id=? AND status='running'", status, store.config.Now().UTC(), id)
 	return err
 }
+
+const beginMCPAuditSQL = `INSERT INTO mcp_audit (
+    id,
+    target,
+    tool_name,
+    arguments_summary,
+    created_at,
+    status
+)
+VALUES (?, ?, ?, ?, ?, 'running')`

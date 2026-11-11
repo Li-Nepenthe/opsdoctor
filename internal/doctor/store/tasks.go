@@ -18,7 +18,7 @@ import (
 func (store *Store) Manual(ctx context.Context, target, symptoms string) (string, error) {
 	id := newID()
 	input, _ := json.Marshal(map[string]string{"symptoms": store.config.Redactor.Text(symptoms)})
-	_, err := store.database.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input) VALUES(?,?,'manual','pending','手动诊断','',?)", id, target, input)
+	_, err := store.database.ExecContext(ctx, insertManualDiagnosisSQL, id, target, input)
 	if err == nil && store.config.Changed != nil {
 		store.config.Changed(target, run.Pending, 0)
 	}
@@ -56,7 +56,7 @@ func (store *Store) Recover(ctx context.Context) error {
 
 // Expire 只清理告警触发的旧 pending，手动任务不会被这条告警时效规则取消。
 func (store *Store) Expire(ctx context.Context, cutoff time.Time) error {
-	return store.endSelected(ctx, "SELECT id FROM diagnoses WHERE status='pending' AND `trigger`='alert' AND created_at<?", []any{cutoff}, run.Pending, run.Cancelled, "告警已过时，未执行")
+	return store.endSelected(ctx, oldAlertCandidatesSQL, []any{cutoff}, run.Pending, run.Cancelled, "告警已过时，未执行")
 }
 
 // endSelected 先关闭结果集再逐条写入，连接池较小时也不占着读连接等待写连接。
@@ -146,7 +146,7 @@ func (store *Store) CancelPending(ctx context.Context, id, reason string) (bool,
 	if err != nil || changed {
 		return changed, err
 	}
-	result, err := store.database.ExecContext(ctx, "UPDATE diagnoses SET cancel_requested=TRUE WHERE id=? AND status IN ('running','waiting_approval') AND cancel_requested=FALSE", id)
+	result, err := store.database.ExecContext(ctx, requestCancellationSQL, id)
 	if err != nil {
 		return false, err
 	}
@@ -221,3 +221,36 @@ func (store *Store) changeState(ctx context.Context, id string, change stateChan
 	}
 	return true, nil
 }
+
+const insertManualDiagnosisSQL = `INSERT INTO diagnoses (
+    id,
+    target,
+    ` + "`trigger`" + `,
+    status,
+    title,
+    alert_group_key,
+    input
+)
+VALUES (
+    ?,
+    ?,
+    'manual',
+    'pending',
+    '手动诊断',
+    '',
+    ?
+)`
+
+const oldAlertCandidatesSQL = `SELECT id
+FROM diagnoses
+WHERE status = 'pending'
+    AND ` + "`trigger`" + ` = 'alert'
+    AND created_at < ?`
+
+const requestCancellationSQL = `UPDATE diagnoses
+SET cancel_requested = TRUE
+WHERE id = ?
+    AND status IN (
+                       'running',
+                       'waiting_approval')
+    AND cancel_requested = FALSE`

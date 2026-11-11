@@ -55,7 +55,7 @@ func (store *Store) List(ctx context.Context, target, status string, limit, offs
 	if limit < 1 || limit > 100 || offset < 0 || offset > 100000 {
 		return nil, fmt.Errorf("分页范围不合法")
 	}
-	query := "SELECT id,target,`trigger`,status,title,created_at,COALESCE(model,''),provider,currency FROM diagnoses WHERE 1=1"
+	query := listDiagnosesSQL
 	args := []any{}
 	if target != "" {
 		query += " AND target=?"
@@ -97,7 +97,7 @@ func (store *Store) Detail(ctx context.Context, id string) (Detail, error) {
 		duration          sql.NullInt64
 		report            []byte
 	}
-	err := store.database.QueryRowContext(ctx, "SELECT id,target,`trigger`,status,title,created_at,input,COALESCE(model,''),provider,report,COALESCE(error,''),COALESCE(prompt_version,''),tokens_in,tokens_out,cache_hit_tokens,cost_micros,rounds,tool_calls,started_at,finished_at,next_seq,report_mode,budget_reason,currency,duration_ms FROM diagnoses WHERE id=?", id).Scan(
+	err := store.database.QueryRowContext(ctx, diagnosisDetailSQL, id).Scan(
 		&value.ID, &value.Target, &value.Trigger, &value.Status,
 		&value.Title, &value.CreatedAt, &value.Input, &value.Model,
 		&value.Provider, &raw.report, &value.Error, &value.PromptVersion,
@@ -127,3 +127,45 @@ func (store *Store) Detail(ctx context.Context, id string) (Detail, error) {
 	value.Alerts, value.RecoveryAlerts = history.Alerts, history.RecoveryAlerts
 	return value, err
 }
+
+const listDiagnosesSQL = `SELECT
+    id,
+    target,
+    ` + "`trigger`" + `,
+    status,
+    title,
+    created_at,
+    COALESCE(model, ''),
+    provider,
+    currency
+FROM diagnoses
+WHERE 1 = 1`
+
+const diagnosisDetailSQL = `SELECT
+    id,
+    target,
+    ` + "`trigger`" + `,
+    status,
+    title,
+    created_at,
+    input,
+    COALESCE(model, ''),
+    provider,
+    report,
+    COALESCE(error, ''),
+    COALESCE(prompt_version, ''),
+    tokens_in,
+    tokens_out,
+    cache_hit_tokens,
+    cost_micros,
+    rounds,
+    tool_calls,
+    started_at,
+    finished_at,
+    next_seq,
+    report_mode,
+    budget_reason,
+    currency,
+    duration_ms
+FROM diagnoses
+WHERE id = ?`

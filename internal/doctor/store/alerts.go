@@ -77,13 +77,13 @@ func (store *Store) receiveGroup(ctx context.Context, tx *sql.Tx, target, origin
 	digest := sha256.Sum256([]byte(target + "\x00" + originalKey))
 	key := hex.EncodeToString(digest[:])
 	now := store.config.Now().UTC()
-	if _, err := tx.ExecContext(ctx, "INSERT INTO alert_groups(group_hash,target,last_seen_at) VALUES(?,?,?) ON DUPLICATE KEY UPDATE group_hash=group_hash", key, target, now); err != nil {
+	if _, err := tx.ExecContext(ctx, ensureAlertGroupSQL, key, target, now); err != nil {
 		return alerts.Receipt{}, err
 	}
 	var id sql.NullString
 	var opened, closed, recovery sql.NullTime
 	var seen time.Time
-	if err := tx.QueryRowContext(ctx, "SELECT diagnosis_id,opened_at,closed_at,last_seen_at,recovery_until FROM alert_groups WHERE group_hash=? FOR UPDATE", key).Scan(&id, &opened, &closed, &seen, &recovery); err != nil {
+	if err := tx.QueryRowContext(ctx, lockAlertGroupSQL, key).Scan(&id, &opened, &closed, &seen, &recovery); err != nil {
 		return alerts.Receipt{}, err
 	}
 	observing := id.Valid && closed.Valid && recovery.Valid && now.Before(recovery.Time)
@@ -95,7 +95,7 @@ func (store *Store) receiveGroup(ctx context.Context, tx *sql.Tx, target, origin
 		}
 		// 同一份 resolved 重试不能不断延长观察期，否则故障永远结束不了。
 		until := now.Add(store.config.RecoveryWindows[target])
-		_, err := tx.ExecContext(ctx, "UPDATE alert_groups SET recovery_until=COALESCE(recovery_until,?),closed_at=COALESCE(closed_at,?),last_seen_at=? WHERE group_hash=?", until, now, now, key)
+		_, err := tx.ExecContext(ctx, closeAlertGroupSQL, until, now, now, key)
 		return alerts.Receipt{DiagnosisID: id.String}, err
 	}
 	if active || observing {
@@ -116,10 +116,10 @@ func (store *Store) receiveGroup(ctx context.Context, tx *sql.Tx, target, origin
 			start = alert.StartsAt
 		}
 	}
-	if _, err := tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,fault_started_at,error,finished_at) VALUES(?,?,'alert',?,?,?,?,?,?,IF(?='cancelled',UTC_TIMESTAMP(6),NULL))", candidate, target, decision.status, alerts.Title(value), value.GroupKey, input, start, decision.reason, decision.status); err != nil {
+	if _, err := tx.ExecContext(ctx, insertAlertDiagnosisSQL, candidate, target, decision.status, alerts.Title(value), value.GroupKey, input, start, decision.reason, decision.status); err != nil {
 		return alerts.Receipt{}, err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE alert_groups SET diagnosis_id=?,opened_at=?,last_seen_at=?,closed_at=NULL,recovery_until=NULL WHERE group_hash=?", candidate, now, now, key)
+	_, err = tx.ExecContext(ctx, openAlertGroupSQL, candidate, now, now, key)
 	return alerts.Receipt{DiagnosisID: candidate, Created: true, Suppressed: decision.suppressed}, err
 }
 
@@ -145,9 +145,81 @@ func saveAlerts(ctx context.Context, tx *sql.Tx, id string, values []alerts.Aler
 		if value.Status == "firing" {
 			arrived = recoveryAt
 		}
-		if _, err = tx.ExecContext(ctx, "INSERT INTO diagnosis_alerts(diagnosis_id,fingerprint,payload,recovery_received_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE payload=?,received_at=CURRENT_TIMESTAMP(6),recovery_received_at=COALESCE(recovery_received_at,?)", id, value.Fingerprint, payload, arrived, payload, arrived); err != nil {
+		if _, err = tx.ExecContext(ctx, upsertDiagnosisAlertSQL, id, value.Fingerprint, payload, arrived, payload, arrived); err != nil {
 			return err
 		}
 	}
 	return nil
 }
+
+const ensureAlertGroupSQL = `INSERT INTO alert_groups (
+    group_hash,
+    target,
+    last_seen_at
+)
+VALUES (?, ?, ?)
+ON DUPLICATE KEY UPDATE group_hash = group_hash`
+
+const lockAlertGroupSQL = `SELECT
+    diagnosis_id,
+    opened_at,
+    closed_at,
+    last_seen_at,
+    recovery_until
+FROM alert_groups
+WHERE group_hash = ?
+    FOR
+    UPDATE`
+
+const closeAlertGroupSQL = `UPDATE alert_groups
+SET
+    recovery_until = COALESCE(recovery_until, ?),
+    closed_at = COALESCE(closed_at, ?),
+    last_seen_at = ?
+WHERE group_hash = ?`
+
+const insertAlertDiagnosisSQL = `INSERT INTO diagnoses (
+    id,
+    target,
+    ` + "`trigger`" + `,
+    status,
+    title,
+    alert_group_key,
+    input,
+    fault_started_at,
+    error,
+    finished_at
+)
+VALUES (
+    ?,
+    ?,
+    'alert',
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    IF(? = 'cancelled',UTC_TIMESTAMP(6),NULL)
+)`
+
+const openAlertGroupSQL = `UPDATE alert_groups
+SET
+    diagnosis_id = ?,
+    opened_at = ?,
+    last_seen_at = ?,
+    closed_at = NULL,
+    recovery_until = NULL
+WHERE group_hash = ?`
+
+const upsertDiagnosisAlertSQL = `INSERT INTO diagnosis_alerts (
+    diagnosis_id,
+    fingerprint,
+    payload,
+    recovery_received_at
+)
+VALUES (?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE
+    payload = ?,
+    received_at = CURRENT_TIMESTAMP(6),
+    recovery_received_at = COALESCE(recovery_received_at, ?)`

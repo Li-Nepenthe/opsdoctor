@@ -30,7 +30,7 @@ type AlertHistory struct {
 // FaultState 忽略已经静默超时的旧分组；多个分组中只要一个未恢复，结束时间就还未知。
 func (store *Store) FaultState(ctx context.Context, target string) (FaultState, error) {
 	now := store.config.Now().UTC()
-	rows, err := store.database.QueryContext(ctx, "SELECT closed_at,recovery_until FROM alert_groups WHERE target=? AND diagnosis_id IS NOT NULL AND ((closed_at IS NULL AND last_seen_at>?) OR (closed_at IS NOT NULL AND recovery_until>?))", target, now.Add(-store.config.FaultSilence), now)
+	rows, err := store.database.QueryContext(ctx, openFaultGroupsSQL, target, now.Add(-store.config.FaultSilence), now)
 	if err != nil {
 		return FaultState{}, err
 	}
@@ -59,7 +59,7 @@ func (store *Store) FaultState(ctx context.Context, target string) (FaultState, 
 // DiagnosisAlerts 用左连接区分“不存在的诊断”和“没有告警的手动诊断”。
 func (store *Store) DiagnosisAlerts(ctx context.Context, id string) (AlertHistory, error) {
 	value := AlertHistory{Alerts: []json.RawMessage{}, RecoveryAlerts: []RecoveryAlert{}}
-	rows, err := store.database.QueryContext(ctx, "SELECT a.payload,a.recovery_received_at FROM diagnoses d LEFT JOIN diagnosis_alerts a ON a.diagnosis_id=d.id WHERE d.id=? ORDER BY a.fingerprint", id)
+	rows, err := store.database.QueryContext(ctx, diagnosisAlertsSQL, id)
 	if err != nil {
 		return value, err
 	}
@@ -88,3 +88,22 @@ func (store *Store) DiagnosisAlerts(ctx context.Context, id string) (AlertHistor
 	}
 	return value, nil
 }
+
+const openFaultGroupsSQL = `SELECT
+    closed_at,
+    recovery_until
+FROM alert_groups
+WHERE target = ?
+    AND diagnosis_id IS NOT NULL
+    AND ((closed_at IS NULL
+          AND last_seen_at > ?)
+         OR (closed_at IS NOT NULL
+             AND recovery_until > ?))`
+
+const diagnosisAlertsSQL = `SELECT
+    a.payload,
+    a.recovery_received_at
+FROM diagnoses d
+LEFT JOIN diagnosis_alerts a ON a.diagnosis_id = d.id
+WHERE d.id = ?
+ORDER BY a.fingerprint`

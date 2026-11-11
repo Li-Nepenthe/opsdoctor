@@ -67,7 +67,7 @@ func (store *Store) readClaim(ctx context.Context, tx *sql.Tx, request claimRequ
 	if err := tx.QueryRowContext(ctx, "SELECT id FROM scheduler_guard WHERE id=1 FOR UPDATE").Scan(&guard); err != nil {
 		return row, err
 	}
-	err := tx.QueryRowContext(ctx, "SELECT target,status,COALESCE(lease_until<=UTC_TIMESTAMP(6),TRUE),cancel_requested,currency,COALESCE(lease_updated_at>=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)),FALSE),`trigger`,eval_expected_model,eval_profile,eval_provider,eval_account FROM diagnoses WHERE id=? FOR UPDATE",
+	err := tx.QueryRowContext(ctx, lockLeaseDiagnosisSQL,
 		-store.config.ResumeMaxAge.Microseconds(), request.id,
 	).Scan(
 		&row.target, &row.status, &row.available, &row.cancelled, &row.currency, &row.recent,
@@ -97,7 +97,7 @@ func (row *claimRow) readSlots(ctx context.Context, tx *sql.Tx, id string) error
 	}
 	// 等待审批也占用该系统名额；全局执行名额只数仍持有有效租约的 running。
 	var occupied int
-	err := tx.QueryRowContext(ctx, "SELECT COUNT(*),COALESCE(SUM(target=?),0) FROM diagnoses WHERE id<>? AND (status='running' OR status='waiting_approval')", row.target, id).Scan(&occupied, &row.sameTarget)
+	err := tx.QueryRowContext(ctx, occupiedTargetSlotsSQL, row.target, id).Scan(&occupied, &row.sameTarget)
 	if err != nil || row.sameTarget > 0 {
 		return err
 	}
@@ -130,11 +130,7 @@ func decideClaim(row claimRow, config Config, request claimRequest) (bool, error
 func (store *Store) commitClaim(ctx context.Context, tx *sql.Tx, request claimRequest, row claimRow) (bool, error) {
 	// 中断到租约过期的时间也保守计入执行预算；接手后的等待不能重新拿五分钟。
 	// 运行过但段数为零的任务已有两段执行，接手时补记为两段，避免被当作单段计算耗时。
-	_, err := tx.ExecContext(ctx, `UPDATE diagnoses SET
- active_ms=active_ms+IF(status='running' AND lease_updated_at IS NOT NULL,GREATEST(0,TIMESTAMPDIFF(MICROSECOND,lease_updated_at,LEAST(UTC_TIMESTAMP(6),lease_until)) DIV 1000),0),
- model=IF(status='pending',?,model),prompt_version=IF(status='pending',?,prompt_version),provider=?,
- currency=?,started_at=COALESCE(started_at,UTC_TIMESTAMP(6)),execution_segments=IF(execution_segments=0 AND status<>'pending',2,execution_segments+1),status='running',lease_owner=?,
- lease_until=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)),lease_updated_at=UTC_TIMESTAMP(6) WHERE id=?`, request.model, request.prompt, request.provider, store.config.Currency, request.owner, store.config.LeaseTTL.Microseconds(), request.id)
+	_, err := tx.ExecContext(ctx, claimLeaseSQL, request.model, request.prompt, request.provider, store.config.Currency, request.owner, store.config.LeaseTTL.Microseconds(), request.id)
 	if err != nil {
 		return false, err
 	}
@@ -162,7 +158,7 @@ func (store *Store) commitClaim(ctx context.Context, tx *sql.Tx, request claimRe
 
 // Renew 的条件更新不允许续活已经过期的租约；迟到者必须退出，不能自行复活。
 func (store *Store) Renew(ctx context.Context, id string) (bool, error) {
-	result, err := store.database.ExecContext(ctx, `UPDATE diagnoses SET active_ms=active_ms+GREATEST(0,TIMESTAMPDIFF(MICROSECOND,lease_updated_at,UTC_TIMESTAMP(6)) DIV 1000),lease_updated_at=UTC_TIMESTAMP(6),lease_until=TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6)) WHERE id=? AND status='running' AND lease_owner=? AND lease_until>UTC_TIMESTAMP(6) AND cancel_requested=FALSE`, store.config.LeaseTTL.Microseconds(), id, llm.Lease(ctx))
+	result, err := store.database.ExecContext(ctx, renewLeaseSQL, store.config.LeaseTTL.Microseconds(), id, llm.Lease(ctx))
 	if err != nil {
 		return false, err
 	}
@@ -181,7 +177,7 @@ func (store *Store) staleLeases(ctx context.Context) error {
 	if err = tx.QueryRowContext(ctx, "SELECT id FROM scheduler_guard WHERE id=1 FOR UPDATE").Scan(&guard); err != nil {
 		return err
 	}
-	rows, err := tx.QueryContext(ctx, "SELECT id,cancel_requested FROM diagnoses WHERE `trigger`<>'judge' AND status='running' AND (lease_until IS NULL OR lease_until<=UTC_TIMESTAMP(6)) AND (cancel_requested=TRUE OR lease_updated_at IS NULL OR lease_updated_at<TIMESTAMPADD(MICROSECOND,?,UTC_TIMESTAMP(6))) FOR UPDATE", -store.config.ResumeMaxAge.Microseconds())
+	rows, err := tx.QueryContext(ctx, staleLeasesSQL, -store.config.ResumeMaxAge.Microseconds())
 	if err != nil {
 		return err
 	}
@@ -209,7 +205,7 @@ func (store *Store) staleLeases(ctx context.Context) error {
 		if task.cancelled {
 			state, reason = "cancelled", "用户取消"
 		}
-		if _, err = tx.ExecContext(ctx, "UPDATE diagnoses SET status=?,error=?,finished_at=UTC_TIMESTAMP(6),lease_owner=NULL,lease_until=NULL WHERE id=?", state, reason, task.id); err != nil {
+		if _, err = tx.ExecContext(ctx, finishStaleLeaseSQL, state, reason, task.id); err != nil {
 			return err
 		}
 		payload, _ := json.Marshal(map[string]string{"status": state, "reason": reason})
@@ -234,7 +230,7 @@ func (store *Store) Resume(ctx context.Context, id string) ([]agent.Step, time.D
 		return nil, 0, 0, err
 	}
 	var active, cost int64
-	err := store.database.QueryRowContext(ctx, "SELECT active_ms FROM diagnoses WHERE id=? AND lease_owner=? AND lease_until>UTC_TIMESTAMP(6)", id, llm.Lease(ctx)).Scan(&active)
+	err := store.database.QueryRowContext(ctx, leasedActiveTimeSQL, id, llm.Lease(ctx)).Scan(&active)
 	if err != nil {
 		return nil, 0, 0, err
 	}
@@ -256,3 +252,85 @@ func (store *Store) Resume(ctx context.Context, id string) ([]agent.Step, time.D
 	}
 	return all, time.Duration(active) * time.Millisecond, cost, nil
 }
+
+const lockLeaseDiagnosisSQL = `SELECT
+    target,
+    status,
+    COALESCE(lease_until <= UTC_TIMESTAMP(6), TRUE),
+    cancel_requested,
+    currency,
+    COALESCE(lease_updated_at >= TIMESTAMPADD(MICROSECOND, ?, UTC_TIMESTAMP(6)), FALSE),
+    ` + "`trigger`" + `,
+    eval_expected_model,
+    eval_profile,
+    eval_provider,
+    eval_account
+FROM diagnoses
+WHERE id = ?
+    FOR
+    UPDATE`
+
+const occupiedTargetSlotsSQL = `SELECT
+    COUNT(*),
+    COALESCE(SUM(target = ?), 0)
+FROM diagnoses
+WHERE id <> ?
+    AND (status = 'running'
+         OR status = 'waiting_approval')`
+
+const claimLeaseSQL = `UPDATE diagnoses
+SET
+    active_ms = active_ms + IF(status = 'running'
+                               AND lease_updated_at IS NOT NULL, GREATEST(0, TIMESTAMPDIFF(MICROSECOND, lease_updated_at, LEAST(UTC_TIMESTAMP(6), lease_until)) DIV 1000), 0),
+    model = IF(status = 'pending', ?, model),
+    prompt_version = IF(status = 'pending', ?, prompt_version),
+    provider = ?,
+    currency = ?,
+    started_at = COALESCE(started_at, UTC_TIMESTAMP(6)),
+    execution_segments = IF(execution_segments = 0
+                            AND status <> 'pending', 2, execution_segments + 1),
+    status = 'running',
+    lease_owner = ?,
+    lease_until = TIMESTAMPADD(MICROSECOND, ?, UTC_TIMESTAMP(6)),
+    lease_updated_at = UTC_TIMESTAMP(6)
+WHERE id = ?`
+
+const renewLeaseSQL = `UPDATE diagnoses
+SET
+    active_ms = active_ms + GREATEST(0, TIMESTAMPDIFF(MICROSECOND, lease_updated_at, UTC_TIMESTAMP(6)) DIV 1000),
+    lease_updated_at = UTC_TIMESTAMP(6),
+    lease_until = TIMESTAMPADD(MICROSECOND, ?, UTC_TIMESTAMP(6))
+WHERE id = ?
+    AND status = 'running'
+    AND lease_owner = ?
+    AND lease_until > UTC_TIMESTAMP(6)
+    AND cancel_requested = FALSE`
+
+const staleLeasesSQL = `SELECT
+    id,
+    cancel_requested
+FROM diagnoses
+WHERE ` + "`trigger`" + ` <> 'judge'
+    AND status = 'running'
+    AND (lease_until IS NULL
+         OR lease_until <= UTC_TIMESTAMP(6))
+    AND (cancel_requested = TRUE
+         OR lease_updated_at IS NULL
+         OR lease_updated_at < TIMESTAMPADD(MICROSECOND, ?, UTC_TIMESTAMP(6)))
+    FOR
+    UPDATE`
+
+const finishStaleLeaseSQL = `UPDATE diagnoses
+SET
+    status = ?,
+    error = ?,
+    finished_at = UTC_TIMESTAMP(6),
+    lease_owner = NULL,
+    lease_until = NULL
+WHERE id = ?`
+
+const leasedActiveTimeSQL = `SELECT active_ms
+FROM diagnoses
+WHERE id = ?
+    AND lease_owner = ?
+    AND lease_until > UTC_TIMESTAMP(6)`

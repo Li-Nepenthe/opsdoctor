@@ -21,6 +21,14 @@ func (store *Store) EnsureUser(ctx context.Context, email, hash string) error {
 // UserByEmail 不区分大小写的规则由 auth 统一处理，这里不再改写输入。
 func (store *Store) UserByEmail(ctx context.Context, email string) (User, error) {
 	var user User
-	err := store.database.QueryRowContext(ctx, "SELECT id,email,password_hash,status FROM users WHERE email=?", email).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Status)
+	err := store.database.QueryRowContext(ctx, userByEmailSQL, email).Scan(&user.ID, &user.Email, &user.PasswordHash, &user.Status)
 	return user, err
 }
+
+const userByEmailSQL = `SELECT
+    id,
+    email,
+    password_hash,
+    status
+FROM users
+WHERE email = ?`

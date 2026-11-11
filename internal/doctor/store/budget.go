@@ -76,7 +76,7 @@ func (ledger *Ledger) Reserve(ctx context.Context, value llm.Reservation) (strin
 	}
 	// 请求已经是实际发送的脱敏 JSON，审计内容不会比线上请求多一份敏感原文。
 	id := newID()
-	_, err = tx.ExecContext(ctx, "INSERT INTO llm_attempts(id,diagnosis_id,account,requested_model,request,maximum_micros,charged_micros,input_price_micros,cache_hit_price_micros,output_price_micros,call_id,cache_write_price_micros) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", id, value.DiagnosisID, ledger.account, value.Model, clean, value.MaximumMicros, value.MaximumMicros, value.Prices.InputMicros, value.Prices.CacheHitMicros, value.Prices.OutputMicros, value.CallID, value.Prices.CacheWriteMicros)
+	_, err = tx.ExecContext(ctx, insertAttemptSQL, id, value.DiagnosisID, ledger.account, value.Model, clean, value.MaximumMicros, value.MaximumMicros, value.Prices.InputMicros, value.Prices.CacheHitMicros, value.Prices.OutputMicros, value.CallID, value.Prices.CacheWriteMicros)
 	if err != nil {
 		return "", err
 	}
@@ -99,7 +99,7 @@ func (ledger *Ledger) reserveAccount(ctx context.Context, tx *sql.Tx, value llm.
 	if expectedAccount != "" && expectedAccount != ledger.account {
 		return fmt.Errorf("评测诊断与模型预算账户不一致")
 	}
-	result, err := tx.ExecContext(ctx, "UPDATE llm_budget SET spent_micros=spent_micros+? WHERE account=? AND spent_micros<=? AND stopped_reason=''", value.MaximumMicros, ledger.account, ledger.limit-value.MaximumMicros)
+	result, err := tx.ExecContext(ctx, reserveBudgetSQL, value.MaximumMicros, ledger.account, ledger.limit-value.MaximumMicros)
 	if err != nil {
 		return err
 	}
@@ -193,7 +193,7 @@ func (ledger *Ledger) lockSettlement(ctx context.Context, tx *sql.Tx, id string)
 	if err := tx.QueryRowContext(ctx, "SELECT spent_micros FROM llm_budget WHERE account=? FOR UPDATE", ledger.account).Scan(&balance.spent); err != nil {
 		return balance, err
 	}
-	if err := tx.QueryRowContext(ctx, "SELECT charged_micros,settled_at FROM llm_attempts WHERE id=? AND account=? FOR UPDATE", id, ledger.account).Scan(&balance.charged, &balance.settled); err != nil {
+	if err := tx.QueryRowContext(ctx, lockAttemptChargeSQL, id, ledger.account).Scan(&balance.charged, &balance.settled); err != nil {
 		return balance, err
 	}
 	return balance, nil
@@ -212,12 +212,12 @@ func (ledger *Ledger) applySettlement(ctx context.Context, tx *sql.Tx, id string
 	if err != nil {
 		return false, err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE llm_attempts SET response=?,charged_micros=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cache_write_tokens=?,reasoning_tokens=?,status=?,settled_at=UTC_TIMESTAMP(6) WHERE id=?", clean, actual, value.Usage.Input, value.Usage.Output, value.Usage.CacheHit, value.Usage.CacheWrite, value.Usage.Reasoning, value.Status, id)
+	_, err = tx.ExecContext(ctx, settleAttemptSQL, clean, actual, value.Usage.Input, value.Usage.Output, value.Usage.CacheHit, value.Usage.CacheWrite, value.Usage.Reasoning, value.Status, id)
 	if err != nil {
 		return false, err
 	}
 	if overflow {
-		_, err = tx.ExecContext(ctx, "UPDATE llm_budget SET stopped_reason=? WHERE account=?", "实际费用超过保守预留额，需人工核对后再启用", ledger.account)
+		_, err = tx.ExecContext(ctx, stopBudgetSQL, "实际费用超过保守预留额，需人工核对后再启用", ledger.account)
 		if err != nil {
 			return false, err
 		}
@@ -228,7 +228,7 @@ func (ledger *Ledger) applySettlement(ctx context.Context, tx *sql.Tx, id string
 // Status 读的是整个真实账户，包含其他诊断预留但还没结算的钱。
 func (ledger *Ledger) Status(ctx context.Context) (run.BudgetStatus, error) {
 	value := run.BudgetStatus{LimitMicros: ledger.limit, Currency: ledger.currency}
-	err := ledger.store.database.QueryRowContext(ctx, "SELECT spent_micros,stopped_reason FROM llm_budget WHERE account=?", ledger.account).Scan(&value.SpentMicros, &value.Reason)
+	err := ledger.store.database.QueryRowContext(ctx, readBudgetStatusSQL, ledger.account).Scan(&value.SpentMicros, &value.Reason)
 	if value.Reason != "" {
 		value.Blocked = true
 		value.ReasonCode = "accounting_guard"
@@ -239,3 +239,70 @@ func (ledger *Ledger) Status(ctx context.Context) (run.BudgetStatus, error) {
 	}
 	return value, err
 }
+
+const insertAttemptSQL = `INSERT INTO llm_attempts (
+    id,
+    diagnosis_id,
+    account,
+    requested_model,
+    request,
+    maximum_micros,
+    charged_micros,
+    input_price_micros,
+    cache_hit_price_micros,
+    output_price_micros,
+    call_id,
+    cache_write_price_micros
+)
+VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
+)`
+
+const reserveBudgetSQL = `UPDATE llm_budget
+SET spent_micros = spent_micros + ?
+WHERE account = ?
+    AND spent_micros <= ?
+    AND stopped_reason = ''`
+
+const lockAttemptChargeSQL = `SELECT
+    charged_micros,
+    settled_at
+FROM llm_attempts
+WHERE id = ?
+    AND account = ?
+    FOR
+    UPDATE`
+
+const settleAttemptSQL = `UPDATE llm_attempts
+SET
+    response = ?,
+    charged_micros = ?,
+    tokens_in = ?,
+    tokens_out = ?,
+    cache_hit_tokens = ?,
+    cache_write_tokens = ?,
+    reasoning_tokens = ?,
+    status = ?,
+    settled_at = UTC_TIMESTAMP(6)
+WHERE id = ?`
+
+const stopBudgetSQL = `UPDATE llm_budget
+SET stopped_reason = ?
+WHERE account = ?`
+
+const readBudgetStatusSQL = `SELECT
+    spent_micros,
+    stopped_reason
+FROM llm_budget
+WHERE account = ?`
