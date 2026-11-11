@@ -13,7 +13,7 @@ import (
 
 // Config 保存消费者的启动参数。数据库连接串可能含有密码，日志只应记录端口和消息时限。
 type Config struct {
-	Database       mysqlx.Config
+	Database       mysqlx.Config // 连接串可能含数据库密码，不能写入日志。
 	AdminAddress   string
 	KafkaBrokers   []string
 	MessageTimeout time.Duration

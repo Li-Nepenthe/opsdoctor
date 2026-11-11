@@ -17,7 +17,7 @@ func responseRecorder() gin.HandlerFunc {
 	}
 }
 
-// deliverResponse 使用无缓冲通道交接结果；发送方要等接收方准备好才能结束。
+// deliverResponse 在接收方取走最终响应状态时完成交接。
 func deliverResponse(result chan<- int, status int) {
 	result <- status
 }
