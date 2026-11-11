@@ -28,7 +28,8 @@ const getOrderSQL = `SELECT id, user_id, sku_id, quantity, amount_cents, status,
 
 // listOrdersSQL 用 idx_orders_user_created 先定位用户，再按时间倒序读取。相同时间用主键确定顺序。
 // InnoDB 二级索引自带主键，仍需回表取金额等字段。偏移量很大时要跳过很多行，这是页码分页的已知代价。
-const listOrdersSQL = `SELECT id, user_id, sku_id, quantity, amount_cents, status, created_at FROM orders WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`
+const listOrdersSQL = `SELECT id, user_id, sku_id, quantity, amount_cents, status, created_at FROM orders ` +
+	`WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT ? OFFSET ?`
 
 // MySQLRepository 只借用连接池。一个写事务会借用一条连接直到提交或回滚。
 type MySQLRepository struct{ database *sql.DB } // database 的关闭由 app 负责。
