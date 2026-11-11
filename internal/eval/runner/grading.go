@@ -79,33 +79,7 @@ func newGraderForAccount(ctx context.Context, reader config.Reader, repository *
 	if err != nil {
 		return nil, err
 	}
-	prices := llm.Prices{}
-	for _, item := range []struct {
-		name, fallback string
-		target         *int64
-	}{
-		{"EVAL_COMPARISON_INPUT_PRICE", "2", &prices.InputMicros}, // 与对比模型使用同一份峰时价。
-		{"EVAL_COMPARISON_CACHE_HIT_PRICE", "0.04", &prices.CacheHitMicros},
-		{"EVAL_COMPARISON_OUTPUT_PRICE", "8", &prices.OutputMicros},
-	} {
-		text, err := reader.String(item.name, item.fallback)
-		if err != nil {
-			return nil, err
-		}
-		*item.target, err = llm.Money(text)
-		if err != nil {
-			return nil, err
-		}
-	}
-	dates, err := reader.String("EVAL_DEEPSEEK_HOLIDAYS", "none")
-	if err != nil {
-		return nil, err
-	}
-	var holidays []string
-	if dates != "none" {
-		holidays = strings.Split(dates, ",")
-	}
-	pricesAt, err := llm.DeepSeekTariff(prices, holidays)
+	tariff, err := readJudgeTariff(reader)
 	if err != nil {
 		return nil, err
 	}
@@ -121,9 +95,49 @@ func newGraderForAccount(ctx context.Context, reader config.Reader, repository *
 			secrets = append(secrets, text)
 		}
 	}
-	value.client, err = openai.New(openai.Config{BaseURL: "https://api.deepseek.com", Key: key, Timeout: time.Minute, Prices: prices, PricesAt: pricesAt}, nil, ledger, llm.NewRedactor(secrets...), slog.New(slog.NewTextHandler(output, nil)))
+	value.client, err = openai.New(openai.Config{BaseURL: "https://api.deepseek.com", Key: key, Timeout: time.Minute, Prices: tariff.peak, PricesAt: tariff.at}, nil, ledger, llm.NewRedactor(secrets...), slog.New(slog.NewTextHandler(output, nil)))
 	value.model, value.provider = "deepseek-flash", "openai"
 	return value, err
+}
+
+type judgeTariff struct {
+	peak llm.Prices
+	at   func(time.Time) llm.Prices
+}
+
+// readJudgeTariff 在预留账本额度前确定价格。每次发送时按该请求的时间选用生效单价。
+func readJudgeTariff(reader config.Reader) (judgeTariff, error) {
+	prices := llm.Prices{}
+	for _, item := range []struct {
+		name, fallback string
+		target         *int64
+	}{
+		{"EVAL_COMPARISON_INPUT_PRICE", "2", &prices.InputMicros}, // 与对比模型使用同一份峰时价。
+		{"EVAL_COMPARISON_CACHE_HIT_PRICE", "0.04", &prices.CacheHitMicros},
+		{"EVAL_COMPARISON_OUTPUT_PRICE", "8", &prices.OutputMicros},
+	} {
+		text, err := reader.String(item.name, item.fallback)
+		if err != nil {
+			return judgeTariff{}, err
+		}
+		*item.target, err = llm.Money(text)
+		if err != nil {
+			return judgeTariff{}, err
+		}
+	}
+	dates, err := reader.String("EVAL_DEEPSEEK_HOLIDAYS", "none")
+	if err != nil {
+		return judgeTariff{}, err
+	}
+	var holidays []string
+	if dates != "none" {
+		holidays = strings.Split(dates, ",")
+	}
+	pricesAt, err := llm.DeepSeekTariff(prices, holidays)
+	if err != nil {
+		return judgeTariff{}, err
+	}
+	return judgeTariff{peak: prices, at: pricesAt}, nil
 }
 
 // gradeInput 保留所有实际观察，不把医生的思考文本或模型品牌发给评委。

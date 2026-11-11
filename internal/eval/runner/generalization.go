@@ -118,7 +118,7 @@ func runGeneralizationCLI(ctx context.Context, args []string, reader config.Read
 	if options.action == "restore" {
 		return restoreDemoRecord(ctx, options, output)
 	}
-	options.tokens, err = reader.Int("EVAL_TOKEN_BUDGET", 10000000, 1, 1000000000)
+	options.tokens, err = evalTokenBudget(reader)
 	if err != nil {
 		return err
 	}

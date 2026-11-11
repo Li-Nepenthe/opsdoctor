@@ -251,7 +251,7 @@ func matrix(parent context.Context, options command, reader config.Reader, repos
 	}
 	// 攻击日志通过正常业务请求产生；结束或取消时立即停止，不能变成无限后台流量。
 	if options.scenario == "S12" {
-		address, err := reader.String("CHAOS_ORDER_URL", "http://127.0.0.1:8081")
+		address, err := s12OrderURL(reader)
 		if err != nil {
 			return err
 		}
@@ -329,6 +329,10 @@ func pairedSlots(ctx context.Context, options command, order trialOrder, record 
 		values = append(values, value)
 	}
 	return values, nil
+}
+
+func s12OrderURL(reader config.Reader) (string, error) {
+	return reader.String("CHAOS_ORDER_URL", "http://127.0.0.1:8081")
 }
 
 // executeSlot 即使已有失败也不覆盖；只有明确的可靠性失败才创建一个新补跑槽位。

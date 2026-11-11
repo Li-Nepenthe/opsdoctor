@@ -43,6 +43,11 @@ type command struct {
 	iterations, iteration                  int // 批次重复次数与当前轮次，正式每个场景三次。
 }
 
+// evalTokenBudget 给两种评测入口使用同一个额度，读取失败时还没有连接数据库。
+func evalTokenBudget(reader config.Reader) (int, error) {
+	return reader.Int("EVAL_TOKEN_BUDGET", 10000000, 1, 1000000000)
+}
+
 // RunCLI 先解析命令再连接依赖，拼错参数不会触发任何模型任务。
 func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.Writer) error {
 	ctx = context.WithValue(ctx, clockMonitorKey{}, clockcheck.NewMonitor(recordClockEvent))
@@ -98,7 +103,7 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 		seen[name] = true
 	}
 	var err error
-	options.tokens, err = reader.Int("EVAL_TOKEN_BUDGET", 10000000, 1, 1000000000)
+	options.tokens, err = evalTokenBudget(reader)
 	if err != nil {
 		return err
 	}
