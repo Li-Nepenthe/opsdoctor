@@ -43,28 +43,16 @@ func NewBackend(dsn string, metadata Metadata, tables []string, ops OpsConfig, t
 	if timeout < 30*time.Second || timeout > 3*time.Minute {
 		return nil, fmt.Errorf("写工具时限必须在 30s–3m 内")
 	}
-	if ops.PoolMin == 0 {
-		ops.PoolMin = 5
+	if err := ops.applyDefaultsAndValidate(); err != nil {
+		return nil, err
 	}
-	if ops.PoolMax == 0 {
-		ops.PoolMax = 200
+	backend := &Backend{
+		metadata: metadata, tables: map[string]bool{}, ops: ops, timeout: timeout,
+		http: &http.Client{
+			Timeout:       timeout,
+			CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse },
+		},
 	}
-	if ops.PoolMin < 5 || ops.PoolMax > 200 || ops.PoolMax < ops.PoolMin {
-		return nil, fmt.Errorf("连接池范围必须位于 5–200 内")
-	}
-	if len(ops.Services) > 0 && len(ops.Token) < 32 {
-		return nil, fmt.Errorf("运维入口需要独立的至少 32 字节令牌")
-	}
-	for service, address := range ops.Services {
-		parsed, err := url.Parse(address)
-		if !identifier(strings.ReplaceAll(service, "-", "_")) || err != nil || parsed.Host == "" || parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" || (parsed.Path != "" && parsed.Path != "/") || (parsed.Scheme != "http" && parsed.Scheme != "https") {
-			return nil, fmt.Errorf("运维服务名或固定根地址不合法")
-		}
-	}
-	if ops.WarmService != "" && ops.Services[ops.WarmService] == "" {
-		return nil, fmt.Errorf("预热服务未在运维服务清单中")
-	}
-	backend := &Backend{metadata: metadata, tables: map[string]bool{}, ops: ops, timeout: timeout, http: &http.Client{Timeout: timeout, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}}
 	for _, table := range tables {
 		if !identifier(table) {
 			return nil, fmt.Errorf("说明书中的表名不合法")
@@ -72,27 +60,63 @@ func NewBackend(dsn string, metadata Metadata, tables []string, ops OpsConfig, t
 		backend.tables[table] = true
 	}
 	if dsn != "" {
-		config, err := mysql.ParseDSN(dsn)
-		if err != nil || config.DBName == "" || config.Passwd == "" || config.User == "" || config.User == "root" || config.User == "app" || config.User == "diag_ro" || metadata == nil || len(tables) == 0 {
-			return nil, fmt.Errorf("索引操作必须配置独立 INDEX 账号、元数据来源和允许表")
+		if err := backend.openIndexPool(dsn); err != nil {
+			return nil, err
 		}
-		// 部署者误写多语句或文件选项，也不能让工具取得额外执行能力。
-		config.MultiStatements = false
-		config.AllowAllFiles = false
-		config.InterpolateParams = false
-		config.Timeout = 5 * time.Second
-		config.ReadTimeout = timeout
-		config.WriteTimeout = 5 * time.Second
-		config.Params = map[string]string{"lock_wait_timeout": "5"}
-		connector, err := mysql.NewConnector(config)
-		if err != nil {
-			return nil, fmt.Errorf("无法创建索引连接器")
-		}
-		backend.ddl = sql.OpenDB(connector)
-		backend.ddl.SetMaxOpenConns(1)
-		backend.ddl.SetMaxIdleConns(0)
 	}
 	return backend, nil
+}
+
+func (ops *OpsConfig) applyDefaultsAndValidate() error {
+	if ops.PoolMin == 0 {
+		ops.PoolMin = 5
+	}
+	if ops.PoolMax == 0 {
+		ops.PoolMax = 200
+	}
+	if ops.PoolMin < 5 || ops.PoolMax > 200 || ops.PoolMax < ops.PoolMin {
+		return fmt.Errorf("连接池范围必须位于 5–200 内")
+	}
+	if len(ops.Services) > 0 && len(ops.Token) < 32 {
+		return fmt.Errorf("运维入口需要独立的至少 32 字节令牌")
+	}
+	for service, address := range ops.Services {
+		parsed, err := url.Parse(address)
+		if !identifier(strings.ReplaceAll(service, "-", "_")) || err != nil || parsed.Host == "" ||
+			parsed.User != nil || parsed.RawQuery != "" || parsed.Fragment != "" ||
+			(parsed.Path != "" && parsed.Path != "/") || (parsed.Scheme != "http" && parsed.Scheme != "https") {
+			return fmt.Errorf("运维服务名或固定根地址不合法")
+		}
+	}
+	if ops.WarmService != "" && ops.Services[ops.WarmService] == "" {
+		return fmt.Errorf("预热服务未在运维服务清单中")
+	}
+	return nil
+}
+
+// openIndexPool 单独建立索引账号的连接池，元数据仍由只读账号取得。
+func (backend *Backend) openIndexPool(dsn string) error {
+	config, err := mysql.ParseDSN(dsn)
+	if err != nil || config.DBName == "" || config.Passwd == "" || config.User == "" ||
+		config.User == "root" || config.User == "app" || config.User == "diag_ro" || backend.metadata == nil || len(backend.tables) == 0 {
+		return fmt.Errorf("索引操作必须配置独立 INDEX 账号、元数据来源和允许表")
+	}
+	// 部署者误写多语句或文件选项，也不能让工具取得额外执行能力。
+	config.MultiStatements = false
+	config.AllowAllFiles = false
+	config.InterpolateParams = false
+	config.Timeout = 5 * time.Second
+	config.ReadTimeout = backend.timeout
+	config.WriteTimeout = 5 * time.Second
+	config.Params = map[string]string{"lock_wait_timeout": "5"}
+	connector, err := mysql.NewConnector(config)
+	if err != nil {
+		return fmt.Errorf("无法创建索引连接器")
+	}
+	backend.ddl = sql.OpenDB(connector)
+	backend.ddl.SetMaxOpenConns(1)
+	backend.ddl.SetMaxIdleConns(0)
+	return nil
 }
 
 // Close 由接入目录统一调用，单次写工具不能拆掉共享后端。
