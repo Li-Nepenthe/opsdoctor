@@ -2,11 +2,6 @@
 //
 // 用 Gin 配合 httptest 在内存处理请求，不依赖监听端口。
 // 先看请求标识和 panic 脱敏，再看不同 JSON 和请求体大小怎样被拒绝。测试接口只是样例，没有新增业务路由。
-//
-// 主要内容：
-//   - testRouter：组装纯内存路由，不监听端口。handler 注入每个用例要验证的行为。
-//   - TestRequestIDAndRecovery：验证合法标识保留、非法标识替换，以及 panic 不泄露原始内容。
-//   - TestJSONBodyLimit：检查未知字段、多个 JSON、已知长度和流式超限，防止只检查 Content-Length。
 
 package httpx
 
@@ -27,7 +22,7 @@ import (
 func testRouter(output *bytes.Buffer, handler gin.HandlerFunc) *gin.Engine {
 	router := gin.New()
 	logger := logging.New(output, "test-http", slog.LevelInfo)
-	// 顺序很重要：恢复 panic 和访问日志都需要最先写入的 request_id。
+	// Recovery 接住 panic 后，外层的 RequestIDs 才能继续记录这次请求的 500 访问日志。
 	router.Use(RequestIDs(logger), Recovery(logger), BodyLimit(DefaultBodyLimit))
 	router.POST("/test", handler)
 	return router
@@ -62,6 +57,20 @@ func TestRequestIDAndRecovery(t *testing.T) {
 			if strings.Contains(logs.String()+response.Body.String(), "private-") || !strings.Contains(logs.String(), actual) {
 				t.Fatal("日志泄露了输入，或缺少请求标识")
 			}
+			for line := range bytes.Lines(logs.Bytes()) {
+				var entry struct {
+					Message   string `json:"msg"`
+					Status    int    `json:"status"`
+					RequestID string `json:"request_id"`
+				}
+				if err := json.Unmarshal(line, &entry); err != nil {
+					t.Fatalf("日志不是有效的 JSON：%v", err)
+				}
+				if entry.Message == "HTTP 请求完成" && entry.Status == http.StatusInternalServerError && entry.RequestID == actual {
+					return
+				}
+			}
+			t.Fatalf("缺少请求 %q 的 500 访问日志，实际日志：%s", actual, logs.String())
 		})
 	}
 }

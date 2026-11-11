@@ -1,4 +1,5 @@
-// chaos 是宿主机实验命令入口；场景、执行与验收在 internal/chaos 中组织。
+// 本文件：chaos 在宿主机上运行故障实验。
+// 从 internal/chaos/app 的 Run 读起，它把命令分派给相应场景，selftest 收到中断时会先尝试恢复现场。
 package main
 
 import (
@@ -11,7 +12,6 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
 )
 
-// main 将 Ctrl+C 变成取消信号，selftest 收到后先恢复当前场景再退出。
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()

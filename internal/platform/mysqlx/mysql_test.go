@@ -2,9 +2,6 @@
 //
 // TestPrepare 不创建真实连接，专门检查池上限、空闲数、寿命、UTC 与多语句设置。
 // 先读表格里的不合法组合，再对照 mysql.go 的 prepare，理解哪些错误应在联网前发现。
-//
-// 主要内容：
-//   - TestPrepare：验证 Go 日期解码和数据库会话都使用 UTC，并禁止多语句查询。
 
 package mysqlx
 
@@ -35,7 +32,7 @@ func TestPrepare(t *testing.T) {
 		// 无法解析的 DSN 应被拒绝，错误消息不能带出这个模拟密码。
 		func(value *Config) { value.DSN = "private-password-value" },
 	} {
-		// Config 按值复制，每次只改一个条件，避免前一条用例的错误污染下一条。
+		// 每个用例只改一项配置，方便定位究竟哪条限制失效。
 		invalid := config
 		change(&invalid)
 		if _, err := prepare(invalid); err == nil || strings.Contains(err.Error(), "private-password-value") {

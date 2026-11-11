@@ -1,19 +1,5 @@
-// 本文件：检查文件位置和标准答案读取，并接入 Compose 边界检查。
-//
-// 导入方向和文件角色由根目录 .golangci.yml 的 depguard 规则检查，不在这里重复实现。
-// 先读 locationProblem，再读 scenarioProblems，了解静态路径分析能发现什么、不能证明什么。
-//
-// 主要内容：
-//   - check：遍历目录，分别检查文件位置、源码和 Compose。读取或语法错误直接返回，避免把漏检当作通过。
-//   - inspectSource：解析单个 Go 文件并检查答案读取。语法错误不会被当成无违规。
-//   - locationProblem：检查根目录 Go 文件、cmd 入口文件数量和含糊的包名。返回空字符串表示通过。
-//   - under：按目录边界匹配路径，防止把 internal/doctorish 误当成 internal/doctor。
-//   - scenarioProblems：检查文件读取调用和 go:embed。允许 chaos/eval 读取答案，其余包只要可静态识别就报错。
-//   - importAliases：记录标准库读取包的本地名字。别名导入不能绕过读取检查。
-//   - isReadCall：识别 os/io/fs/path/filepath 的文件入口。对点导入也检查，避免改导入写法绕过规则。
-//   - stringValues：收集可静态求值的字符串声明与赋值。多轮展开支持文件内的常量引用链。
-//   - stringExpression：展开字符串、标识符、加法和 Join 调用。未知表达式返回空值，不猜测运行时结果。
-//   - isScenarioPath：统一 Windows 分隔符并清理相对路径，识别标准答案目录及其子文件。
+// 本文件：检查源码放置的位置，以及哪些包从场景目录或实验恢复记录读取故障信息。
+// 从 check 读起，它遍历仓库并汇总诊断。导入方向和文件角色由 depguard 检查。
 
 package main
 
@@ -29,31 +15,26 @@ import (
 	"strings"
 )
 
-// check 遍历目录，分别检查文件位置、源码和 Compose。读取或语法错误直接返回，避免把漏检当作通过。
-// 这里只解析源码，不要求被检查的包先编译成功，便于在编写新包时尽早发现答案读取。
 func check(root string) ([]string, error) {
 	var problems []string
-	// 逐个文件检查位置和源码。WalkDir 会把遍历错误交给回调，不能忽略后继续报“通过”。
+	// 读取或解析失败会中断检查，避免把漏扫的源码也算作通过。
 	err := filepath.WalkDir(root, func(path string, entry fs.DirEntry, walkErr error) error {
 		if walkErr != nil {
 			return walkErr
 		}
 		if entry.IsDir() && (entry.Name() == ".git" || entry.Name() == "vendor" || entry.Name() == ".obsidian") {
-			// 版本数据、第三方源码和个人笔记设置不属于本项目代码。SkipDir 会跳过整个目录。
 			return filepath.SkipDir
 		}
 		relative, err := filepath.Rel(root, path)
 		if err != nil {
 			return err
 		}
-		// 规则统一按仓库相对路径和 / 判断，避免 Windows 的反斜杠改变检查结果。
+		// 仓库规则按正斜杠写，Windows 上也要按同一个相对路径判断。
 		relative = filepath.ToSlash(relative)
 		if entry.IsDir() {
-			// 返回 nil 让 WalkDir 继续走进目录。只有文件才检查“放在哪里”。
 			return nil
 		}
 		if issue := locationProblem(relative); issue != "" {
-			// 位置规则也检查非 Go 文件，例如 cmd/demo/README.md 同样不符合“只留 main.go”。
 			problems = append(problems, path+":1: "+issue)
 		}
 		if filepath.Ext(path) != ".go" {
@@ -64,7 +45,6 @@ func check(root string) ([]string, error) {
 				}
 				problems = append(problems, issues...)
 			}
-			// 非 Go 文件的位置检查完就结束，不能交给 Go 语法解析器。
 			return nil
 		}
 		issues, err := inspectSource(path, relative)
@@ -77,15 +57,13 @@ func check(root string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("检查架构：%w", err)
 	}
-	// 固定诊断顺序，让本机和 CI 输出便于逐行对照。
+	// CI 和本机按相同的顺序报告问题，方便逐条对照。
 	sort.Strings(problems)
 	return problems, nil
 }
 
-// inspectSource 解析单个 Go 文件并检查答案读取。语法错误不会被当成无违规。
 func inspectSource(path, relative string) ([]string, error) {
-	// AST（抽象语法树）把源码表示成函数、导入、表达式等节点。FileSet 将节点位置换回文件和行号。
-	// ParseComments 必须保留注释，因为 go:embed 指令也可能把标准答案读进程序。
+	// go:embed 出现在注释中，解析时必须保留。
 	positions := token.NewFileSet()
 	file, err := parser.ParseFile(positions, path, nil, parser.ParseComments)
 	if err != nil {
@@ -94,51 +72,43 @@ func inspectSource(path, relative string) ([]string, error) {
 	return scenarioProblems(relative, file, positions), nil
 }
 
-// locationProblem 检查根目录 Go 文件、cmd 入口文件数量和含糊的包名。返回空字符串表示通过。
 func locationProblem(path string) string {
 	parts := strings.Split(path, "/")
 	if len(parts) == 1 && strings.HasSuffix(path, ".go") {
-		// 根目录只放项目配置和文档，程序入口应放到 cmd/<程序>/main.go。
 		return "仓库根目录不得放 Go 文件"
 	}
+	// cmd 根目录的导航文档是唯一例外，程序目录只保留入口。
 	if parts[0] == "cmd" && path != "cmd/README.md" && (len(parts) != 3 || parts[2] != "main.go") {
-		// 三段路径必须恰好是 cmd、程序名、main.go。这也拒绝多层子目录和额外文件。
-		// cmd 根目录的 README 是分组导航，单独放行。cmd/<程序>/README.md 仍然会被拒绝。
 		return "cmd/<程序>/ 只能包含 main.go"
 	}
-	// 最后一段是文件名，只检查前面的目录，避免把 utils.go 误当成一个含糊的包名。
+	// 限制的是目录命名，名为 utils.go 的文件不在这条规则里。
 	for _, directory := range parts[:len(parts)-1] {
 		switch directory {
 		case "util", "utils", "common", "helper", "misc", "base":
-			// 这些名字只表示“杂项”，无法告诉读者该包负责什么，计划书要求用具体职责命名。
 			return "目录名必须说明职责，不能使用 " + directory
 		}
 	}
 	return ""
 }
 
-// under 按目录边界匹配路径，防止把 internal/doctorish 误当成 internal/doctor。
+// 路径前缀必须止于目录边界，避免授权旁边的同名前缀目录。
 func under(path, prefix string) bool { return path == prefix || strings.HasPrefix(path, prefix+"/") }
 
-// scenarioProblems 检查文件读取调用和 go:embed。允许 chaos/eval 读取答案，其余包只要可静态识别就报错。
 func scenarioProblems(path string, file *ast.File, positions *token.FileSet) []string {
-	// 先按调用方所在目录判断权限，再分析读取参数。字符串出现在普通文档里不等于读取。
+	// 注入器需要场景定义，评测器需要标准答案。
 	if under(path, "internal/chaos") || under(path, "internal/eval") {
-		// 注入器需要场景定义，评测器需要标准答案。计划书只授权这两个领域读取该目录。
 		return nil
 	}
 	var problems []string
 	imports := importAliases(file)
 	values := stringValues(file)
-	// Inspect 深度遍历 AST。回调返回 true 表示继续看子节点，false 才表示跳过这一支。
+	// 单独出现的路径可能只是说明文字，这里检查传给读取调用的参数。
 	ast.Inspect(file, func(node ast.Node) bool {
 		call, ok := node.(*ast.CallExpr)
 		if !ok || !isReadCall(call.Fun, imports) {
-			// 当前节点不是读取调用，也可能包含嵌套的读取调用，仍要继续向下走。
 			return true
 		}
 		for _, argument := range call.Args {
-			// 只根据能从源码推导出的字符串判断，不运行文件里的任何函数。
 			if isScenarioPath(stringExpression(argument, values)) {
 				problems = append(problems, positions.Position(call.Pos()).String()+": 只有 internal/chaos 和 internal/eval 可以读取场景或注入状态")
 			}
@@ -146,32 +116,37 @@ func scenarioProblems(path string, file *ast.File, positions *token.FileSet) []s
 		return true
 	})
 	for _, group := range file.Comments {
-		for _, comment := range group.List {
-			if strings.HasPrefix(comment.Text, "//go:embed ") {
-				// embed 在编译时读文件，不会出现在 ReadFile 调用里，必须单独检查注释中的每个模式。
-				for _, pattern := range strings.Fields(strings.TrimPrefix(comment.Text, "//go:embed ")) {
-					if isScenarioPath(strings.Trim(pattern, `"`)) {
-						problems = append(problems, positions.Position(comment.Pos()).String()+": 不得嵌入标准答案目录")
-					}
-				}
+		problems = append(problems, embedProblems(group, positions)...)
+	}
+	return problems
+}
+
+// 编译时嵌入的内容不会经过文件读取调用，因此要单独检查指令里的每个路径。
+func embedProblems(group *ast.CommentGroup, positions *token.FileSet) []string {
+	var problems []string
+	for _, comment := range group.List {
+		patterns, found := strings.CutPrefix(comment.Text, "//go:embed ")
+		if !found {
+			continue
+		}
+		for _, pattern := range strings.Fields(patterns) {
+			if isScenarioPath(strings.Trim(pattern, `"`)) {
+				problems = append(problems, positions.Position(comment.Pos()).String()+": 不得嵌入标准答案目录")
 			}
 		}
 	}
 	return problems
 }
 
-// importAliases 记录标准库读取包的本地名字。别名导入不能绕过读取检查。
 func importAliases(file *ast.File) map[string]string {
 	aliases := make(map[string]string)
 	for _, item := range file.Imports {
 		path, err := strconv.Unquote(item.Path.Value)
 		if err != nil {
-			// parser 正常已验证字符串。若仍无法解码，就不登记这个别名，不能猜它属于哪个包。
 			continue
 		}
 		name := filepath.Base(path)
 		if item.Name != nil {
-			// import files "os" 在源码里叫 files。显式别名要覆盖默认的包名 os。
 			name = item.Name.Name
 		}
 		aliases[name] = path
@@ -179,107 +154,92 @@ func importAliases(file *ast.File) map[string]string {
 	return aliases
 }
 
-// isReadCall 识别 os/io/fs/path/filepath 的文件入口。对点导入也检查，避免改导入写法绕过规则。
 func isReadCall(expression ast.Expr, imports map[string]string) bool {
-	// 既识别标准库入口，也识别 fs.FS 等对象的读取方法。已知标准答案路径应保守拒绝。
+	// 不管标准库是用原名还是别名导入，都按导入路径辨认读取调用。
 	name, library := "", ""
 	switch node := expression.(type) {
 	case *ast.SelectorExpr:
-		// os.ReadFile 和 files.Open 都是“对象.方法”形状。先识别左边名字，再查它是否来自 import。
 		owner, ok := node.X.(*ast.Ident)
 		if !ok {
-			// getFS().Open 这类复杂接收者超出当前静态分析范围，不把它猜成标准库调用。
 			return false
 		}
 		name, library = node.Sel.Name, imports[owner.Name]
 	case *ast.Ident:
-		// 点导入允许直接写 ReadFile。用 imports["."] 找到它可能来自的包。
 		name, library = node.Name, imports["."]
 	}
 	if library != "" && library != "os" && library != "io/fs" && library != "path/filepath" {
-		// 已知来自其他包的同名函数不算文件读取。library 为空则仍可能是 fs.FS 对象的方法。
+		// 只有明确来自其他库的同名调用才排除，普通对象也可能持有文件系统。
 		return false
 	}
 	switch name {
 	case "ReadFile", "Open", "OpenFile", "ReadDir", "Glob", "Walk", "WalkDir":
-		// 打开文件、列目录和遍历目录都能接触答案，不能只拦住 ReadFile。
 		return true
 	}
 	return false
 }
 
-// stringValues 收集可静态求值的字符串声明与赋值。多轮展开支持文件内的常量引用链。
-// 它不执行代码。运行时输入仍是已知边界，应由权限和配置校验兜底。
+// 只从当前文件推断路径，同名变量共用一项。运行时才确定的部分留为空。
 func stringValues(file *ast.File) map[string]string {
 	values := make(map[string]string)
-	// 这是“名字 → 已知字符串”的简化表，不区分同名变量的作用域，也不追踪跨文件或运行时赋值。
-	// 轮数不超过 AST 节点数，引用循环也会停止。普通常量链通常一两轮就稳定。
 	nodes := 0
 	ast.Inspect(file, func(ast.Node) bool { nodes++; return true })
+	// 后面的声明可能补全前面的引用。每轮只增加已知名字，用节点数作上限。
 	for range nodes {
-		changed := false
-		assign := func(names []*ast.Ident, expressions []ast.Expr) {
-			for index, name := range names {
-				if index >= len(expressions) {
-					// 如 a, b = f()，名字数多于右侧表达式数。不执行 f()，也不猜第二个返回值。
-					continue
-				}
-				value := stringExpression(expressions[index], values)
-				// 首次解析后不再反复展开，避免 x = x + suffix 这样的运行时循环导致字符串膨胀。
-				if value != "" && values[name.Name] == "" {
-					values[name.Name] = value
-					changed = true
-				}
-			}
-		}
+		known := len(values)
 		ast.Inspect(file, func(node ast.Node) bool {
-			switch item := node.(type) {
-			case *ast.ValueSpec:
-				// const 和 var 声明都可能保存路径，不能只查看函数里的短变量声明。
-				assign(item.Names, item.Values)
-			case *ast.AssignStmt:
-				for index, expression := range item.Lhs {
-					if name, ok := expression.(*ast.Ident); ok && index < len(item.Rhs) {
-						// 只登记单个变量名，不尝试更新 obj.Path 或 paths[i] 这种对象内部的值。
-						assign([]*ast.Ident{name}, []ast.Expr{item.Rhs[index]})
-					}
-				}
-			}
+			assignStrings(node, values)
 			return true
 		})
-		if !changed {
-			// 这一轮没有发现新字符串，再扫描也不会得到更多信息，提前结束。
+		if len(values) == known {
 			break
 		}
 	}
 	return values
 }
 
-// stringExpression 展开字符串、标识符、加法和 Join 调用。未知表达式返回空值，不猜测运行时结果。
+func assignStrings(node ast.Node, values map[string]string) {
+	// 一次调用可能给多个变量赋值，只收集能与右侧表达式按位置对应的名字。
+	switch item := node.(type) {
+	case *ast.ValueSpec:
+		for index := range min(len(item.Names), len(item.Values)) {
+			recordString(item.Names[index], item.Values[index], values)
+		}
+	case *ast.AssignStmt:
+		for index := range min(len(item.Lhs), len(item.Rhs)) {
+			if name, ok := item.Lhs[index].(*ast.Ident); ok {
+				recordString(name, item.Rhs[index], values)
+			}
+		}
+	}
+}
+
+func recordString(name *ast.Ident, expression ast.Expr, values map[string]string) {
+	// 只认第一个已知值，避免 x = x + suffix 在每次扫描时继续增长。
+	value := stringExpression(expression, values)
+	if value != "" && values[name.Name] == "" {
+		values[name.Name] = value
+	}
+}
+
 func stringExpression(expression ast.Expr, values map[string]string) string {
-	// 只处理可以由源码直接推导的字符串表达式，不把程序调用当成可执行脚本。
 	switch node := expression.(type) {
 	case *ast.BasicLit:
-		// 字面量也可能是数字。只有字符串才按路径处理。
 		if node.Kind == token.STRING {
-			// parser 已确认字符串语法有效，Unquote 在这里不会失败。去掉引号并还原转义字符。
 			value, _ := strconv.Unquote(node.Value)
 			return value
 		}
 	case *ast.Ident:
-		// 引用已收集的名字。未识别的名字返回空字符串，表示当前没有可用信息。
 		return values[node.Name]
 	case *ast.ParenExpr:
-		// 括号只改变分组，不改变字符串值，继续查看括号里面的表达式。
 		return stringExpression(node.X, values)
 	case *ast.BinaryExpr:
 		if node.Op == token.ADD {
-			// 支持 "eval/" + "scenarios"。未知部分会变成空字符串，因此结果只是已知片段，不保证完整。
+			// 保留能识别的片段，即使另一端在运行时才能确定。
 			return stringExpression(node.X, values) + stringExpression(node.Y, values)
 		}
 	case *ast.CallExpr:
 		if function, ok := node.Fun.(*ast.SelectorExpr); ok && function.Sel.Name == "Join" {
-			// 仅按方法名识别 Join，用 / 合并片段以发现常见路径拼接。不会执行函数或证明它就是 filepath.Join。
+			// 按 Join 的常见写法拼出路径片段。这里没有验证函数是否真的来自 filepath 包。
 			parts := make([]string, 0, len(node.Args))
 			for _, argument := range node.Args {
 				parts = append(parts, stringExpression(argument, values))
@@ -287,19 +247,16 @@ func stringExpression(expression ast.Expr, values map[string]string) string {
 			return strings.Join(parts, "/")
 		}
 	}
-	// 其他表达式可能依赖运行时输入，返回“未知”，不假装这个工具能算出任意程序的结果。
 	return ""
 }
 
-// isScenarioPath 同时识别标准答案和注入状态，二者都可能直接泄露故障原因。
 func isScenarioPath(path string) bool {
-	// 先统一分隔符再消除 ./ 和可折叠的 ../，让两种操作系统上的常见路径写法都可识别。
+	// Windows 和 Linux 上的路径写法要指向同一条规则。
 	normalized := strings.ReplaceAll(path, "\\", "/")
 	normalized = filepath.ToSlash(filepath.Clean(normalized))
 	if filepath.Base(normalized) == ".opsdoctor-chaos.json" {
-		// 状态文件不仅记了是否注入，还包含完整场景；换一个上级目录也不能读取。
+		// 恢复记录包含完整场景，即使换个目录存放，也会泄露故障原因。
 		return true
 	}
-	// 四种匹配分别覆盖目录本身、相对路径子文件、带前缀的子文件、带前缀的目录。斜杠限定目录边界。
 	return normalized == "eval/scenarios" || strings.HasPrefix(normalized, "eval/scenarios/") || strings.Contains(normalized, "/eval/scenarios/") || strings.HasSuffix(normalized, "/eval/scenarios")
 }

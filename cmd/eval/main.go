@@ -1,4 +1,5 @@
-// eval 是宿主机评测入口；实验配置、任务保存和结果导出在 internal/eval 中实现。
+// 本文件：eval 在宿主机上调度评测，也可以导出已经保存的结果。
+// 从 runner.RunCLI 读起，按 Ctrl+C 可以中断等待，已保存的诊断仍可查阅。
 package main
 
 import (
@@ -11,7 +12,6 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
 )
 
-// main 把 Ctrl+C 传给等待任务的流程，已经创建的诊断和结果不会因终端退出被删除。
 func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt)
 	defer stop()

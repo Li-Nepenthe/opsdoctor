@@ -1,6 +1,5 @@
 // 本文件：验证客户端文字只作为一个 JSON 日志字段，不获得执行能力。
 //
-// 主要内容：TestClientAgent 覆盖凭据省略和汉字边界；TestAgentLogData 检查伪造指令的编码。
 // 阅读建议：测试发送的是普通 HTTP 请求，没有注入器专用业务入口。
 
 package httpx

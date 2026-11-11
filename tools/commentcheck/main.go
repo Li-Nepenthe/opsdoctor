@@ -1,11 +1,5 @@
-// 本文件：分派注释检查、符号清单和文件地图三种命令模式。
-//
-// main 负责退出码，run 负责参数与输出。真正的扫描规则在 check.go/files.go。
-// 先读模式互斥，再看即使用 -list 或 -map，也不会把缺注释当成检查成功。
-//
-// 主要内容：
-//   - main：把命令行参数交给 run，并把失败转换为非零退出码，供 CI 阻止缺注释的提交。
-//   - run：让检查、符号清单与文件地图共用一次扫描。传入 writer 后，测试可以直接检查输出而不用启动子进程。
+// 本文件：运行注释检查，按命令行选项生成阅读清单或代码地图。
+// 从 run 看三种模式怎样共用一次扫描。发现违规时先输出位置，再向 CI 返回失败。
 
 package main
 
@@ -16,7 +10,6 @@ import (
 	"os"
 )
 
-// main 把命令行参数交给 run，并把失败转换为非零退出码，供 CI 阻止缺注释的提交。
 func main() {
 	if err := run(os.Args[1:], os.Stdout); err != nil {
 		fmt.Fprintln(os.Stderr, err)
@@ -24,7 +17,6 @@ func main() {
 	}
 }
 
-// run 让检查、符号清单与文件地图共用一次扫描。传入 writer 后，测试可以直接检查输出而不用启动子进程。
 func run(arguments []string, output io.Writer) error {
 	flags := flag.NewFlagSet("commentcheck", flag.ContinueOnError)
 	flags.SetOutput(output)
@@ -40,7 +32,6 @@ func run(arguments []string, output io.Writer) error {
 	if len(patterns) == 0 {
 		patterns = []string{"./..."}
 	}
-	// 先扫描再输出。即使使用 -list，缺注释也不会被当成检查通过。
 	result, err := scan(patterns)
 	if err != nil {
 		return err

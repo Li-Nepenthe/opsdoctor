@@ -2,10 +2,6 @@
 //
 // TestHealth 给 New 注入成功或失败的探测函数，确认 200/503 与脱敏响应。没有注入注册表时，/metrics 保持 404。
 // 先读用例意图，再看 Recorder 如何替代真实网络响应。
-//
-// 主要内容：
-//   - TestHealth：使用 Recorder 直接调用 handler，不启动 TCP 服务，验证状态和探测上下文。
-//   - TestObservabilityEndpoints：管理端口导出注入的指标，并能读取 goroutine 剖析。
 
 package adminserver
 

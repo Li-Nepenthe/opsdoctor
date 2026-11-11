@@ -1,7 +1,5 @@
-// 本文件：医生服务入口，只负责把启动结果变成进程退出码。
-//
-// 主要内容：main 调用 app.Run，等待资源清理后再退出。
-// 阅读建议：具体装配从 internal/doctor/app 开始读。
+// 本文件：doctor 启动接收告警、调度诊断的医生服务。
+// 从 internal/doctor/app 的 Run 读起，它先准备医生数据库和接入配置，再开放 HTTP 端口。
 package main
 
 import (
@@ -12,7 +10,6 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/app"
 )
 
-// main 把 os.Exit 放在 Run 返回之后，避免跳过数据库和 HTTP 的清理。
 func main() {
 	if err := app.Run(context.Background(), os.Args[1:]...); err != nil {
 		fmt.Fprintln(os.Stderr, "医生服务退出：", err)

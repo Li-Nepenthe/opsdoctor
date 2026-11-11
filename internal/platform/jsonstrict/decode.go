@@ -1,10 +1,6 @@
-// 本文件：读取单份 JSON，保留数字文字并检查重复字段和深度。
-//
-// Go 正式启用 json/v2 后可以删掉这个包，把拒绝重复字段交给标准库；迁移时仍需
-// 核对深度限制和数字保真。现在不启用实验特性，也不在这里重写 Schema 校验。
-//
-// 主要内容：Decode 只接收一份 JSON；readValue 逐层发现重复键并保留 json.Number。
-// 阅读建议：报告需要保留原数字，因此不能在这一遍先把数字转换为 float64。
+// 本文件：医生在校验工具参数和报告格式之前，先用 Decode 检查原始 JSON。
+// 从 Decode 读起，readValue 在字段被覆盖前检查重名，并保留下游需要的数字原文。
+// 将来改用标准库的重复字段检查时，还需保留这里的深度限制和数字精度。
 
 package jsonstrict
 
@@ -15,7 +11,7 @@ import (
 	"io"
 )
 
-// Decode 返回保留数字原文的树；无效 UTF-8 沿用标准库行为，由需要拒绝它的调用方先检查。
+// Decode 接受单份 JSON，保留数字原文。调用方负责限制输入字节数，并按入口要求检查 UTF-8。
 func Decode(raw []byte) (any, error) {
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.UseNumber()
@@ -29,9 +25,8 @@ func Decode(raw []byte) (any, error) {
 	return value, nil
 }
 
-// readValue 与旧报告解析器使用相同的深度计数，根值为第零层。
 func readValue(decoder *json.Decoder, depth int) (any, error) {
-	// 逐层读取才能在内容被 map 覆盖之前发现重复字段。
+	// 沿用报告解析器的计数，根值在第零层，最多允许到第十六层。
 	if depth > 16 {
 		return nil, fmt.Errorf("JSON 嵌套过深")
 	}
@@ -51,6 +46,7 @@ func readValue(decoder *json.Decoder, depth int) (any, error) {
 			if !ok {
 				return nil, fmt.Errorf("对象字段名必须是字符串")
 			}
+			// 同名字段一旦写进结果，前一个值就会消失。必须在这里拒绝重复，后面的 Schema 校验看不到它。
 			if _, exists := value[name]; exists {
 				return nil, fmt.Errorf("字段 %s 重复", name)
 			}

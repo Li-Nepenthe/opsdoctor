@@ -1,12 +1,7 @@
 // 本文件：用临时源码检验文件位置和标准答案读取规则。
 //
 // 导入规则的验证由 depguard 负责；这里保留 cmd 目录约束和场景答案读取的反例。
-// fixture 只把样例交给 parser，不编译样例，每个读取反例都要能给出文件位置。
-//
-// 主要内容：
-//   - fixture：创建独立的源码目录，检查器只解析文件，不编译或运行样例。
-//   - TestLocations：验证根目录 Go 文件和 cmd 多文件会被拒绝，合法的薄入口不会误报。
-//   - TestScenarioReads：验证直接、拼接、Join、常量和 embed 路径都不能从医生包读取标准答案。
+// 每个读取反例都要能给出文件位置。
 
 package main
 
@@ -79,6 +74,40 @@ func TestScenarioReads(t *testing.T) {
 		if !strings.Contains(problems[0], ":") {
 			t.Fatal("诊断没有位置")
 		}
+	}
+	const readProblem = ": 只有 internal/chaos 和 internal/eval 可以读取场景或注入状态"
+	for _, tc := range []struct {
+		name, source, want string
+	}{
+		{"quoted_embed", `package sample
+import _ "embed"
+//go:embed "eval/scenarios/a.yaml"
+var scenario string
+`, ": 不得嵌入标准答案目录"},
+		{"local_assignment", `package sample
+import "os"
+func f() {
+	p := "eval/scenarios/a.yaml"
+	os.ReadFile(p)
+}
+`, readProblem},
+		{"forward_reference", `package sample
+import "os"
+var p = q
+var q = "eval/scenarios"
+func f() { os.ReadFile(p) }
+`, readProblem},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := fixture(t, "internal/doctor/agent/agent.go", tc.source)
+			problems, err := check(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(problems) != 1 || !strings.HasSuffix(problems[0], tc.want) {
+				t.Fatalf("期望一条以 %q 结尾的诊断，实际得到 %v", tc.want, problems)
+			}
+		})
 	}
 	for _, domain := range []string{
 		"chaos", // 注入器需要按场景定义制造和恢复故障，允许读取。

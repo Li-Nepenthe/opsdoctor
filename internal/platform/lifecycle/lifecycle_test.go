@@ -2,11 +2,6 @@
 //
 // 用记录调用顺序的假 Hook 代替真实服务，使失败能定位到生命周期规则本身。
 // 先看正常关闭与错误合并，再看超时。Notify 的测试通过父 context 取消，避免向测试进程发送系统信号。
-//
-// 主要内容：
-//   - TestShutdownOrderAndCancellation：验证正常工作取消后仍有清理时间，并且失败不会跳过后续关闭。
-//   - TestShutdownDeadline：用响应取消的假服务验证总预算，不创建真实服务器或后台线程。
-//   - TestNotifyParentCancel：验证无需向测试进程发系统信号也能停止监听，避免影响并行测试。
 
 package lifecycle
 
