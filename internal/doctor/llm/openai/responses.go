@@ -1,11 +1,4 @@
-// 本文件：在项目内部的对话格式与 OpenAI Responses 协议之间转换。
-//
-// Terra 的工具调用不走 Chat Completions。它把“请求调用函数”和“函数结果”分别放在
-// 两种条目中，用 call_id 对应。转换只改变传输格式，工具仍由原来的注册表和审批执行。
-//
-// 主要内容：encodeRequest 保留固定前缀并转换工具往返；DecodeSavedResponse 解析在线或审计回复；
-// decodeResponses 读取实际用量；validateUsage 拒绝不可能的计量。
-// 阅读建议：store=false 不依赖供应商保存对话，断点恢复始终读取本机数据库。
+// 本文件：转换模型工具调用和 Responses 条目，按供应商的 call_id 关联工具结果。断点恢复读取本地记录，不依赖供应商保留对话。
 
 package openai
 

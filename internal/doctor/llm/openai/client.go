@@ -1,14 +1,4 @@
-// 本文件：把一轮模型请求发送出去，并在发送前后留下费用和内容审计。
-//
-// 账本不可用时不能先发请求再补记录，否则一次重启就可能丢掉花费。请求超时后
-// 也不能假设供应商没有计费；没有用量的请求保留预留额，等待账单人工核对。
-//
-// 评估过 openai-go v3.97.0，但它会宽松转换回复类型，对 3xx、201、204 不报错，
-// 错误审计也不能直接保留完整原文。用量直接进入账本，不能把错误的类型凑成合法数字。
-// 补回这些边界反而需要更多代码；这里只有 Chat 和 Responses 两个接口，因此保留当前实现。
-//
-// 主要内容：New 校验配置；Complete 控制重试；attempt 完成一次发送；settle 保存结果。
-// 阅读建议：先看 Reserve 在 HTTP.Do 之前，再看取消后如何给记账单独的短预算。
+// 本文件：为每次模型请求先记费用预留，再发送同一份脱敏 JSON。能确认用量时据实结算，响应不明时保留预留记录。
 
 package openai
 
@@ -54,7 +44,7 @@ var errRequestTimeout = errors.New("模型单轮网络等待超时")
 
 // 协议体有上限，既约束内存，也为发送前的费用预留提供输入大小边界。
 const (
-	maximumRequestBytes = 256 << 10              // 足以容纳本阶段 40 份每份 4KB 的工具结果。
+	maximumRequestBytes = 256 << 10              // 为最多 40 份、每份 4KB 的工具结果留足空间。
 	maximumOutputTokens = 4096                   // 报告和工具参数不需要无限长的回答。
 	maximumRetries      = 2                      // 计划书只允许最多两次额外尝试。
 	networkRetryDelay   = time.Second            // 网络抖动先等一秒，再等两秒，避免立即重复挤同一条连接。
@@ -158,7 +148,7 @@ func (client *Client) attempt(ctx context.Context, request llm.Request, raw []by
 	}
 	// Do 返回错误并不等于对面什么都没发过：响应头只传到一半也会报错。
 	// 记录第一个响应字节，严格限制新增的网络重试只发生在“尚未收到响应”时。
-	// 回调可能由 Transport 的 goroutine 调用，所以用 atomic.Bool 避免读写竞争。
+	// 传输层可在另一协程收到首字节，分类错误和决定重试时都要读取最新状态。
 	var received atomic.Bool
 	traced := httptrace.WithClientTrace(ctx, &httptrace.ClientTrace{GotFirstResponseByte: func() { received.Store(true) }})
 	httpRequest, err := http.NewRequestWithContext(traced, http.MethodPost, client.config.BaseURL+path, bytes.NewReader(raw))

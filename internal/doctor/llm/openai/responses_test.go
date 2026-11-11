@@ -2,10 +2,6 @@
 //
 // 端点和模型名看起来像真实 API，但 Transport 完全由测试接管。测试不会读取本机 Key，
 // 也不会联网。发送内容必须与预留审计完全相同。
-//
-// 主要内容：TestResponsesRoundtrip 检查两轮 call_id；TestResponsesUsage 检查计量边界。
-// TestSavedResponseTypes 拒绝类型被写错的回复；TestSavedDeepSeekResponse 固定真实审计样本的恢复结果。
-// 阅读建议：调用 ID 不是步骤号，必须原样传回；缓存写入不是额外一份输入 token。
 
 package openai
 

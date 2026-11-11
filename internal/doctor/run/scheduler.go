@@ -1,10 +1,4 @@
-// 本文件：为排队诊断分配名额，运行结束后回收名额，并处理取消。
-//
-// 一个系统的任务很多时，仍要给其他系统留机会。仓储按系统返回最早的候选，
-// 调度器再检查全局和系统名额。执行与 API 取消共用一张受锁保护的在途表。
-//
-// 主要内容：Repository 约定持久化；Start 清理并启动循环；dispatch 分配名额；execute 执行任务。
-// 阅读建议：在途记录先登记再改数据库状态，取消请求不会落在两者之间的空窗。
+// 本文件：从候选队列分派诊断并管理租约、取消和状态保存。先登记在途任务再改持久状态，避免两者之间出现无法取消的空窗。
 
 package run
 
@@ -25,11 +19,11 @@ import (
 
 // Task 只包含执行所需的最小字段，模型不能改变 ID 或 Target。
 type Task struct {
-	ExecutionProfile string          // 评测创建时选定的执行配置；普通诊断留空。
-	FaultStartedAt   time.Time       // 初始故障时间；查询不能默认混入更早的一场实验。
-	EvaluationGroup  string          // 空值是普通诊断，E0–E3 是由评测器固定的工具组。
-	ExpectedModel    string          // 评测指定的模型；切换进程后不能悄悄用另一个模型续跑。
-	ID               string          // 数据库任务 ID。
+	ExecutionProfile string    // 评测创建时选定的执行配置；普通诊断留空。
+	FaultStartedAt   time.Time // 初始故障时间；查询不能默认混入更早的一场实验。
+	EvaluationGroup  string    // 空值是普通诊断，E0–E3 是由评测器固定的工具组。
+	ExpectedModel    string    // 评测指定的模型；切换进程后不能悄悄用另一个模型续跑。
+	ID               string
 	Target           string          // 创建时已绑定的系统。
 	Input            json.RawMessage // 脱敏后的告警或手动症状。
 	CreatedAt        time.Time       // 过时检查依据。
@@ -37,11 +31,11 @@ type Task struct {
 
 // BudgetStatus 同时供调度器、页面和指标读取，金额是百万分之一账户货币单位。
 type BudgetStatus struct {
-	Currency    string `json:"currency"`              // 本账户币种，不能把历史人民币显示成美元。
-	SpentMicros int64  `json:"spent_micros"`          // 含无法确认扣费时保留的预留额。
-	LimitMicros int64  `json:"limit_micros"`          // 本进程配置的总上限。
-	Blocked     bool   `json:"blocked"`               // true 时真实模型不再启动新任务。
-	Reason      string `json:"reason"`                // 可向用户解释的固定原因。
+	Currency    string `json:"currency"`     // 本账户币种，不能把历史人民币显示成美元。
+	SpentMicros int64  `json:"spent_micros"` // 含无法确认扣费时保留的预留额。
+	LimitMicros int64  `json:"limit_micros"` // 本进程配置的总上限。
+	Blocked     bool   `json:"blocked"`      // true 时真实模型不再启动新任务。
+	Reason      string `json:"reason"`
 	ReasonCode  string `json:"reason_code,omitempty"` // 有限分类供指标使用，不能拿任意错误文字做标签。
 }
 
@@ -90,8 +84,8 @@ type Scheduler struct {
 	stopped        bool               // 停机后禁止新增 worker。
 	blocked        bool               // 本轮发现预留额不足时阻止后续真实任务。
 	accountBlocked map[string]bool    // 每个执行配置分别停用，美元不足不能冻结人民币账户。
-	config         Config             // 构造后固定。
-	repository     Repository         // 实际数据库或测试实现。
+	config         Config
+	repository     Repository
 	agent          *agent.Agent       // 无共享对话状态，可以并行 Run。
 	logger         *slog.Logger       // 只记任务 ID 与状态，不记模型正文。
 	wake           chan struct{}      // API 可唤醒，容量一合并重复信号；不关闭，随 loop 退出失效。
@@ -261,8 +255,7 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task, execution Ex
 		return
 	}
 
-	// time.Now 返回值带单调时钟读数，time.Since 不受系统校时影响。
-	// 起止都留在本次 execute 中；恢复任务不能把另一进程的墙钟拼成耗时。
+	// 耗时从本次接手任务时开始按单调时钟计算，不能和前一执行者的墙钟拼接。
 	executionStarted := time.Now()
 	renewCtx, stopRenew := context.WithCancel(ctx)
 	renewed := make(chan struct{})
