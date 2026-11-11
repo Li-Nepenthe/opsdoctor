@@ -1,11 +1,6 @@
-// 本文件：在数据库里分配和续租诊断的执行权。
-//
-// 租约像一张会过期的值班证。持有者定期续期；进程消失后，新进程等它过期才接手。
-// 每次接手换一个随机编号，旧进程即使恢复运行，也不能冒充新的持有者。
-//
-// 主要内容：claimLease 分配名额；Renew 续约并累加执行时间；requireLease 拦住迟到写入；
-// staleLeases 结束证据已经过时的任务；Resume 取回恢复所需的步骤和费用。
-// 阅读建议：数据库时钟负责到期判断，避免两台机器的时钟差让租约被提前抢走。
+// 本文件：在数据库内分配诊断名额，续租或接手已有的诊断。
+// claimLease 锁住协调行，用数据库时钟检查租约。接手者换用新的编号，requireLease 据此阻止旧进程写入。
+// Renew 累计执行时间，staleLeases 清理证据过时的任务，Resume 读回全部步骤和已占用的费用。
 
 package store
 
@@ -148,7 +143,7 @@ func claimEvaluationAllowed(row claimRow, config Config, request claimRequest) (
 
 func (store *Store) commitClaim(ctx context.Context, tx *sql.Tx, request claimRequest, row claimRow) (bool, error) {
 	// 中断到租约过期的时间也保守计入执行预算；接手后的等待不能重新拿五分钟。
-	// 旧版本正在运行的记录还没有段数，接手时直接记成两段，不能误报完整耗时。
+	// 运行过但段数为零的任务已有两段执行，接手时补记为两段，避免被当作单段计算耗时。
 	_, err := tx.ExecContext(ctx, `UPDATE diagnoses SET
  active_ms=active_ms+IF(status='running' AND lease_updated_at IS NOT NULL,GREATEST(0,TIMESTAMPDIFF(MICROSECOND,lease_updated_at,LEAST(UTC_TIMESTAMP(6),lease_until)) DIV 1000),0),
  model=IF(status='pending',?,model),prompt_version=IF(status='pending',?,prompt_version),provider=?,
@@ -189,9 +184,8 @@ func (store *Store) Renew(ctx context.Context, id string) (bool, error) {
 	return count == 1, err
 }
 
-// staleLeases 和接手共用协调行，查出过时任务后不会误把刚刚获得新租约的任务结束掉。
+// staleLeases 和接手锁住同一协调行，防止按旧快照结束刚续上执行权的任务。
 func (store *Store) staleLeases(ctx context.Context) error {
-	// 清理和接手争同一把数据库锁，避免清理者依据过期快照结束刚接手的任务。
 	tx, err := store.database.BeginTx(ctx, nil)
 	if err != nil {
 		return err
