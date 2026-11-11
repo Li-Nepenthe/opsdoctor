@@ -1,10 +1,5 @@
-// 本文件：执行一轮工具请求，并把结果按模型给出的 ID 放回对话。
-//
-// 彼此独立的只读查询可以同时进行，但最多四个。一个查询失败时，其他查询仍
-// 可能拿到有用证据，所以普通工具失败不作为 errgroup 的错误返回。
-//
-// 主要内容：calls 处理报告与混合请求；readTools 并行执行；saveTool 为结果分配证据步骤号。
-// 阅读建议：切片每格只由一个 goroutine 写，Wait 之后主循环才读取，避免共享追加造成竞态。
+// 本文件：把一轮工具请求分给只读查询、审批或报告校验，再按模型给的调用 ID 回传结果。
+// readTools 最多并行查四项。各任务分开保存证据；单个查询失败也作为结果交回模型。
 
 package agent
 
@@ -76,7 +71,7 @@ func validateCalls(calls []llm.ToolCall) error {
 
 // readTools 仅审计失败才中止整轮；参数错误、超时和数据源错误都作为普通工具结果。
 func (run *session) readTools(ctx context.Context, calls []llm.ToolCall, final bool) error {
-	const parallelTools = 4 // 计划书上限，MySQL 的三连接池还会进一步排队。
+	const parallelTools = 4 // 四个查询可同时运行，使用 MySQL 时还受三条连接的限制。
 	group := new(errgroup.Group)
 	group.SetLimit(parallelTools)
 	replies := make([]llm.Message, len(calls))
@@ -87,14 +82,15 @@ func (run *session) readTools(ctx context.Context, calls []llm.ToolCall, final b
 			replies[index], steps[index] = toolMessage(saved, call.ID), saved
 			continue
 		}
+		// 取消后只等在途查询退出。
 		if ctx.Err() != nil {
 			break
-		} // 已取消时不再排新的查询，先等在途查询退出。
+		}
 		allowed := !final && run.result.ToolCalls < run.agent.limits.Tools
 		if allowed {
 			run.result.ToolCalls++
 		}
-		// 每个任务只写自己的切片元素；group.Wait 等所有保存结束后才合并历史。
+		// 查询按完成顺序获得证据号，回复按模型请求的顺序排好，全部落库后再一起交回。
 		group.Go(func() error {
 			result := run.readTool(ctx, call, allowed)
 			message, step, err := run.saveTool(ctx, call, result, allowed)
@@ -118,6 +114,7 @@ func (run *session) readTools(ctx context.Context, calls []llm.ToolCall, final b
 	return nil
 }
 
+// readTool 先识别混入查询的报告和审批申请，把具体原因回给模型。只有普通查询才按余额放行。
 func (run *session) readTool(ctx context.Context, call llm.ToolCall, allowed bool) tools.Result {
 	switch {
 	case call.Function.Name == "submit_report":

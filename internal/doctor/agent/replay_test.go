@@ -1,11 +1,5 @@
-// 本文件：用旧步骤模拟中断，验证恢复、换模型和工具数据边界。
-//
-// 测试直接保存一轮中已完成的一半工具，恢复后只允许补做另一半。供应商由脚本替代，
-// 因此能精确断言消息内容与次数，不需要碰真实 API。
-//
-// 主要内容：TestReplayPartialTools 检查断点与换模型；TestUntrustedFrame 检查伪造分隔标记。
-// TestReplayFinalInterrupted 检查重启不会重新获得最后报告机会。
-// 阅读建议：历史中的提示刻意不同于当前提示，证明恢复保留实际发过的前缀。
+// 本文件：用与当前配置不同的历史请求模拟中断，核对模型前缀和已保存的工具结果。
+// TestReplayPartialTools 只留半轮结果，TestReplayFinalInterrupted 分别用尽一次与两次报告机会。
 
 package agent
 

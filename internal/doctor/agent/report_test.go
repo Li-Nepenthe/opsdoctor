@@ -1,8 +1,5 @@
-// 本文件：验证报告双解码保留旧输出，同时修复整数写法与真实步骤引用的判断。
-//
-// 主要内容：TestReportOutputBytes 比较替换前基线；TestReportNumberReferences 覆盖 D04/D05；
-// TestReportInputLimits 检查输入保证；TestReportSchemaCache 检查并发复用与组件隔离。
-// 阅读建议：用于校验的 float64 副本不能成为输出来源，字节基线由旧实现生成。
+// 本文件：用固定的输出字节、真实步骤号和并发调用验证报告校验。
+// 报告必须保留输入的数字写法，溢出、深度和证据数量各有单独用例。
 
 package agent
 
@@ -18,16 +15,16 @@ import (
 	"github.com/google/jsonschema-go/jsonschema"
 )
 
-// TestReportOutputBytes 固定旧实现的实际输出，覆盖 D06、D07、D09 和多种数字文字。
+// TestReportOutputBytes 用同一份样例逐字节核对报告，数值相等但写法不同也能区分。
 func TestReportOutputBytes(t *testing.T) {
 	raw, err := os.ReadFile("testdata/report_output.golden.json")
 	if err != nil {
 		t.Fatal(err)
 	}
 	var cases []struct {
-		Name   string // 基线中的输入类别。
-		Input  string // 当时传给旧 validateReport 的原始 JSON。
-		Output string // 旧函数返回的完整字节，不能重新格式化。
+		Name   string
+		Input  string // 保留传入校验器的原始 JSON。
+		Output string // 期望输出按完整字节比较。
 	}
 	if err := json.Unmarshal(raw, &cases); err != nil {
 		t.Fatal(err)
@@ -67,7 +64,7 @@ func TestReportNumberReferences(t *testing.T) {
 	}
 }
 
-// TestReportInputLimits 固定大小、深度、重复键、溢出数字和原来的 UTF-8 策略。
+// TestReportInputLimits 固定大小、深度、重复键、溢出数字和非法 UTF-8 的处理。
 func TestReportInputLimits(t *testing.T) {
 	base := reportArgs(1)
 	for _, testcase := range []struct {
@@ -88,7 +85,7 @@ func TestReportInputLimits(t *testing.T) {
 			}
 		})
 	}
-	// D08 是审核接受的新增拒绝；提示固定为中文，不暴露解码器内部类型。
+	// 超出可表示范围的数字应给出固定中文提示，避免向模型暴露解码器的内部类型。
 	large := strings.Replace(base, `"args":{}`, `"args":{"number":1e309}`, 1)
 	if _, err := validateReport([]byte(large), []string{"unknown"}, map[int]bool{1: true}); err == nil || err.Error() != "报告里的数字超出范围" {
 		t.Fatalf("溢出数字提示不符：%v", err)

@@ -1,10 +1,5 @@
-// 本文件：定义并校验最终报告，让结论能追溯到这次诊断真实保存的证据。
-//
-// JSON 外形正确还不够。模型可能编出步骤号，或者建议一个不存在的写工具。
-// 程序会把这些错误交回模型修正，而不是把未经检查的结论标成成功。
-//
-// 主要内容：reportSchema、reportDefinition 生成工具说明；validateReport 校验证据和命名。
-// 阅读建议：建议操作只是报告内容，这里没有执行写操作的函数。
+// 本文件：向模型声明报告格式，收到报告后核对组件、建议和证据。
+// reportSchema 与 validateReport 共用规则，证据编号还须来自本次诊断。报告中的建议只供记录。
 
 package agent
 
@@ -61,7 +56,7 @@ func validateReport(raw []byte, components []string, existing map[int]bool) (jso
 	if err != nil {
 		return nil, err
 	}
-	// 第一遍已确认 JSON 格式；第二遍只供库校验，不作为输出来源。此处不新增 UTF-8 拒绝。
+	// 第二遍为校验库准备数值，输出仍取第一遍保留的数字原文。两次解码都沿用 JSON 对非法 UTF-8 的替换。
 	var value any
 	if err := json.Unmarshal(raw, &value); err != nil {
 		return nil, fmt.Errorf("报告里的数字超出范围")

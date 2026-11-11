@@ -1,10 +1,5 @@
-// 本文件：从已保存的模型请求和工具结果，重建中断前的对话。
-//
-// 每次模型步骤都保存了实际发送的全部消息。恢复时取最后一份，再接回这次回答和
-// 已经完成的工具结果。这样不需要猜测旧提示，也不会丢掉原来的固定前缀。
-//
-// 主要内容：restore 恢复计数和消息；finalRequest 判断最后一轮是否只允许交报告。
-// 阅读建议：没有结果的只读查询可以重查；已经保存的结果必须原样回放。
+// 本文件：进程重启后，从保存的步骤接回中断的对话。
+// restore 取出最后一次真正发出的消息，再接上回答。readTools 复用已保存的结果，只补缺失的查询。
 
 package agent
 
@@ -65,6 +60,7 @@ func (run *session) restoreCounters() (*Step, int, error) {
 			continue
 		}
 		run.result.Rounds++
+		// 回放沿用已保存步骤的计量口径。未命中缓存的用量保留在单步记录里。
 		run.result.Usage.Input += step.Usage.Input
 		run.result.Usage.Output += step.Usage.Output
 		run.result.Usage.CacheHit += step.Usage.CacheHit
@@ -115,7 +111,7 @@ func (run *session) repairFinal(ctx context.Context) (bool, error) {
 	return true, err
 }
 
-// finalInstruction 同时用于发送和恢复识别。E0 本来就只有报告工具，不能仅凭菜单认定预算已用尽。
+// finalInstruction 同时用于发送和恢复识别。只用初始输入的诊断也只有报告工具，仅凭菜单无法判断是否已进入预算收尾。
 const finalInstruction = "查证预算已用尽。请现在单独调用 submit_report，只使用已经保存的证据；不知道的内容写进 unknowns，不再调用查看工具。"
 
 // finalRequest 同时检查菜单和程序保存的整理指令，不信任模型自称的预算状态。
