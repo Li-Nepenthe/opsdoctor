@@ -78,7 +78,8 @@ func inventoryProblems(sources []sourceFile) []string {
 	}
 	var problems []string
 	for _, source := range sources {
-		if source.generated || source.command || strings.HasSuffix(source.path, "_test.go") {
+		name := filepath.Base(source.path)
+		if name == "doc.go" || source.generated || source.command || strings.HasSuffix(name, "_test.go") {
 			continue
 		}
 		// 如果整个包都没有说明，由包级检查报一次，避免每个文件再报一次。
@@ -86,7 +87,6 @@ func inventoryProblems(sources []sourceFile) []string {
 		if notes == "" {
 			continue
 		}
-		name := filepath.Base(source.path)
 		if !mentionsFilename(notes, name) {
 			problems = append(problems, fmt.Sprintf("%s:1:1: doc.go 的文件清单未提到 %s", source.path, name))
 		}

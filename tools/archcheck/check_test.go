@@ -75,6 +75,40 @@ func TestScenarioReads(t *testing.T) {
 			t.Fatal("诊断没有位置")
 		}
 	}
+	const readProblem = ": 只有 internal/chaos 和 internal/eval 可以读取场景或注入状态"
+	for _, tc := range []struct {
+		name, source, want string
+	}{
+		{"quoted_embed", `package sample
+import _ "embed"
+//go:embed "eval/scenarios/a.yaml"
+var scenario string
+`, ": 不得嵌入标准答案目录"},
+		{"local_assignment", `package sample
+import "os"
+func f() {
+	p := "eval/scenarios/a.yaml"
+	os.ReadFile(p)
+}
+`, readProblem},
+		{"forward_reference", `package sample
+import "os"
+var p = q
+var q = "eval/scenarios"
+func f() { os.ReadFile(p) }
+`, readProblem},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			root := fixture(t, "internal/doctor/agent/agent.go", tc.source)
+			problems, err := check(root)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(problems) != 1 || !strings.HasSuffix(problems[0], tc.want) {
+				t.Fatalf("期望一条以 %q 结尾的诊断，实际得到 %v", tc.want, problems)
+			}
+		})
+	}
 	for _, domain := range []string{
 		"chaos", // 注入器需要按场景定义制造和恢复故障，允许读取。
 		"eval",  // 评测器需要标准答案来评分，允许读取。
