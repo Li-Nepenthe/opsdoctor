@@ -31,6 +31,32 @@ type Deployment struct {
 func (runner *Runner) Capture(ctx context.Context, value scenario.Scenario) (Baseline, error) {
 	// 先读取实际流量，再保存需要恢复的服务配置。
 	baseline := Baseline{Services: make(map[string]Deployment)}
+	if err := runner.readLoadSettings(ctx, &baseline); err != nil {
+		return baseline, err
+	}
+	for _, step := range value.Inject {
+		if step.Action != "deploy" {
+			continue
+		}
+		inspected, err := runner.inspectService(ctx, step.Service)
+		if err != nil {
+			return baseline, err
+		}
+		// 仅记内容 ID 不能保留原镜像。发布前须为旧内容留下独立的本地标签。
+		savedTag := "opsdoctor/" + step.Service + ":saved-" + strings.TrimPrefix(inspected.Image, "sha256:")
+		if _, err = runner.RunCommand(ctx, []string{"image", "tag", inspected.Image, savedTag}, nil); err != nil {
+			return baseline, fmt.Errorf("保留原镜像：%w", err)
+		}
+		baseline.Services[step.Service] = Deployment{
+			Image:       savedTag,
+			ImageID:     inspected.Image,
+			Environment: publicEnvironment(inspected.Environment),
+		}
+	}
+	return baseline, nil
+}
+
+func (runner *Runner) readLoadSettings(ctx context.Context, baseline *Baseline) error {
 	var control struct {
 		Data struct {
 			Settings *struct {
@@ -40,53 +66,53 @@ func (runner *Runner) Capture(ctx context.Context, value scenario.Scenario) (Bas
 		} `json:"data"`
 	}
 	if err := runner.request(ctx, "GET", runner.LoadURL+"/control", nil, &control); err != nil {
-		return baseline, err
+		return err
 	}
 	if control.Data.Settings == nil {
-		return baseline, fmt.Errorf("流量控制接口没有返回实际设置")
+		return fmt.Errorf("流量控制接口没有返回实际设置")
 	}
 	baseline.QPS, baseline.HotSKUID = control.Data.Settings.QPS, control.Data.Settings.Hot
-	for _, step := range value.Inject {
-		if step.Action != "deploy" {
-			continue
-		}
-		id, err := runner.compose(ctx, []string{"ps", "-q", step.Service}, nil)
-		if err != nil {
-			return baseline, err
-		}
-		if strings.TrimSpace(string(id)) == "" {
-			return baseline, fmt.Errorf("待发布服务未运行：%s", step.Service)
-		}
-		data, err := runner.RunCommand(ctx, []string{"inspect", "--format", `{"image":{{json .Image}},"environment":{{json .Config.Env}}}`, strings.TrimSpace(string(id))}, nil)
-		if err != nil {
-			return baseline, err
-		}
-		var inspected struct {
-			Image       string
-			Environment []string
-		}
-		if err = json.Unmarshal(data, &inspected); err != nil {
-			return baseline, err
-		}
-		if inspected.Image == "" {
-			return baseline, fmt.Errorf("容器信息没有返回原镜像内容 ID")
-		}
-		// 仅记内容 ID 不能保留原镜像。发布前须为旧内容留下独立的本地标签。
-		savedTag := "opsdoctor/" + step.Service + ":saved-" + strings.TrimPrefix(inspected.Image, "sha256:")
-		if _, err = runner.RunCommand(ctx, []string{"image", "tag", inspected.Image, savedTag}, nil); err != nil {
-			return baseline, fmt.Errorf("保留原镜像：%w", err)
-		}
-		saved := Deployment{Image: savedTag, ImageID: inspected.Image, Environment: make(map[string]string)}
-		for _, entry := range inspected.Environment {
-			// Docker 返回全部环境项，只把公开白名单留下，其余值不会落盘。
-			key, value, _ := strings.Cut(entry, "=")
-			if scenario.ValidateEnvironment(map[string]string{key: value}) == nil {
-				saved.Environment[key] = value
-			}
-		}
-		baseline.Services[step.Service] = saved
+	return nil
+}
+
+type inspectedService struct {
+	Image       string
+	Environment []string
+}
+
+func (runner *Runner) inspectService(ctx context.Context, service string) (inspectedService, error) {
+	var inspected inspectedService
+	id, err := runner.compose(ctx, []string{"ps", "-q", service}, nil)
+	if err != nil {
+		return inspected, err
 	}
-	return baseline, nil
+	containerID := strings.TrimSpace(string(id))
+	if containerID == "" {
+		return inspected, fmt.Errorf("待发布服务未运行：%s", service)
+	}
+	data, err := runner.RunCommand(ctx, []string{"inspect", "--format", `{"image":{{json .Image}},"environment":{{json .Config.Env}}}`, containerID}, nil)
+	if err != nil {
+		return inspected, err
+	}
+	if err = json.Unmarshal(data, &inspected); err != nil {
+		return inspected, err
+	}
+	if inspected.Image == "" {
+		return inspected, fmt.Errorf("容器信息没有返回原镜像内容 ID")
+	}
+	return inspected, nil
+}
+
+// 容器信息包含全部环境项，恢复记录只保存通过白名单校验的公开值。
+func publicEnvironment(entries []string) map[string]string {
+	result := make(map[string]string)
+	for _, entry := range entries {
+		key, value, _ := strings.Cut(entry, "=")
+		if scenario.ValidateEnvironment(map[string]string{key: value}) == nil {
+			result[key] = value
+		}
+	}
+	return result
 }
 
 // deploy 用真实构建版本区分配置发布。恢复时复用旧镜像，不把旧版本重新编译成当前源码。
