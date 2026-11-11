@@ -200,34 +200,42 @@ func (scheduler *Scheduler) dispatch(ctx context.Context) error {
 		if ctx.Err() != nil {
 			return ctx.Err()
 		}
-		execution, err := scheduler.executionFor(task)
-		if err != nil {
+		if err := scheduler.dispatchTask(ctx, bounded, task); err != nil {
 			return err
 		}
-		status, err := execution.Budget(bounded)
-		if err != nil {
-			return err
-		}
-		scheduler.mu.Lock()
-		blocked := scheduler.accountBlocked[execution.Account]
-		if execution.Account == scheduler.config.BudgetAccount {
-			blocked = scheduler.blocked
-		}
-		scheduler.mu.Unlock()
-		if execution.Provider != "mock" && (status.Blocked || blocked) {
-			continue // 只跳过这个账户；其他币种仍按自己的余额判断。
-		}
-		var nonce [16]byte
-		_, _ = rand.Read(nonce[:])
-		work, cancel := context.WithCancel(llm.WithLease(ctx, hex.EncodeToString(nonce[:])))
-		if !scheduler.claim(task, cancel) {
-			cancel()
-			continue
-		}
-		scheduler.workers.Add(1)
-		// execute 自己归还名额；work 由用户取消、停机或父 context 结束。
-		go func() { defer scheduler.workers.Done(); defer cancel(); scheduler.execute(work, task, execution) }()
 	}
+	return nil
+}
+
+// dispatchTask 的预算查询受本轮扫描时限约束，已获名额的执行持续到任务自己的 context 被取消。
+func (scheduler *Scheduler) dispatchTask(parent, lookup context.Context, task Task) error {
+	execution, err := scheduler.executionFor(task)
+	if err != nil {
+		return err
+	}
+	status, err := execution.Budget(lookup)
+	if err != nil {
+		return err
+	}
+	scheduler.mu.Lock()
+	blocked := scheduler.accountBlocked[execution.Account]
+	if execution.Account == scheduler.config.BudgetAccount {
+		blocked = scheduler.blocked
+	}
+	scheduler.mu.Unlock()
+	if execution.Provider != "mock" && (status.Blocked || blocked) {
+		return nil // 只跳过这个账户；其他币种仍按自己的余额判断。
+	}
+	var nonce [16]byte
+	_, _ = rand.Read(nonce[:])
+	work, cancel := context.WithCancel(llm.WithLease(parent, hex.EncodeToString(nonce[:])))
+	if !scheduler.claim(task, cancel) {
+		cancel()
+		return nil
+	}
+	scheduler.workers.Add(1)
+	// execute 自己归还名额；work 由用户取消、停机或父 context 结束。
+	go func() { defer scheduler.workers.Done(); defer cancel(); scheduler.execute(work, task, execution) }()
 	return nil
 }
 
