@@ -91,14 +91,18 @@ func (client *Client) GetStock(parent context.Context, skuID int64) (inventory.S
 			response, err = client.queryAttempt(ctx, skuID)
 			return err
 		})
-	}, func(err error) bool {
-		// 只重试技术故障；熔断器直接拒绝或总预算已到期时结束查询。
-		return ctx.Err() == nil && (status.Code(err) == codes.Unavailable || status.Code(err) == codes.DeadlineExceeded)
-	})
+	}, retryableStockErrors(ctx))
 	if err != nil {
 		return inventory.Stock{}, convertError(err)
 	}
 	return inventory.Stock{SKUID: skuID, Available: response.GetAvailable()}, nil
+}
+
+// retryableStockErrors 只允许总预算内的暂时故障重试。熔断器直接拒绝时不会再发请求。
+func retryableStockErrors(ctx context.Context) func(error) bool {
+	return func(err error) bool {
+		return ctx.Err() == nil && (status.Code(err) == codes.Unavailable || status.Code(err) == codes.DeadlineExceeded)
+	}
 }
 
 // queryAttempt 给一次查询分配时间。父 context 仍限制整次调用，短预算到期不会取消其他尝试。
