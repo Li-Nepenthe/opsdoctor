@@ -19,6 +19,38 @@ import (
 
 // restore 的计数来自全部历史，进程重启不能重新获得十五轮或一份新费用预算。
 func (run *session) restore(ctx context.Context) (bool, error) {
+	latest, finalRounds, err := run.restoreCounters()
+	if err != nil || latest == nil {
+		return false, err
+	}
+	var request llm.Request
+	var answer llm.Response
+	if json.Unmarshal(latest.Args, &request) != nil || json.Unmarshal([]byte(latest.Result), &answer) != nil {
+		return false, fmt.Errorf("模型断点消息损坏，无法安全重建")
+	}
+	run.history, run.parentSeq = request.Messages, latest.Seq
+	final := finalRequest(request)
+	if final {
+		run.result.ReportMode, run.result.BudgetReason = "budget", "恢复最后报告机会"
+	}
+	if latest.Status != "ok" {
+		return run.resumeInterrupted(ctx, final, finalRounds)
+	}
+	run.lastInput, run.lastBytes = answer.Usage.Input, len(latest.Args)
+	run.history = append(run.history, answer.Message)
+	done, err := run.calls(ctx, answer.Message.ToolCalls, final)
+	if done || err != nil || !final {
+		return done, err
+	}
+	// 最后报告已失败一次时，恢复也只能用剩下的一次修正机会。
+	if finalRounds >= 2 || len(answer.Message.ToolCalls) != 1 || answer.Message.ToolCalls[0].Function.Name != "submit_report" {
+		run.result.BudgetExceeded = true
+		return true, nil
+	}
+	return run.repairFinal(ctx)
+}
+
+func (run *session) restoreCounters() (*Step, int, error) {
 	var latest *Step
 	finalRounds := 0
 	for _, step := range run.input.History {
@@ -41,7 +73,7 @@ func (run *session) restore(ctx context.Context) (bool, error) {
 		run.result.CostMicros += step.CostMicros
 		var request llm.Request
 		if err := json.Unmarshal(step.Args, &request); err != nil {
-			return false, fmt.Errorf("模型断点请求损坏：%w", err)
+			return nil, 0, fmt.Errorf("模型断点请求损坏：%w", err)
 		}
 		if finalRequest(request) {
 			finalRounds++
@@ -51,40 +83,17 @@ func (run *session) restore(ctx context.Context) (bool, error) {
 	}
 	// 崩溃时尚未结算的请求仍占费用，不能只累加有成功回复的步骤。
 	run.result.CostMicros = max(run.result.CostMicros, run.input.KnownCost)
-	if latest == nil {
-		return false, nil
-	}
-	var request llm.Request
-	var answer llm.Response
-	if json.Unmarshal(latest.Args, &request) != nil || json.Unmarshal([]byte(latest.Result), &answer) != nil {
-		return false, fmt.Errorf("模型断点消息损坏，无法安全重建")
-	}
-	run.history, run.parentSeq = request.Messages, latest.Seq
-	final := finalRequest(request)
-	if final {
-		run.result.ReportMode, run.result.BudgetReason = "budget", "恢复最后报告机会"
-	}
-	if latest.Status != "ok" {
-		// 最后整理中断也消耗一次机会，不能重启后又回到普通查证。
-		if final {
-			if finalRounds >= 2 {
-				run.result.BudgetExceeded = true
-				return true, nil
-			}
-			return run.repairFinal(ctx)
-		}
-		// 未收到可靠回复的请求没有可执行的工具；明确告知下一轮已有一次中断。
+	return latest, finalRounds, nil
+}
+
+func (run *session) resumeInterrupted(ctx context.Context, final bool, finalRounds int) (bool, error) {
+	if !final {
+		// 中断的普通请求没有可靠回复，下一轮只能从已有证据继续。
 		run.history = append(run.history, llm.Message{Role: "user", Content: "上一次模型请求因进程中断没有取得可用回复；费用已保留，请从现有证据继续。"})
 		return false, nil
 	}
-	run.lastInput, run.lastBytes = answer.Usage.Input, len(latest.Args)
-	run.history = append(run.history, answer.Message)
-	done, err := run.calls(ctx, answer.Message.ToolCalls, final)
-	if done || err != nil || !final {
-		return done, err
-	}
-	// 最后报告已失败一次时，恢复也只能用剩下的一次修正机会。
-	if finalRounds >= 2 || len(answer.Message.ToolCalls) != 1 || answer.Message.ToolCalls[0].Function.Name != "submit_report" {
+	// 中断的最终请求也占用机会，两次都已用完便直接结束。
+	if finalRounds >= 2 {
 		run.result.BudgetExceeded = true
 		return true, nil
 	}
