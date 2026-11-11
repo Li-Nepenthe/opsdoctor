@@ -1,12 +1,4 @@
-// 本文件：启动临时告警接收器，并在退出时排空已接收的请求。
-//
-// cmd/alertsink 只调用 Run。这里使用独立的注册表和管理路由，不接入医生的任何业务包。
-//
-// 主要内容：
-//   - Run：读取监听地址和令牌，创建日志、指标与 HTTP 服务。
-//   - serve：等待停止信号或监听错误，给在途通知有限的收尾时间。
-//
-// 阅读建议：令牌是必填配置。启动日志只写版本和地址，不能打印整个配置。
+// 本文件：Run 验证配置后启动告警接收器，serve 在进程停机时等待正在处理的通知写完日志。
 
 package alertsink
 
@@ -29,6 +21,7 @@ import (
 // shutdownTimeout 覆盖一个小通知的处理时间，不让停机无限等待客户端。
 const shutdownTimeout = 5 * time.Second
 
+// sinkConfig 供接收器启动使用。日志只记录监听地址，不能把令牌一起输出。
 type sinkConfig struct {
 	address string
 	token   string
@@ -47,7 +40,7 @@ func loadConfig(reader config.Reader) (sinkConfig, error) {
 	return sinkConfig{address: address, token: token}, nil
 }
 
-// Run 先验证令牌再开放端口，漏配环境变量时不能意外启动一个无认证接收器。
+// Run 把通知入口和健康检查挂到同一个端口，漏配令牌时会在监听前退出。
 func Run(parent context.Context) error {
 	settings, err := loadConfig(config.New())
 	if err != nil {
@@ -67,9 +60,9 @@ func Run(parent context.Context) error {
 	return serve(ctx, server)
 }
 
-// serve 的结果通道只有一次写入，主流程退出前一定读到它，不遗留监听 goroutine。
+// serve 先关闭监听、再取回服务的退出结果。正常关停产生的 ErrServerClosed 不计作故障。
 func serve(ctx context.Context, server *http.Server) error {
-	finished := make(chan error, 1) // HTTP 循环写，主流程读；无需关闭这个一次性通道。
+	finished := make(chan error, 1)
 	go func() { finished <- server.ListenAndServe() }()
 	select {
 	case err := <-finished:

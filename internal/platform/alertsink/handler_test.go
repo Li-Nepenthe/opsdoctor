@@ -1,11 +1,4 @@
-// 本文件：验证告警入口只接受带正确令牌的有限通知。
-//
-// 测试直接调用 handler，不启动网络服务。日志中只允许出现摘要，不能泄露请求里的秘密。
-//
-// 主要内容：
-//   - TestAlertAuthentication：覆盖缺令牌、错误令牌、成功通知和坏正文。
-//
-// 阅读建议：每个用例同时检查状态码和输出，不让“返回了 204 但没记录”蒙混过关。
+// 本文件：用内存请求验证告警认证、正文大小和日志中允许出现的字段。
 
 package alertsink
 
@@ -23,10 +16,10 @@ func TestAlertAuthentication(t *testing.T) {
 	const token = "demo-token-used-only-by-unit-test"
 	const valid = `{"status":"firing","alerts":[{"status":"firing","labels":{"alertname":"ConsumerLagHigh","service":"order-worker"},"annotations":{"secret":"do-not-log"}}]}`
 	for _, testcase := range []struct {
-		name          string // 说明要拒绝或接受的场景。
-		authorization string // 模拟 Alertmanager 发送的认证头。
-		body          string // 正文大小和格式也需要验证。
-		status        int    // 只有完整的合法通知返回 204。
+		name          string
+		authorization string
+		body          string
+		status        int // 只有完整的合法通知返回 204。
 	}{
 		{"缺令牌", "", valid, 401},                                                         // 不能把公开 webhook 当成任意日志写入口。
 		{"错误令牌", "Bearer wrong", valid, 401},                                            // 格式像 Bearer 也不代表认证成功。

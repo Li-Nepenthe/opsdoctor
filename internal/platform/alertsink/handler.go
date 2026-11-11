@@ -1,14 +1,4 @@
-// 本文件：阶段 3 临时接收 Alertmanager 的通知，证明告警管道已经接通。
-//
-// 它只验令牌并打印摘要，不创建诊断、不访问业务数据库。正式 Compose 已将告警接到医生，
-// 这个独立入口保留给阶段 3 的学习实验，便于先观察通知格式再阅读诊断流程。
-// 请求体有大小上限，日志只挑固定字段，不能把请求头中的令牌或整份正文打印出来。
-//
-// 主要内容：
-//   - notification：只读取验收需要的分组和告警信息，其余 Alertmanager 字段允许忽略。
-//   - Handler：验证 Bearer 令牌，解析通知，记录分组与告警状态。
-//
-// 阅读建议：认证在读正文之前执行。哈希后再比较，避免比较耗时随令牌共同前缀变化。
+// 本文件：处理 Alertmanager 推送的通知，验证身份后逐条记录告警摘要。请求头和完整正文不写日志。
 
 package alertsink
 
@@ -35,7 +25,7 @@ type notification struct {
 	} `json:"alerts"` // Alertmanager 已限制每批条数，接收侧仍限制正文总字节。
 }
 
-// Handler 由 app 注入令牌和日志器，测试可以直接发送内存请求，不需要启动 Alertmanager。
+// Handler 先验身份再读正文。认证时比较定长摘要，避免比较耗时随令牌共同前缀变化。
 func Handler(token string, logger *slog.Logger) http.Handler {
 	expected := sha256.Sum256([]byte("Bearer " + token))
 	return http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
@@ -57,7 +47,7 @@ func Handler(token string, logger *slog.Logger) http.Handler {
 			return
 		}
 		for _, alert := range value.Alerts {
-			// 标签由本项目规则生成。仍裁掉控制字符与超长文本，日志只保留验收需要的摘要。
+			// 通知来自外部，只写所需字段，防止控制字符或超长文本污染日志。
 			logger.InfoContext(request.Context(), "收到告警通知", "status", safeLabel(alert.Status),
 				"alertname", safeLabel(alert.Labels["alertname"]), "alert_service", safeLabel(alert.Labels["service"]))
 		}
