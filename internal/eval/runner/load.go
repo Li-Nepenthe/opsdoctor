@@ -139,10 +139,10 @@ func guardLoad(parent context.Context, check func(context.Context) error) (conte
 			case <-ctx.Done():
 				return
 			case <-timer.C:
-				if err := check(ctx); err != nil {
-					cancel(err)
-					return
-				}
+			}
+			if err := check(ctx); err != nil {
+				cancel(err)
+				return
 			}
 		}
 	}()
