@@ -159,38 +159,16 @@ func (ledger *Ledger) Settle(ctx context.Context, id string, value llm.Settlemen
 		return err
 	}
 	defer tx.Rollback()
-	// 和 Reserve 保持相同锁顺序：先账户、后尝试，避免并发结算发生相反顺序的等待。
-	var spent, charged int64
-	if err = tx.QueryRowContext(ctx, "SELECT spent_micros FROM llm_budget WHERE account=? FOR UPDATE", ledger.account).Scan(&spent); err != nil {
+	balance, err := ledger.lockSettlement(ctx, tx, id)
+	if err != nil {
 		return err
 	}
-	var settled sql.NullTime
-	if err = tx.QueryRowContext(ctx, "SELECT charged_micros,settled_at FROM llm_attempts WHERE id=? AND account=? FOR UPDATE", id, ledger.account).Scan(&charged, &settled); err != nil {
-		return err
-	}
-	if settled.Valid {
+	if balance.settled.Valid {
 		return nil
 	}
-	actual := value.CostMicros
-	if value.Unknown {
-		actual = charged
-	}
-	// 即使供应商的计量与估算不一致，也必须把已发生的费用记全。额外保存停用原因，
-	// 让重启后的调度器仍然停止付费，而不是只让当前一次诊断失败。
-	overflow := actual > charged
-	_, err = tx.ExecContext(ctx, "UPDATE llm_budget SET spent_micros=? WHERE account=?", spent-charged+actual, ledger.account)
+	overflow, err := ledger.applySettlement(ctx, tx, id, clean, value, balance)
 	if err != nil {
 		return err
-	}
-	_, err = tx.ExecContext(ctx, "UPDATE llm_attempts SET response=?,charged_micros=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cache_write_tokens=?,reasoning_tokens=?,status=?,settled_at=UTC_TIMESTAMP(6) WHERE id=?", clean, actual, value.Usage.Input, value.Usage.Output, value.Usage.CacheHit, value.Usage.CacheWrite, value.Usage.Reasoning, value.Status, id)
-	if err != nil {
-		return err
-	}
-	if overflow {
-		_, err = tx.ExecContext(ctx, "UPDATE llm_budget SET stopped_reason=? WHERE account=?", "实际费用超过保守预留额，需人工核对后再启用", ledger.account)
-		if err != nil {
-			return err
-		}
 	}
 	tokenOverflow, err := settleEvalTokens(ctx, tx, id, value)
 	if err != nil {
@@ -206,6 +184,51 @@ func (ledger *Ledger) Settle(ctx context.Context, id string, value llm.Settlemen
 		return llm.ErrEvaluationBudget
 	}
 	return nil
+}
+
+// settlementBalance 保存同一事务锁住的账户用量、尝试预留以及是否已结算。
+type settlementBalance struct {
+	spent   int64
+	charged int64
+	settled sql.NullTime
+}
+
+// lockSettlement 与 Reserve 按同一顺序锁住账户和尝试，保证重放不会再退一次差额。
+func (ledger *Ledger) lockSettlement(ctx context.Context, tx *sql.Tx, id string) (settlementBalance, error) {
+	var balance settlementBalance
+	if err := tx.QueryRowContext(ctx, "SELECT spent_micros FROM llm_budget WHERE account=? FOR UPDATE", ledger.account).Scan(&balance.spent); err != nil {
+		return balance, err
+	}
+	if err := tx.QueryRowContext(ctx, "SELECT charged_micros,settled_at FROM llm_attempts WHERE id=? AND account=? FOR UPDATE", id, ledger.account).Scan(&balance.charged, &balance.settled); err != nil {
+		return balance, err
+	}
+	return balance, nil
+}
+
+// applySettlement 在这两行仍被锁住时写入费用与审计；超支也必须据实入账并持久化停用原因。
+func (ledger *Ledger) applySettlement(ctx context.Context, tx *sql.Tx, id string, clean []byte, value llm.Settlement, balance settlementBalance) (bool, error) {
+	actual := value.CostMicros
+	if value.Unknown {
+		actual = balance.charged
+	}
+	// 即使供应商的计量与估算不一致，也必须把已发生的费用记全。额外保存停用原因，
+	// 让重启后的调度器仍然停止付费，而不是只让当前一次诊断失败。
+	overflow := actual > balance.charged
+	_, err := tx.ExecContext(ctx, "UPDATE llm_budget SET spent_micros=? WHERE account=?", balance.spent-balance.charged+actual, ledger.account)
+	if err != nil {
+		return false, err
+	}
+	_, err = tx.ExecContext(ctx, "UPDATE llm_attempts SET response=?,charged_micros=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cache_write_tokens=?,reasoning_tokens=?,status=?,settled_at=UTC_TIMESTAMP(6) WHERE id=?", clean, actual, value.Usage.Input, value.Usage.Output, value.Usage.CacheHit, value.Usage.CacheWrite, value.Usage.Reasoning, value.Status, id)
+	if err != nil {
+		return false, err
+	}
+	if overflow {
+		_, err = tx.ExecContext(ctx, "UPDATE llm_budget SET stopped_reason=? WHERE account=?", "实际费用超过保守预留额，需人工核对后再启用", ledger.account)
+		if err != nil {
+			return false, err
+		}
+	}
+	return overflow, nil
 }
 
 // Status 读的是整个真实账户，包含其他诊断预留但还没结算的钱。
