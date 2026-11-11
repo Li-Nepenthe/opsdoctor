@@ -1,15 +1,5 @@
-// 本文件：实现 doctorctl 的三个命令，通过 HTTP 使用正在运行的医生。
-//
-// CLI 不创建数据源连接，也不自己实现工具校验。这样多开几个终端，仍然使用医生
-// 那一个三连接 MySQL 池，不会每个命令都再开三条连接。
-//
-// 主要内容：
-//   - RunCLI：解析命令，读取医生地址与登录令牌，输出结果。
-//   - parseCommand：只接受 target list、tool list、tool run 的固定参数。
-//   - request：带身份调用同一 HTTP 接口，拒绝重定向并限制响应大小。
-//   - printList：从系统列表中选出用户要求查看的工具说明。
-//
-// 阅读建议：工具 JSON 原样交给服务器，只有那里决定是否合法、超时多久以及怎样截断。
+// 本文件：doctorctl 的三个子命令都访问正在运行的医生服务，复用服务端的注册表和连接池。
+// RunCLI 校验命令结构，工具参数仍由服务器按同一规则检查。
 
 package app
 
@@ -31,9 +21,9 @@ import (
 
 // cliCommand 不允许 URL、主机、令牌等命令参数；这些是操作者的进程环境配置。
 type cliCommand struct {
-	kind   string // targets、tools 或 run。
+	kind   string
 	target string // 人选择的系统，只用于 HTTP 路径，不混入工具参数。
-	tool   string // 当前系统注册过的工具名。
+	tool   string
 	args   string // 原始 JSON，真正校验仍由服务器注册表负责。
 }
 
@@ -68,7 +58,7 @@ func RunCLI(ctx context.Context, args []string, reader config.Reader, output io.
 	if err := json.Unmarshal(data, &result); err != nil {
 		return fmt.Errorf("医生返回了无法识别的工具结果")
 	}
-	// 失败结果同样打印，方便学习时查看原因；非零退出码供脚本判断这一调用没有成功。
+	// 失败结果保留供查看，脚本以非零退出码识别失败调用。
 	if _, err := fmt.Fprintln(output, string(data)); err != nil {
 		return err
 	}

@@ -1,10 +1,5 @@
-// 本文件：读取模型、调度和页面安全配置，默认只运行不花钱的 Mock。
-//
-// 填了 Key 不等于授权自动使用它。只有明确把 LLM_PROVIDER 设成 openai，启动时
-// 才要求真实地址、模型和单价。本机验收结束后恢复 mock，普通测试不会意外付费。
-//
-// 主要内容：agentSettings 保存私有配置；loadAgentConfig 校验范围；knownSecrets 收集脱敏值。
-// 阅读建议：费用按整数微元计算，日志只能输出 provider、model 和数值预算。
+// 本文件：模型和调度配置在服务接收请求前校验。
+// loadAgentConfig 默认选用 Mock，只有显式选择真实提供方时才读取其凭据和单价。
 
 package app
 
@@ -31,22 +26,22 @@ type agentSettings struct {
 	currency        string                     // CNY 或 USD，账户和页面都显式带单位。
 	diagnosisMicros int64                      // 一次诊断上限，和当前账户使用相同币种。
 
-	leaseTTL     time.Duration // 值班证有效期，续约间隔为三分之一。
+	leaseTTL     time.Duration // 续约间隔为租约时长的三分之一。
 	resumeMaxAge time.Duration // 中断超过这个期限，旧证据不再继续使用。
 
-	provider      string        // mock 或兼容 OpenAI 协议的 openai。
+	provider      string
 	model         string        // mock 固定为脚本名；真实值来自部署配置。
 	baseURL       string        // 只属于模型客户端，不是工具参数。
 	key           string        // 仅在 openai 模式读取。
 	timeout       time.Duration // 一轮模型请求连同重试的上限。
-	prices        llm.Prices    // 缓存未命中输入价与输出价。
-	budgetAccount string        // 跨重启保留的预算账户，阶段 7、8 共用。
+	prices        llm.Prices
+	budgetAccount string        // 账户跨重启持续累计。
 	totalMicros   int64         // 进程重启不清零的全局累计上限。
 	pendingAge    time.Duration // 告警排队超过此值不再执行。
 	faultSilence  time.Duration // 整组恢复通知丢失时的兜底。
-	concurrent    int           // 全局名额 1–2。
-	perTarget     int           // 阶段 6 固定为 1。
-	secureCookie  bool          // HTTPS 部署打开，回环 HTTP 演示关闭。
+	concurrent    int
+	perTarget     int  // 每个系统同时只运行一项诊断。
+	secureCookie  bool // HTTPS 部署打开，回环 HTTP 演示关闭。
 }
 
 // loadAgentConfig 的空值是配置错误，不把误拼的真实模型模式静默退回 Mock。
@@ -109,7 +104,7 @@ func loadAgentConfig(reader config.Reader) (agentSettings, error) {
 	secure, err := reader.Bool("DOCTOR_COOKIE_SECURE", false)
 	value.secureCookie = secure
 	problems = append(problems, err)
-	// mock 不读取 Key，更不会为了“检查连接”偷偷发一条真实请求。
+	// Mock 不读取模型密钥，也不进行连通性探测。
 	switch value.provider {
 	case "mock":
 	case "openai":
@@ -141,11 +136,10 @@ func knownSecrets() []string {
 			values = append(values, value)
 		}
 	}
-	// 容器只拿到连接串时，独立的 PASSWORD 变量可能不存在。解析时只取密码，
-	// 不把整条连接串留下来，避免报错或模型恰好提到它时绕过精确替换。
+	// 容器可能只有连接串。只提取其中的密码，让脱敏器也能匹配单独出现的密码。
 	for _, entry := range os.Environ() {
 		name, value, _ := strings.Cut(entry, "=")
-		// 新接入系统的运维和 MCP 令牌也要脱敏，不仅限于 shop 的已知变量名。
+		// 各接入系统按约定的后缀识别凭据。
 		if (strings.HasSuffix(name, "_TOKEN") || strings.HasSuffix(name, "_PASSWORD") || strings.HasSuffix(name, "_API_KEY")) && value != "" {
 			values = append(values, value)
 		}

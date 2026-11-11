@@ -1,10 +1,5 @@
-// 本文件：在真实评测时额外装配第二家模型，不切换正在运行的全局客户端。
-//
-// 正常启动仍然只用 LLM_PROVIDER 指定的模型。只有显式启用对比，才读取第二家的
-// Key；Mock 模式无论填了什么都不装配真实对比客户端。
-//
-// 主要内容：loadComparison 读取第二套固定配置；comparisonExecution 创建独立账本和 Agent。
-// 阅读建议：二者共用诊断表与工具，只有模型请求路径、单价和账户不同。
+// 本文件：配对评测与主模型共用诊断表和工具，使用单独的模型配置和账本。
+// loadComparison 先检查提供方和启用开关，再读取第二家的凭据。
 
 package app
 
@@ -24,7 +19,7 @@ import (
 
 // loadComparison 只在真实模式读额外凭据，避免集成测试中的告警意外触发收费。
 func loadComparison(reader config.Reader, primary agentSettings) (*agentSettings, error) {
-	// Mock 是最外层开关。即使旧 .env 留着 enabled=true，也不能读取或启用真实 Key。
+	// 即使环境中保留了对比配置，Mock 也不能读取真实密钥。
 	if primary.provider == "mock" {
 		return nil, nil
 	}

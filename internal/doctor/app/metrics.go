@@ -1,10 +1,5 @@
-// 本文件：记录医生做了多少工作，以及为什么不能继续启动真实诊断。
-//
-// 指标适合看累计趋势，不能把每个诊断编号都变成标签。系统来自接入配置，工具来自
-// 注册表，结果用有限分类。实际模型名可以变化，但最多保留八种，更多归入 other。
-//
-// 主要内容：newDoctorMetrics 注册仪表；step 记录模型和工具；changed 记录状态；budget 显示额度。
-// 阅读建议：请求正文与诊断 ID 在审计里，指标中只有有限维度。
+// 本文件：诊断、工具和模型使用按有限类别计入指标。
+// step 只在持久化成功后计数，budget 将额度不足的原因与页面显示保持一致。
 
 package app
 
@@ -20,25 +15,24 @@ import (
 
 // doctorMetrics 的计数器由 Prometheus 库处理并发，mu 只保护有限模型标签集合。
 type doctorMetrics struct {
-	mu            sync.Mutex               // 保护模型分类，避免供应商任意模型字符串制造无限序列。
-	models        map[string]bool          // 最多八个实际模型，其余统一为 other。
-	tools         map[string]bool          // 启动时从各系统工具注册表合并，只读。
-	diagnoses     *prometheus.CounterVec   // 状态进入次数，按系统与状态区分。
-	tokens        *prometheus.CounterVec   // 按模型和输入/输出方向。
-	cacheHits     *prometheus.CounterVec   // 供应商声明命中的输入 token。
-	costs         *prometheus.CounterVec   // 结算费用及未知预留额，单位由固定 currency 标签说明。
-	calls         *prometheus.CounterVec   // 查看工具的结果次数。
-	toolDuration  *prometheus.HistogramVec // 每次工具耗时。
+	mu            sync.Mutex
+	models        map[string]bool // 最多八个实际模型，其余统一为 other。
+	tools         map[string]bool // 启动时从各系统工具注册表合并，只读。
+	diagnoses     *prometheus.CounterVec
+	tokens        *prometheus.CounterVec
+	cacheHits     *prometheus.CounterVec // 供应商声明命中的输入 token。
+	costs         *prometheus.CounterVec // 结算费用及未知预留额，单位由固定 currency 标签说明。
+	calls         *prometheus.CounterVec
+	toolDuration  *prometheus.HistogramVec
 	duration      *prometheus.HistogramVec // 执行至终态的时间。
 	spent         *prometheus.GaugeVec     // 全局账本，包括尚未结算的预留。
-	limit         *prometheus.GaugeVec     // 配置的全局上限。
-	blocked       prometheus.Gauge         // 0 可启动，1 额度不足。
-	blockedReason *prometheus.GaugeVec     // 有限原因分类，便于直接从指标解释为何停止。
+	limit         *prometheus.GaugeVec
+	blocked       prometheus.Gauge     // 0 可启动，1 额度不足。
+	blockedReason *prometheus.GaugeVec // 有限原因分类，便于直接从指标解释为何停止。
 }
 
 // newDoctorMetrics 延用平台注册表，诊断耗时另用覆盖五分钟的桶。
 func newDoctorMetrics(metrics *telemetry.Metrics, names map[string]bool) (*doctorMetrics, error) {
-	// 使用统一注册表添加 service 标签，只有诊断耗时需要单独设置长时间桶。
 	value := &doctorMetrics{models: map[string]bool{}, tools: names}
 	value.diagnoses = metrics.Counter("doctor_diagnoses_total", "诊断进入各状态的次数。", "target", "status")
 	value.tokens = metrics.Counter("doctor_llm_tokens_total", "模型实际 token 用量。", "model", "direction")
@@ -132,7 +126,7 @@ func (metrics *doctorMetrics) budget(value run.BudgetStatus) {
 	}
 }
 
-// moneyCurrency 限定两个标签；测试旧步骤没带字段时仍按旧人民币口径处理。
+// moneyCurrency 为缺少币种的旧步骤保留人民币口径。
 func moneyCurrency(value string) string {
 	if value == "USD" {
 		return "USD"

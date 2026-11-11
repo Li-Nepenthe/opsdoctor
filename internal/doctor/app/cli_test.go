@@ -1,10 +1,4 @@
 // 本文件：验证命令行始终把工具参数交给同一个医生接口。
-//
-// 主要内容：
-//   - TestCLIUsesServer：错误参数也原样送给服务器，再输出服务器的校验结果。
-//   - TestCLIRejectsRedirect：登录令牌不能跟着重定向发给另一个地址。
-//   - TestCLICommand：未知选项和缺少系统名在发请求前拒绝。
-//   - TestClockEntry：采样入口不读取服务配置，也不启动模型。
 // 阅读建议：这里用本地假 HTTP 服务记录请求，没有数据库或 Docker 依赖。
 
 package app

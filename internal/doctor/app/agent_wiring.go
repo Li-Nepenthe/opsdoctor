@@ -1,10 +1,5 @@
-// 本文件：把仓储、模型、Agent、调度和实时通知接成一条执行路径。
-//
-// HTTP、自动告警和命令行不能各有一份工具实现。这里从接入目录取已经绑定系统的
-// 注册表，交给每次诊断使用。存储成功后同时更新指标和事件，页面不提前显示成功。
-//
-// 主要内容：assembleAgent 装配执行依赖；createModel 只按显式 provider 选择客户端。
-// 阅读建议：费用账本总是持久化，Mock 只读额度展示，不向账本预留或扣费。
+// 本文件：assembleAgent 为各种诊断入口装配同一套仓储、工具、额度和调度规则。
+// 步骤提交后才更新指标并通知订阅者。
 
 package app
 
@@ -30,7 +25,7 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/telemetry"
 )
 
-// assembleAgent 只装配，不启动 goroutine；全部成功后 Run 才启动调度和监听端口。
+// assembleAgent 在调度开始之前装配依赖，装配阶段不发模型请求。
 func assembleAgent(ctx context.Context, settings agentSettings, database *sql.DB, catalog *target.Catalog, logger *slog.Logger, common *telemetry.Metrics) (*store.Store, *run.Scheduler, *events.Hub, error) {
 	runbooks, err := tools.LoadRunbooks(os.DirFS(settings.runbooks))
 	if err != nil {
