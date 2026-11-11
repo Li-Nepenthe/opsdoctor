@@ -273,18 +273,7 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task, execution Ex
 	renewed := make(chan struct{})
 	defer func() { stopRenew(); <-renewed }()
 	go func() { defer close(renewed); scheduler.renew(renewCtx, task.ID) }()
-	input, err := scheduler.config.Resolve(task.Target)
-	if err == nil && scheduler.config.Prepare != nil {
-		err = scheduler.config.Prepare(task, &input)
-	}
-	var result agent.Result
-	if err == nil {
-		input.ID, input.Symptoms, input.Recorder = task.ID, string(task.Input), taskRecorder{scheduler: scheduler, repository: execution.Repository, id: task.ID}
-		input.History, input.ActiveTime, input.KnownCost, err = execution.Repository.Resume(ctx, task.ID)
-		if err == nil {
-			result, err = execution.Agent.Run(ctx, input)
-		}
-	}
+	result, err := scheduler.runTask(ctx, task, execution)
 	// 停机不是用户取消。保留断点等租约过期，下一进程才有机会继续。
 	scheduler.mu.Lock()
 	stopped := scheduler.stopped
@@ -293,6 +282,38 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task, execution Ex
 	if stopped || (ctx.Err() != nil && !userCancelled) {
 		return
 	}
+	status, reason := scheduler.taskOutcome(ctx, execution.Account, result, err)
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 500*time.Millisecond)
+	defer cancel()
+	result.Elapsed = time.Since(executionStarted)
+	if saveErr := execution.Repository.EndTask(cleanup, task.ID, status, result, reason); saveErr != nil {
+		scheduler.logger.Error("保存诊断结束状态失败", "diagnosis_id", task.ID, "error", saveErr)
+		return
+	}
+	scheduler.logger.Info("诊断结束", "diagnosis_id", task.ID, "target", task.Target, "status", status, "rounds", result.Rounds, "tool_calls", result.ToolCalls)
+}
+
+// runTask 先按目标装配工具，再从与模型绑定的仓储恢复步骤、活动时间和费用。
+func (scheduler *Scheduler) runTask(ctx context.Context, task Task, execution Execution) (agent.Result, error) {
+	input, err := scheduler.config.Resolve(task.Target)
+	if err != nil {
+		return agent.Result{}, err
+	}
+	if scheduler.config.Prepare != nil {
+		if err := scheduler.config.Prepare(task, &input); err != nil {
+			return agent.Result{}, err
+		}
+	}
+	input.ID, input.Symptoms, input.Recorder = task.ID, string(task.Input), taskRecorder{scheduler: scheduler, repository: execution.Repository, id: task.ID}
+	input.History, input.ActiveTime, input.KnownCost, err = execution.Repository.Resume(ctx, task.ID)
+	if err != nil {
+		return agent.Result{}, err
+	}
+	return execution.Agent.Run(ctx, input)
+}
+
+// taskOutcome 按取消、账户预算、评测预算、执行错误和报告状态的顺序决定终态。
+func (scheduler *Scheduler) taskOutcome(ctx context.Context, account string, result agent.Result, err error) (string, string) {
 	status, reason := Succeeded, ""
 	switch {
 	case ctx.Err() != nil || errors.Is(err, context.Canceled):
@@ -300,10 +321,10 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task, execution Ex
 	case errors.Is(err, llm.ErrBudget):
 		status, reason = BudgetExceeded, llm.ErrBudget.Error()
 		scheduler.mu.Lock()
-		if execution.Account == scheduler.config.BudgetAccount {
+		if account == scheduler.config.BudgetAccount {
 			scheduler.blocked = true
 		} else {
-			scheduler.accountBlocked[execution.Account] = true
+			scheduler.accountBlocked[account] = true
 		}
 		scheduler.mu.Unlock()
 	case errors.Is(err, llm.ErrEvaluationBudget):
@@ -315,14 +336,7 @@ func (scheduler *Scheduler) execute(ctx context.Context, task Task, execution Ex
 	case result.BudgetExceeded:
 		status, reason = BudgetExceeded, "查证预算已用尽，最后一次机会未提交合法报告"
 	}
-	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 500*time.Millisecond)
-	defer cancel()
-	result.Elapsed = time.Since(executionStarted)
-	if saveErr := execution.Repository.EndTask(cleanup, task.ID, status, result, reason); saveErr != nil {
-		scheduler.logger.Error("保存诊断结束状态失败", "diagnosis_id", task.ID, "error", saveErr)
-		return
-	}
-	scheduler.logger.Info("诊断结束", "diagnosis_id", task.ID, "target", task.Target, "status", status, "rounds", result.Rounds, "tool_calls", result.ToolCalls)
+	return status, reason
 }
 
 // Cancel 取消正在运行的 context；排队任务直接以条件更新改为 cancelled。
