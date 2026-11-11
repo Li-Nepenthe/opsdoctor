@@ -2,12 +2,6 @@
 //
 // 测试会清理探针表，因此先检查 DSN 的库名白名单。
 // TestApplyIntegration 使用 testdata 的 SQL 验证重复运行与历史保护。先读准备步骤，再看真实连接上的断言。
-//
-// 主要内容：
-//   - integrationDatabase：连接专用测试库。缺少开关时跳过，避免普通 go test 访问网络。
-//   - TestApplyIntegration：验证两个并发启动者只记一次迁移，改写被拒绝，取消后锁仍能正确释放。
-//   - TestApplyRecoveryIntegration：验证执行中取消或 SQL 失败只保留成功历史，修正后能重新拿锁并继续。
-//   - verifyCancellation：持锁后取消调用方，再释放并重新获取，验证清理没有复用已取消的 context。
 
 package migrate
 
@@ -74,7 +68,7 @@ func TestApplyIntegration(t *testing.T) {
 	results := make(chan error, 2) // 两个工作者各写一次，主测试读两次；无需关闭，容量避免写入阻塞。
 	for range 2 {
 		workers.Go(func() {
-			// ctx 超时会中断数据库操作。Wait 保证工作者在测试返回前全部退出。
+			// 两个迁移都要结束，才能核对它们共同留下的历史记录。
 			results <- Apply(ctx, database, embeddedProbe, "testdata")
 		})
 	}

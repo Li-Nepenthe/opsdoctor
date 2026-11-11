@@ -1,16 +1,5 @@
-// 本文件：验证代码层规则与薄入口的例外。
-//
-// 旧规则样例用 documentedFixture 补齐导航外壳，只留下想测试的函数、类型或常量缺注释。新的文件层反例放在 files_test.go。
-// 先读 fixture 与 documentedFixture 的区别，再读各个故意破坏的用例。
-//
-// 主要内容：
-//   - fixture：把源码样例写进独立临时目录。t.TempDir 负责清理，不修改真实仓库文件。
-//   - documentedFixture：给旧规则的样例补齐新的导航外壳，让每个旧测试仍只破坏自己负责的代码注释规则。
-//   - TestMissingComments：逐一删除不同位置的注释，证明检查器会失败且给出文件和行号。
-//   - TestPackageAndGenerated：验证空 doc.go 不能通过，标准生成文件则不要求手写注释。
-//   - TestListAndGroupedComments：验证分组声明、15 行边界、长函数内部注释和清单输出。
-//   - TestSyntaxErrorAndExit：检查语法错误和违规不会在 CLI 入口被吞掉，确保 CI 能收到失败。
-//   - TestCommandPackageDoc：验证 cmd 单文件入口的包说明例外，不放宽普通包或缺注释入口。
+// 本文件：用独立源码样例验证哪些声明需要说明，哪些声明仍要进入阅读清单。
+// 样例默认带齐文件和包的说明，使失败能定位到当前验证的规则。
 
 package main
 
@@ -22,7 +11,6 @@ import (
 	"testing"
 )
 
-// fixture 把源码样例写进独立临时目录。t.TempDir 负责清理，不修改真实仓库文件。
 func fixture(t *testing.T, files map[string]string) string {
 	t.Helper()
 	root := t.TempDir()
@@ -38,8 +26,7 @@ func fixture(t *testing.T, files map[string]string) string {
 	return root
 }
 
-// documentedFixture 给旧规则的样例补齐新的导航外壳，让每个旧测试仍只破坏自己负责的代码注释规则。
-// 新增的文件说明/清单反例直接调用 fixture，避免这个准备步骤掩盖故意制造的错误。
+// 声明规则的样例共用合格的文件导航；需要验证导航缺失的样例直接用 fixture。
 func documentedFixture(t *testing.T, files map[string]string) string {
 	t.Helper()
 	prepared := make(map[string]string)
@@ -52,7 +39,7 @@ func documentedFixture(t *testing.T, files map[string]string) string {
 			// 把清单放入已有的包说明注释组。空 doc.go 仍然保持空，以测试缺包说明的情况。
 			source = strings.Replace(source, "\npackage", "\n// 文件："+strings.Join(names, "、")+"\npackage", 1)
 		} else if filepath.Base(name) != "doc.go" && !strings.Contains(filepath.ToSlash(name), "cmd/") && !strings.Contains(source, "Code generated") {
-			source = "// 本文件：旧规则的独立源码样例。\n\n" + source
+			source = "// 本文件：独立源码样例。\n\n" + source
 		}
 		prepared[name] = source
 	}
@@ -62,36 +49,72 @@ func documentedFixture(t *testing.T, files map[string]string) string {
 // TestMissingComments 逐一删除不同位置的注释，证明检查器会失败且给出文件和行号。
 func TestMissingComments(t *testing.T) {
 	for _, test := range []struct {
-		name   string // name 是被破坏的规则。
-		source string // source 是只交给 parser 的样例，不会编译执行。
-		want   string // want 是必须出现的诊断片段。
+		name   string
+		source string
+		want   string
 	}{
-		// 普通函数缺文档，必须指出函数名和声明位置。
 		{"function", "package demo\nfunc Missing() {}\n", "函数或方法 Missing 缺少文档注释"},
-		// 类型有注释不代表它的方法也有，诊断还应带接收者 Item。
 		{"method", "package demo\n// Item 是样例。\ntype Item struct{}\nfunc (Item) Missing() {}\n", "Item.Missing"},
-		// 没有字段的空结构体也表达一个概念，仍然要有类型说明。
 		{"type", "package demo\ntype Missing struct{}\n", "类型 Missing"},
-		// 常量缺少用途说明，也属于规则检查范围。
-		{"constant", "package demo\nconst missing = 1\n", "包级常量或变量 missing"},
-		// 包级变量即使未导出，也要说明它保存什么状态。
-		{"variable", "package demo\nvar missing int\n", "包级常量或变量 missing"},
-		// 测试函数不能豁免。这些样例统一放在 sample_test.go，验证测试文件确实会扫描。
-		{"test", "package demo\nfunc TestMissing() {}\n", "TestMissing"},
-		// 声明前有文档仍不够：16 行函数体没有内部说明，必须单独报错。
-		{"long_body", "package demo\n// Long 是长函数。\nfunc Long() {\n" + strings.Repeat("println(1)\n", 16) + "}\n", "超过 15 行"},
+		{"constant", "package demo\nconst Missing = 1\n", "包级常量或变量 Missing"},
+		{"variable", "package demo\nvar Missing int\n", "包级常量或变量 Missing"},
 	} {
 		t.Run(test.name, func(t *testing.T) {
-			root := documentedFixture(t, map[string]string{"doc.go": "// Package demo 说明职责。\npackage demo\n", "sample_test.go": test.source})
+			root := documentedFixture(t, map[string]string{"doc.go": "// Package demo 说明职责。\npackage demo\n", "sample.go": test.source})
 			result, err := scan([]string{root})
 			if err != nil {
 				t.Fatal(err)
 			}
 			messages := strings.Join(result.problems, "\n")
-			if !strings.Contains(messages, test.want) || !strings.Contains(messages, "sample_test.go:") {
+			if !strings.Contains(messages, test.want) || !strings.Contains(messages, "sample.go:") {
 				t.Fatalf("未定位违规：%s", messages)
 			}
 		})
+	}
+}
+
+func TestUnexportedDeclarationsWithoutDocs(t *testing.T) {
+	root := documentedFixture(t, map[string]string{
+		"doc.go": "// Package demo 测试声明规则。\npackage demo\n",
+		"impl.go": `package demo
+type item struct{}
+func helper() {}
+func (item) work() {}
+const limit = 1
+var count int
+`,
+	})
+	var out bytes.Buffer
+	if err := run([]string{"-list", root}, &out); err != nil {
+		t.Fatalf("未导出声明被误报：%v\n%s", err, out.String())
+	}
+	for _, name := range []string{"item", "helper", "item.work"} {
+		if !strings.Contains(out.String(), "| "+name+" |") {
+			t.Errorf("清单遗漏 %s", name)
+		}
+	}
+}
+
+func TestTestFileDeclarationsWithoutDocs(t *testing.T) {
+	root := documentedFixture(t, map[string]string{
+		"doc.go": "// Package demo 测试文件豁免。\npackage demo\n",
+		"impl_test.go": `package demo_test
+import "testing"
+type Fixture struct{}
+func TestExample(t *testing.T) {}
+func (Fixture) Sample() {}
+const Limit = 1
+var Count int
+`,
+	})
+	var out bytes.Buffer
+	if err := run([]string{"-list", root}, &out); err != nil {
+		t.Fatalf("测试声明被误报：%v\n%s", err, out.String())
+	}
+	for _, name := range []string{"Fixture", "TestExample", "Fixture.Sample"} {
+		if !strings.Contains(out.String(), "| "+name+" |") {
+			t.Errorf("清单遗漏 %s", name)
+		}
 	}
 }
 
@@ -108,10 +131,9 @@ func TestPackageAndGenerated(t *testing.T) {
 	}
 }
 
-// TestListAndGroupedComments 验证分组声明、15 行边界、长函数内部注释和清单输出。
+// TestListAndGroupedComments 检查组注释以及阅读清单保留的第一句说明。
 func TestListAndGroupedComments(t *testing.T) {
-	// 组注释覆盖 A/B 两个常量，Item 有独立文档，长方法有内部说明。清单只应截取方法文档第一句。
-	source := "package demo\n// Limits 说明一组常量。\nconst (A = 1; B = 2)\n// Item 是样例类型。\ntype Item struct{}\n// Work 说明第一句。第二句。\nfunc (Item) Work() {\n// 第 1 步：演示内部注释。\n" + strings.Repeat("println(1)\n", 16) + "}\n"
+	source := "package demo\n// Limits 说明一组常量。\nconst (A = 1; B = 2)\n// Item 是样例类型。\ntype Item struct{}\n// Work 说明第一句。第二句。\nfunc (Item) Work() {\n" + strings.Repeat("println(1)\n", 16) + "}\n"
 	root := documentedFixture(t, map[string]string{"doc.go": "// Package demo 说明职责。\npackage demo\n", "sample.go": source})
 	var output bytes.Buffer
 	if err := run([]string{"-list", root}, &output); err != nil {
@@ -119,12 +141,6 @@ func TestListAndGroupedComments(t *testing.T) {
 	}
 	if !strings.Contains(output.String(), "Item.Work") || !strings.Contains(output.String(), "Work 说明第一句") || strings.Contains(output.String(), "第二句") {
 		t.Fatalf("清单不正确：%s", output.String())
-	}
-	// 边界用独立样例验证，不能简单把所有多行函数都判为错误。
-	shortRoot := documentedFixture(t, map[string]string{"doc.go": "// Package demo 说明职责。\npackage demo\n", "short.go": "package demo\n// Short 是边界。\nfunc Short() {\n" + strings.Repeat("println(1)\n", 15) + "}\n"})
-	result, err := scan([]string{shortRoot})
-	if err != nil || len(result.problems) != 0 {
-		t.Fatalf("15 行被误报：%v %v", result.problems, err)
 	}
 }
 

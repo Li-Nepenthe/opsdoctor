@@ -2,11 +2,6 @@
 //
 // 用 Gin 配合 httptest 在内存处理请求，不依赖监听端口。
 // 先看请求标识和 panic 脱敏，再看不同 JSON 和请求体大小怎样被拒绝。测试接口只是样例，没有新增业务路由。
-//
-// 主要内容：
-//   - testRouter：组装纯内存路由，不监听端口。handler 注入每个用例要验证的行为。
-//   - TestRequestIDAndRecovery：验证合法标识保留、非法标识替换，以及 panic 不泄露原始内容。
-//   - TestJSONBodyLimit：检查未知字段、多个 JSON、已知长度和流式超限，防止只检查 Content-Length。
 
 package httpx
 

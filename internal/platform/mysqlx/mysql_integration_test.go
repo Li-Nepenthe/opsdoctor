@@ -2,9 +2,6 @@
 //
 // 只有设置 TEST_MYSQL_DSN 才运行。普通单元测试可以脱离 Docker。
 // TestOpenIntegration 通过实际查询确认 UTC 生效，不能仅凭 Go 配置对象里写了时区就认定数据库已改变。
-//
-// 主要内容：
-//   - TestOpenIntegration：验证真实会话使用 UTC。没有专门的测试 DSN 时明确跳过，普通测试不联网。
 
 package mysqlx
 

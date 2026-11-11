@@ -1,7 +1,6 @@
 // 本文件：验证严格解码只检查 JSON 输入边界，不改变数字原文或字段内容。
 //
-// 主要内容：TestDecodeNumbers 检查数字保真；TestDecodeBoundaries 覆盖重复键、格式和深度。
-// TestDecodeSyntaxReason 保留格式错误的具体原因，让调用方能据此修正输入。
+// 错误保留具体原因，使调用者能够修正不合规的输入。
 // 阅读建议：JSON Schema 的类型与范围不在这里测试，它们由调用方交给库。
 
 package jsonstrict
