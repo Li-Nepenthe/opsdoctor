@@ -120,7 +120,7 @@ go run ./tools/archcheck ./...
 go test -race ./... -count=1 -timeout=180s
 ```
 
-你应该看到：前三条没有任何输出（没输出就是没问题）；两个检查工具各输出一行“通过”；测试里有测试文件的包显示 `ok`，没有测试文件的包显示 `? ... [no test files]`。如果提示找不到 `staticcheck`，先运行 `go install honnef.co/go/tools/cmd/staticcheck@v0.8.2`，并确认 Go 的 bin 目录（`go env GOPATH` 下的 `bin`）在 PATH 里。
+你应该看到：前三条没有任何输出（没输出就是没问题）；两个检查工具各输出一行“通过”；测试里有测试文件的包显示 `ok`，没有测试文件的包显示 `? ... [no test files]`。如果提示找不到 `staticcheck`，先运行 `go install honnef.co/go/tools/cmd/staticcheck@v0.8.2`，并确认 `go install` 的安装目录在 PATH 里：设置了 `GOBIN` 时就是 `GOBIN`，否则是 `go env GOPATH` 下的 `bin`。
 
 CI 还会多跑几项：`go mod tidy` 以后 go.mod 和 go.sum 不能有变化、两种构建方式的 golangci-lint、leakbug 版本的编译。完整清单见 [CI 配置](../../.github/workflows/ci.yml)。
 
@@ -215,7 +215,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 | 参数名拼错：`{"sku_id":1001,"qty":2}` | 400，正文 `{"code":"INVALID_ARGUMENT","message":"请求必须是符合接口约定的单个 JSON 值",...}` | 只有一条访问日志，`"status":400`。处理函数在 `BindJSON` 那里就返回了，没有业务日志 |
 | 处理函数里发生 panic | 500，正文 `{"code":"INTERNAL","message":"内部错误",...}` | 先是一条 `"level":"ERROR","msg":"HTTP 请求异常","error":"panic"`，再是 `"status":500` 的访问日志，两条编号相同。panic 的具体内容既没进日志，也没返回给客户端 |
 
-这次运行用的是现在的代码，所以访问日志里有 `user_agent` 字段，这个字段是阶段 8 才加的。启动订单服务以后用 curl 发请求，再运行 `docker compose --env-file .env -f deploy/docker-compose.yml logs order-service`，能看到同样结构的日志，还会多出阶段 3 加入的 `trace_id` 和 `span_id`。
+这次运行用的是现在的代码，所以访问日志里有 `user_agent` 字段，这个字段是阶段 8 才加的。启动订单服务以后用 curl 发请求，再运行 `docker compose --env-file .env -f deploy/docker-compose.yml logs order-service`，能看到同样结构的日志；阶段 3 以后，日志还会自动带上当前调用链的 `trace_id` 和 `span_id`。
 
 ### 4.3 两个服务同时启动，迁移怎样排队
 
@@ -235,7 +235,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 要注意的几点：
 
 1. **B 一条迁移 SQL 都没执行。** 它是在 A 写完历史以后才读历史的。如果不排队，A、B 可能同时发现“0003 还没执行”，各执行一遍。
-2. **等不到锁会明确失败。** B 受两个时限约束：`GET_LOCK` 自己最多等 30 秒，等满返回 0；库存服务的整个启动也只有 30 秒（`startupTimeout`），这个时限先到时，查询会被取消。无论哪种情况，`Apply` 都返回错误，B 启动失败并退出，不会在没拿到锁的情况下硬着头皮迁移。
+2. **等不到锁会明确失败。** B 受两个时限约束：`GET_LOCK` 自己最多等 30 秒，等满返回 0；order-worker 的整个启动也只有 30 秒（[orderworker/app.go](../../internal/shop/app/orderworker/app.go) 的 `startupTimeout`），这个时限先到时，查询会被取消。无论哪种情况，`Apply` 都返回错误，B 启动失败并退出，不会在没拿到锁的情况下硬着头皮迁移。
 3. **解锁失败也不会让锁一直挂着。** 如果第 5 步的 `RELEASE_LOCK` 没有返回 1（比如网络刚好断了），`release` 会调用 `discard` 让连接池扔掉 A1。连接一断，MySQL 自动释放 A1 拿着的锁。B 只要还在等待期内，就能拿到锁。
 4. **测试里怎样模拟这件事：** [migrate_integration_test.go](../../internal/platform/migrate/migrate_integration_test.go) 开两个 goroutine 同时调用 `Apply`，等两边都结束后，检查历史表里只记了一条。
 
@@ -302,7 +302,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 **规模变大十倍。** 日志量大了，要按级别和采样控制写多少。查询端也要小心：阶段 3 接入 Loki 时，只把服务名和日志级别做成索引标签，trace_id 这种每次都不同的值留在日志正文里，查询时再解析，否则索引会无限膨胀（见 [Alloy 配置](../../deploy/alloy/config.alloy)里的说明）。
 
-> 阶段 0 的日志部件已经能写出 `trace_id` 和 `span_id`，但当时没有地方给它们赋值；阶段 3 接入调用链之后，才会从当前 span 自动取值。
+> 阶段 0 的日志部件已经能写出 `trace_id` 和 `span_id`，但要调用方通过 `WithFields` 自己赋值（当时只有测试这样做）；阶段 3 接入调用链之后，才改成从当前 span 自动取值。
 
 > **对照阅读**：《Golang面试题》[6.1 Go语言里的Context是什么？](https://www.xiaolincoding.com/interview/golang.html#_6-1-go语言里的context是什么) 到 [6.4 Context如何被取消](https://www.xiaolincoding.com/interview/golang.html#_6-4-context如何被取消)。context 有两个用途：携带信息、传递取消通知。本节用的是第一个；5.8 节的优雅停机用的是第二个。
 
@@ -399,7 +399,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 **补基础：事务是什么。** 事务是一组 SQL，要么全部生效，要么全部不生效，这叫**原子性**。比如转账要“A 扣 100”和“B 加 100”两步，放进一个事务里，第二步失败时，程序执行回滚（ROLLBACK），第一步也会被撤销。注意 MySQL 遇到普通的语句错误时，通常只撤销出错的那一条语句，整个事务要由程序显式回滚。普通的 INSERT、UPDATE 都可以这样回滚，但下面要说的修改表结构的语句不行。
 
-**问题。** 把所有迁移放进一个事务，出错就回滚，看起来最安全。但在 MySQL 里做不到：`CREATE TABLE`、`ALTER TABLE` 这类修改表结构的语句叫 DDL，MySQL 执行 DDL 时会自动提交当前事务（叫“隐式提交”）。第一条建表成功、第二条失败，第一张表不会因为回滚而消失。
+**问题。** 把所有迁移放进一个事务，出错就回滚，看起来最安全。但在 MySQL 里做不到：`CREATE TABLE`、`ALTER TABLE` 这类修改表结构的语句叫 DDL，MySQL 执行普通的建表、改表语句时会自动提交当前事务（叫“隐式提交”；临时表的 `CREATE/DROP TEMPORARY TABLE` 是少数例外，但它们本身也不能回滚）。第一条建表成功、第二条失败，第一张表不会因为回滚而消失。
 
 **做法：让每个迁移都能安全地重跑。**
 
@@ -469,7 +469,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 | 手段 | 能发现什么 | 证明不了什么 |
 |---|---|---|
-| commentcheck | 包没有说明、文件没有说明、非测试文件里导出的函数和类型没有文档注释、doc.go 漏列了包里的非测试文件 | 注释写得好不好、对不对 |
+| commentcheck | 包没有说明、文件没有说明、手写的非测试文件里导出的函数和类型没有文档注释、doc.go 漏列了包里手写的非测试文件 | 注释写得好不好、对不对 |
 | archcheck | 目录布局、标准答案的访问、医生容器的挂载和内部端口 | 运行时才能确定的行为 |
 | depguard | 当前构建中违反规则的导入；默认构建和 leakbug 构建分别检查 | 运行时的账号权限 |
 | `go test -race` | 测试跑到的代码里的并发读写冲突 | 没被测试跑到的代码是否安全 |
@@ -483,7 +483,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 - 只要求**导出的**函数、方法、类型、常量和变量有文档注释；
 - 测试文件不检查文档注释；
 - 去掉“超过 15 行必须有内部注释”；
-- doc.go 只需列出包里的非测试文件，不用列它自己。
+- doc.go 只需列出包里手写的非测试文件，不用列它自己。生成的代码不用列；`cmd/<命令>/main.go` 这种命令入口本来就用 main.go 的包注释代替 doc.go。
 
 机器负责检查“该有的说明有没有”，注释写得好不好交给人来审。决定和理由记在 [decisions.md](../decisions.md) 里。这个经历本身就是一道好面试题：一条检查规则为什么会让质量变差？因为它把“写了注释”当成了“说明白了”，而作者为了通过检查，会写出能通过、但没有信息量的东西。
 
@@ -534,13 +534,13 @@ docker compose --env-file .env -f deploy/docker-compose.yml down
 
 #### 一分钟口述版
 
-有两个问题要解决：一是多个实例同时启动时，同一个迁移不能执行两遍；二是迁移中途失败后，下次能接着做。第一个问题我用 MySQL 的命名锁排队，关键是命名锁属于数据库会话，所以加锁、执行、解锁必须在从连接池借出的同一条连接上完成，解锁失败时还要丢掉这条连接，让 MySQL 自动释放锁。第二个问题，MySQL 的 DDL 会隐式提交，不能用事务回滚，所以我让每个文件只放一条可以重复执行的 SQL，成功一个就记一笔历史，并保存文件的校验和，防止已执行的文件被改。更大的系统里，通常把迁移从服务启动中拿出来，在发布流程里单独执行一次。
+有两个问题要解决：一是多个实例同时启动时，同一个迁移不能执行两遍；二是迁移中途失败后，下次能接着做。第一个问题我用 MySQL 的命名锁排队，关键是命名锁属于数据库会话，所以加锁、执行、解锁必须在从连接池借出的同一条连接上完成，解锁失败时还要丢掉这条连接，让 MySQL 自动释放锁。第二个问题，MySQL 的建表、改表语句会隐式提交，不能用事务回滚，所以我让每个文件只放一条可以重复执行的 SQL，成功一个就记一笔历史，并保存文件的校验和，防止已执行的文件被改。更大的系统里，通常把迁移从服务启动中拿出来，在发布流程里单独执行一次。
 
 #### 要点
 
 - 互斥：数据库命名锁、锁表的一行，或者干脆只让一个发布任务执行迁移。
 - 会话级的锁必须固定连接；解锁不确定时丢弃连接。
-- DDL 隐式提交 → 不能靠事务 → 每步可重跑 + 历史记录。
+- 建表、改表语句隐式提交 → 不能靠事务 → 每步可重跑 + 历史记录。
 - 历史只追加、校验和防篡改；要改表结构就新增文件。
 - 大表改结构用在线 DDL；滚动发布时新旧代码要兼容同一张表。
 
@@ -810,7 +810,7 @@ internal\platform\config\config.go:7:2: import 'github.com/Li-Nepenthe/opsdoctor
 - **“`sql.Open` 成功就说明数据库能连上。”** 不对。它只是创建了连接池，还没真正联网。要 Ping 一次才知道，这也是 `mysqlx.Open` 最后要 Ping 的原因。
 - **“连接池的最大连接数越大越好。”** 所有服务加起来不能超过数据库的上限；连接不够时更该先查慢 SQL（八股 3）。
 - **“日志时间是 UTC 就够了。”** 数据库会话的时区也要设成 UTC，否则 SQL 里算出来的时间可能不一致。
-- **“迁移放进事务就能回滚。”** MySQL 的 DDL 会隐式提交，回滚不了（5.7 节）。
+- **“迁移放进事务就能回滚。”** MySQL 的建表、改表语句会隐式提交，回滚不了（5.7 节）。
 - **“JWT 能解码就是合法的。”** 任何人都能解码 JWT，必须检查签名、算法、签发方、受众和有效期。
 - **“bcrypt 是一种加密，可以解密。”** 它是单向的摘要，只能比较，不能还原。
 - **“测试显示 SKIP，也算通过了。”** SKIP 是没有运行，什么也证明不了。
@@ -924,7 +924,7 @@ internal\platform\config\config.go:7:2: import 'github.com/Li-Nepenthe/opsdoctor
 
 1. 先固定行为（第 0 批）：新增 37 个测试、27 份 golden，把模型请求、工具结果、HTTP 响应、环境变量等对外行为逐字节固定下来。之后每一批都必须让这些 golden 保持不变。
 2. 改规则：计划书和 AGENTS.md 的注释规则改成“只写思路和设计，不讲语法，不写清单”；commentcheck 只检查导出声明，取消 15 行规则（5.10 节）。
-3. 改注释：platform 的 8 个包、两个检查工具和 cmd 入口，独立的注释行从 755 行减到 235 行，审核修补后是 225 行。讲 Go 语法的内容挪进了本材料的第 7 节。
+3. 改注释：platform 的 8 个包、commentcheck 和 archcheck 两个检查工具、recoverycheck 的 doc.go，以及 cmd 入口，独立的注释行从 755 行减到 235 行，审核修补后是 225 行。讲 Go 语法的内容挪进了本材料的第 7 节。
 4. 代码只改了 archcheck 的两个函数，把嵌套 5 层的部分拆成独立的小函数；commentcheck 按新规则修改。
 
 **怎么验证：** 本批改动的 52 个 Go 文件里，除 commentcheck 和 archcheck 的 6 个代码与测试文件外，其余 46 个去掉注释后逐个 token 比较，完全相同；30 份 golden 逐字节不变；CI 的集成测试和 Compose 冒烟测试全部通过。

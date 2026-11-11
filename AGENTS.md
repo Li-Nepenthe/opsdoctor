@@ -39,7 +39,7 @@
 
 1. 跑完全部检查：`gofmt`、`go vet`、`staticcheck`、`commentcheck`、`archcheck`、`golangci-lint run ./...`、`golangci-lint run --build-tags=leakbug ./...`、`go test -race ./...`。
 2. 按计划书第 3.1、3.2 节自查三层说明：目录、文件、代码。
-3. 更新目录与文件说明：新增的分组目录要有 `README.md`；`doc.go` 的文件清单与包内的非测试文件保持一致（doc.go 自己和生成的代码不用列）；用 `commentcheck -map` 重新生成 `docs/代码地图.md` 的文件清单。
+3. 更新目录与文件说明：新增的分组目录要有 `README.md`；`doc.go` 的文件清单与包内的非测试文件保持一致（doc.go 自己、生成的代码和 `cmd/*/main.go` 不用列）；用 `commentcheck -map` 重新生成 `docs/代码地图.md` 的文件清单。
 4. 写阶段汇报书 `docs/reports/phase-NN-<短名>.md`（格式见计划书第 4.1 节）。
 5. 写学习材料 `docs/learn/phase-NN-<短名>.md`（格式见计划书第 4.2 节，包括“开发过程回放”）。
 6. 把本阶段的关键实测数字追加到 `docs/数据台账.md`（规则见计划书第 4.3 节和该文件开头），并在汇报书第五节列出新增的条目编号。
