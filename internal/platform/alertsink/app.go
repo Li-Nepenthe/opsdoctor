@@ -29,28 +29,41 @@ import (
 // shutdownTimeout 覆盖一个小通知的处理时间，不让停机无限等待客户端。
 const shutdownTimeout = 5 * time.Second
 
-// Run 先验证令牌再开放端口，漏配环境变量时不能意外启动一个无认证接收器。
-func Run(parent context.Context) error {
-	reader := config.New()
+type sinkConfig struct {
+	address string
+	token   string
+}
+
+// loadConfig 在开放端口前核对地址和令牌，错误描述里不包含令牌内容。
+func loadConfig(reader config.Reader) (sinkConfig, error) {
 	address, addressErr := reader.String("ALERTSINK_ADDR", ":8091")
 	token, tokenErr := reader.String("SHOP_ALERT_TOKEN", "")
 	if err := errors.Join(addressErr, tokenErr); err != nil {
-		return err
+		return sinkConfig{}, err
 	}
 	if len(token) < 32 {
-		return fmt.Errorf("SHOP_ALERT_TOKEN 至少需要 32 字节")
+		return sinkConfig{}, fmt.Errorf("SHOP_ALERT_TOKEN 至少需要 32 字节")
+	}
+	return sinkConfig{address: address, token: token}, nil
+}
+
+// Run 先验证令牌再开放端口，漏配环境变量时不能意外启动一个无认证接收器。
+func Run(parent context.Context) error {
+	settings, err := loadConfig(config.New())
+	if err != nil {
+		return err
 	}
 	logger := logging.New(os.Stdout, "alertsink", slog.LevelInfo)
 	metrics := telemetry.NewMetrics("alertsink")
-	server := adminserver.New(address, func(context.Context) error { return nil }, metrics.Registry)
+	server := adminserver.New(settings.address, func(context.Context) error { return nil }, metrics.Registry)
 	mux := http.NewServeMux()
 	mux.Handle("/", server.Handler)
-	mux.Handle("POST /api/v1/alerts", Handler(token, logger))
+	mux.Handle("POST /api/v1/alerts", Handler(settings.token, logger))
 	server.Handler = mux
 	server.ReadTimeout = shutdownTimeout // 大正文由 Handler 限制，慢速发送还需要时间边界。
 	ctx, stop := lifecycle.Notify(parent)
 	defer stop()
-	logger.Info("临时告警接收器已启动", "version", telemetry.Version, "address", address)
+	logger.Info("临时告警接收器已启动", "version", telemetry.Version, "address", settings.address)
 	return serve(ctx, server)
 }
 
