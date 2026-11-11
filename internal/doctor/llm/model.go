@@ -81,6 +81,16 @@ type Usage struct {
 	CacheMiss  int64 `json:"prompt_cache_miss_tokens"` // 供应商提供时保留。
 }
 
+// Add 分别累计供应商的六项计量，缓存和推理的子项已经包含在输入输出中。
+func (usage *Usage) Add(next Usage) {
+	usage.Input += next.Input
+	usage.Output += next.Output
+	usage.CacheHit += next.CacheHit
+	usage.CacheWrite += next.CacheWrite
+	usage.Reasoning += next.Reasoning
+	usage.CacheMiss += next.CacheMiss
+}
+
 // Response 即使伴随 error 也可能已有费用，调用方必须先记账再判断是否继续。
 type Response struct {
 	UsageKnown bool     `json:"usage_known"` // 明确计量后，即使回复因长度截断而不可用，也按实际费用结算。

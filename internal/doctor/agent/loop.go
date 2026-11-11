@@ -117,35 +117,12 @@ func (run *session) execute(whole, work context.Context) (Result, error) {
 
 // ask 把实际脱敏后的请求写进步骤；真实 HTTP 尝试另由 llm 账本在发送前保存。
 func (run *session) ask(ctx context.Context, final bool) (llm.Response, error) {
-	request := llm.Request{DiagnosisID: run.input.ID, Model: run.agent.model, Messages: run.history, Tools: run.definitions, MaxTokens: 4096, Thinking: llm.Thinking{Type: "disabled"}}
-	if final {
-		request.Tools = []llm.Tool{reportDefinition(run.input.Components)}
-	}
-	raw, _ := json.Marshal(request)
-	clean, err := run.agent.redactor.JSON(raw)
+	request, clean, err := run.prepareRequest(final)
 	if err != nil {
 		return llm.Response{}, err
 	}
-	// 再解析得到模型真正看到的内容，内存脚本与真实 HTTP 不走两套脱敏路径。
-	if err := json.Unmarshal(clean, &request); err != nil {
+	if err := run.checkRequestBudget(request, final); err != nil {
 		return llm.Response{}, err
-	}
-	request.DiagnosisID = run.input.ID
-	request.DiagnosisLimitMicros = run.agent.limits.CostMicros
-	request.InputUpperBound = run.inputBound(len(clean))
-	requestTokens := request.InputUpperBound + int64(request.MaxTokens)
-	if requestTokens > run.agent.limits.ContextTokens {
-		run.result.BudgetReason = "单次请求上下文达到上限"
-		return llm.Response{}, llm.ErrDiagnosisBudget
-	}
-	remaining := run.agent.limits.Tokens - run.result.Usage.Input - run.result.Usage.Output
-	// 累计量也是硬边界，最后的报告和修正不能越过它。普通阶段提前留一份报告额度。
-	if requestTokens > remaining || (!final && run.result.Rounds > 0 && 2*requestTokens > remaining) {
-		run.result.BudgetReason = "累计 token 余额不足，预留最后报告空间"
-		return llm.Response{}, llm.ErrDiagnosisBudget
-	}
-	if run.result.CostMicros >= run.agent.limits.CostMicros {
-		return llm.Response{}, llm.ErrDiagnosisBudget
 	}
 	started := time.Now()
 	// 先保存发送意图。若结算成功后、保存 llm 步骤前崩溃，仓储能用这个编号找回回复。
@@ -156,18 +133,61 @@ func (run *session) ask(ctx context.Context, final bool) (llm.Response, error) {
 	request.CallID = fmt.Sprintf("request:%d", pending.Seq)
 	answer, callErr := run.agent.client.Complete(ctx, request)
 	run.result.Rounds++
-	run.result.Usage.Input += answer.Usage.Input
-	run.result.Usage.Output += answer.Usage.Output
-	run.result.Usage.CacheHit += answer.Usage.CacheHit
-	run.result.Usage.CacheWrite += answer.Usage.CacheWrite
-	run.result.Usage.Reasoning += answer.Usage.Reasoning
-	run.result.Usage.CacheMiss += answer.Usage.CacheMiss
+	run.result.Usage.Add(answer.Usage)
 	run.result.CostMicros += answer.CostMicros
+	return run.recordAnswer(ctx, request.CallID, clean, started, answer, callErr)
+}
+
+func (run *session) prepareRequest(final bool) (llm.Request, json.RawMessage, error) {
+	request := llm.Request{
+		DiagnosisID: run.input.ID, Model: run.agent.model, Messages: run.history, Tools: run.definitions,
+		MaxTokens: 4096, Thinking: llm.Thinking{Type: "disabled"},
+	}
+	if final {
+		request.Tools = []llm.Tool{reportDefinition(run.input.Components)}
+	}
+	raw, _ := json.Marshal(request)
+	clean, err := run.agent.redactor.JSON(raw)
+	if err != nil {
+		return llm.Request{}, nil, err
+	}
+	// 再解析得到模型真正看到的内容，内存脚本与真实 HTTP 不走两套脱敏路径。
+	if err := json.Unmarshal(clean, &request); err != nil {
+		return llm.Request{}, nil, err
+	}
+	request.DiagnosisID = run.input.ID
+	request.DiagnosisLimitMicros = run.agent.limits.CostMicros
+	request.InputUpperBound = run.inputBound(len(clean))
+	return request, clean, nil
+}
+
+func (run *session) checkRequestBudget(request llm.Request, final bool) error {
+	requestTokens := request.InputUpperBound + int64(request.MaxTokens)
+	if requestTokens > run.agent.limits.ContextTokens {
+		run.result.BudgetReason = "单次请求上下文达到上限"
+		return llm.ErrDiagnosisBudget
+	}
+	remaining := run.agent.limits.Tokens - run.result.Usage.Input - run.result.Usage.Output
+	// 累计量也是硬边界，最后的报告和修正不能越过它。普通阶段提前留一份报告额度。
+	if requestTokens > remaining || (!final && run.result.Rounds > 0 && 2*requestTokens > remaining) {
+		run.result.BudgetReason = "累计 token 余额不足，预留最后报告空间"
+		return llm.ErrDiagnosisBudget
+	}
+	if run.result.CostMicros >= run.agent.limits.CostMicros {
+		return llm.ErrDiagnosisBudget
+	}
+	return nil
+}
+
+func (run *session) recordAnswer(
+	ctx context.Context, callID string, clean json.RawMessage,
+	started time.Time, answer llm.Response, callErr error,
+) (llm.Response, error) {
 	if answer.Model == "" {
 		answer.Model = run.agent.model
 	}
 	response, _ := json.Marshal(answer)
-	response, err = run.agent.redactor.JSON(response)
+	response, err := run.agent.redactor.JSON(response)
 	if err != nil {
 		return answer, err
 	}
@@ -179,7 +199,10 @@ func (run *session) ask(ctx context.Context, final bool) (llm.Response, error) {
 	if errors.Is(callErr, context.Canceled) {
 		status = "cancelled"
 	}
-	step, recordErr := record(ctx, run.input.Recorder, Step{EventKey: request.CallID, CallID: request.CallID, Kind: "llm", Model: answer.Model, Args: clean, Result: string(response), Status: status, DurationMS: time.Since(started).Milliseconds(), Usage: answer.Usage, CostMicros: answer.CostMicros})
+	step, recordErr := record(ctx, run.input.Recorder, Step{
+		EventKey: callID, CallID: callID, Kind: "llm", Model: answer.Model, Args: clean, Result: string(response),
+		Status: status, DurationMS: time.Since(started).Milliseconds(), Usage: answer.Usage, CostMicros: answer.CostMicros,
+	})
 	if recordErr != nil {
 		return answer, fmt.Errorf("保存模型步骤：%w", recordErr)
 	}
