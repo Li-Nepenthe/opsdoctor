@@ -1,14 +1,5 @@
-// 本文件：把登录、系统工具和告警入口接到同一个 Gin 服务。
-//
-// 人通过 JWT 登录后选择系统；Alertmanager 则只持有一个系统的推送令牌。
-// 两种身份不混用：推送令牌不能执行工具，登录令牌也不能冒充告警来源。
-//
-// 主要内容：
-//   - Repository、Options：列出接口层实际需要的依赖。
-//   - New：安装通用保护，区分公开健康检查、登录、通知和已登录操作。
-//   - requireLogin、listTargets、runTool：校验身份并调用已绑定的注册表。
-//
-// 阅读建议：先看路由分组，确认哪一条入口经过哪一种鉴权。
+// 本文件：在 New 中为登录、告警推送和需要登录的操作安装各自的身份检查。
+// 推送令牌只属于一个系统，不能用于运行工具；人的登录会话也不能代替告警来源。
 
 package httpapi
 
@@ -61,17 +52,17 @@ type Options struct {
 	Approvals         Approvals                                                     // 人的审批入口，模型与 MCP 没有这个接口。
 	MCP               map[string]http.Handler                                       // 各入口已绑定系统和独立令牌，不经过页面登录。
 	Targets           *target.Catalog                                               // 各系统独立的工具与告警身份。
-	Store             Repository                                                    // 医生自己的用户和任务。
-	Tokens            *auth.Tokens                                                  // JWT 签发与验证。
-	Logger            *slog.Logger                                                  // 日志只记录固定字段，不记录请求正文。
-	Ready             func(context.Context) error                                   // 检查医生自己的数据库。
-	Metrics           http.Handler                                                  // 通用进程指标，不在这里创建全局注册表。
-	DummyPasswordHash string                                                        // 未知邮箱也做同等成本的密码比较。
-	Runner            Runner                                                        // 队列唤醒、取消与累计预算。
-	Events            *events.Hub                                                   // 步骤提交之后的实时通知。
-	Provider          string                                                        // 页面醒目标出 mock。
-	Model             string                                                        // 当前配置，不等于历史任务的模型。
-	SecureCookie      bool                                                          // HTTPS 部署设 true；本机回环 HTTP 演示为 false。
+	Store             Repository
+	Tokens            *auth.Tokens
+	Logger            *slog.Logger                // 日志只记录固定字段，不记录请求正文。
+	Ready             func(context.Context) error // 检查医生自己的数据库。
+	Metrics           http.Handler                // 通用进程指标，不在这里创建全局注册表。
+	DummyPasswordHash string                      // 未知邮箱也做同等成本的密码比较。
+	Runner            Runner
+	Events            *events.Hub // 步骤提交之后的实时通知。
+	Provider          string      // 页面醒目标出 mock。
+	Model             string      // 当前配置，不等于历史任务的模型。
+	SecureCookie      bool        // HTTPS 部署设 true；本机回环 HTTP 演示为 false。
 }
 
 // api 持有服务范围的登录限流器，不能让猜密码请求无限占用 bcrypt 的 CPU。

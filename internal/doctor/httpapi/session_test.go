@@ -1,10 +1,4 @@
-// 本文件：从浏览器 Cookie 路径验证登录和 CSRF 边界。
-//
-// 只检查 JWT 签名不够：Cookie 会被浏览器自动带上。测试分别覆盖正常页面、外站
-// 请求和命令行 Bearer，保证增加 SSE 登录方式时没有取消原来的身份边界。
-//
-// 主要内容：TestCookieSession 检查 Cookie 属性、修改校验和 CLI；TestCrossSiteLogin 拒绝外站登录。
-// 阅读建议：测试凭据都是明显的演示字符串，失败信息不打印完整请求头。
+// 本文件：通过真实路由核对登录 Cookie。浏览器会自动携带 Cookie，修改请求还要通过来源和会话校验；命令行仍使用 Bearer。
 
 package httpapi
 
