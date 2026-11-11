@@ -79,7 +79,10 @@ func (store *Store) StartEvalJudge(ctx context.Context, id string) (bool, error)
 	if trigger != "judge" {
 		return false, fmt.Errorf("只允许启动评委审计记录")
 	}
-	return store.changeState(ctx, id, "pending", "running", "评测器开始评分", "started_at=UTC_TIMESTAMP(6),execution_segments=1", nil)
+	return store.changeState(ctx, id, stateChange{
+		from: "pending", to: "running", reason: "评测器开始评分",
+		fields: "started_at=UTC_TIMESTAMP(6),execution_segments=1",
+	})
 }
 
 // SavedEvalJudgeResponse 保留未结算预留，只有成功存入账本的回答可以恢复为评分材料。
