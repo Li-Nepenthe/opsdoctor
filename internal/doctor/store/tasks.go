@@ -35,7 +35,10 @@ func (store *Store) Pending(ctx context.Context) ([]run.Task, error) {
 	tasks := []run.Task{}
 	for rows.Next() {
 		var task run.Task
-		if err = rows.Scan(&task.ID, &task.Target, &task.Input, &task.CreatedAt, &task.FaultStartedAt, &task.EvaluationGroup, &task.ExpectedModel, &task.ExecutionProfile); err != nil {
+		if err = rows.Scan(
+			&task.ID, &task.Target, &task.Input, &task.CreatedAt,
+			&task.FaultStartedAt, &task.EvaluationGroup, &task.ExpectedModel, &task.ExecutionProfile,
+		); err != nil {
 			return nil, err
 		}
 		tasks = append(tasks, task)

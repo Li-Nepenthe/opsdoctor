@@ -30,27 +30,35 @@ type scanner interface{ Scan(...any) error }
 // scanApproval 不给损坏的 JSON 补默认值，无法准确恢复参数时必须停下。
 func scanApproval(row scanner) (approval.Record, error) {
 	var value approval.Record
-	var plan, evidence, result []byte
-	var decided, executed sql.NullTime
-	err := row.Scan(&value.ID, &value.DiagnosisID, &value.Target, &value.ParentSeq, &value.CallID, &value.StepSeq, &value.Tool, &value.Args, &plan, &value.Reason, &evidence, &value.Expected, &value.Risk, &value.Status, &value.ExpiresAt, &value.DecidedBy, &decided, &executed, &value.ConnectionID, &result)
+	var raw struct {
+		plan, evidence, result []byte
+		decided, executed      sql.NullTime
+	}
+	err := row.Scan(
+		&value.ID, &value.DiagnosisID, &value.Target, &value.ParentSeq,
+		&value.CallID, &value.StepSeq, &value.Tool, &value.Args,
+		&raw.plan, &value.Reason, &raw.evidence, &value.Expected,
+		&value.Risk, &value.Status, &value.ExpiresAt, &value.DecidedBy,
+		&raw.decided, &raw.executed, &value.ConnectionID, &raw.result,
+	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return value, approval.ErrNotFound
 	}
 	if err != nil {
 		return value, err
 	}
-	if json.Unmarshal(plan, &value.Plan) != nil || json.Unmarshal(evidence, &value.Evidence) != nil {
+	if json.Unmarshal(raw.plan, &value.Plan) != nil || json.Unmarshal(raw.evidence, &value.Evidence) != nil {
 		return value, fmt.Errorf("审批参数损坏，不能执行")
 	}
-	if len(result) > 0 && json.Unmarshal(result, &value.Result) != nil {
+	if len(raw.result) > 0 && json.Unmarshal(raw.result, &value.Result) != nil {
 		return value, fmt.Errorf("审批结果损坏")
 	}
 	// NULL 表示还没有人决定或执行，页面不能把零时间显示成真实操作时间。
-	if decided.Valid {
-		value.DecidedAt = &decided.Time
+	if raw.decided.Valid {
+		value.DecidedAt = &raw.decided.Time
 	}
-	if executed.Valid {
-		value.ExecutedAt = &executed.Time
+	if raw.executed.Valid {
+		value.ExecutedAt = &raw.executed.Time
 	}
 	return value, nil
 }

@@ -75,7 +75,11 @@ func (store *Store) List(ctx context.Context, target, status string, limit, offs
 	values := []Diagnosis{}
 	for rows.Next() {
 		var value Diagnosis
-		if err := rows.Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Model, &value.Provider, &value.Currency); err != nil {
+		if err := rows.Scan(
+			&value.ID, &value.Target, &value.Trigger, &value.Status,
+			&value.Title, &value.CreatedAt, &value.Model, &value.Provider,
+			&value.Currency,
+		); err != nil {
 			return nil, err
 		}
 		values = append(values, value)
@@ -87,22 +91,33 @@ func (store *Store) List(ctx context.Context, target, status string, limit, offs
 func (store *Store) Detail(ctx context.Context, id string) (Detail, error) {
 	// 先查任务再查快照，任务不存在时立刻返回，不能拿空 ID 继续查关联记录。
 	value := Detail{Alerts: []json.RawMessage{}}
-	var started, finished sql.NullTime
-	var duration sql.NullInt64
-	var rawReport []byte // SQL NULL 要先接到可空字节切片，之后再交给 JSON 字段。
-	err := store.database.QueryRowContext(ctx, "SELECT id,target,`trigger`,status,title,created_at,input,COALESCE(model,''),provider,report,COALESCE(error,''),COALESCE(prompt_version,''),tokens_in,tokens_out,cache_hit_tokens,cost_micros,rounds,tool_calls,started_at,finished_at,next_seq,report_mode,budget_reason,currency,duration_ms FROM diagnoses WHERE id=?", id).Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Input, &value.Model, &value.Provider, &rawReport, &value.Error, &value.PromptVersion, &value.TokensIn, &value.TokensOut, &value.CacheHit, &value.CostMicros, &value.Rounds, &value.ToolCalls, &started, &finished, &value.LastSeq, &value.ReportMode, &value.BudgetReason, &value.Currency, &duration)
+	// 暂存可空列，只有数据库提供值时才填写详情中的报告和起止时间。
+	var raw struct {
+		started, finished sql.NullTime
+		duration          sql.NullInt64
+		report            []byte
+	}
+	err := store.database.QueryRowContext(ctx, "SELECT id,target,`trigger`,status,title,created_at,input,COALESCE(model,''),provider,report,COALESCE(error,''),COALESCE(prompt_version,''),tokens_in,tokens_out,cache_hit_tokens,cost_micros,rounds,tool_calls,started_at,finished_at,next_seq,report_mode,budget_reason,currency,duration_ms FROM diagnoses WHERE id=?", id).Scan(
+		&value.ID, &value.Target, &value.Trigger, &value.Status,
+		&value.Title, &value.CreatedAt, &value.Input, &value.Model,
+		&value.Provider, &raw.report, &value.Error, &value.PromptVersion,
+		&value.TokensIn, &value.TokensOut, &value.CacheHit, &value.CostMicros,
+		&value.Rounds, &value.ToolCalls, &raw.started, &raw.finished,
+		&value.LastSeq, &value.ReportMode, &value.BudgetReason, &value.Currency,
+		&raw.duration,
+	)
 	if err != nil {
 		return value, err
 	}
-	value.Report = rawReport
-	if duration.Valid {
-		value.DurationMS = &duration.Int64
+	value.Report = raw.report
+	if raw.duration.Valid {
+		value.DurationMS = &raw.duration.Int64
 	}
-	if started.Valid {
-		value.StartedAt = &started.Time
+	if raw.started.Valid {
+		value.StartedAt = &raw.started.Time
 	}
-	if finished.Valid {
-		value.FinishedAt = &finished.Time
+	if raw.finished.Valid {
+		value.FinishedAt = &raw.finished.Time
 	}
 	value.Steps, err = store.StepsAfter(ctx, id, 0)
 	if err != nil {

@@ -96,7 +96,13 @@ func (store *Store) StepsAfter(ctx context.Context, id string, after int) ([]age
 	steps := []agent.Step{}
 	for rows.Next() {
 		var step agent.Step
-		if err = rows.Scan(&step.Seq, &step.Kind, &step.Model, &step.ToolName, &step.Args, &step.Result, &step.Status, &step.DurationMS, &step.Usage.Input, &step.Usage.Output, &step.Usage.CacheHit, &step.CostMicros, &step.CreatedAt, &step.EventKey, &step.ParentSeq, &step.CallID, &step.Counted, &step.Currency, &step.Usage.CacheWrite, &step.Usage.Reasoning); err != nil {
+		if err = rows.Scan(
+			&step.Seq, &step.Kind, &step.Model, &step.ToolName,
+			&step.Args, &step.Result, &step.Status, &step.DurationMS,
+			&step.Usage.Input, &step.Usage.Output, &step.Usage.CacheHit, &step.CostMicros,
+			&step.CreatedAt, &step.EventKey, &step.ParentSeq, &step.CallID,
+			&step.Counted, &step.Currency, &step.Usage.CacheWrite, &step.Usage.Reasoning,
+		); err != nil {
 			return nil, err
 		}
 		steps = append(steps, step)
@@ -115,6 +121,12 @@ func nullableKey(key string) any {
 // readStep 在同一事务内返回已保存的完整结果，重试保存不会分配第二个步骤号。
 func readStep(ctx context.Context, tx *sql.Tx, id, key string) (agent.Step, error) {
 	var step agent.Step
-	err := tx.QueryRowContext(ctx, "SELECT seq,kind,model,tool_name,args,result,status,duration_ms,tokens_in,tokens_out,cache_hit_tokens,cost_micros,created_at,COALESCE(event_key,''),parent_seq,call_id,counted,currency,cache_write_tokens,reasoning_tokens FROM diagnosis_steps WHERE diagnosis_id=? AND event_key=?", id, key).Scan(&step.Seq, &step.Kind, &step.Model, &step.ToolName, &step.Args, &step.Result, &step.Status, &step.DurationMS, &step.Usage.Input, &step.Usage.Output, &step.Usage.CacheHit, &step.CostMicros, &step.CreatedAt, &step.EventKey, &step.ParentSeq, &step.CallID, &step.Counted, &step.Currency, &step.Usage.CacheWrite, &step.Usage.Reasoning)
+	err := tx.QueryRowContext(ctx, "SELECT seq,kind,model,tool_name,args,result,status,duration_ms,tokens_in,tokens_out,cache_hit_tokens,cost_micros,created_at,COALESCE(event_key,''),parent_seq,call_id,counted,currency,cache_write_tokens,reasoning_tokens FROM diagnosis_steps WHERE diagnosis_id=? AND event_key=?", id, key).Scan(
+		&step.Seq, &step.Kind, &step.Model, &step.ToolName,
+		&step.Args, &step.Result, &step.Status, &step.DurationMS,
+		&step.Usage.Input, &step.Usage.Output, &step.Usage.CacheHit, &step.CostMicros,
+		&step.CreatedAt, &step.EventKey, &step.ParentSeq, &step.CallID,
+		&step.Counted, &step.Currency, &step.Usage.CacheWrite, &step.Usage.Reasoning,
+	)
 	return step, err
 }
