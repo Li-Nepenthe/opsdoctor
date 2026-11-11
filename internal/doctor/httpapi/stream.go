@@ -55,6 +55,11 @@ func (server *api) stream(ctx *gin.Context) {
 		httpx.Failure(ctx, 400, "INVALID_ARGUMENT", "事件编号超过已保存步骤")
 		return
 	}
+	server.streamSteps(ctx, id, after, detail.Status)
+}
+
+// streamSteps 先订阅再补发，避免客户端在读取数据库期间错过新步骤的通知。
+func (server *api) streamSteps(ctx *gin.Context, id string, after int, status string) {
 	subscription := server.options.Events.Subscribe(id)
 	defer subscription.Close()
 	ctx.Header("Content-Type", "text/event-stream; charset=utf-8")
@@ -69,8 +74,8 @@ func (server *api) stream(ctx *gin.Context) {
 			return
 		}
 		// 连接建立时任务已结束、而客户端已看过最后一步，仍告诉页面停止重连。
-		if terminalStatus(detail.Status) {
-			body, _ := json.Marshal(map[string]string{"status": detail.Status})
+		if terminalStatus(status) {
+			body, _ := json.Marshal(map[string]string{"status": status})
 			_ = writeEvent(ctx.Writer, controller, "", "status", body)
 			return
 		}
