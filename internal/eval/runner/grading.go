@@ -166,7 +166,10 @@ func (value *grader) gradeSlot(ctx context.Context, slot store.EvalResult, scena
 	if err != nil {
 		return err
 	}
-	audit, err := value.repository.PrepareEvalJudge(ctx, slot.Key, value.model, value.provider, value.account, judge.RubricVersion, raw)
+	audit, err := value.repository.PrepareEvalJudge(ctx, store.EvalJudgeInput{
+		ResultKey: slot.Key, Model: value.model, Provider: value.provider,
+		Account: value.account, RubricVersion: judge.RubricVersion, Input: raw,
+	})
 	if err != nil {
 		return err
 	}

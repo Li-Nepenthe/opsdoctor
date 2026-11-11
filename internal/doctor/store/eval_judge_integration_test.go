@@ -51,15 +51,20 @@ func TestIntegrationEvalJudge(t *testing.T) {
 	t.Cleanup(func() {
 		_, _ = repository.database.ExecContext(context.Background(), "DELETE FROM llm_budget WHERE account IN (?,?)", account, account+"-wrong")
 	})
-	value, err := repository.PrepareEvalJudge(ctx, slot.Key, "mock-judge", "mock", account, "test-v1", json.RawMessage(`{"reference":"fixture"}`))
+	request := EvalJudgeInput{
+		ResultKey: slot.Key, Model: "mock-judge", Provider: "mock", Account: account,
+		RubricVersion: "test-v1", Input: json.RawMessage(`{"reference":"fixture"}`),
+	}
+	value, err := repository.PrepareEvalJudge(ctx, request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	repeated, err := repository.PrepareEvalJudge(ctx, slot.Key, "mock-judge", "mock", account, "test-v1", json.RawMessage(`{"reference":"fixture"}`))
+	repeated, err := repository.PrepareEvalJudge(ctx, request)
 	if err != nil || repeated.ID != value.ID {
 		t.Fatal("评分审计重复", err)
 	}
-	if _, err = repository.PrepareEvalJudge(ctx, slot.Key, "mock-other", "mock", account, "test-v1", value.Input); err == nil {
+	request.Model, request.Input = "mock-other", value.Input
+	if _, err = repository.PrepareEvalJudge(ctx, request); err == nil {
 		t.Fatal("评分悄悄换模型")
 	}
 	if tasks, err := repository.Pending(ctx); err != nil {

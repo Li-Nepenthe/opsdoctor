@@ -26,13 +26,23 @@ type EvalJudge struct {
 	Input  json.RawMessage `json:"input"`  // 实际发给评委的数据，已脱敏。
 }
 
+// EvalJudgeInput 在创建评委审计时绑定结果槽位、评分规则、账户和原始输入。
+type EvalJudgeInput struct {
+	ResultKey     string
+	Model         string
+	Provider      string
+	Account       string
+	RubricVersion string
+	Input         json.RawMessage
+}
+
 // PrepareEvalJudge 在同一事务关联审计记录，同一个结果槽位只会产生一份评分。
-func (store *Store) PrepareEvalJudge(ctx context.Context, key, model, provider, account, version string, input json.RawMessage) (EvalJudge, error) {
+func (store *Store) PrepareEvalJudge(ctx context.Context, request EvalJudgeInput) (EvalJudge, error) {
 	var value EvalJudge
-	if model == "" || account == "" || version == "" || (provider != "mock" && provider != "openai") || !json.Valid(input) || len(input) > 240<<10 {
+	if request.Model == "" || request.Account == "" || request.RubricVersion == "" || (request.Provider != "mock" && request.Provider != "openai") || !json.Valid(request.Input) || len(request.Input) > 240<<10 {
 		return value, fmt.Errorf("评分配置或输入不合法")
 	}
-	clean, err := store.config.Redactor.JSON(input)
+	clean, err := store.config.Redactor.JSON(request.Input)
 	if err != nil {
 		return value, err
 	}
@@ -44,7 +54,7 @@ func (store *Store) PrepareEvalJudge(ctx context.Context, key, model, provider, 
 	defer tx.Rollback()
 	var target, runID string
 	var finished, graded bool
-	if err = tx.QueryRowContext(ctx, "SELECT r.run_id,e.target,COALESCE(r.judge_id,''),r.result IS NOT NULL,r.judgement IS NOT NULL FROM eval_results r JOIN eval_runs e ON e.id=r.run_id WHERE r.result_key=? FOR UPDATE", key).Scan(&runID, &target, &value.ID, &finished, &graded); err != nil {
+	if err = tx.QueryRowContext(ctx, "SELECT r.run_id,e.target,COALESCE(r.judge_id,''),r.result IS NOT NULL,r.judgement IS NOT NULL FROM eval_results r JOIN eval_runs e ON e.id=r.run_id WHERE r.result_key=? FOR UPDATE", request.ResultKey).Scan(&runID, &target, &value.ID, &finished, &graded); err != nil {
 		return value, err
 	}
 	if !finished {
@@ -52,11 +62,11 @@ func (store *Store) PrepareEvalJudge(ctx context.Context, key, model, provider, 
 	}
 	if value.ID == "" {
 		value.ID = newID()
-		_, err = tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,model,provider,prompt_version,eval_account,currency,eval_run_id) VALUES(?,?,'judge','pending','评委审阅','',?,?,?,?,?,'CNY',?)", value.ID, target, clean, model, provider, version, account, runID)
+		_, err = tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,model,provider,prompt_version,eval_account,currency,eval_run_id) VALUES(?,?,'judge','pending','评委审阅','',?,?,?,?,?,'CNY',?)", value.ID, target, clean, request.Model, request.Provider, request.RubricVersion, request.Account, runID)
 		if err != nil {
 			return value, err
 		}
-		if _, err = tx.ExecContext(ctx, "UPDATE eval_results SET judge_id=? WHERE result_key=?", value.ID, key); err != nil {
+		if _, err = tx.ExecContext(ctx, "UPDATE eval_results SET judge_id=? WHERE result_key=?", value.ID, request.ResultKey); err != nil {
 			return value, err
 		}
 	}
@@ -64,7 +74,7 @@ func (store *Store) PrepareEvalJudge(ctx context.Context, key, model, provider, 
 	if err = tx.QueryRowContext(ctx, "SELECT status,input,model,provider,eval_account,prompt_version FROM diagnoses WHERE id=?", value.ID).Scan(&value.Status, &value.Input, &savedModel, &savedProvider, &savedAccount, &savedVersion); err != nil {
 		return value, err
 	}
-	if !sameJSON(value.Input, clean) || savedModel != model || savedProvider != provider || savedAccount != account || savedVersion != version {
+	if !sameJSON(value.Input, clean) || savedModel != request.Model || savedProvider != request.Provider || savedAccount != request.Account || savedVersion != request.RubricVersion {
 		return value, fmt.Errorf("评分已绑定另一份输入、模型、版本或账户")
 	}
 	return value, tx.Commit()
