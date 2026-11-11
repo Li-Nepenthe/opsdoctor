@@ -5,7 +5,6 @@
 // 主要内容：
 //   - Config：列出这个进程真正使用的参数。
 //   - loadConfig：读取环境变量，检查下游超时与上游预算的关系。
-//   - kafkaBrokers：拆分地址并拒绝空项。
 //
 // 阅读建议：先看 HTTPBudget、CleanupBudget、Inventory.Timeout 的关系，再看它们如何决定旧占位的处理预算。
 
@@ -14,8 +13,6 @@ package orderservice
 import (
 	"errors"
 	"fmt"
-	"net"
-	"strings"
 	"time"
 
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
@@ -93,7 +90,7 @@ func loadConfig(reader config.Reader) (Config, error) {
 			Retry:          resilience.RetryPolicy{MaxRetries: readInt("INVENTORY_GETSTOCK_MAX_RETRIES", 2, 0, 10), Backoff: readDuration("INVENTORY_RETRY_BACKOFF", 50*time.Millisecond, 0, time.Second), MinBudget: readDuration("INVENTORY_RETRY_MIN_BUDGET", 50*time.Millisecond, time.Millisecond, time.Second)},
 			Breaker:        resilience.BreakerConfig{Enabled: readBool("INVENTORY_BREAKER_ENABLED", true), MinRequests: uint32(readInt("INVENTORY_BREAKER_MIN_REQUESTS", 10, 1, 100000)), FailurePercent: uint32(readInt("INVENTORY_BREAKER_FAILURE_PERCENT", 50, 1, 100)), Interval: readDuration("INVENTORY_BREAKER_INTERVAL", 10*time.Second, time.Millisecond, time.Hour), OpenTimeout: readDuration("INVENTORY_BREAKER_OPEN_TIMEOUT", 5*time.Second, time.Millisecond, time.Minute), HalfOpenMax: uint32(readInt("INVENTORY_BREAKER_HALF_OPEN_MAX", 1, 1, 100))}},
 	}
-	value.KafkaBrokers, err = kafkaBrokers(readString("KAFKA_BROKERS", "127.0.0.1:9092"))
+	value.KafkaBrokers, err = app.KafkaBrokers(readString("KAFKA_BROKERS", "127.0.0.1:9092"))
 	problems = append(problems, err)
 	// gRPC 必须比上游更早结束，才能留出响应时间。补偿也必须容得下一次库存调用。
 	if value.Inventory.Timeout >= value.HTTPBudget || value.Inventory.Timeout >= value.CleanupBudget {
@@ -113,17 +110,4 @@ func processingBudget(settings Config) time.Duration {
 	// 失败路径最多三次补偿/状态收尾；成功路径还可能等待消息确认。
 	// 两条路径不会全部叠加，仍取一个便于理解的保守上界，给最后一次状态更新留余量。
 	return settings.HTTPBudget + settings.PublishBudget + cleanupSteps*settings.CleanupBudget + processingMargin
-}
-
-// kafkaBrokers 要求每项都包含主机和端口，空列表项通常是配置多写了一个逗号。
-func kafkaBrokers(raw string) ([]string, error) {
-	brokers := strings.Split(raw, ",")
-	for index, address := range brokers {
-		address = strings.TrimSpace(address)
-		if host, port, err := net.SplitHostPort(address); err != nil || host == "" || port == "" {
-			return nil, fmt.Errorf("KAFKA_BROKERS 必须是逗号分隔的主机:端口")
-		}
-		brokers[index] = address
-	}
-	return brokers, nil
 }

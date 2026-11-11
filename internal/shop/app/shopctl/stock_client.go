@@ -61,13 +61,18 @@ func parseStock(arguments []string, output io.Writer) (stockOptions, error) {
 	return stockOptions{operation: arguments[0], skuID: *skuID, quantity: int32(*quantity), count: *count, timeout: *timeout}, nil
 }
 
+// stockTarget 默认指向宿主机上的库存端口，Compose 可用环境变量指定服务名。
+func stockTarget(reader config.Reader) (string, error) {
+	return reader.String("INVENTORY_GRPC_TARGET", "127.0.0.1:9001")
+}
+
 // runStock 创建一个短生命周期客户端。本机靶场使用明文 HTTP/2，不能原样部署到公网。
 func runStock(parent context.Context, arguments []string, reader config.Reader, output io.Writer) (result error) {
 	options, err := parseStock(arguments, output)
 	if err != nil {
 		return err
 	}
-	target, err := reader.String("INVENTORY_GRPC_TARGET", "127.0.0.1:9001")
+	target, err := stockTarget(reader)
 	if err != nil {
 		return err
 	}

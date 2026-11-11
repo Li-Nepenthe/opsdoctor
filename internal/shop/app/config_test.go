@@ -9,8 +9,10 @@
 package app
 
 import (
-	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
+	"slices"
 	"testing"
+
+	"github.com/Li-Nepenthe/opsdoctor/internal/platform/config"
 )
 
 // TestDatabaseConfig 验证默认连接预算和互相约束的 open/idle，错误里不得回显 DSN。
@@ -36,5 +38,19 @@ func TestDatabaseConfig(t *testing.T) {
 				t.Fatalf("默认池不匹配：open=%d idle=%d", settings.MaxOpenConns, settings.MaxIdleConns)
 			}
 		})
+	}
+}
+
+// TestKafkaBrokers 验证订单服务和消费者沿用同一地址格式，包括带括号的 IPv6 和服务名端口。
+func TestKafkaBrokers(t *testing.T) {
+	got, err := KafkaBrokers(" broker:9092, [::1]:kafka ")
+	if err != nil || !slices.Equal(got, []string{"broker:9092", "[::1]:kafka"}) {
+		t.Fatalf("解析 Kafka 地址列表：%v，%v", got, err)
+	}
+	for _, raw := range []string{"", ":9092", "broker:", "broker", "broker:9092,", "2001:db8::1:9092"} {
+		got, err := KafkaBrokers(raw)
+		if got != nil || err == nil || err.Error() != "KAFKA_BROKERS 必须是逗号分隔的主机:端口" {
+			t.Errorf("KafkaBrokers(%q) = %v，%v", raw, got, err)
+		}
 	}
 }

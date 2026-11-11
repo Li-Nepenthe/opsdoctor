@@ -39,6 +39,40 @@ func TestShopctlEnvironmentContract(t *testing.T) {
 	}
 }
 
+// TestStockTarget 在创建 gRPC 连接前核对默认目标和操作者显式给出的地址。
+func TestStockTarget(t *testing.T) {
+	want, err := os.ReadFile("testdata/environment.golden.txt")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, test := range []struct {
+		name   string
+		raw    string
+		exists bool
+		want   string
+	}{
+		{"默认", "", false, string(want)},
+		{"显式地址", " inventory-service:9100 ", true, "INVENTORY_GRPC_TARGET\tinventory-service:9100\n"},
+		{"显式空白", " ", true, "环境变量 INVENTORY_GRPC_TARGET 不能为空"},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var key string
+			reader := config.NewReader(func(name string) (string, bool) {
+				key = name
+				return test.raw, test.exists
+			})
+			target, err := stockTarget(reader)
+			got := key + "\t" + target + "\n"
+			if err != nil {
+				got = err.Error()
+			}
+			if got != test.want {
+				t.Fatalf("库存目标：得到 %q，期望 %q", got, test.want)
+			}
+		})
+	}
+}
+
 // TestShopctlCLIContract 三种库存操作共用一套选项，seed 自己的选项不能被库存操作接走。
 func TestShopctlCLIContract(t *testing.T) {
 	reader := config.NewReader(func(name string) (string, bool) {
