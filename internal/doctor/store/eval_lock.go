@@ -38,26 +38,7 @@ func (store *Store) WithEvalLock(parent context.Context, key string, work func(c
 	}
 	ctx, cancel := context.WithCancelCause(parent)
 	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		ticker := time.NewTicker(2 * time.Second)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				probe, stop := context.WithTimeout(ctx, time.Second)
-				var owned sql.NullBool
-				problem := connection.QueryRowContext(probe, "SELECT IS_USED_LOCK(?)=CONNECTION_ID()", name).Scan(&owned)
-				stop()
-				if problem != nil || !owned.Valid || !owned.Bool {
-					cancel(fmt.Errorf("评测锁连接已丢失，已暂停，请检查数据库后续跑"))
-					return
-				}
-			}
-		}
-	}()
+	go monitorEvalLock(ctx, cancel, connection, name, done)
 	err = work(ctx)
 	cause := context.Cause(ctx)
 	cancel(nil)
@@ -66,4 +47,26 @@ func (store *Store) WithEvalLock(parent context.Context, key string, work func(c
 		return cause
 	}
 	return err
+}
+
+// monitorEvalLock 在持锁连接上复核归属。退出后通知调用方，此时才能丢弃连接。
+func monitorEvalLock(ctx context.Context, cancel context.CancelCauseFunc, connection *sql.Conn, name string, done chan<- struct{}) {
+	defer close(done)
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+		}
+		probe, stop := context.WithTimeout(ctx, time.Second)
+		var owned sql.NullBool
+		err := connection.QueryRowContext(probe, "SELECT IS_USED_LOCK(?)=CONNECTION_ID()", name).Scan(&owned)
+		stop()
+		if err != nil || !owned.Valid || !owned.Bool {
+			cancel(fmt.Errorf("评测锁连接已丢失，已暂停，请检查数据库后续跑"))
+			return
+		}
+	}
 }
