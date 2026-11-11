@@ -1,8 +1,4 @@
-// 本文件：确认模型只收到需要它判断的编号，不靠文字劝它别重复。
-//
-// 主要内容：TestPendingProtocol 验证材料、Schema 和 Mock 的往返；
-// TestInvalidRules 验证坏编号在付费前被拒绝；TestRuleOverride 保留拒绝重复规则项的行为。
-// 阅读建议：这些是通用的假项目，不使用任何场景答案来调评分。
+// 本文件：用虚构项目核对待评编号、Schema 与 Mock 回复，不用任何场景答案调整评分。
 
 package judge
 

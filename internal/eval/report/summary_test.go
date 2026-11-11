@@ -1,11 +1,4 @@
-// 本文件：用固定记录验证组件精确比对、模型变更排除和失败保留。
-//
-// 主要内容：TestSummarize 比较实际存下来的报告；TestMarkdown 保留未完成行。
-// TestMarkdownUnknown 明确展示未知用量和无效时间，不让失败看起来像正常提交。
-// TestMissingDuration 检查没有单调时钟测量的老记录不会被补算成有效耗时。
-// TestReliabilityRows 检查补跑不会隐藏原失败及其未知费用。
-// TestCollectionQuality 验证阶段 9 的审计缺项和实际丢弃都不能冒充正常采集。
-// 阅读建议：组件别名和大小写变化都不自动纠正，避免把宽松匹配冒充精确比较。
+// 本文件：用固定诊断核对组件的精确比较、模型变更和失败样本。组件别名和大小写差异都保留。
 
 package report
 
