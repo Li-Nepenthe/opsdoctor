@@ -88,31 +88,32 @@ func (agent *Agent) Run(parent context.Context, input Input) (Result, error) {
 func (run *session) execute(whole, work context.Context) (Result, error) {
 	for run.budgetReason() == "" {
 		answer, err := run.ask(work, false)
+		if errors.Is(err, llm.ErrDiagnosisBudget) {
+			if run.result.BudgetReason == "" {
+				run.result.BudgetReason = err.Error()
+			}
+			break
+		}
 		if err != nil {
-			if errors.Is(err, llm.ErrDiagnosisBudget) {
-				if run.result.BudgetReason == "" {
-					run.result.BudgetReason = err.Error()
-				}
-				return run.finish(whole)
-			}
-			// 普通阶段时间耗尽后还留有报告时间；主动取消和额度不足不能再发一次付费请求。
-			if work.Err() != nil && whole.Err() == nil {
-				return run.finish(whole)
-			}
-			return run.result, err
+			return run.afterWorkError(whole, work, err)
 		}
 		done, err := run.calls(work, answer.Message.ToolCalls, false)
 		if err != nil {
-			if work.Err() != nil && whole.Err() == nil {
-				return run.finish(whole)
-			}
-			return run.result, err
+			return run.afterWorkError(whole, work, err)
 		}
 		if done {
 			return run.result, nil
 		}
 	}
 	return run.finish(whole)
+}
+
+// afterWorkError 只在查证时间耗尽、总时限仍有余量时转入报告阶段；主动取消会直接结束。
+func (run *session) afterWorkError(whole, work context.Context, err error) (Result, error) {
+	if work.Err() != nil && whole.Err() == nil {
+		return run.finish(whole)
+	}
+	return run.result, err
 }
 
 // ask 把实际脱敏后的请求写进步骤；真实 HTTP 尝试另由 llm 账本在发送前保存。
