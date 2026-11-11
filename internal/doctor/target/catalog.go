@@ -1,14 +1,5 @@
-// 本文件：为每个系统分别创建数据源和工具注册表。
-//
-// Catalog 相当于按系统名索引的通讯录。取出某个 System 后，它的工具就固定使用
-// 这套连接；Run 的参数里没有系统名，也不能拿到连接字符串。
-//
-// 主要内容：
-//   - Load：加载全部配置，逐个装配；失败时关闭已经创建的连接。
-//   - Catalog、System：提供系统查找、令牌验证与公开工具说明。
-//   - build：为单个系统绑定适配器，不使用包级共享客户端。
-//
-// 阅读建议：先看 System 的私有字段，再看 build 如何把不同来源接到 source 接口上。
+// 本文件：目录为每个系统绑定独立连接与工具，调用者按系统名选择注册表。
+// Load 在装配前核对凭据身份，中途失败会关闭已经创建的资源。
 
 package target
 
@@ -44,12 +35,12 @@ type System struct {
 	mcpToken       string            // 仅交给绑定本系统的 MCP 构造函数，禁止写入日志。
 	recoveryWindow time.Duration     // 部署者按本系统告警规则填写，运行时不由请求修改。
 	profile        string            // 部署者的架构说明，不含实验答案。
-	components     []string          // 架构说明中的完整允许标识。
-	unavailable    []string          // 未配置的数据源类别。
-	name           string            // 创建任务时绑定的名字，构造后不再更改。
-	token          [32]byte          // 只保留令牌摘要，用定长比较检查推送身份。
-	registry       *tools.Registry   // 已绑定这个系统的工具集合。
-	closers        []func() error    // 进程结束或装配失败时归还连接资源。
+	components     []string
+	unavailable    []string
+	name           string   // 创建任务时绑定的名字，构造后不再更改。
+	token          [32]byte // 只保留令牌摘要，用定长比较检查推送身份。
+	registry       *tools.Registry
+	closers        []func() error // 进程结束或装配失败时归还连接资源。
 }
 
 // Catalog 不公开内部 map，调用方无法在运行中替换系统。
@@ -76,7 +67,7 @@ func (catalog *Catalog) Get(name string) (*System, bool) {
 	return value, ok
 }
 
-// Names 排序后返回副本，CLI 输出不会随着 map 的遍历顺序变化。
+// Names 将系统名排序后返回，让 CLI 输出顺序稳定。
 func (catalog *Catalog) Names() []string {
 	names := make([]string, 0, len(catalog.systems))
 	for name := range catalog.systems {
@@ -131,7 +122,6 @@ func Load(directory string, lookup func(string) (string, bool)) (*Catalog, error
 
 // credentials 除了变量名，还检查账号身份；换一个变量名不能把同一个账号重复接进来。
 func credentials(configs []Config, lookup func(string) (string, bool)) (map[string]string, error) {
-	// 先取得变量值，再比较账号身份。变量名称不同不代表实际账号不同。
 	values, identities := map[string]string{}, map[string]string{}
 	for _, config := range configs {
 		for _, name := range config.variables() {
@@ -160,12 +150,11 @@ func credentials(configs []Config, lookup func(string) (string, bool)) (map[stri
 	return values, nil
 }
 
-// credentialIdentity 不包含密码；只要主机和用户名一样，就已经是同一个账号。
+// credentialIdentity 对数据库账号比较连接目标与用户名，对令牌比较完整值。
 func credentialIdentity(config Config, name, value string) (string, error) {
 	if config.OpenSearch != nil && name == config.OpenSearch.UsernameEnv {
 		return "opensearch:" + strings.TrimRight(config.OpenSearch.URL, "/") + ":" + value, nil
 	}
-	// 令牌按完整值比较；数据库按地址和用户名比较，不能靠换密码绕过账号隔离。
 	switch name {
 	case config.AlertTokenEnv, config.MCPTokenEnv, config.Ops.TokenEnv:
 		if len(value) < 32 {
@@ -195,9 +184,8 @@ func build(config Config, profile string, values map[string]string) (_ *System, 
 		return nil, err
 	}
 	system := &System{mcpToken: values[config.MCPTokenEnv], name: config.Name, token: sha256.Sum256([]byte(values[config.AlertTokenEnv])), profile: profile, components: components, unavailable: missingSources(config)}
-	// 配置已在创建客户端前校验，这里只把文字时长变成计算用的 Duration。
 	system.recoveryWindow, _ = time.ParseDuration(config.AlertRecoveryWindow)
-	// 具名 result 让 defer 知道是否装配失败。失败时不能留下半套连接池。
+	// 装配中途失败时须关闭本系统已经打开的连接。
 	defer func() {
 		if result != nil {
 			for _, close := range system.closers {

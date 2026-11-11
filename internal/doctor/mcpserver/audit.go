@@ -1,10 +1,5 @@
-// 本文件：让来自外部客户端的工具调用也留下可追查记录。
-//
-// 只读不等于可以没有审计。先保存“开始调用”，再查目标系统；如果进程中途退出，
-// 库里仍有未完成记录。参数只保留短摘要，不能让查询内容或秘密无限堆进审计表。
-//
-// 主要内容：Entry 描述一次调用；Auditor 约定保存接口；auditCalls 包住 SDK 工具分发。
-// 阅读建议：未知工具也经过中间件，不能因为菜单查找失败就漏掉调用记录。
+// 本文件：每次工具调用先登记再分派，即使进程中断也留有开始记录。
+// auditCalls 保存脱敏后的有限长度摘要，并为结束状态单独留出写入时间。
 
 package mcpserver
 
@@ -20,7 +15,7 @@ import (
 
 // Entry 的系统来自固定入口，客户端只提供工具名和参数，二者都尚未被信任。
 type Entry struct {
-	Target    string // 创建入口时绑定的系统。
+	Target    string
 	Tool      string // 请求里的工具名，最多 128 字节。
 	Arguments string // 脱敏后的参数摘要，最多 1024 字节。
 }
@@ -42,7 +37,7 @@ func auditCalls(target string, auditor Auditor, redactor *llm.Redactor) mcp.Midd
 			if !ok {
 				return nil, fmt.Errorf("MCP 工具参数格式无法读取")
 			}
-			// 十秒仍由注册表负责；外层额外一秒只给审计，不能无限占用处理器。
+			// 注册表仍限制工具执行时间，外层额外一秒供审计使用。
 			bounded, cancel := context.WithTimeout(ctx, 11*time.Second)
 			defer cancel()
 			entry := Entry{Target: target, Tool: short(redactor.Text(params.Name), 128), Arguments: short(redactor.Text(string(params.Arguments)), 1024)}
@@ -60,7 +55,7 @@ func auditCalls(target string, auditor Auditor, redactor *llm.Redactor) mcp.Midd
 			if bounded.Err() != nil {
 				status = "cancelled"
 			}
-			// 客户端断开后仍留半秒写结果；不会用这个 context 再访问目标系统。
+			// 请求被取消后仍留半秒写结束状态，这个预算只用于审计。
 			save, stop := context.WithTimeout(context.WithoutCancel(ctx), 500*time.Millisecond)
 			defer stop()
 			if err := auditor.EndMCP(save, id, status); err != nil {

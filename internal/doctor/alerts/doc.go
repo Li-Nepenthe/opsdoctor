@@ -1,12 +1,5 @@
-// Package alerts 把重复收到的告警交给仓储，创建等待处理的诊断任务。
+// Package alerts 校验 Alertmanager 通知，并把同一系统、同一分组的重发交给仓储去重。HTTP 层已经认证推送方，接收回执只说明通知的处理结果。
+// 从 Service.Receive 读到 Receiver，通知通过校验、仓储保存成功后，HTTP 入口才确认收到。
 //
-// 网络推送不保证只来一次。同一个通知可能正常重发，也可能在超时后重试。我们先
-// 检查通知，再按“系统名加分组键”保存。成功响应表示已经落库，阶段 5 不执行诊断。
-//
-// 文件清单：
-//   - service_test.go：从具体告警生成标题，并限制展示长度。
-//   - doc.go：本包的使用背景、边界和阅读顺序。
-//   - service.go：检查 Alertmanager 通知，并把合法的分组交给仓储保存。
-//
-// 阅读顺序：Notification → Receive → Receiver。去重的数据库实现位于 store 包。
+//   - service.go：检查分组状态和各条告警，生成展示标题，并转交仓储持久化。
 package alerts

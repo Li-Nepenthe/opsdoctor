@@ -2,9 +2,6 @@
 //
 // 同一个目录同时放 shop 和第二系统，两套日志后端都通过真实适配器与工具调用。
 // 测试另外检查日志后端二选一、字段缺项和只读账号变量，避免配置错误被静默忽略。
-//
-// 主要内容：TestLogBackendConfig 校验错误配置；TestLogBackendIsolation 走完整查询接线；
-// TestOpenSearchCredentialIsolation 检查账号不能跨系统共用。
 
 package target
 

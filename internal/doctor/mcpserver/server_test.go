@@ -2,8 +2,6 @@
 //
 // 测试只连接 httptest 的本机服务器。真实查询仍由原注册表处理，工具里的架构文字
 // 分别写 A、B，能看出有没有串到另一个系统；不需要真实模型或业务数据库。
-//
-// 主要内容：TestClientBoundary 检查同一注册表与审计；TestTokenIsolation 检查跨系统令牌。
 // 阅读建议：客户端只在 HTTP 请求头加令牌，地址和工具参数里都没有秘密。
 
 package mcpserver

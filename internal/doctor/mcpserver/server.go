@@ -1,10 +1,5 @@
-// 本文件：把已经绑定系统的只读注册表接到 MCP 的 HTTP 入口。
-//
-// 外部客户端与网页不共用一小时登录令牌。每次请求都检查接入配置里的专用令牌，
-// 不把令牌放进 URL。没有服务端会话状态，也就不能拿一个系统的会话换到另一个系统。
-//
-// 主要内容：Registry 复用工具边界；New 建立菜单；authorize 检查每次 HTTP 请求。
-// 阅读建议：只复制 ReadOnly=true 的工具说明，调用时仍进入原注册表的 Run。
+// 本文件：外部 MCP 客户端只使用入口绑定的系统和专用令牌。
+// New 公布已注册的只读工具，authorize 在每个 HTTP 请求进入协议处理前鉴权。
 
 package mcpserver
 
@@ -22,7 +17,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// Registry 定义在使用方，只要求已有菜单与同一执行入口，不接触后端连接。
+// Registry 复用本系统已有的工具菜单与执行入口，外部客户端不持有后端连接。
 type Registry interface {
 	List() []tools.Definition
 	Run(context.Context, string, json.RawMessage) tools.Result
@@ -44,7 +39,7 @@ func New(target, token string, registry Registry, auditor Auditor, redactor *llm
 			return nil, fmt.Errorf("MCP 工具参数说明无法编码")
 		}
 		server.AddTool(&mcp.Tool{Name: definition.Name, Description: definition.Description, InputSchema: json.RawMessage(schema)}, func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-			// 使用 SDK 的原始参数入口，不让另一套自动类型转换改变原注册表的校验规则。
+			// 保留原始参数，交由注册表按同一套规则验证。
 			result := registry.Run(ctx, definition.Name, request.Params.Arguments)
 			raw, _ := json.Marshal(result)
 			clean, err := redactor.JSON(raw)
