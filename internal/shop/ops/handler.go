@@ -23,6 +23,8 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/shop/product"
 )
 
+var approvalIDPattern = regexp.MustCompile(`^[a-f0-9]{32}$`)
+
 // Pool 只开放读取连接池状态和调整上限。
 type Pool interface {
 	Stats() sql.DBStats
@@ -101,7 +103,7 @@ func (handler *Handler) pool(w http.ResponseWriter, r *http.Request) {
 		Before    int    `json:"before"`
 		Size      int    `json:"size"`
 	}
-	if decode(w, r, &input) != nil || !regexp.MustCompile(`^[a-f0-9]{32}$`).MatchString(input.Operation) || input.Size < 5 || input.Size > 200 {
+	if decode(w, r, &input) != nil || !approvalIDPattern.MatchString(input.Operation) || input.Size < 5 || input.Size > 200 {
 		http.Error(w, "连接池参数不合法，允许范围为 5–200", http.StatusBadRequest)
 		return
 	}
