@@ -162,52 +162,68 @@ func (engine *Engine) operate(ctx context.Context, command string, value scenari
 
 // overrides 只覆盖对应动作已有的参数；没有这种动作的场景会拒绝无效的覆盖选项。
 func overrides(value *scenario.Scenario, args []string, output io.Writer) error {
-	// 未指定的选项用 -1 表示，零仍可表示暂停或恢复普通选品。
-	flags := flag.NewFlagSet("inject", flag.ContinueOnError)
-	flags.SetOutput(output)
-	qps := flags.Int("qps", -1, "覆盖流量动作的目标速率")
-	sku := flags.Int64("sku", -1, "覆盖热点商品与单商品缓存操作的编号")
-	latency := flags.Int("latency-ms", -1, "覆盖网络延迟，单位毫秒")
-	if err := flags.Parse(args); err != nil {
+	options, err := parseOverrides(args, output, value.Inject)
+	if err != nil {
 		return err
 	}
-	if flags.NArg() != 0 || *qps < -1 || *sku < -1 || *latency < -1 {
-		return fmt.Errorf("实验参数不合法")
-	}
 	usedQPS, usedSKU, usedLatency := false, false, false
-	for _, step := range value.Inject {
-		// 商品突发必须先暂停普通流量，随后只发查询。通用热点覆盖会把下单也集中起来，重新混入行锁症状。
-		if step.Action == "burst" && (*qps >= 0 || *sku >= 0) {
-			return fmt.Errorf("商品突发场景使用固定的暂停、批次和商品范围，不接受通用 qps 或 sku 覆盖")
-		}
-	}
 	for index := range value.Inject {
 		// 同一个热点编号同步用于流量和单商品缓存，避免删了 A 的缓存却压测 B。
 		step := &value.Inject[index]
 		if step.Action == "load" {
-			if *qps >= 0 {
-				step.QPS = qps
+			if options.qps >= 0 {
+				step.QPS = &options.qps
 				usedQPS = true
 			}
-			if *sku >= 0 {
-				step.HotSKUID = sku
+			if options.sku >= 0 {
+				step.HotSKUID = &options.sku
 				usedSKU = true
 			}
 		}
-		if (step.Action == "delete_cache" || step.Action == "expire_cache") && step.Count == 1 && *sku > 0 {
-			step.FirstSKUID = *sku
+		if (step.Action == "delete_cache" || step.Action == "expire_cache") && step.Count == 1 && options.sku > 0 {
+			step.FirstSKUID = options.sku
 			usedSKU = true
 		}
-		if step.Action == "latency" && *latency >= 0 {
-			step.LatencyMS = *latency
+		if step.Action == "latency" && options.latencyMS >= 0 {
+			step.LatencyMS = options.latencyMS
 			usedLatency = true
 		}
 		if err := scenario.ValidateStep(*step); err != nil {
 			return err
 		}
 	}
-	if (*qps >= 0 && !usedQPS) || (*sku >= 0 && !usedSKU) || (*latency >= 0 && !usedLatency) {
+	if (options.qps >= 0 && !usedQPS) || (options.sku >= 0 && !usedSKU) || (options.latencyMS >= 0 && !usedLatency) {
 		return fmt.Errorf("场景没有对应动作，覆盖参数未生效")
 	}
 	return nil
+}
+
+type overrideOptions struct {
+	qps       int
+	sku       int64
+	latencyMS int
+}
+
+// 先确认命令行格式及选项与场景的兼容性，这一阶段遇到错误时保留原步骤。
+func parseOverrides(args []string, output io.Writer, steps []scenario.Step) (overrideOptions, error) {
+	var options overrideOptions
+	// 未指定的选项用 -1 表示，零仍可表示暂停或恢复普通选品。
+	flags := flag.NewFlagSet("inject", flag.ContinueOnError)
+	flags.SetOutput(output)
+	flags.IntVar(&options.qps, "qps", -1, "覆盖流量动作的目标速率")
+	flags.Int64Var(&options.sku, "sku", -1, "覆盖热点商品与单商品缓存操作的编号")
+	flags.IntVar(&options.latencyMS, "latency-ms", -1, "覆盖网络延迟，单位毫秒")
+	if err := flags.Parse(args); err != nil {
+		return options, err
+	}
+	if flags.NArg() != 0 || options.qps < -1 || options.sku < -1 || options.latencyMS < -1 {
+		return options, fmt.Errorf("实验参数不合法")
+	}
+	for _, step := range steps {
+		// 商品突发必须先暂停普通流量，随后只发查询。通用热点覆盖会把下单也集中起来，重新混入行锁症状。
+		if step.Action == "burst" && (options.qps >= 0 || options.sku >= 0) {
+			return options, fmt.Errorf("商品突发场景使用固定的暂停、批次和商品范围，不接受通用 qps 或 sku 覆盖")
+		}
+	}
+	return options, nil
 }
