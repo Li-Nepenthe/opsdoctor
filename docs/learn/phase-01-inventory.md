@@ -853,9 +853,24 @@ EXPLAIN SELECT sku_id, available FROM stock WHERE sku_id=250000 AND available>=1
 
 ### 实验五：让文件清单检查报错
 
-1. 打开 [inventory/doc.go](../../internal/shop/inventory/doc.go)，删掉文件清单里 `repository_test.go` 那一行。
-2. 运行 `go run ./tools/commentcheck ./...`，应该报告 doc.go 的文件清单漏了 `repository_test.go`。
-3. 恢复那一行，再运行一次，应该通过。
+commentcheck 要求 [inventory/doc.go](../../internal/shop/inventory/doc.go) 提到包里的每个非测试文件。测试文件和 doc.go 自己不用列；而且 doc.go 正文里也会提到这些文件名，所以只删清单里的一行，工具不一定报错。最直接的办法是新增一个文件：
+
+1. 新建 `internal/shop/inventory/extra.go`，内容只有三行：
+
+   ```go
+   // 本文件：实验用的空文件。
+
+   package inventory
+   ```
+
+2. 运行 `go run ./tools/commentcheck ./...`，你应该看到：
+
+   ```text
+   internal/shop/inventory/extra.go:1:1: doc.go 的文件清单未提到 extra.go
+   commentcheck：发现 1 项问题
+   ```
+
+3. 删掉 extra.go，再运行一次，应该通过。
 
 ## 8. 常见误区
 
