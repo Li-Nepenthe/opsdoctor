@@ -11,7 +11,7 @@
 | [architecture](architecture.md) | 看各部分如何连起来，以及告警诊断、注入评测两条流程 |
 | [operations](operations.md) | 查完整运行命令；原 README 的阶段说明完整迁移到这里 |
 | [troubleshooting](troubleshooting.md) | 排查项目自身启动、端口、账号和数据管道问题，不作为医生检索手册 |
-| [interview](interview.md) | 面试前逐题用自己的话复述阶段 0–8、10 的设计与局限 |
+| [interview](interview.md) | 面试题汇总：按知识点分组，每题一句话要点，链接到阶段学习材料里的完整答案 |
 | [resume-draft](resume-draft.md) | 根据已验证能力和台账挑选简历描述，不含个人信息 |
 | [代码地图](代码地图.md) | **读代码前先看它。** 每个目录、每个文件是干什么的，都能在这里查到 |
 | [learn](learn/README.md) | **学习的主线。** 每个阶段一份学习材料：怎么运行、按什么顺序读代码、关键设计为什么这样做、动手实验、必答问题 |
