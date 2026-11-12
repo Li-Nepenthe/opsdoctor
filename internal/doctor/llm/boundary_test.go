@@ -57,6 +57,28 @@ func TestMoney(t *testing.T) {
 	}
 }
 
+// 两次调用的六项读数各不相同，能分清漏记、覆盖原值和把子项加错列。
+func TestUsageAdd(t *testing.T) {
+	total := Usage{Input: 100, Output: 30, CacheHit: 40, CacheWrite: 12, Reasoning: 7, CacheMiss: 60}
+	total.Add(Usage{Input: 21, Output: 15, CacheHit: 8, CacheWrite: 4, Reasoning: 6, CacheMiss: 13})
+
+	for _, field := range []struct {
+		name      string
+		got, want int64
+	}{
+		{"Input", total.Input, 121},
+		{"Output", total.Output, 45},
+		{"CacheHit", total.CacheHit, 48},
+		{"CacheWrite", total.CacheWrite, 16},
+		{"Reasoning", total.Reasoning, 13},
+		{"CacheMiss", total.CacheMiss, 73},
+	} {
+		if field.got != field.want {
+			t.Errorf("%s 累计得 %d，期望 %d", field.name, field.got, field.want)
+		}
+	}
+}
+
 // TestCacheCharge 结算只给明确命中的部分优惠，缺命中字段时全部按未命中计费。
 func TestCacheCharge(t *testing.T) {
 	prices := Prices{InputMicros: 2_000_000, CacheHitMicros: 40_000, OutputMicros: 8_000_000}
