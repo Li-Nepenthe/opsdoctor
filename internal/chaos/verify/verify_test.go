@@ -3,11 +3,6 @@
 // httptest 在本进程提供假的 Prometheus，不依赖正在运行的容器。
 // 测试重点是不能把采集断开或 pending 告警误判成验收通过。
 //
-// 主要内容：
-//   - TestQueryPresence：比较表达式成立时允许零值，空列表和 NaN 不通过。
-//   - TestSymptomRequiresRelatedFiringAlert：症状必须配合真正触发的相关告警。
-//   - TestHealthyRequiresContinuousSamples：坏样本会打断连续健康时间。
-//
 // 阅读建议：注意 PromQL 的过滤比较与带 bool 的比较返回形式不同。
 
 package verify

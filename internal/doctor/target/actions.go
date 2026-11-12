@@ -1,10 +1,5 @@
-// 本文件：把系统说明书、索引账号和运维入口绑定到审批后端。
-//
-// 医生了解允许表的唯一来源是架构组件表。索引账号和只读账号必须连到同一个库，
-// 否则“检查一个库，修改另一个库”会让审批失去意义。
-//
-// 主要内容：bindActions 核对库和表；Actions 返回固定后端；opsConfig 描述接入字段。
-// 阅读建议：没有写账号和运维入口时，系统仍可以只读运行。
+// 本文件：审批后端只使用本系统预先绑定的资源。
+// bindActions 核对索引账号与只读账号指向同一主机和库，允许操作的表来自架构清单。
 
 package target
 
@@ -29,7 +24,7 @@ type opsConfig struct {
 // Actions 不导出账号，只把已经绑定当前系统的后端交给审批服务。
 func (system *System) Actions() *approval.Backend { return system.actions }
 
-// bindActions 必须在只读原生来源装配后调用，审批元数据复用原来的三连接池。
+// bindActions 在只读数据源装配后调用，审批读取元数据时复用同一连接池。
 func (system *System) bindActions(config Config, values map[string]string) error {
 	tables := []string{}
 	dsn := values[config.MySQLDDLEnv]

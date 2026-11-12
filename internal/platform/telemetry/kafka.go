@@ -1,13 +1,4 @@
-// 本文件：在 Kafka 消息头中传递调用链，消息正文仍只包含订单业务字段。
-//
-// HTTP 和 gRPC 插件会自动传递上下文，kafka-go 需要我们手动做这一步。
-// carrier 是“存放字符串键值的容器”。实现传播器需要的三个方法，就能复用 W3C 编码规则。
-//
-// 主要内容：
-//   - KafkaHeaders：把 kafka.Header 切片适配成 TextMapCarrier。
-//   - Get、Set、Keys：读取、替换和列出头字段。
-//
-// 阅读建议：Set 会去掉同名旧值，避免转发消息后出现两个互相矛盾的 traceparent。
+// 本文件：通过 Kafka 消息头在生产者和消费者之间传递调用链，消息正文仍只包含业务数据。
 
 package telemetry
 
@@ -30,7 +21,7 @@ func (headers *KafkaHeaders) Get(key string) string {
 	return ""
 }
 
-// Set 分配自己的切片，既替换重复键，也不修改别人还持有的旧消息头。
+// Set 替换所有同名旧值，转发时才不会送出两个冲突的 traceparent。旧消息头可能仍由调用方持有。
 func (headers *KafkaHeaders) Set(key, value string) {
 	result := make(KafkaHeaders, 0, len(*headers)+1)
 	for _, header := range *headers {

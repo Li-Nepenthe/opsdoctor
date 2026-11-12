@@ -2,14 +2,6 @@
 //
 // HTTP 通过假的 RoundTripper 在内存中处理，不连接网络。随机分布测试使用固定种子，结果可以复现。
 //
-// 主要内容：
-//   - roundTripFunc：把普通函数适配成 HTTP 发送器。
-//   - TestTrafficDistribution：验证 70/20/10 比例、Zipf 热门倾向和指定热点。
-//   - TestRetryKeepsKey：超时只重试一次，保持请求体和幂等键。
-//   - TestStatistics：核对 QPS、错误率和一毫秒桶的百分位。
-//   - TestControl：检查暂停、热点解除和无效更新。
-//   - TestBoundedWorkers：工作者数量受限，停止后没有在途请求残留。
-//
 // 阅读建议：先看第一次超时如何仍留在统计里，再看为什么控制参数不是实际 QPS。
 
 package loadgen

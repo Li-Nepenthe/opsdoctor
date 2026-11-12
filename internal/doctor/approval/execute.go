@@ -1,10 +1,5 @@
-// 本文件：执行已经领取的审批，并在恢复时先核对目标系统的真实状态。
-//
-// 进程可能在 MySQL 已完成建索引、医生还没保存结果时退出。如果直接再执行一次，
-// 就会把成功误报成失败。因此先查索引形状；旧连接还在时也不能盲目发第二次 DDL。
-//
-// 主要内容：execute 分派三种已批准操作；createIndex 查真实状态并执行；setPool 比较当前进程。
-// 阅读建议：本文件不接受模型原始参数，只有审批单中的 Plan 能到达这里。
+// 本文件：执行已领取的审批单，只使用人审阅过的计划。
+// 远端可能已经修改成功，本地还没来得及保存结果。恢复时先核对索引或连接池，旧 DDL 仍在运行时继续等待。
 
 package approval
 
@@ -57,43 +52,19 @@ func (backend *Backend) createIndex(ctx context.Context, record Record, saveConn
 	if backend.ddl == nil || !backend.tables[plan.Table] {
 		return nil, fmt.Errorf("当前接入配置不再允许该索引操作")
 	}
-	for {
-		columns, unique, exists, err := backend.metadata.IndexShape(ctx, plan.Table, plan.Index)
-		if err != nil {
-			return nil, fmt.Errorf("无法核对索引状态")
-		}
-		if exists {
-			if unique != plan.Unique || !slices.Equal(columns, plan.Columns) {
-				return nil, fmt.Errorf("同名索引结构与审批不同，未继续执行")
-			}
-			return map[string]any{"index": plan.Index, "confirmed": true}, nil
-		}
-		if record.ConnectionID == 0 {
-			break
-		}
-		alive, err := backend.metadata.ConnectionAlive(ctx, record.ConnectionID)
-		if err != nil {
-			return nil, fmt.Errorf("无法确认旧的 DDL 连接是否仍在执行")
-		}
-		if !alive {
-			break
-		}
-		// 不占据另一个写连接。旧 DDL 结束后重新看索引，而不是重复发送。
-		timer := time.NewTimer(200 * time.Millisecond)
-		select {
-		case <-ctx.Done():
-			timer.Stop()
-			return nil, fmt.Errorf("旧 DDL 连接仍在，等待超时，未重复执行")
-		case <-timer.C:
-		}
+	exists, err := backend.confirmIndex(ctx, record)
+	if err != nil {
+		return nil, err
+	}
+	if exists {
+		return map[string]any{"index": plan.Index, "confirmed": true}, nil
 	}
 	connection, err := backend.ddl.Conn(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("获取索引连接失败")
 	}
 	defer connection.Close()
-	// Raw 返回 ErrBadConn 告诉 database/sql 丢弃这条连接。即便取消时 MySQL 仍在做 DDL，
-	// 也不能把这条状态不明的连接交给下一次审批；恢复会先核对线程和索引。
+	// 请求取消时 MySQL 可能仍在执行 DDL。用 ErrBadConn 丢弃专用连接，下一次恢复先核对线程和索引。
 	defer func() { _ = connection.Raw(func(any) error { return driver.ErrBadConn }) }()
 	var id int64
 	if err = connection.QueryRowContext(ctx, "SELECT CONNECTION_ID()").Scan(&id); err != nil {
@@ -107,6 +78,41 @@ func (backend *Backend) createIndex(ctx context.Context, record Record, saveConn
 		return nil, fmt.Errorf("%s", databaseProblem(err))
 	}
 	return map[string]any{"index": plan.Index, "confirmed": true}, nil
+}
+
+// confirmIndex 核对索引形状，必要时等旧 DDL 连接退出。返回 false 且无错误时才可发送 DDL。
+func (backend *Backend) confirmIndex(ctx context.Context, record Record) (bool, error) {
+	plan := record.Plan
+	for {
+		columns, unique, exists, err := backend.metadata.IndexShape(ctx, plan.Table, plan.Index)
+		if err != nil {
+			return false, fmt.Errorf("无法核对索引状态")
+		}
+		if exists {
+			if unique != plan.Unique || !slices.Equal(columns, plan.Columns) {
+				return false, fmt.Errorf("同名索引结构与审批不同，未继续执行")
+			}
+			return true, nil
+		}
+		if record.ConnectionID == 0 {
+			return false, nil
+		}
+		alive, err := backend.metadata.ConnectionAlive(ctx, record.ConnectionID)
+		if err != nil {
+			return false, fmt.Errorf("无法确认旧的 DDL 连接是否仍在执行")
+		}
+		if !alive {
+			return false, nil
+		}
+		// 不占据另一个写连接。旧 DDL 结束后重新看索引，而不是重复发送。
+		timer := time.NewTimer(200 * time.Millisecond)
+		select {
+		case <-ctx.Done():
+			timer.Stop()
+			return false, fmt.Errorf("旧 DDL 连接仍在，等待超时，未重复执行")
+		case <-timer.C:
+		}
+	}
 }
 
 // setPool 先看当前状态。同一审批已经成功时不再写；审批后重启或被别人修改则拒绝。

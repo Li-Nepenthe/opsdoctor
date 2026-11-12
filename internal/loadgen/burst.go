@@ -1,15 +1,5 @@
-// 本文件：把一小批商品查询同时交给已有的工作者。
-//
-// 秒杀开始时，一批用户可能同时打开同一件商品。普通的均匀发请求方式不容易重现这个瞬间。
-// 这里先让工作者就位，再一起发出查询。仍复用固定的工作者，不为每个 HTTP 控制请求创建一批 goroutine。
-//
-// 主要内容：
-//   - burstState、burstBatch：保存一批查询的进度和共同的出发信号。
-//   - submit：检查商品范围与并发上限，拒绝叠加尚未结束的批次。
-//   - finish、snapshot：记录真实完成数，供控制接口查询。
-//   - dispatchBurst：等已有工作者接好任务后，再放行这一批商品查询。
-//
-// 阅读建议：start 通道关闭只表示“可以出发”，不表示请求已经成功。
+// 本文件：把一批商品查询交给普通流量使用的那组工作者。
+// 调度者等工作者就位才统一放行。控制接口收到的是批次编号，实际完成数要等请求返回后再查。
 
 package loadgen
 
@@ -32,7 +22,7 @@ type burstReport struct {
 
 // burstBatch 只装有限的任务信息。所有工作者等待同一个 start，不复制一份请求队列。
 type burstBatch struct {
-	id       uint64        // 对应控制接口返回的批次编号。
+	id       uint64
 	skuID    int64         // 一批只查一个商品，不生成订单或扣库存。
 	requests int           // 不超过固定工作者数量。
 	start    chan struct{} // 调度者关闭后，已经就位的工作者一起开始。
@@ -40,7 +30,7 @@ type burstBatch struct {
 
 // burstState 用一把锁保护进度；队列最多容纳一批，运行中的批次不能叠加。
 type burstState struct {
-	mu           sync.Mutex       // 保护 report，调度与 HTTP 请求会同时访问。
+	mu           sync.Mutex
 	report       burstReport      // 只保存最后一批，不随运行时间积累历史。
 	queue        chan *burstBatch // 容量为一，工作者仍由 generator.run 统一创建。
 	workers      int              // 复用启动配置的上限，最大为 256。

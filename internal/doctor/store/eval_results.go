@@ -1,11 +1,5 @@
-// 本文件：保存实验槽位、最初告警和最终结果，供评测器断点续跑。
-//
-// 槽位就是“某个场景的第几次、哪个实验组”。它先于模型任务保存。即使在创建
-// 任务后丢了回复，再次运行也会拿回同一个输入和编号，不会再付一次钱。
-//
-// 主要内容：PrepareEvalResult 保存不可变输入；AttachEvalDiagnosis 关联幂等任务；
-// FinishEvalResult 只保存一次终态；EvalResults 为导出和页面返回结果。
-// 阅读建议：不覆盖失败结果；需要重新运行时使用新的批次或明确的新轮次。
+// 本文件：每个实验组在故障的一轮注入中占一个结果槽位。先保存槽位和告警再创建模型任务，断点续跑才能取回原输入和诊断编号。
+// 终态只写一次，包括失败结果。需要再运行时须使用新批次、新轮次或获准的补跑槽位。
 
 package store
 
@@ -23,16 +17,16 @@ type EvalResult struct {
 	ExecutionProfile string          `json:"execution_profile"`  // 同组的不同模型分别占槽位。
 	Attempt          int             `json:"attempt"`            // 0 是原运行，1 是唯一一次基础设施补跑。
 	RetryOf          string          `json:"retry_of,omitempty"` // 指回原失败，导出时不能把两次尝试混成一次成功。
-	Key              string          `json:"key"`                // 全局唯一槽位编号。
-	RunID            string          `json:"run_id"`             // 批次拥有自己的 token 额度。
-	Scenario         string          `json:"scenario"`           // 仅评测器和结果页使用，不发给诊断模型。
-	Iteration        int             `json:"iteration"`          // 从一开始的重复轮次。
-	Group            string          `json:"group"`              // E0–E3。
-	Position         int             `json:"position"`           // 同次故障中实际执行的先后位置。
-	FaultStartedAt   time.Time       `json:"fault_started_at"`   // 配对组共用的开始时间。
-	Input            json.RawMessage `json:"input"`              // 最初告警快照，续跑不重抓一份来替换。
-	DiagnosisID      string          `json:"diagnosis_id"`       // 与诊断表的唯一关联。
-	Data             json.RawMessage `json:"result"`             // 不可变终态摘要；完整步骤仍在诊断表。
+	Key              string          `json:"key"`
+	RunID            string          `json:"run_id"`    // 批次拥有自己的 token 额度。
+	Scenario         string          `json:"scenario"`  // 仅评测器和结果页使用，不发给诊断模型。
+	Iteration        int             `json:"iteration"` // 从一开始的重复轮次。
+	Group            string          `json:"group"`
+	Position         int             `json:"position"`         // 同次故障中实际执行的先后位置。
+	FaultStartedAt   time.Time       `json:"fault_started_at"` // 配对组共用的开始时间。
+	Input            json.RawMessage `json:"input"`            // 最初告警快照，续跑不重抓一份来替换。
+	DiagnosisID      string          `json:"diagnosis_id"`
+	Data             json.RawMessage `json:"result"` // 不可变终态摘要；完整步骤仍在诊断表。
 }
 
 // EvalDiagnosisState 的轮询只取一个状态字段，不反复加载可能很长的模型对话。
@@ -52,7 +46,7 @@ func (store *Store) PrepareEvalResult(ctx context.Context, value EvalResult) (Ev
 		return value, err
 	}
 	// 与恢复文件的比较统一用微秒截断，不能交给数据库自行四舍五入。
-	_, err = store.database.ExecContext(ctx, "INSERT INTO eval_results(result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,execution_profile) VALUES(?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE result_key=result_key", value.Key, value.RunID, value.Scenario, value.Iteration, value.Group, value.Position, value.FaultStartedAt.UTC().Truncate(time.Microsecond), clean, value.ExecutionProfile)
+	_, err = store.database.ExecContext(ctx, freezeEvalSlotSQL, value.Key, value.RunID, value.Scenario, value.Iteration, value.Group, value.Position, value.FaultStartedAt.UTC().Truncate(time.Microsecond), clean, value.ExecutionProfile)
 	if err != nil {
 		return value, err
 	}
@@ -69,16 +63,34 @@ func (store *Store) PrepareEvalResult(ctx context.Context, value EvalResult) (Ev
 
 // readEvalResult 在一个查询里取回完整槽位，避免分别读取时拼出不同版本的快照。
 func (store *Store) readEvalResult(ctx context.Context, key string) (EvalResult, error) {
-	var value EvalResult
-	var data, judgement []byte
-	err := store.database.QueryRowContext(ctx, "SELECT result_key,run_id,scenario,iteration,experiment_group,position,fault_started_at,input,COALESCE(diagnosis_id,''),result,attempt,COALESCE(retry_of,''),execution_profile,COALESCE(judge_id,''),judgement FROM eval_results WHERE result_key=?", key).Scan(&value.Key, &value.RunID, &value.Scenario, &value.Iteration, &value.Group, &value.Position, &value.FaultStartedAt, &value.Input, &value.DiagnosisID, &data, &value.Attempt, &value.RetryOf, &value.ExecutionProfile, &value.JudgeID, &judgement)
-	value.Data, value.Judgement = data, judgement
-	return value, err
+	var row struct {
+		EvalResult
+		data, judgement []byte // 结果和评分在各自结束前可以是 SQL NULL。
+	}
+	err := store.database.QueryRowContext(ctx, readEvalResultSQL, key).Scan(
+		&row.Key,
+		&row.RunID,
+		&row.Scenario,
+		&row.Iteration,
+		&row.Group,
+		&row.Position,
+		&row.FaultStartedAt,
+		&row.Input,
+		&row.DiagnosisID,
+		&row.data,
+		&row.Attempt,
+		&row.RetryOf,
+		&row.ExecutionProfile,
+		&row.JudgeID,
+		&row.judgement,
+	)
+	row.Data, row.Judgement = row.data, row.judgement
+	return row.EvalResult, err
 }
 
 // AttachEvalDiagnosis 只接受同批次、同幂等编号的任务，不能把另一次好结果移过来替换失败。
 func (store *Store) AttachEvalDiagnosis(ctx context.Context, key, id string) error {
-	changed, err := store.database.ExecContext(ctx, "UPDATE eval_results r JOIN diagnoses d ON d.id=? AND d.eval_key=r.result_key AND d.eval_run_id=r.run_id AND d.eval_profile=r.execution_profile SET r.diagnosis_id=d.id WHERE r.result_key=? AND (r.diagnosis_id IS NULL OR r.diagnosis_id=d.id)", id, key)
+	changed, err := store.database.ExecContext(ctx, attachEvalDiagnosisSQL, id, key)
 	if err != nil {
 		return err
 	}
@@ -105,7 +117,7 @@ func (store *Store) FinishEvalResult(ctx context.Context, key string, result jso
 	if err != nil {
 		return err
 	}
-	if _, err = store.database.ExecContext(ctx, "UPDATE eval_results r JOIN diagnoses d ON d.id=r.diagnosis_id SET r.result=?,r.finished_at=UTC_TIMESTAMP(6) WHERE r.result_key=? AND r.result IS NULL AND d.status IN ('succeeded','failed','cancelled','budget_exceeded')", clean, key); err != nil {
+	if _, err = store.database.ExecContext(ctx, finishEvalResultSQL, clean, key); err != nil {
 		return err
 	}
 	saved, err := store.readEvalResult(ctx, key)
@@ -152,3 +164,69 @@ func (store *Store) EvalResults(ctx context.Context, runID string) ([]EvalResult
 	}
 	return values, nil
 }
+
+const freezeEvalSlotSQL = `INSERT INTO eval_results (
+    result_key,
+    run_id,
+    scenario,
+    iteration,
+    experiment_group,
+    position,
+    fault_started_at,
+    input,
+    execution_profile
+)
+VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
+)
+ON DUPLICATE KEY UPDATE result_key = result_key`
+
+const readEvalResultSQL = `SELECT
+    result_key,
+    run_id,
+    scenario,
+    iteration,
+    experiment_group,
+    position,
+    fault_started_at,
+    input,
+    COALESCE(diagnosis_id, ''),
+    result,
+    attempt,
+    COALESCE(retry_of, ''),
+    execution_profile,
+    COALESCE(judge_id, ''),
+    judgement
+FROM eval_results
+WHERE result_key = ?`
+
+const attachEvalDiagnosisSQL = `UPDATE eval_results r
+JOIN diagnoses d ON d.id = ?
+AND d.eval_key = r.result_key
+AND d.eval_run_id = r.run_id
+AND d.eval_profile = r.execution_profile
+SET r.diagnosis_id = d.id
+WHERE r.result_key = ?
+    AND (r.diagnosis_id IS NULL
+         OR r.diagnosis_id = d.id)`
+
+const finishEvalResultSQL = `UPDATE eval_results r
+JOIN diagnoses d ON d.id = r.diagnosis_id
+SET
+    r.result = ?,
+    r.finished_at = UTC_TIMESTAMP(6)
+WHERE r.result_key = ?
+    AND r.result IS NULL
+    AND d.status IN (
+                         'succeeded',
+                         'failed',
+                         'cancelled',
+                         'budget_exceeded')`

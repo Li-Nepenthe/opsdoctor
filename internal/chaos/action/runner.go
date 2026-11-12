@@ -1,14 +1,5 @@
-// 本文件：把已检查的场景动作交给真正的外部系统执行。
-//
-// 注入器在宿主机运行。它能改靶场的结构和配置，因此使用独立账号，且不被业务服务导入。
-// 每个动作只做一件事，实验顺序和失败恢复由 app 负责。
-//
-// 主要内容：
-//   - Runner：持有外部地址和可替换的命令执行函数。
-//   - Execute：校验动作后分派到数据库、网络、发布或流量操作。
-//   - Command：直接启动 docker，不经过 shell 解释参数。
-//
-// 阅读建议：先看分派，再去对应文件查看真正发出的请求。
+// 本文件：宿主机执行器使用独立账号，业务服务不会导入本包。
+// Execute 在分派前重新校验输入，实验顺序与失败恢复由 app 负责。
 
 package action
 
@@ -29,20 +20,19 @@ const commandBudget = 3 * time.Minute
 
 // Runner 只保存配置，不长时间占用数据库连接。测试可以替换 RunCommand 来观察命令。
 type Runner struct {
-	OrderURL      string                                                             // 宿主机正常商品入口，不提供专用故障接口。
-	Root          string                                                             // 仓库根目录，Compose 的相对路径由此解释。
-	MySQLDSN      string                                                             // 独立的 chaos 账号 DSN，绝不写进输出或本机恢复记录。
-	RedisPassword string                                                             // REDIS_PASSWORD，只供宿主机实验动作使用，不写进恢复记录。
-	RedisAddress  string                                                             // 只操作 product: 前缀，禁止清库。
-	ProxyURL      string                                                             // Toxiproxy 本机管理地址。
-	LoadURL       string                                                             // loadgen 本机控制地址。
-	HTTP          *http.Client                                                       // 所有控制请求都有超时。
+	OrderURL      string // 宿主机业务入口。
+	Root          string // Compose 的相对路径从这里解析。
+	MySQLDSN      string // 独立的 chaos 账号 DSN，绝不写进输出或本机恢复记录。
+	RedisPassword string // REDIS_PASSWORD，只供宿主机实验动作使用，不写进恢复记录。
+	RedisAddress  string // 只操作 product: 前缀，禁止清库。
+	ProxyURL      string
+	LoadURL       string
+	HTTP          *http.Client
 	RunCommand    func(context.Context, []string, map[string]string) ([]byte, error) // 测试用假执行器替换 docker。
 }
 
 // Execute 再次检查参数，防止调用方绕过 YAML 加载器后执行任意操作。
 func (runner *Runner) Execute(ctx context.Context, step scenario.Step) error {
-	// 所有入口共用同一校验，直接调用执行器也不能绕过白名单。
 	if err := scenario.ValidateStep(step); err != nil {
 		return err
 	}

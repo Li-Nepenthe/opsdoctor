@@ -1,7 +1,5 @@
-// 本文件：验证换库后工具实际使用的参数、输入边界和诊断菜单隔离。
+// 本文件：验证工具实际使用的参数、输入边界和诊断菜单隔离。
 //
-// 主要内容：TestParameterNumbers 覆盖已接受的数字写法；TestParameterBoundaries 检查约束；
-// TestParameterRules 检查默认值和副本；TestInvalidParameterDefinition 检查启动时拒绝坏定义。
 // 阅读建议：这些测试只检查项目契约，不把候选库的未采纳行为当成新要求。
 
 package tools

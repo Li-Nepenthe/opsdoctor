@@ -1,8 +1,4 @@
-// 本文件：用专用测试库检查故障轮次在进程中断后的续跑边界。
-//
-// 主要内容：TestIntegrationEvalTrial 验证状态不回退、失败保留和恢复时间；
-// TestTrialTransition 验证不能跳过注入、诊断或恢复。
-// 阅读建议：读取旧轮次必须拿回原时间，不能把命令重试算作一次新的故障。
+// 本文件：重读每个故障检查点模拟命令重启。恢复时间、旧中断和状态推进顺序都应保留，避免把一次重试算成新注入。
 
 package store
 
@@ -36,7 +32,7 @@ func TestTrialTransition(t *testing.T) {
 func TestIntegrationEvalTrial(t *testing.T) {
 	repository, input := evaluationFixture(t)
 	ctx := t.Context()
-	// 故意保留会被数据库向上取整的纳秒，也带上本地时区，复现真实恢复文件。
+	// 恢复文件使用本地时区，纳秒尾数会被 MySQL 向上取整；这里用同样的时间核对续跑。
 	fault := time.Date(2026, 10, 29, 5, 20, 2, 15277600, time.FixedZone("test", -7*3600))
 	for _, next := range []string{"injecting", "verifying", "diagnosing", "restoring", "cooling", "done"} {
 		value, err := repository.EvalTrial(ctx, input.RunID, "S01", 1)

@@ -1,11 +1,4 @@
-// 本文件：保存人工审批，并用条件更新保证同一张单只能批准或拒绝一次。
-//
-// 审批接口只能给出“同意还是拒绝”。SQL 更新不接受新参数，所以审批之后也不能
-// 换掉原来的索引、连接池值或商品编号。执行状态另行保存，重启后先看真实结果。
-//
-// 主要内容：CreateApproval 保存计划；DecideApproval 抢占决定权；ClaimApproval 领取执行；
-// FinishApproval 保存结果；ExpireApprovals 让过期申请也能交回模型。
-// 阅读建议：写入先锁诊断行，再锁审批行，与执行租约遵循同样顺序。
+// 本文件：在锁定诊断后保存审批决定和执行线索。批准只针对已保存的计划，不能在决定时改参数。写入按诊断行、审批行的顺序加锁。
 
 package store
 
@@ -29,7 +22,29 @@ func (store *Store) FindApproval(ctx context.Context, diagnosis, id string) (app
 }
 
 // approvalSelect 所有查询共用固定列序，JSON 计划只读，不允许调用方拼字段。
-const approvalSelect = `SELECT a.id,a.diagnosis_id,d.target,a.parent_seq,a.call_id,a.step_seq,a.tool_name,a.args,a.plan,a.reason,a.evidence_steps,a.expected_effect,a.risk,a.status,a.expires_at,a.decided_by,a.decided_at,a.executed_at,a.connection_id,a.result FROM approvals a JOIN diagnoses d ON d.id=a.diagnosis_id`
+const approvalSelect = `SELECT
+    a.id,
+    a.diagnosis_id,
+    d.target,
+    a.parent_seq,
+    a.call_id,
+    a.step_seq,
+    a.tool_name,
+    a.args,
+    a.plan,
+    a.reason,
+    a.evidence_steps,
+    a.expected_effect,
+    a.risk,
+    a.status,
+    a.expires_at,
+    a.decided_by,
+    a.decided_at,
+    a.executed_at,
+    a.connection_id,
+    a.result
+FROM approvals a
+JOIN diagnoses d ON d.id = a.diagnosis_id`
 
 // scanner 让 QueryRow 和 Rows 使用同一套解码，避免列表与执行读出不同参数。
 type scanner interface{ Scan(...any) error }
@@ -37,27 +52,35 @@ type scanner interface{ Scan(...any) error }
 // scanApproval 不给损坏的 JSON 补默认值，无法准确恢复参数时必须停下。
 func scanApproval(row scanner) (approval.Record, error) {
 	var value approval.Record
-	var plan, evidence, result []byte
-	var decided, executed sql.NullTime
-	err := row.Scan(&value.ID, &value.DiagnosisID, &value.Target, &value.ParentSeq, &value.CallID, &value.StepSeq, &value.Tool, &value.Args, &plan, &value.Reason, &evidence, &value.Expected, &value.Risk, &value.Status, &value.ExpiresAt, &value.DecidedBy, &decided, &executed, &value.ConnectionID, &result)
+	var raw struct {
+		plan, evidence, result []byte
+		decided, executed      sql.NullTime
+	}
+	err := row.Scan(
+		&value.ID, &value.DiagnosisID, &value.Target, &value.ParentSeq,
+		&value.CallID, &value.StepSeq, &value.Tool, &value.Args,
+		&raw.plan, &value.Reason, &raw.evidence, &value.Expected,
+		&value.Risk, &value.Status, &value.ExpiresAt, &value.DecidedBy,
+		&raw.decided, &raw.executed, &value.ConnectionID, &raw.result,
+	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return value, approval.ErrNotFound
 	}
 	if err != nil {
 		return value, err
 	}
-	if json.Unmarshal(plan, &value.Plan) != nil || json.Unmarshal(evidence, &value.Evidence) != nil {
+	if json.Unmarshal(raw.plan, &value.Plan) != nil || json.Unmarshal(raw.evidence, &value.Evidence) != nil {
 		return value, fmt.Errorf("审批参数损坏，不能执行")
 	}
-	if len(result) > 0 && json.Unmarshal(result, &value.Result) != nil {
+	if len(raw.result) > 0 && json.Unmarshal(raw.result, &value.Result) != nil {
 		return value, fmt.Errorf("审批结果损坏")
 	}
 	// NULL 表示还没有人决定或执行，页面不能把零时间显示成真实操作时间。
-	if decided.Valid {
-		value.DecidedAt = &decided.Time
+	if raw.decided.Valid {
+		value.DecidedAt = &raw.decided.Time
 	}
-	if executed.Valid {
-		value.ExecutedAt = &executed.Time
+	if raw.executed.Valid {
+		value.ExecutedAt = &raw.executed.Time
 	}
 	return value, nil
 }
@@ -100,17 +123,13 @@ func (store *Store) CreateApproval(ctx context.Context, value approval.Record) (
 	// 计划和可回放步骤一起提交，避免崩溃后页面有申请、数据库却没有执行依据。
 	plan, _ := json.Marshal(value.Plan)
 	evidence, _ := json.Marshal(value.Evidence)
-	_, err = tx.ExecContext(ctx, `INSERT INTO approvals(id,diagnosis_id,parent_seq,call_id,tool_name,args,plan,reason,evidence_steps,expected_effect,risk,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,UTC_TIMESTAMP(6)+INTERVAL 30 MINUTE) ON DUPLICATE KEY UPDATE id=id`, value.ID, value.DiagnosisID, value.ParentSeq, value.CallID, value.Tool, value.Args, plan, value.Reason, evidence, value.Expected, value.Risk)
+	_, err = tx.ExecContext(ctx, insertApprovalSQL, value.ID, value.DiagnosisID, value.ParentSeq, value.CallID, value.Tool, value.Args, plan, value.Reason, evidence, value.Expected, value.Risk)
 	if err != nil {
 		return value, err
 	}
-	state, message := "pending", "等待人工审批，尚未执行"
-	if trigger == "eval" {
-		// 评测要观察原故障，不能把环境修好了再继续比较。拒绝和原始提议一起保存。
-		state, message = "rejected", "评测策略拒绝全部写操作，已保留提议，未执行"
-		if _, err = tx.ExecContext(ctx, "UPDATE approvals SET status='rejected',decided_by='eval-policy',decided_at=UTC_TIMESTAMP(6) WHERE id=? AND status='pending'", value.ID); err != nil {
-			return value, err
-		}
+	state, message, err := proposalForMode(ctx, tx, trigger, value.ID)
+	if err != nil {
+		return value, err
 	}
 	payload, _ := json.Marshal(map[string]string{"approval_id": value.ID, "status": state, "message": message})
 	step, err := store.appendStep(ctx, tx, value.DiagnosisID, agent.Step{EventKey: "approval:" + value.ID, ParentSeq: value.ParentSeq, CallID: value.CallID, Kind: "approval", ToolName: value.Tool, Args: value.Args, Result: string(payload), Status: state})
@@ -144,20 +163,20 @@ func (store *Store) DecideApproval(ctx context.Context, id, user string, approve
 	// 先锁诊断，防止用户取消与批准并发时还放行写操作。
 	var active bool
 	var trigger string
-	if err = tx.QueryRowContext(ctx, "SELECT status IN ('running','waiting_approval') AND cancel_requested=FALSE,`trigger` FROM diagnoses WHERE id=? FOR UPDATE", diagnosis).Scan(&active, &trigger); err != nil {
+	if err = tx.QueryRowContext(ctx, lockApprovalDiagnosisSQL, diagnosis).Scan(&active, &trigger); err != nil {
 		return false, err
 	}
 	if !active {
 		return false, nil
 	}
-	if approved && trigger == "eval" {
-		return false, fmt.Errorf("评测诊断不允许批准写操作")
+	if err := checkDecisionMode(trigger, approved); err != nil {
+		return false, err
 	}
 	state := "rejected"
 	if approved {
 		state = "approved"
 	}
-	changed, err := tx.ExecContext(ctx, "UPDATE approvals SET status=?,decided_by=?,decided_at=UTC_TIMESTAMP(6) WHERE id=? AND status='pending' AND expires_at>UTC_TIMESTAMP(6)", state, user, id)
+	changed, err := tx.ExecContext(ctx, decidePendingApprovalSQL, state, user, id)
 	if err != nil {
 		return false, err
 	}
@@ -196,10 +215,10 @@ func (store *Store) ClaimApproval(ctx context.Context, diagnosis, id string) (ap
 	if cancelled {
 		return approval.Record{}, fmt.Errorf("诊断已取消，不再执行审批")
 	}
-	if trigger == "eval" {
-		return approval.Record{}, fmt.Errorf("评测诊断不能领取写操作，即使审批记录被误改为批准")
+	if err := checkExecutionMode(trigger); err != nil {
+		return approval.Record{}, err
 	}
-	if err = tx.QueryRowContext(ctx, "SELECT status,execution_owner FROM approvals WHERE id=? AND diagnosis_id=? FOR UPDATE", id, diagnosis).Scan(&state, &owner); err != nil {
+	if err = tx.QueryRowContext(ctx, lockApprovalExecutionSQL, id, diagnosis).Scan(&state, &owner); err != nil {
 		return approval.Record{}, err
 	}
 	// 相同租约不能同时启动两次执行；新租约才允许接手并核对远端状态。
@@ -255,7 +274,7 @@ func (store *Store) FinishApproval(ctx context.Context, diagnosis, id string, re
 		state = "executed"
 	}
 	raw, _ := json.Marshal(result)
-	res, err := tx.ExecContext(ctx, "UPDATE approvals SET status=?,executed_at=UTC_TIMESTAMP(6),result=? WHERE id=? AND diagnosis_id=? AND status='executing'", state, raw, id, diagnosis)
+	res, err := tx.ExecContext(ctx, finishApprovalSQL, state, raw, id, diagnosis)
 	if err != nil {
 		return err
 	}
@@ -315,7 +334,7 @@ func (store *Store) expireApproval(ctx context.Context, id, diagnosis string) er
 	if err = tx.QueryRowContext(ctx, "SELECT id FROM diagnoses WHERE id=? FOR UPDATE", diagnosis).Scan(&locked); err != nil {
 		return err
 	}
-	res, err := tx.ExecContext(ctx, "UPDATE approvals SET status='expired',decided_at=UTC_TIMESTAMP(6) WHERE id=? AND status='pending' AND expires_at<=UTC_TIMESTAMP(6)", id)
+	res, err := tx.ExecContext(ctx, expirePendingApprovalSQL, id)
 	if err != nil {
 		return err
 	}
@@ -335,3 +354,79 @@ func (store *Store) expireApproval(ctx context.Context, id, diagnosis string) er
 	store.publish(diagnosis, step)
 	return nil
 }
+
+const insertApprovalSQL = `INSERT INTO approvals (
+    id,
+    diagnosis_id,
+    parent_seq,
+    call_id,
+    tool_name,
+    args,
+    plan,
+    reason,
+    evidence_steps,
+    expected_effect,
+    risk,
+    expires_at
+)
+VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    UTC_TIMESTAMP(6) + INTERVAL 30 MINUTE
+)
+ON DUPLICATE KEY UPDATE id = id`
+
+const lockApprovalDiagnosisSQL = `SELECT status IN (
+                      'running',
+                      'waiting_approval')
+AND cancel_requested =
+    FALSE,
+    ` + "`trigger`" + `
+FROM diagnoses
+WHERE id = ?
+    FOR
+    UPDATE`
+
+const decidePendingApprovalSQL = `UPDATE approvals
+SET
+    status = ?,
+    decided_by = ?,
+    decided_at = UTC_TIMESTAMP(6)
+WHERE id = ?
+    AND status = 'pending'
+    AND expires_at > UTC_TIMESTAMP(6)`
+
+const lockApprovalExecutionSQL = `SELECT
+    status,
+    execution_owner
+FROM approvals
+WHERE id = ?
+    AND diagnosis_id = ?
+    FOR
+    UPDATE`
+
+const finishApprovalSQL = `UPDATE approvals
+SET
+    status = ?,
+    executed_at = UTC_TIMESTAMP(6),
+    result = ?
+WHERE id = ?
+    AND diagnosis_id = ?
+    AND status = 'executing'`
+
+const expirePendingApprovalSQL = `UPDATE approvals
+SET
+    status = 'expired',
+    decided_at = UTC_TIMESTAMP(6)
+WHERE id = ?
+    AND status = 'pending'
+    AND expires_at <= UTC_TIMESTAMP(6)`

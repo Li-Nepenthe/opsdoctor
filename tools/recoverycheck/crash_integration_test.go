@@ -3,9 +3,6 @@
 // 普通事务测试可以模拟租约过期，但不能证明进程消失时内存数据不会被误当成
 // 已保存的步骤。这里运行当前测试程序的子进程，只使用 Mock 和专用医生测试库。
 //
-// 主要内容：TestIntegrationProcessCrash 覆盖查证、换模型、待审批和中断过久；
-// TestIntegrationCrashWorker 是子进程入口；crashModel 提供确定的离线回答。
-// TestIntegrationWriteCrash 在运维接口改好连接池、回复尚未送达时杀进程，再核对恢复只读状态。
 // 阅读建议：父进程只终止自己启动的子进程，不操作 Docker 或其他应用。
 
 package recoverycheck

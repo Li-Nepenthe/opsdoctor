@@ -1,9 +1,4 @@
-// 本文件：检查盲评抽样覆盖不同来源，且绝不替评分者补分。
-//
-// 主要内容：TestCalibrationSelection 检查二十个不同编号和分层；
-// TestBlindAndAgreement 检查评分空白、原材料保留以及缺分拒绝。
-// TestCalibrationCollectionQuality 不把阶段 9 的采集异常混入正常报告抽样。
-// 阅读建议：样本都是虚构数据，不用于项目实际成绩。
+// 本文件：用虚构报告核对盲评抽样、不同来源覆盖和空白评分表。缺少独立评分时不能自动补分。
 
 package report
 

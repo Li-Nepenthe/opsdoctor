@@ -1,14 +1,5 @@
-// 本文件：改动明确允许的索引，以及商品缓存的有效时间。
-//
-// 改结构使用专用 chaos 账号。缓存操作只认 product: 前缀，不能碰订单幂等记录。
-// 两类操作放在这里，便于逐条审查实际 SQL 和 Redis 命令。
-//
-// 主要内容：
-//   - index：读取索引状态，再执行固定的删除或恢复语句。
-//   - expectedIndex：检查列顺序与唯一性，避免误操作同名但不同结构的索引。
-//   - cache：按有限商品范围删除缓存或统一到期时间。
-//
-// 阅读建议：索引恢复可以重复执行，但这不意味着删除动作可以忽略前置条件。
+// 本文件：实验数据访问使用独立账号，并限定在登记的索引和商品缓存范围内。
+// expectedIndex 在操作前核对索引结构，防止同名索引被误改。
 
 package action
 
@@ -61,7 +52,7 @@ func (runner *Runner) index(ctx context.Context, step scenario.Step) error {
 
 // expectedIndex 不只检查名字，还核对列顺序和唯一性，避免把同名但结构不同的索引误删。
 func expectedIndex(ctx context.Context, database *sql.DB, step scenario.Step) (bool, error) {
-	// 聚合查询没有匹配行时返回 NULL。NullString/NullInt64 的 Valid 区分 NULL 与真正的空值或零。
+	// 没有匹配索引时结果为 NULL，要与真实的空值或零值区分。
 	var columns sql.NullString
 	var nonUnique sql.NullInt64
 	// 只读取元数据，不扫描业务记录，也不取得业务行锁。

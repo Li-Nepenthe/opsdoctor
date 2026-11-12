@@ -1,14 +1,5 @@
-// 本文件：组织一次实验，并把尚未恢复的状态留在宿主机。
-//
-// 外部动作可能执行成功却没有返回确认。先落盘恢复记录，再开始动作，进程退出后仍有依据恢复。
-// selftest 的结果按行输出，失败也保留，不能只留下成功的轮次。
-//
-// 主要内容：
-//   - Executor、Observer：只声明流程需要的能力，测试用假的实现替换。
-//   - Engine、Record：连接场景、动作与本机恢复记录。
-//   - Inject、Restore：保证修改前有记录，恢复全部成功后才删除记录。
-//
-// 阅读建议：先看 Inject 的写入顺序，再看 Restore 如何继续执行剩余的清理动作。
+// 本文件：外部动作失去确认时也可能已生效。
+// Inject 在首次实验动作之前持久化恢复记录，Restore 完成全部清理后才移除它。
 
 package app
 
@@ -28,8 +19,8 @@ import (
 // Executor 隔离真正的 Docker、数据库和网络操作，流程测试无需启动容器。
 type Executor interface {
 	Capture(context.Context, scenario.Scenario) (action.Baseline, error) // 必须在第一项改动之前完成。
-	Execute(context.Context, scenario.Step) error                        // 执行一项已经校验的动作。
-	Restore(context.Context, scenario.Step, action.Baseline) error       // 根据原配置恢复。
+	Execute(context.Context, scenario.Step) error
+	Restore(context.Context, scenario.Step, action.Baseline) error
 }
 
 // Observer 只看监控结果，不借用注入器内部状态判断故障是否出现。
@@ -41,20 +32,20 @@ type Observer interface {
 // Record 保留当时的完整场景，恢复时不依赖后来可能已编辑过的 YAML。
 type Record struct {
 	Scenario scenario.Scenario `json:"scenario"` // 本机文件包含答案，不能挂进业务或医生容器。
-	Baseline action.Baseline   `json:"baseline"` // 公开配置和镜像内容 ID，没有密码。
-	Started  time.Time         `json:"started"`  // 三分钟计时从第一项注入开始。
+	Baseline action.Baseline   `json:"baseline"`
+	Started  time.Time         `json:"started"` // 三分钟计时从第一项注入开始。
 }
 
 // Engine 用一个独占状态文件防止两个场景叠加，否则难以知道该恢复哪份基线。
 type Engine struct {
-	Executor  Executor // 外部动作由这个对象执行。
-	Observer  Observer // 健康与症状由监控后端提供。
-	StatePath string   // 默认仓库根的忽略文件，不写入 Git。
+	Executor  Executor
+	Observer  Observer
+	StatePath string // 默认仓库根的忽略文件，不写入 Git。
 }
 
-// Inject 用 O_EXCL 独占创建记录。已有记录时停止，不能覆盖另一次未恢复的实验。
+// Inject 独占创建记录，避免覆盖上一次仍需使用的恢复依据。
 func (engine *Engine) Inject(ctx context.Context, value scenario.Scenario) (Record, error) {
-	// 先取得可恢复的基线。捕获失败时还没有副作用，可以直接退出。
+	// 先确认能取得恢复基线。快照失败时不执行场景动作。
 	baseline, err := engine.Executor.Capture(ctx, value)
 	if err != nil {
 		return Record{}, err
@@ -65,7 +56,7 @@ func (engine *Engine) Inject(ctx context.Context, value scenario.Scenario) (Reco
 		return record, fmt.Errorf("不能创建恢复记录，请先检查或执行 restore-all：%w", err)
 	}
 	writeErr := json.NewEncoder(file).Encode(record)
-	// Sync 要求操作系统刷新文件，再开始改外部环境，缩小掉电丢记录的窗口。
+	// 开始实验动作之前刷新文件，缩小掉电丢失恢复记录的窗口。
 	syncErr := file.Sync()
 	closeErr := file.Close()
 	if err = errors.Join(writeErr, syncErr, closeErr); err != nil {

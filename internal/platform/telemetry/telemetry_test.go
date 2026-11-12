@@ -1,14 +1,4 @@
-// 本文件：不用监控后端验证指标和跨 Kafka 的关联信息。
-//
-// 内存里的 span 导出器能让测试检查真实父子关系，而不需要等 Jaeger 启动。
-// HTTP 测试走真实 Gin 中间件，再读取注册表，能发现漏记和错误的标签。
-//
-// 主要内容：
-//   - TestKafkaPropagation：发送、提取后保持 trace ID，并把生产 span 作为消费 span 的父节点。
-//   - TestHTTPMetrics：检查模板路由、未知路径、限流和恢复后的指标。
-//   - TestRPCMetrics：检查客户端和服务端状态，包括本地超时。
-//
-// 阅读建议：测试只用内存，不发送 OTLP 数据，也不改 OTel 的全局 Provider。
+// 本文件：在内存中验证 HTTP 和 gRPC 指标，以及 Kafka 生产者和消费者之间的调用链关系。
 
 package telemetry
 

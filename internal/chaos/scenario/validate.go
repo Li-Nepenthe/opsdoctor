@@ -1,13 +1,5 @@
-// 本文件：把场景操作限制在计划书规定的服务和资源内。
-//
-// YAML 不提供任意命令入口。表名、索引名、代理名与部署变量都有固定范围。
-// 运行器也会调用这些校验，避免只有文件加载路径受到保护。
-//
-// 主要内容：
-//   - ValidateStep：按动作检查参数。
-//   - ValidateEnvironment：拒绝密码变量和未开放的配置。
-//
-// 阅读建议：先看索引配对，再看部署变量为什么只列白名单。
+// 本文件：场景配置和运行器共用输入校验。
+// ValidateStep 限定可操作的资源，ValidateEnvironment 单独检查环境变量，未开放的配置不能进入操作。
 
 package scenario
 
@@ -20,7 +12,7 @@ import (
 
 // ValidateStep 先限制动作类型，再检查必要参数。运行器不会拼接未经校验的 SQL 标识符。
 func ValidateStep(step Step) error {
-	// 每种动作只开放必要资源；合法表名和合法索引名还必须正确配对。
+	// 索引名和表名必须配对，分别合法仍不足以通过检查。
 	switch step.Action {
 	case "drop_index", "restore_index":
 		if (step.Table == "stock" && step.Index == "uk_stock_sku") || (step.Table == "orders" && step.Index == "idx_orders_user_created") {
@@ -55,32 +47,35 @@ func ValidateStep(step Step) error {
 			return nil
 		}
 	case "load":
-		// 指针为空表示保持原值；因此至少要明确更新一个字段。
-		if step.QPS == nil && step.HotSKUID == nil {
-			break
+		if validLoadSettings(step) {
+			return nil
 		}
-		if step.QPS != nil && (*step.QPS < 0 || *step.QPS > 10000) {
-			break
-		}
-		if step.HotSKUID != nil && (*step.HotSKUID < 0 || *step.HotSKUID > 500000) {
-			break
-		}
-		return nil
 	case "burst":
-		// 每个商品独立发一批，最多五百批；每批最多 64 个请求，批间距保持平均不超过 320 次/秒。
-		if step.FirstSKUID >= 1 && step.Count >= 1 && step.Count <= 500 && step.FirstSKUID <= 500001-int64(step.Count) && step.Requests >= 1 && step.Requests <= 64 {
+		// 批数与每批请求数分别受限，保持实验在既定流量范围内。
+		if validSKURange(step.FirstSKUID, step.Count, 500) && step.Requests >= 1 && step.Requests <= 64 {
 			return nil
 		}
 	case "delete_cache", "expire_cache":
-		// 先限制范围，再计算尾编号，既避免越界，也防止大整数相加溢出。
-		if step.FirstSKUID < 1 || step.Count < 1 || step.Count > 10000 || step.FirstSKUID > 500001-int64(step.Count) {
-			break
-		}
-		if step.Action == "delete_cache" || (step.TTLSeconds >= 1 && step.TTLSeconds <= 60) {
+		if validSKURange(step.FirstSKUID, step.Count, 10000) &&
+			(step.Action == "delete_cache" || (step.TTLSeconds >= 1 && step.TTLSeconds <= 60)) {
 			return nil
 		}
 	}
 	return fmt.Errorf("动作 %q 的类型或参数不合法", step.Action)
+}
+
+// 省略的字段保持原值，至少要指定一项变更。
+func validLoadSettings(step Step) bool {
+	if step.QPS == nil && step.HotSKUID == nil {
+		return false
+	}
+	return (step.QPS == nil || (*step.QPS >= 0 && *step.QPS <= 10000)) &&
+		(step.HotSKUID == nil || (*step.HotSKUID >= 0 && *step.HotSKUID <= 500000))
+}
+
+// 先限定批次大小，再从末端倒算允许的起点，避免大整数相加时溢出。
+func validSKURange(first int64, count, maxCount int) bool {
+	return first >= 1 && count >= 1 && count <= maxCount && first <= 500001-int64(count)
 }
 
 // ValidateEnvironment 不接受 DSN、口令或任意环境变量，只允许实验所需的公开配置。

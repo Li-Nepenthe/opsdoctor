@@ -2,13 +2,6 @@
 //
 // 测试不靠睡几毫秒猜 goroutine 是否运行了。synctest 等待所有任务确实阻塞后，
 // 再检查运行名单；模型只等 context，不连接网络。
-//
-// 主要内容：TestTransitions 穷举状态边界；TestSchedulerIsolation 检查两个系统；
-// TestSchedulerBudgetAndExpiry 检查额度、旧任务和启动清理；TestCancelBeforeStart 检查取消空窗。
-// TestBudgetStatusReason 检查持久账本原因优先于进程内预留失败标志。
-// TestRenewUnavailable 检查数据库一直断开时，执行者会在旧租约到期前停工。
-// TestExecutionDuration 检查取消后仍保存同一进程实际测得的时长。
-// 阅读建议：假仓储只模拟状态竞争，SQL 原子性另由 store 集成测试证明。
 
 package run
 

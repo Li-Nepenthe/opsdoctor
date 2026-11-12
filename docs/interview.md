@@ -102,7 +102,7 @@
 - 上限过大会把压力转移到 MySQL，过小会让请求在借连接时排队，预算在执行 SQL 前就可能耗完。
 - 应结合池利用率、等待数、SQL 耗时与数据库余量调整；医生使用更小的独立池，防止查证抢占业务资源。
 
-出处：[环境示例](../.env.example)、[MySQL 池配置](../internal/platform/mysqlx/mysql.go)、[阶段 1 汇报](reports/phase-01-inventory.md)、[S03 实验说明](learn/phase-04-chaos.md#54-s03连接池只有两条连接)。
+出处：[环境示例](../.env.example)、[MySQL 池配置](../internal/platform/mysqlx/mysql.go)、[阶段 1 汇报](reports/phase-01-inventory.md)、[S03 实验说明](learn/phase-04-chaos.md#47-s03连接池只有两条连接)。
 
 ## 阶段 2：订单、缓存与消息
 
@@ -553,7 +553,7 @@
 - 字符串交给转义或 JSON 编码器，只作为值。AI 不获得任意索引、字段、后端地址和查询结构的选择权，边界由代码兑现。
 - 两种产品的文本分析语义仍有细节差异；共用接口不等于任意中文、标点或短语都逐字产生相同命中。
 
-出处：[Loki 翻译](../internal/doctor/source/loki/client.go)、[OpenSearch 翻译](../internal/doctor/source/opensearch/client.go)、[并排解释](learn/phase-09-generalization.md#51-同一个接口的第二个实现)。
+出处：[Loki 翻译](../internal/doctor/source/loki/client.go)、[OpenSearch 翻译](../internal/doctor/source/opensearch/client.go)、[并排解释](learn/phase-09-generalization.md#51-同一个接口的第二个实现用契约测试证明)。
 
 ### 9.5 为什么字段名放进接入配置？
 

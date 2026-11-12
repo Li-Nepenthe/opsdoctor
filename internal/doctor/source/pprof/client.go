@@ -1,14 +1,4 @@
-// 本文件：读取配置中某个服务的 goroutine 文本，并按堆栈合并数量。
-//
-// 大量任务可能停在同一处。只返回最常见的几组，比重复打印几万个相同堆栈更适合诊断。
-// 管理端口从配置映射里选择，参数里不能提供 URL。
-//
-// 主要内容：
-//   - New、Close：建立和关闭每个服务的固定客户端。
-//   - Goroutines：只访问 goroutine?debug=1，不开放其他 profile 或管理路径。
-//   - parse：去掉地址，将相同函数栈合并后按数量排序。
-//
-// 阅读建议：先看 Goroutines 的服务查找，再看 parse 怎样识别分组首行。
+// 本文件：从指定服务的管理端口读取 goroutine 文本，以函数名和文件位置合并调用栈，按出现数量排序。
 
 package pprof
 
@@ -70,49 +60,58 @@ func parse(data []byte) ([]source.StackGroup, error) {
 	groups := make(map[string]int)
 	scanner := bufio.NewScanner(bytes.NewReader(data))
 	scanner.Buffer(make([]byte, 4096), 64<<10)
-	count := 0
-	var stack []string
-	flush := func() {
-		if count > 0 && len(stack) > 0 {
-			groups[strings.Join(stack, "\n")] += count
-		}
-		count = 0
-		stack = nil
-	}
+	var stack stackSample
 	for scanner.Scan() {
 		line := strings.TrimSpace(scanner.Text())
 		if line == "" {
-			flush()
+			stack.flush(groups)
 			continue
 		}
 		fields := strings.Fields(line)
 		if len(fields) > 1 && fields[1] == "@" {
-			flush()
+			stack.flush(groups)
 			value, err := strconv.Atoi(fields[0])
 			if err != nil || value <= 0 {
 				return nil, fmt.Errorf("goroutine 分组数量不合法")
 			}
-			count = value
+			stack.count = value
 			continue
 		}
-		if strings.HasPrefix(line, "#") && count > 0 && len(fields) >= 3 {
-			// 通常是 #、地址、函数+偏移、文件位置。地址会随重启变化，不能作为分组依据。
-			function, _, _ := strings.Cut(fields[2], "+0x")
-			frame := function
-			if len(fields) > 3 {
-				frame += " " + strings.Join(fields[3:], " ")
-			}
-			stack = append(stack, frame)
+		if strings.HasPrefix(line, "#") && stack.count > 0 && len(fields) >= 3 {
+			stack.addFrame(fields)
 		}
 	}
 	if scanner.Err() != nil {
 		return nil, fmt.Errorf("goroutine 文本行超过限制")
 	}
-	flush()
+	stack.flush(groups)
 	if len(groups) == 0 {
 		return nil, fmt.Errorf("没有读到可识别的 goroutine 堆栈")
 	}
 	return sortedGroups(groups), nil
+}
+
+// stackSample 暂存一份尚未读完的栈，直到下个分组、空行或文件结束才会合计数量。
+type stackSample struct {
+	count  int
+	frames []string
+}
+
+// addFrame 保留函数名和文件位置。内存地址和函数内偏移会随构建变化，不能拿来分组。
+func (stack *stackSample) addFrame(fields []string) {
+	function, _, _ := strings.Cut(fields[2], "+0x")
+	frame := function
+	if len(fields) > 3 {
+		frame += " " + strings.Join(fields[3:], " ")
+	}
+	stack.frames = append(stack.frames, frame)
+}
+
+func (stack *stackSample) flush(groups map[string]int) {
+	if stack.count > 0 && len(stack.frames) > 0 {
+		groups[strings.Join(stack.frames, "\n")] += stack.count
+	}
+	*stack = stackSample{}
 }
 
 // sortedGroups 把最常见的堆栈排在前面，同数量时按文本排序，方便比较两次采样。

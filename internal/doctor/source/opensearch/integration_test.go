@@ -2,8 +2,6 @@
 //
 // 默认没有 TEST_OPENSEARCH_URL 时跳过。地址、索引、五字段映射、服务和关键词由
 // 操作者填写，测试不会猜索引、创建数据或清理数据。启用安全插件时仅提供只读账号。
-//
-// 主要内容：TestIntegrationSearchLogs 先按服务找日志，再用同一服务与关键词搜索。
 
 package opensearch
 

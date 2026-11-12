@@ -1,11 +1,4 @@
-// 本文件：按场景、实验组和模型分别汇总少量重复运行。
-//
-// 三次实验不足以代表生产系统。这里保留样本数、平均值和范围；基础设施失败
-// 与中途换模型单列，不能在平均值里把它们悄悄算成成功或免费的运行。
-//
-// 主要内容：Statistics 产生分层统计；measurement 只收集实际存在的数值；
-// judgementView 读取已保存评分，不在导出时再次调用评委。
-// 阅读建议：机制没有通过评分校验时记为缺失，不能拿零分填补评委失败。
+// 本文件：按场景、实验组和模型汇总均值、范围和有效样本数。失败或被排除的样本仍有费用，未知评分和时长不填零。
 
 package report
 
@@ -80,16 +73,7 @@ func statistics(output io.Writer, rows []store.EvalResult, requireAudit bool) er
 		if len(row.Data) > 0 && json.Unmarshal(row.Data, &value) != nil {
 			return fmt.Errorf("统计结果无法解码")
 		}
-		model := value.Model
-		if model == "" {
-			model = row.ExecutionProfile + "（尚未绑定）"
-		}
-		key := row.Scenario + "/" + row.Group + "/" + model
-		entry := grouped[key]
-		if entry == nil {
-			entry = &statisticsRow{scenario: row.Scenario, group: row.Group, model: model, currency: value.Currency}
-			grouped[key] = entry
-		}
+		entry := statisticsGroup(grouped, row, value)
 		entry.allCost += value.CostMicros
 		var grade judgementView
 		if len(row.Judgement) > 0 && json.Unmarshal(row.Judgement, &grade) != nil {
@@ -98,52 +82,77 @@ func statistics(output io.Writer, rows []store.EvalResult, requireAudit bool) er
 		entry.judgeCost += grade.CostMicros
 		required := requireAudit || requiresCollectionAudit(row)
 		qualityColumn = qualityColumn || required
-		// 费用保留在上方；下面的排除只影响诊断质量和耗时样本，不让失败的钱消失。
-		if len(row.Data) == 0 {
-			entry.incomplete++
-			if required {
-				entry.dataUnknown++
-			}
-			continue
-		}
-		if required {
-			switch CollectionQuality(value) {
-			case QualityAffected:
-				entry.dataAffected++
-				continue
-			case QualityUnknown:
-				entry.dataUnknown++
-				continue
-			}
-		}
-		if value.ReliabilityFailure {
-			entry.reliability++
-			continue
-		}
-		if value.MixedModel {
-			entry.mixed++
-			continue
-		}
-		match := 0.0
-		if value.ComponentMatch {
-			match = 1
-		}
-		entry.component.add(match)
-		entry.rounds.add(float64(value.Rounds))
-		entry.tools.add(float64(value.Tools))
-		entry.cost.add(float64(value.CostMicros) / 1e6)
-		if value.DurationKnown {
-			entry.seconds.add(value.Seconds)
-		}
-		if grade.Status == "ok" {
-			score, ok := map[string]float64{"correct": 1, "partial": 0.5, "incorrect": 0}[grade.Grade.Mechanism]
-			if !ok {
-				return fmt.Errorf("保存的机制评分不合法")
-			}
-			entry.mechanism.add(score)
-			entry.coverage.add(grade.Coverage)
+		if err := entry.observe(row, value, grade, required); err != nil {
+			return err
 		}
 	}
+	return writeStatistics(output, grouped, qualityColumn)
+}
+
+func statisticsGroup(grouped map[string]*statisticsRow, row store.EvalResult, value Summary) *statisticsRow {
+	model := value.Model
+	if model == "" {
+		model = row.ExecutionProfile + "（尚未绑定）"
+	}
+	key := row.Scenario + "/" + row.Group + "/" + model
+	entry := grouped[key]
+	if entry == nil {
+		entry = &statisticsRow{scenario: row.Scenario, group: row.Group, model: model, currency: value.Currency}
+		grouped[key] = entry
+	}
+	return entry
+}
+
+// observe 只决定质量样本的去留。医生和评委的全部费用已经计入总账。
+func (entry *statisticsRow) observe(row store.EvalResult, value Summary, grade judgementView, required bool) error {
+	if len(row.Data) == 0 {
+		entry.incomplete++
+		if required {
+			entry.dataUnknown++
+		}
+		return nil
+	}
+	if required {
+		switch CollectionQuality(value) {
+		case QualityAffected:
+			entry.dataAffected++
+			return nil
+		case QualityUnknown:
+			entry.dataUnknown++
+			return nil
+		}
+	}
+	if value.ReliabilityFailure {
+		entry.reliability++
+		return nil
+	}
+	if value.MixedModel {
+		entry.mixed++
+		return nil
+	}
+	match := 0.0
+	if value.ComponentMatch {
+		match = 1
+	}
+	entry.component.add(match)
+	entry.rounds.add(float64(value.Rounds))
+	entry.tools.add(float64(value.Tools))
+	entry.cost.add(float64(value.CostMicros) / 1e6)
+	if value.DurationKnown {
+		entry.seconds.add(value.Seconds)
+	}
+	if grade.Status == "ok" {
+		score, ok := map[string]float64{"correct": 1, "partial": 0.5, "incorrect": 0}[grade.Grade.Mechanism]
+		if !ok {
+			return fmt.Errorf("保存的机制评分不合法")
+		}
+		entry.mechanism.add(score)
+		entry.coverage.add(grade.Coverage)
+	}
+	return nil
+}
+
+func writeStatistics(output io.Writer, grouped map[string]*statisticsRow, qualityColumn bool) error {
 	intro := "\n## 分层结果\n\n每格为平均值 [最小, 最大] n=有效样本数。组件一致记 1，否则 0；机制正确/部分/错误记 1/0.5/0。基础设施失败和混合模型单列；评分失败不填零。三次样本很小，以下不是生产准确率。"
 	header := "\n\n| 场景 | 组 | 模型 | 组件一致 | 机制 | 证据覆盖 | 轮数 | 工具数 | 秒 | 医生单次账本 | 全部医生费用（含排除项） | 评委费用 | 可靠性 / 混合 / 未完成 |"
 	separator := "\n|---|---|---|---|---|---|---|---|---|---|---|---|---|"

@@ -2,13 +2,6 @@
 //
 // 负向测试包含清库命令，所以先用业务账号执行 ACL DRYRUN。它只问权限是否允许，
 // 不执行命令。只要发现一条危险命令被放行，测试立刻停止，保护已有的数据。
-//
-// 主要内容：
-//   - TestIntegrationRedisPermissions：验证匿名拒绝、查看成功和数据操作拒绝。
-//   - integrationClients：检查显式测试配置，并建立短超时连接。
-//   - deniedCommands：列出需要被账号挡住的操作及原因。
-//
-// 阅读建议：先看 DRYRUN 为什么必须在实际拒绝测试之前执行。
 
 package redisinspect
 

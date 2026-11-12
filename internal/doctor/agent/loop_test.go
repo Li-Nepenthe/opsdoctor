@@ -1,11 +1,5 @@
-// 本文件：用脚本模型和内存记录器验证完整诊断循环。
-//
-// 测试自己决定每轮模型回复，因此可以稳定复现编造证据、混合报告、超预算和取消。
-// 所有数据都在内存中，不读取 Key，不连接真实模型或业务系统。
-//
-// 主要内容：TestLoopCorrection、TestMixedReport 检查纠错；TestBudget、TestTimeBudget
-// 检查次数和时间上限；TestParallelCancel 检查并发取消；TestArgumentCorrection 检查参数纠错。
-// 阅读建议：先看脚本收到上一轮 tool 消息时怎样检查 step 和 tool_call_id。
+// 本文件：用脚本模型和内存记录器跑完整诊断循环，核对参数纠错、时限和并行查询。
+// 脚本在下一轮读取工具回复，因此还能检查步骤号和调用 ID 是否配对。
 
 package agent
 
@@ -28,7 +22,6 @@ import (
 // modelFunc 让每个测试直接写对话脚本，不在生产客户端里加入测试开关。
 type modelFunc func(context.Context, llm.Request) (llm.Response, error)
 
-// Complete 只调用本测试提供的函数。
 func (function modelFunc) Complete(ctx context.Context, request llm.Request) (llm.Response, error) {
 	return function(ctx, request)
 }
@@ -56,7 +49,6 @@ func (function toolFunc) List() []tools.Definition {
 	return []tools.Definition{{Name: "query", Description: "测试查看", ReadOnly: true, Parameters: tools.Schema{Type: "object"}}}
 }
 
-// Run 将控制交给测试，仍使用诊断的同一个 context。
 func (function toolFunc) Run(ctx context.Context, name string, args json.RawMessage) tools.Result {
 	return function(ctx, name, args)
 }
@@ -87,7 +79,6 @@ func testInput(recorder *memoryRecorder, toolbox Toolbox) Input {
 
 // TestLoopCorrection 先调用不存在的工具，再查证据，编造步骤被退回后模型修正报告。
 func TestLoopCorrection(t *testing.T) {
-	// 逐轮检查纠错结果，不能只断言最终有报告。
 	recorder := &memoryRecorder{}
 	registry := tools.New(tools.Dependencies{Profile: "一个服务"})
 	count := 0
@@ -151,7 +142,6 @@ func TestLoopCorrection(t *testing.T) {
 
 // TestMixedReport 模型不能一边索要新证据，一边抢先用旧证据结束诊断。
 func TestMixedReport(t *testing.T) {
-	// 逐轮检查纠错结果，不能只断言最终有报告。
 	recorder := &memoryRecorder{}
 	count := 0
 	model := modelFunc(func(_ context.Context, request llm.Request) (llm.Response, error) {

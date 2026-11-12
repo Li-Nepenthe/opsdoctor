@@ -1,10 +1,4 @@
-// 本文件：保存调度状态变化，隔离启动清理、排队和结束操作。
-//
-// 内存中的取消信号不够。页面重新打开、进程重新启动时，都要能从数据库说明任务
-// 为什么没有报告。每次合法转换会一起写 system 步骤，供页面和审计回看。
-//
-// 主要内容：Recover、Expire 清理旧任务；Pending 选择候选；StartTask、EndTask 保存转换。
-// 阅读建议：任何更新都带原状态条件，迟到的完成操作不能把取消结果覆盖成成功。
+// 本文件：读取候选任务并保存调度状态。状态更新核对旧状态，同时记下原因和步骤，防止迟到的完成操作覆盖取消结果。
 
 package store
 
@@ -24,7 +18,7 @@ import (
 func (store *Store) Manual(ctx context.Context, target, symptoms string) (string, error) {
 	id := newID()
 	input, _ := json.Marshal(map[string]string{"symptoms": store.config.Redactor.Text(symptoms)})
-	_, err := store.database.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input) VALUES(?,?,'manual','pending','手动诊断','',?)", id, target, input)
+	_, err := store.database.ExecContext(ctx, insertManualDiagnosisSQL, id, target, input)
 	if err == nil && store.config.Changed != nil {
 		store.config.Changed(target, run.Pending, 0)
 	}
@@ -33,7 +27,7 @@ func (store *Store) Manual(ctx context.Context, target, symptoms string) (string
 
 // Pending 先选出每个系统最老的一条，避免某系统大量排队挡住另一系统。
 func (store *Store) Pending(ctx context.Context) ([]run.Task, error) {
-	rows, err := store.database.QueryContext(ctx, "SELECT id,target,input,created_at,COALESCE(fault_started_at,created_at),eval_group,eval_expected_model,eval_profile FROM (SELECT id,target,input,created_at,fault_started_at,eval_group,eval_expected_model,eval_profile,ROW_NUMBER() OVER (PARTITION BY target ORDER BY CASE status WHEN 'running' THEN 0 WHEN 'waiting_approval' THEN 1 ELSE 2 END,created_at,id) AS position_in_target FROM diagnoses WHERE `trigger`<>'judge' AND (status='pending' OR (status='running' AND lease_until<=UTC_TIMESTAMP(6)) OR (status='waiting_approval' AND NOT EXISTS(SELECT 1 FROM approvals WHERE diagnosis_id=diagnoses.id AND status='pending'))) AND (`trigger`='eval' OR NOT EXISTS(SELECT 1 FROM evaluation_targets WHERE target=diagnoses.target AND enabled=TRUE))) AS candidates WHERE position_in_target=1 ORDER BY created_at,id LIMIT 128")
+	rows, err := store.database.QueryContext(ctx, pendingCandidatesSQL)
 	if err != nil {
 		return nil, err
 	}
@@ -41,7 +35,10 @@ func (store *Store) Pending(ctx context.Context) ([]run.Task, error) {
 	tasks := []run.Task{}
 	for rows.Next() {
 		var task run.Task
-		if err = rows.Scan(&task.ID, &task.Target, &task.Input, &task.CreatedAt, &task.FaultStartedAt, &task.EvaluationGroup, &task.ExpectedModel, &task.ExecutionProfile); err != nil {
+		if err = rows.Scan(
+			&task.ID, &task.Target, &task.Input, &task.CreatedAt,
+			&task.FaultStartedAt, &task.EvaluationGroup, &task.ExpectedModel, &task.ExecutionProfile,
+		); err != nil {
 			return nil, err
 		}
 		tasks = append(tasks, task)
@@ -59,7 +56,7 @@ func (store *Store) Recover(ctx context.Context) error {
 
 // Expire 只清理告警触发的旧 pending，手动任务不会被这条告警时效规则取消。
 func (store *Store) Expire(ctx context.Context, cutoff time.Time) error {
-	return store.endSelected(ctx, "SELECT id FROM diagnoses WHERE status='pending' AND `trigger`='alert' AND created_at<?", []any{cutoff}, run.Pending, run.Cancelled, "告警已过时，未执行")
+	return store.endSelected(ctx, oldAlertCandidatesSQL, []any{cutoff}, run.Pending, run.Cancelled, "告警已过时，未执行")
 }
 
 // endSelected 先关闭结果集再逐条写入，连接池较小时也不占着读连接等待写连接。
@@ -87,7 +84,11 @@ func (store *Store) endSelected(ctx context.Context, query string, args []any, f
 	}
 	// 查询之后任务可能已被另一操作处理，changeState 的条件更新会跳过它。
 	for _, id := range ids {
-		if _, err = store.changeState(ctx, id, from, to, reason, "finished_at=UTC_TIMESTAMP(6),error=?", []any{reason}); err != nil {
+		if _, err = store.changeState(ctx, id, stateChange{
+			from: from, to: to, reason: reason,
+			fields: "finished_at=UTC_TIMESTAMP(6),error=?",
+			args:   []any{reason},
+		}); err != nil {
 			return err
 		}
 	}
@@ -102,7 +103,11 @@ func (store *Store) StartTask(ctx context.Context, id, model, prompt, provider s
 // EndTask 用累计结果覆盖最终计数，失败时也保存已经发生的用量。
 func (store *Store) EndTask(ctx context.Context, id, status string, result agent.Result, reason string) error {
 	if status == run.WaitingApproval {
-		_, err := store.changeState(ctx, id, run.Running, status, reason, "active_ms=active_ms+GREATEST(0,TIMESTAMPDIFF(MICROSECOND,lease_updated_at,UTC_TIMESTAMP(6)) DIV 1000),rounds=?,tool_calls=?", []any{result.Rounds, result.ToolCalls})
+		_, err := store.changeState(ctx, id, stateChange{
+			from: run.Running, to: status, reason: reason,
+			fields: waitingApprovalFields,
+			args:   []any{result.Rounds, result.ToolCalls},
+		})
 		return err
 	}
 	var report any
@@ -115,21 +120,33 @@ func (store *Store) EndTask(ctx context.Context, id, status string, result agent
 	}
 	// 崩溃前的单调时钟随进程消失。多段执行没有完整测量，就保留 NULL，
 	// 不能拿最后一段冒充整个诊断。评测仍保留报告，但不把未知时长算进平均值。
-	_, err := store.changeState(ctx, id, run.Running, status, reason, "finished_at=UTC_TIMESTAMP(6),duration_ms=IF(execution_segments=1,?,NULL),report=?,error=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cost_micros=?,rounds=?,tool_calls=?,report_mode=?,budget_reason=?", []any{max(0, result.Elapsed.Milliseconds()), report, store.config.Redactor.Text(reason), result.Usage.Input, result.Usage.Output, result.Usage.CacheHit, result.CostMicros, result.Rounds, result.ToolCalls, result.ReportMode, result.BudgetReason})
+	_, err := store.changeState(ctx, id, stateChange{
+		from: run.Running, to: status, reason: reason,
+		fields: finishedDiagnosisFields,
+		args:   []any{max(0, result.Elapsed.Milliseconds()), report, store.config.Redactor.Text(reason), result.Usage.Input, result.Usage.Output, result.Usage.CacheHit, result.CostMicros, result.Rounds, result.ToolCalls, result.ReportMode, result.BudgetReason},
+	})
 	return err
 }
 
 // CancelPending 和启动竞争同一行的 pending 状态，只有先拿到行锁的操作成功。
 func (store *Store) CancelPending(ctx context.Context, id, reason string) (bool, error) {
-	changed, err := store.changeState(ctx, id, run.Pending, run.Cancelled, reason, "finished_at=UTC_TIMESTAMP(6),error=?", []any{reason})
+	changed, err := store.changeState(ctx, id, stateChange{
+		from: run.Pending, to: run.Cancelled, reason: reason,
+		fields: "finished_at=UTC_TIMESTAMP(6),error=?",
+		args:   []any{reason},
+	})
 	if err != nil || changed {
 		return changed, err
 	}
-	changed, err = store.changeState(ctx, id, run.WaitingApproval, run.Cancelled, reason, "finished_at=UTC_TIMESTAMP(6),error=?,cancel_requested=TRUE", []any{reason})
+	changed, err = store.changeState(ctx, id, stateChange{
+		from: run.WaitingApproval, to: run.Cancelled, reason: reason,
+		fields: "finished_at=UTC_TIMESTAMP(6),error=?,cancel_requested=TRUE",
+		args:   []any{reason},
+	})
 	if err != nil || changed {
 		return changed, err
 	}
-	result, err := store.database.ExecContext(ctx, "UPDATE diagnoses SET cancel_requested=TRUE WHERE id=? AND status IN ('running','waiting_approval') AND cancel_requested=FALSE", id)
+	result, err := store.database.ExecContext(ctx, requestCancellationSQL, id)
 	if err != nil {
 		return false, err
 	}
@@ -137,9 +154,18 @@ func (store *Store) CancelPending(ctx context.Context, id, reason string) (bool,
 	return count == 1, err
 }
 
-// changeState 仅接受本文件拼出的字段片段，外部内容始终用参数绑定。
-func (store *Store) changeState(ctx context.Context, id, from, to, reason, fields string, args []any) (bool, error) {
-	if err := run.Transition(from, to); err != nil {
+// stateChange 只接收代码内固定的更新字段，字段对应的业务值必须按顺序单独绑定。
+type stateChange struct {
+	from   string
+	to     string
+	reason string
+	fields string
+	args   []any
+}
+
+// changeState 把状态和系统步骤放在同一事务内，只在提交成功后向订阅者发布。
+func (store *Store) changeState(ctx context.Context, id string, change stateChange) (bool, error) {
+	if err := run.Transition(change.from, change.to); err != nil {
 		return false, err
 	}
 	tx, err := store.database.BeginTx(ctx, nil)
@@ -152,9 +178,9 @@ func (store *Store) changeState(ctx context.Context, id, from, to, reason, field
 			return false, err
 		}
 	}
-	values := append([]any{to}, args...)
-	values = append(values, id, from)
-	result, err := tx.ExecContext(ctx, "UPDATE diagnoses SET status=?,"+fields+" WHERE id=? AND status=?", values...)
+	values := append([]any{change.to}, change.args...)
+	values = append(values, id, change.from)
+	result, err := tx.ExecContext(ctx, "UPDATE diagnoses SET status=?,"+change.fields+" WHERE id=? AND status=?", values...)
 	if err != nil {
 		return false, err
 	}
@@ -166,13 +192,13 @@ func (store *Store) changeState(ctx context.Context, id, from, to, reason, field
 		return false, nil
 	}
 	// 状态和 system 步骤一起提交；事件丢了也能从数据库补回。
-	payload, _ := json.Marshal(map[string]string{"status": to, "reason": store.config.Redactor.Text(reason)})
-	step, err := store.appendStep(ctx, tx, id, agent.Step{Kind: "system", Status: to, Result: string(payload)})
+	payload, _ := json.Marshal(map[string]string{"status": change.to, "reason": store.config.Redactor.Text(change.reason)})
+	step, err := store.appendStep(ctx, tx, id, agent.Step{Kind: "system", Status: change.to, Result: string(payload)})
 	if err != nil {
 		return false, fmt.Errorf("保存状态步骤：%w", err)
 	}
 	// 先保存状态步骤，再释放租约；反过来会让本事务自己的步骤被租约校验拒绝。
-	if from == run.Running && to != run.Running {
+	if change.from == run.Running && change.to != run.Running {
 		if _, err = tx.ExecContext(ctx, "UPDATE diagnoses SET lease_owner=NULL,lease_until=NULL WHERE id=?", id); err != nil {
 			return false, err
 		}
@@ -188,10 +214,60 @@ func (store *Store) changeState(ctx context.Context, id, from, to, reason, field
 	store.publish(id, step)
 	if store.config.Changed != nil {
 		duration := time.Duration(0)
-		if elapsed.Valid && to != run.Running {
+		if elapsed.Valid && change.to != run.Running {
 			duration = time.Duration(elapsed.Int64) * time.Millisecond
 		}
-		store.config.Changed(target, to, duration)
+		store.config.Changed(target, change.to, duration)
 	}
 	return true, nil
 }
+
+const insertManualDiagnosisSQL = `INSERT INTO diagnoses (
+    id,
+    target,
+    ` + "`trigger`" + `,
+    status,
+    title,
+    alert_group_key,
+    input
+)
+VALUES (
+    ?,
+    ?,
+    'manual',
+    'pending',
+    '手动诊断',
+    '',
+    ?
+)`
+
+const oldAlertCandidatesSQL = `SELECT id
+FROM diagnoses
+WHERE status = 'pending'
+    AND ` + "`trigger`" + ` = 'alert'
+    AND created_at < ?`
+
+const requestCancellationSQL = `UPDATE diagnoses
+SET cancel_requested = TRUE
+WHERE id = ?
+    AND status IN (
+                       'running',
+                       'waiting_approval')
+    AND cancel_requested = FALSE`
+
+const waitingApprovalFields = `active_ms = active_ms + GREATEST(0, TIMESTAMPDIFF(MICROSECOND, lease_updated_at, UTC_TIMESTAMP(6)) DIV 1000),
+rounds = ?,
+tool_calls = ?`
+
+const finishedDiagnosisFields = `finished_at = UTC_TIMESTAMP(6),
+duration_ms = IF(execution_segments = 1, ?, NULL),
+report = ?,
+error = ?,
+tokens_in = ?,
+tokens_out = ?,
+cache_hit_tokens = ?,
+cost_micros = ?,
+rounds = ?,
+tool_calls = ?,
+report_mode = ?,
+budget_reason = ?`

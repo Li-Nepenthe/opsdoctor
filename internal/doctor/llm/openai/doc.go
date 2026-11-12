@@ -1,20 +1,8 @@
-// Package openai 用普通 HTTP 实现兼容 OpenAI 的非流式工具调用协议。
+// Package openai 通过非流式 HTTP 调用模型。每次重试都有独立的预留和审计记录，未知费用继续占用预算。
 //
-// 一次 Complete 可能遇到限流，需要稍后重试。每次真正发送都先向账本预留费用，
-// 并保存实际发出的脱敏 JSON。错误码决定是否重试，模型返回的文字不能改变这条规则。
-// HTTP 请求使用诊断的 context，因此取消按钮能中断正在等待的模型回答。
+// 从 Complete 跟到 attempt 查看一次发送。回复类型和 HTTP 状态需要严格校验，完整的脱敏错误回复也要留在审计中。取消信号一直传到 HTTP 请求。
 //
-// 文件清单：
-//   - responses.go：转换 Responses 的调用条目，并读取缓存命中和写入用量。
-//   - responses_test.go：验证工具往返、严格解码与真实审计样本的恢复。
-//   - doc.go：HTTP 模型客户端的边界与阅读入口。
-//   - client.go：配置检查、脱敏、发送和费用结算。
-//   - protocol.go：读取回复、解释错误码、按 Retry-After 等待。
-//   - client_test.go：在内存中验证重试、审计内容和取消，不调用真实模型。
-//   - network_test.go：验证无响应重试、退避和每次独立预留费用。
-//   - testdata/README.md：历史样本的来源和字节保留约束。
-//   - testdata/deepseek-p9-53-response.json：阶段 9 P9-53 的脱敏回复原件。
-//
-// 阅读顺序：Complete → attempt → decodeResponse → settle。
-// 本包不执行工具，也不读取系统说明书或故障场景。
+//   - client.go：校验配置、发送请求，并按每次尝试预留和结算。
+//   - protocol.go：读取有界回复，分类 HTTP 错误，并在重试前按时限等待。
+//   - responses.go：转换 Chat 和 Responses 的工具往返，解析在线回复与保存的审计回复。
 package openai

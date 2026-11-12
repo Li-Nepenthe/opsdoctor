@@ -1,8 +1,5 @@
-// 本文件：在专用医生库验证基线中断的重启边界，不运行真实模型。
-//
-// 主要内容：TestIntegrationEvalBaselineAmendment 检查旧记录保留、版本链与批准幂等；
-// TestIntegrationEvalBaselineRejectStarted 验证任何已创建的槽位都会阻止重启。
-// 阅读建议：测试只制造检查点，不执行场景注入，更不清理业务数据。
+// 本文件：在专用医生库构造基线中断的检查点，验证一次获批重启前后原记录和版本链仍在。已创建槽位的轮次必须拒绝重启。
+// 测试不执行场景注入，不清理业务数据。
 
 package store
 
@@ -97,11 +94,15 @@ func TestIntegrationEvalBaselineAmendment(t *testing.T) {
 	}
 	// 每次运行追加自己的版本。两次操作不能合并成一条、也不能让版本缺失。
 	for _, operation := range []string{"run", "injecting"} {
-		if err := repository.RecordEvalExecution(ctx, input.RunID, "S08", 1, operation, "", after); err != nil {
+		if err := repository.RecordEvalExecution(ctx, EvalExecution{
+			RunID: input.RunID, Scenario: "S08", Iteration: 1, Operation: operation, Versions: after,
+		}); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err := repository.RecordEvalExecution(ctx, input.RunID, "S08", 1, "slot", "key", json.RawMessage(`{}`)); err == nil {
+	if err := repository.RecordEvalExecution(ctx, EvalExecution{
+		RunID: input.RunID, Scenario: "S08", Iteration: 1, Operation: "slot", ResultKey: "key", Versions: json.RawMessage(`{}`),
+	}); err == nil {
 		t.Fatal("版本缺失仍执行")
 	}
 	var count int

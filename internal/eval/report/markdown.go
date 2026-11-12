@@ -1,10 +1,4 @@
-// 本文件：将数据库中的评测结果排成便于审阅的 Markdown 表格。
-//
-// 这里只展示已经发生的运行。空槽位明确写“未完成”，失败不会被跳过。单次组件
-// 一致不能代表整套系统的准确率，正式统计还要结合机制、证据覆盖和样本数量。
-//
-// 主要内容：Markdown 输出批次及结果行；cell 防止报告文字破坏表格结构。
-// 阅读建议：金额始终附币种；没有真实扣费接口时，只能称作用量账本费用。
+// 本文件：把已保存的结果、评分和失败排入 Markdown 表格。未完成的槽位保留原位置，金额附上币种，费用取自用量账本。
 
 package report
 
@@ -48,7 +42,7 @@ func Markdown(output io.Writer, run store.EvalRun, rows []store.EvalResult) erro
 
 // resultRows 只展示实际记录；采集受影响的报告也保留原组件判断、用量和费用。
 func resultRows(output io.Writer, rows []store.EvalResult) error {
-	if _, err := fmt.Fprintln(output, "\n| 场景 | 轮次 | 组 | 诊断 | 状态 | 组件一致 | 轮数 | 工具 | 输入 / 输出 token | 账本费用 | 耗时秒 | 提交方式 | 混合模型 |\n|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---:|---|---|"); err != nil {
+	if _, err := fmt.Fprintln(output, "\n| 场景 | 轮次 | 组 | 诊断 | 状态 | 组件一致 | 轮数 | 工具 | 输入 / 输出 token | 账本费用 | 耗时秒 | 提交方式 | 混合模型 |\n|---|---:|---|---|---|---|---:|---:|---:|---:|---:|---|---|"); err != nil {
 		return err
 	}
 	for _, row := range rows {
@@ -171,19 +165,26 @@ func gradingRows(output io.Writer, rows []store.EvalResult, requireAudit bool) e
 		} else if grade.Status == "failed" {
 			label, reason = "评分失败", grade.Error
 		}
-		if requireAudit || requiresCollectionAudit(row) {
-			quality := CollectionQuality(result)
-			if quality != QualityNormal {
-				note := "不计入正常统计"
-				if len(row.Judgement) > 0 {
-					note = "仅保留原评分"
-				}
-				label += "（采集 " + quality + "；" + note + "）"
-			}
-		}
+		label += collectionGradeNote(row, result, requireAudit)
 		if _, err := fmt.Fprintf(output, "| %s | %s | %s | %s | %s | CNY %.6f | %t | %d / %d |\n", cell(row.Key), cell(result.Error+" "+result.BudgetReason), cell(label), cell(reason), coverage, float64(grade.CostMicros)/1e6, result.InjectionObserved, result.ApprovalProposals, result.WriteExecutions); err != nil {
 			return err
 		}
 	}
 	return nil
+}
+
+// collectionGradeNote 给未通过窗口审计的槽位注明分母口径，已有的评分仍可查看。
+func collectionGradeNote(row store.EvalResult, result Summary, requireAudit bool) string {
+	if !requireAudit && !requiresCollectionAudit(row) {
+		return ""
+	}
+	quality := CollectionQuality(result)
+	if quality == QualityNormal {
+		return ""
+	}
+	note := "不计入正常统计"
+	if len(row.Judgement) > 0 {
+		note = "仅保留原评分"
+	}
+	return "（采集 " + quality + "；" + note + "）"
 }

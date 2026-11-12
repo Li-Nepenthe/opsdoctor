@@ -1,10 +1,5 @@
-// 本文件：把已保存的步骤通过 SSE 发给页面，断线后按编号补回。
-//
-// SSE 是一条服务器持续发送文字的 HTTP 响应。内存通知只负责叫醒处理器，真正的
-// 内容仍从数据库按序读取，因此并行工具的通知即使乱序，也不会漏掉较小的步骤号。
-//
-// 主要内容：stream 校验并订阅；sendMissing 补发；writeEvent 限制慢连接的写入时间。
-// 阅读建议：先订阅再查库；先查库再订阅会留下丢事件的空窗。
+// 本文件：stream 校验续传位置，streamSteps 把已保存的步骤按编号推送给页面。
+// 并行工具的通知可能乱序。先订阅，再从数据库补发，断线的页面也能接上最后看到的步骤。
 
 package httpapi
 
@@ -55,6 +50,11 @@ func (server *api) stream(ctx *gin.Context) {
 		httpx.Failure(ctx, 400, "INVALID_ARGUMENT", "事件编号超过已保存步骤")
 		return
 	}
+	server.streamSteps(ctx, id, after, detail.Status)
+}
+
+// streamSteps 先订阅再补发，避免客户端在读取数据库期间错过新步骤的通知。
+func (server *api) streamSteps(ctx *gin.Context, id string, after int, status string) {
 	subscription := server.options.Events.Subscribe(id)
 	defer subscription.Close()
 	ctx.Header("Content-Type", "text/event-stream; charset=utf-8")
@@ -69,8 +69,8 @@ func (server *api) stream(ctx *gin.Context) {
 			return
 		}
 		// 连接建立时任务已结束、而客户端已看过最后一步，仍告诉页面停止重连。
-		if terminalStatus(detail.Status) {
-			body, _ := json.Marshal(map[string]string{"status": detail.Status})
+		if terminalStatus(status) {
+			body, _ := json.Marshal(map[string]string{"status": status})
 			_ = writeEvent(ctx.Writer, controller, "", "status", body)
 			return
 		}
@@ -125,7 +125,7 @@ func (server *api) sendMissing(ctx *gin.Context, id string, after *int, controll
 	}
 }
 
-// terminalStatus 的有限列表也用于停止订阅；阶段 7 的审批状态不属于这里。
+// terminalStatus 决定页面何时停止重连。等待审批的任务还可能继续产生步骤。
 func terminalStatus(status string) bool {
 	return status == run.Succeeded || status == run.Failed || status == run.Cancelled || status == run.BudgetExceeded
 }

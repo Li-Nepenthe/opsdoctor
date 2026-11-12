@@ -1,14 +1,4 @@
-// 本文件：读取已经创建的诊断任务，供验收和后续页面使用。
-//
-// 列表只带摘要，点开详情才加载步骤与报告。任务属于哪个系统，在创建时就确定了，
-// 查询接口不提供更换系统的方法。
-//
-// 主要内容：
-//   - Diagnosis、Detail：列表摘要与详情的公开格式。
-//   - List：按系统和状态分页，避免一次取回全部历史。
-//   - Detail：读取一个任务及其告警快照。
-//
-// 阅读建议：列表不读取大正文；只有点进详情才加载 input 和告警 JSON。
+// 本文件：为页面提供诊断列表和详情。列表只读摘要，打开详情才读取属于该诊断的告警输入、步骤和报告。
 
 package store
 
@@ -24,10 +14,10 @@ import (
 
 // Diagnosis 是列表所需的最小摘要，不包含账号或工具凭据。
 type Diagnosis struct {
-	Currency  string    `json:"currency"`   // 历史任务按创建执行时的币种显示。
-	ID        string    `json:"id"`         // 稳定任务编号。
-	Target    string    `json:"target"`     // 创建时绑定的系统。
-	Trigger   string    `json:"trigger"`    // alert 或 manual。
+	Currency  string    `json:"currency"` // 历史任务按创建执行时的币种显示。
+	ID        string    `json:"id"`
+	Target    string    `json:"target"` // 创建时绑定的系统。
+	Trigger   string    `json:"trigger"`
 	Status    string    `json:"status"`     // 来自 run 的有限状态表。
 	Title     string    `json:"title"`      // 告警分组的展示名。
 	CreatedAt time.Time `json:"created_at"` // UTC 创建时间。
@@ -35,20 +25,20 @@ type Diagnosis struct {
 	Provider  string    `json:"provider"`   // mock 时页面必须醒目标记。
 }
 
-// Detail 的嵌入字段使摘要与列表保持一致，避免维护两套字段映射。
+// Detail 沿用列表摘要的顶层字段，诊断的告警和步骤只在详情中读取。
 type Detail struct {
-	DurationMS     *int64            `json:"duration_ms"` // 同一进程测得的执行耗时；老任务或跨进程恢复没有完整测量，返回 null。
-	LastSeq        int               `json:"last_seq"`    // 已提交的最大步骤号，用来拒绝越过当前进度的续传。
-	Diagnosis                        // Go 的结构体嵌入：JSON 会把这些公开字段放在同一层。
-	Input          json.RawMessage   `json:"input"`            // 初次触发任务的通知。
-	Alerts         []json.RawMessage `json:"alerts"`           // 每条告警的最新快照，可能已经 resolved。
-	RecoveryAlerts []RecoveryAlert   `json:"recovery_alerts"`  // 观察期补入的症状单独展示，报告不会为它们重跑。
-	Steps          []agent.Step      `json:"steps"`            // 有序审计步骤，实时新增通过 SSE 接收。
-	Report         json.RawMessage   `json:"report"`           // 只有通过校验的报告才保存到这里。
-	Error          string            `json:"error"`            // 固定错误或已脱敏的运行错误。
-	PromptVersion  string            `json:"prompt_version"`   // 本次诊断的提示版本。
-	TokensIn       int64             `json:"tokens_in"`        // 累计输入 token。
-	TokensOut      int64             `json:"tokens_out"`       // 累计输出 token。
+	DurationMS *int64 `json:"duration_ms"` // 同一进程测得的执行耗时；老任务或跨进程恢复没有完整测量，返回 null。
+	LastSeq    int    `json:"last_seq"`    // 已提交的最大步骤号，用来拒绝越过当前进度的续传。
+	Diagnosis
+	Input          json.RawMessage   `json:"input"`           // 初次触发任务的通知。
+	Alerts         []json.RawMessage `json:"alerts"`          // 每条告警的最新快照，可能已经 resolved。
+	RecoveryAlerts []RecoveryAlert   `json:"recovery_alerts"` // 观察期补入的症状单独展示，报告不会为它们重跑。
+	Steps          []agent.Step      `json:"steps"`           // 有序审计步骤，实时新增通过 SSE 接收。
+	Report         json.RawMessage   `json:"report"`          // 只有通过校验的报告才保存到这里。
+	Error          string            `json:"error"`           // 固定错误或已脱敏的运行错误。
+	PromptVersion  string            `json:"prompt_version"`
+	TokensIn       int64             `json:"tokens_in"`
+	TokensOut      int64             `json:"tokens_out"`
 	CacheHit       int64             `json:"cache_hit_tokens"` // 供应商返回的缓存命中 token，结算时用于计算输入缓存优惠。
 	CostMicros     int64             `json:"cost_micros"`      // 已计入的结算费用及未知预留额。
 	ReportMode     string            `json:"report_mode"`      // 主动提交还是预算要求整理。
@@ -65,7 +55,7 @@ func (store *Store) List(ctx context.Context, target, status string, limit, offs
 	if limit < 1 || limit > 100 || offset < 0 || offset > 100000 {
 		return nil, fmt.Errorf("分页范围不合法")
 	}
-	query := "SELECT id,target,`trigger`,status,title,created_at,COALESCE(model,''),provider,currency FROM diagnoses WHERE 1=1"
+	query := listDiagnosesSQL
 	args := []any{}
 	if target != "" {
 		query += " AND target=?"
@@ -85,7 +75,11 @@ func (store *Store) List(ctx context.Context, target, status string, limit, offs
 	values := []Diagnosis{}
 	for rows.Next() {
 		var value Diagnosis
-		if err := rows.Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Model, &value.Provider, &value.Currency); err != nil {
+		if err := rows.Scan(
+			&value.ID, &value.Target, &value.Trigger, &value.Status,
+			&value.Title, &value.CreatedAt, &value.Model, &value.Provider,
+			&value.Currency,
+		); err != nil {
 			return nil, err
 		}
 		values = append(values, value)
@@ -97,22 +91,33 @@ func (store *Store) List(ctx context.Context, target, status string, limit, offs
 func (store *Store) Detail(ctx context.Context, id string) (Detail, error) {
 	// 先查任务再查快照，任务不存在时立刻返回，不能拿空 ID 继续查关联记录。
 	value := Detail{Alerts: []json.RawMessage{}}
-	var started, finished sql.NullTime
-	var duration sql.NullInt64
-	var rawReport []byte // SQL NULL 要先接到可空字节切片，之后再交给 JSON 字段。
-	err := store.database.QueryRowContext(ctx, "SELECT id,target,`trigger`,status,title,created_at,input,COALESCE(model,''),provider,report,COALESCE(error,''),COALESCE(prompt_version,''),tokens_in,tokens_out,cache_hit_tokens,cost_micros,rounds,tool_calls,started_at,finished_at,next_seq,report_mode,budget_reason,currency,duration_ms FROM diagnoses WHERE id=?", id).Scan(&value.ID, &value.Target, &value.Trigger, &value.Status, &value.Title, &value.CreatedAt, &value.Input, &value.Model, &value.Provider, &rawReport, &value.Error, &value.PromptVersion, &value.TokensIn, &value.TokensOut, &value.CacheHit, &value.CostMicros, &value.Rounds, &value.ToolCalls, &started, &finished, &value.LastSeq, &value.ReportMode, &value.BudgetReason, &value.Currency, &duration)
+	// 暂存可空列，只有数据库提供值时才填写详情中的报告和起止时间。
+	var raw struct {
+		started, finished sql.NullTime
+		duration          sql.NullInt64
+		report            []byte
+	}
+	err := store.database.QueryRowContext(ctx, diagnosisDetailSQL, id).Scan(
+		&value.ID, &value.Target, &value.Trigger, &value.Status,
+		&value.Title, &value.CreatedAt, &value.Input, &value.Model,
+		&value.Provider, &raw.report, &value.Error, &value.PromptVersion,
+		&value.TokensIn, &value.TokensOut, &value.CacheHit, &value.CostMicros,
+		&value.Rounds, &value.ToolCalls, &raw.started, &raw.finished,
+		&value.LastSeq, &value.ReportMode, &value.BudgetReason, &value.Currency,
+		&raw.duration,
+	)
 	if err != nil {
 		return value, err
 	}
-	value.Report = rawReport
-	if duration.Valid {
-		value.DurationMS = &duration.Int64
+	value.Report = raw.report
+	if raw.duration.Valid {
+		value.DurationMS = &raw.duration.Int64
 	}
-	if started.Valid {
-		value.StartedAt = &started.Time
+	if raw.started.Valid {
+		value.StartedAt = &raw.started.Time
 	}
-	if finished.Valid {
-		value.FinishedAt = &finished.Time
+	if raw.finished.Valid {
+		value.FinishedAt = &raw.finished.Time
 	}
 	value.Steps, err = store.StepsAfter(ctx, id, 0)
 	if err != nil {
@@ -122,3 +127,45 @@ func (store *Store) Detail(ctx context.Context, id string) (Detail, error) {
 	value.Alerts, value.RecoveryAlerts = history.Alerts, history.RecoveryAlerts
 	return value, err
 }
+
+const listDiagnosesSQL = `SELECT
+    id,
+    target,
+    ` + "`trigger`" + `,
+    status,
+    title,
+    created_at,
+    COALESCE(model, ''),
+    provider,
+    currency
+FROM diagnoses
+WHERE 1 = 1`
+
+const diagnosisDetailSQL = `SELECT
+    id,
+    target,
+    ` + "`trigger`" + `,
+    status,
+    title,
+    created_at,
+    input,
+    COALESCE(model, ''),
+    provider,
+    report,
+    COALESCE(error, ''),
+    COALESCE(prompt_version, ''),
+    tokens_in,
+    tokens_out,
+    cache_hit_tokens,
+    cost_micros,
+    rounds,
+    tool_calls,
+    started_at,
+    finished_at,
+    next_seq,
+    report_mode,
+    budget_reason,
+    currency,
+    duration_ms
+FROM diagnoses
+WHERE id = ?`

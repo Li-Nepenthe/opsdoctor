@@ -2,14 +2,6 @@
 //
 // MySQL 使用自己的协议，不能用 HTTP 服务器代替。假驱动位于 database/sql 与
 // 网络驱动之间，既能看到真正发出的 SQL，也能保留标准库连接池的排队行为。
-//
-// 主要内容：
-//   - TestQueries：检查只查元数据、参数绑定、NULL 和条数限制。
-//   - TestPoolDeadline：占住三个连接，用虚拟时钟验证排队也最多十秒。
-//   - TestOptions：证明代码覆盖了危险的连接串选项。
-//   - fixtureDriver、fixtureConn、fixtureRows：只服务本文件的最小数据库驱动。
-//
-// 阅读建议：先看 TestQueries 的断言，再读假驱动如何返回两行固定结果。
 
 package mysqlinspect
 

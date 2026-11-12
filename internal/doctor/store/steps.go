@@ -1,10 +1,4 @@
-// 本文件：给步骤分配编号，并为页面断线后的补发提供有序读取。
-//
-// 模型可能同时请求四个工具。不能用“先数有多少行”来分配下一号，而要锁住诊断行，
-// 在同一个事务中递增序号和写步骤。发布通知放在提交以后，页面才能按编号补查。
-//
-// 主要内容：RecordStep 保存一步；appendStep 是事务内公共写入；StepsAfter 读取增量。
-// 阅读建议：并发完成顺序与模型请求顺序可能不同，报告必须引用保存后返回的编号。
+// 本文件：在同一事务里锁住诊断、分配序号并保存步骤。并行工具按实际保存顺序编号，提交后再发布通知，便于页面断线补读。
 
 package store
 
@@ -73,11 +67,11 @@ func (store *Store) appendStep(ctx context.Context, tx *sql.Tx, id string, step 
 	step.Currency = store.config.Currency
 	step.Seq++
 	// 一个事务同时写行与递增编号；回滚时两者一起消失，不留下无内容的编号。
-	_, err = tx.ExecContext(ctx, "INSERT INTO diagnosis_steps(diagnosis_id,seq,kind,model,tool_name,args,result,status,duration_ms,tokens_in,tokens_out,cache_hit_tokens,cost_micros,created_at,event_key,parent_seq,call_id,counted,currency,cache_write_tokens,reasoning_tokens) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", id, step.Seq, step.Kind, step.Model, step.ToolName, step.Args, step.Result, step.Status, step.DurationMS, step.Usage.Input, step.Usage.Output, step.Usage.CacheHit, step.CostMicros, step.CreatedAt, nullableKey(step.EventKey), step.ParentSeq, step.CallID, step.Counted, step.Currency, step.Usage.CacheWrite, step.Usage.Reasoning)
+	_, err = tx.ExecContext(ctx, insertDiagnosisStepSQL, id, step.Seq, step.Kind, step.Model, step.ToolName, step.Args, step.Result, step.Status, step.DurationMS, step.Usage.Input, step.Usage.Output, step.Usage.CacheHit, step.CostMicros, step.CreatedAt, nullableKey(step.EventKey), step.ParentSeq, step.CallID, step.Counted, step.Currency, step.Usage.CacheWrite, step.Usage.Reasoning)
 	if err != nil {
 		return step, err
 	}
-	_, err = tx.ExecContext(ctx, "UPDATE diagnoses SET next_seq=?,tokens_in=tokens_in+?,tokens_out=tokens_out+?,cache_hit_tokens=cache_hit_tokens+?,cost_micros=cost_micros+?,cache_write_tokens=cache_write_tokens+? WHERE id=?", step.Seq, step.Usage.Input, step.Usage.Output, step.Usage.CacheHit, step.CostMicros, step.Usage.CacheWrite, id)
+	_, err = tx.ExecContext(ctx, updateStepTotalsSQL, step.Seq, step.Usage.Input, step.Usage.Output, step.Usage.CacheHit, step.CostMicros, step.Usage.CacheWrite, id)
 	return step, err
 }
 
@@ -93,7 +87,7 @@ func (store *Store) StepsAfter(ctx context.Context, id string, after int) ([]age
 	if after < 0 {
 		return nil, fmt.Errorf("步骤编号不能为负数")
 	}
-	rows, err := store.database.QueryContext(ctx, "SELECT seq,kind,model,tool_name,args,result,status,duration_ms,tokens_in,tokens_out,cache_hit_tokens,cost_micros,created_at,COALESCE(event_key,''),parent_seq,call_id,counted,currency,cache_write_tokens,reasoning_tokens FROM diagnosis_steps WHERE diagnosis_id=? AND seq>? ORDER BY seq LIMIT 100", id, after)
+	rows, err := store.database.QueryContext(ctx, stepsAfterSQL, id, after)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +96,13 @@ func (store *Store) StepsAfter(ctx context.Context, id string, after int) ([]age
 	steps := []agent.Step{}
 	for rows.Next() {
 		var step agent.Step
-		if err = rows.Scan(&step.Seq, &step.Kind, &step.Model, &step.ToolName, &step.Args, &step.Result, &step.Status, &step.DurationMS, &step.Usage.Input, &step.Usage.Output, &step.Usage.CacheHit, &step.CostMicros, &step.CreatedAt, &step.EventKey, &step.ParentSeq, &step.CallID, &step.Counted, &step.Currency, &step.Usage.CacheWrite, &step.Usage.Reasoning); err != nil {
+		if err = rows.Scan(
+			&step.Seq, &step.Kind, &step.Model, &step.ToolName,
+			&step.Args, &step.Result, &step.Status, &step.DurationMS,
+			&step.Usage.Input, &step.Usage.Output, &step.Usage.CacheHit, &step.CostMicros,
+			&step.CreatedAt, &step.EventKey, &step.ParentSeq, &step.CallID,
+			&step.Counted, &step.Currency, &step.Usage.CacheWrite, &step.Usage.Reasoning,
+		); err != nil {
 			return nil, err
 		}
 		steps = append(steps, step)
@@ -121,6 +121,121 @@ func nullableKey(key string) any {
 // readStep 在同一事务内返回已保存的完整结果，重试保存不会分配第二个步骤号。
 func readStep(ctx context.Context, tx *sql.Tx, id, key string) (agent.Step, error) {
 	var step agent.Step
-	err := tx.QueryRowContext(ctx, "SELECT seq,kind,model,tool_name,args,result,status,duration_ms,tokens_in,tokens_out,cache_hit_tokens,cost_micros,created_at,COALESCE(event_key,''),parent_seq,call_id,counted,currency,cache_write_tokens,reasoning_tokens FROM diagnosis_steps WHERE diagnosis_id=? AND event_key=?", id, key).Scan(&step.Seq, &step.Kind, &step.Model, &step.ToolName, &step.Args, &step.Result, &step.Status, &step.DurationMS, &step.Usage.Input, &step.Usage.Output, &step.Usage.CacheHit, &step.CostMicros, &step.CreatedAt, &step.EventKey, &step.ParentSeq, &step.CallID, &step.Counted, &step.Currency, &step.Usage.CacheWrite, &step.Usage.Reasoning)
+	err := tx.QueryRowContext(ctx, stepByEventKeySQL, id, key).Scan(
+		&step.Seq, &step.Kind, &step.Model, &step.ToolName,
+		&step.Args, &step.Result, &step.Status, &step.DurationMS,
+		&step.Usage.Input, &step.Usage.Output, &step.Usage.CacheHit, &step.CostMicros,
+		&step.CreatedAt, &step.EventKey, &step.ParentSeq, &step.CallID,
+		&step.Counted, &step.Currency, &step.Usage.CacheWrite, &step.Usage.Reasoning,
+	)
 	return step, err
 }
+
+const insertDiagnosisStepSQL = `INSERT INTO diagnosis_steps (
+    diagnosis_id,
+    seq,
+    kind,
+    model,
+    tool_name,
+    args,
+    result,
+    status,
+    duration_ms,
+    tokens_in,
+    tokens_out,
+    cache_hit_tokens,
+    cost_micros,
+    created_at,
+    event_key,
+    parent_seq,
+    call_id,
+    counted,
+    currency,
+    cache_write_tokens,
+    reasoning_tokens
+)
+VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
+)`
+
+const updateStepTotalsSQL = `UPDATE diagnoses
+SET
+    next_seq = ?,
+    tokens_in = tokens_in + ?,
+    tokens_out = tokens_out + ?,
+    cache_hit_tokens = cache_hit_tokens + ?,
+    cost_micros = cost_micros + ?,
+    cache_write_tokens = cache_write_tokens + ?
+WHERE id = ?`
+
+const stepsAfterSQL = `SELECT
+    seq,
+    kind,
+    model,
+    tool_name,
+    args,
+    result,
+    status,
+    duration_ms,
+    tokens_in,
+    tokens_out,
+    cache_hit_tokens,
+    cost_micros,
+    created_at,
+    COALESCE(event_key, ''),
+    parent_seq,
+    call_id,
+    counted,
+    currency,
+    cache_write_tokens,
+    reasoning_tokens
+FROM diagnosis_steps
+WHERE diagnosis_id = ?
+    AND seq > ?
+ORDER BY seq
+LIMIT 100`
+
+const stepByEventKeySQL = `SELECT
+    seq,
+    kind,
+    model,
+    tool_name,
+    args,
+    result,
+    status,
+    duration_ms,
+    tokens_in,
+    tokens_out,
+    cache_hit_tokens,
+    cost_micros,
+    created_at,
+    COALESCE(event_key, ''),
+    parent_seq,
+    call_id,
+    counted,
+    currency,
+    cache_write_tokens,
+    reasoning_tokens
+FROM diagnosis_steps
+WHERE diagnosis_id = ?
+    AND event_key = ?`

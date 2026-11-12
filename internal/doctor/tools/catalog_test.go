@@ -1,8 +1,5 @@
 // 本文件：验证完整工具菜单的共同边界，以及调用链摘要遇到坏数据时的行为。
 //
-// 主要内容：
-//   - TestEveryToolRejectsDestination：十六个工具都不能接收地址或系统参数。
-//   - TestTraceSummaryBoundaries：环路、缺失父节点和重复排序不会破坏原始数据。
 // 阅读建议：假接口没有实现后端操作，若校验漏过，测试会得到 internal 而不是预期的参数错误。
 
 package tools

@@ -1,11 +1,6 @@
 // 本文件：认证规则的边界与伪造令牌测试。
 //
 // 这些测试直接调用认证包，不启动登录服务。先看合法输入如何建立基线，再看算法、签发方、受众和有效期被逐项改坏后为什么必须拒绝。
-//
-// 主要内容：
-//   - TestEmailAndPasswordValidation：保留旧仓库的输入边界和密码摘要回归测试，避免迁移时弱化认证。
-//   - TestTokenConfiguration：验证启动时拒绝短密钥和无效有效期，防止签出无法使用的令牌。
-//   - TestJWTRejectsAlgorithmIssuerAudienceExpiryAndTampering：验证算法、签发方、受众、有效期和篡改均被拒绝。
 
 package auth
 

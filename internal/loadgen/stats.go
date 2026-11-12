@@ -1,16 +1,5 @@
-// 本文件：从实际完成的 HTTP 尝试计算吞吐、错误率和延迟。
-//
-// 调度目标不等于实际 QPS。这里按完成次数除以真实经过时间计算，重试也算一次 HTTP 尝试。
-// 延迟按一毫秒分桶保存，内存大小固定。P50、P99 是桶上界估计，不冒充纳秒精确值。
-// P99 表示把请求按耗时排好后，百分之九十九的请求不超过的那个位置。P50 则看中间位置。
-//
-// 主要内容：
-//   - histogram：保存完成数、错误数、请求类型和延迟桶。
-//   - statistics：同时保存十秒窗口与整次运行的统计。
-//   - record、drop：记录完成请求或调度未能发送的请求。
-//   - snapshot、percentile：生成报表，并按需要清空窗口。
-//
-// 阅读建议：ErrorRate 的分母是已完成尝试，Dropped 单独列出，不能隐藏调度压力。
+// 本文件：按实际完成的 HTTP 尝试计算吞吐、错误率和延迟，单独统计未发出的任务。
+// 重试也算一次尝试。延迟放进固定大小的一毫秒桶，P50 和 P99 使用桶上界估计。
 
 package loadgen
 
@@ -35,17 +24,17 @@ type histogram struct {
 // statistics 的一把锁保护两个直方图，窗口和总计看到同一次记录。
 type statistics struct {
 	mu            sync.Mutex // 发送工作者并发调用 record，报告循环调用 snapshot。
-	started       time.Time  // 整次运行的起点。
-	windowStarted time.Time  // 上一份窗口报告生成的时间。
-	total         histogram  // 全程累计，不因十秒报告清空。
-	window        histogram  // 每次窗口报告后归零。
+	started       time.Time
+	windowStarted time.Time
+	total         histogram // 全程累计，不因十秒报告清空。
+	window        histogram // 每次窗口报告后归零。
 }
 
 // report 是日志与控制接口使用的数值快照，不含内部锁或大数组。
 type report struct {
-	ElapsedSeconds  float64 `json:"elapsed_seconds"`  // 实际统计窗口时长。
-	Requests        uint64  `json:"requests"`         // 实际完成数。
-	Errors          uint64  `json:"errors"`           // 实际失败数。
+	ElapsedSeconds  float64 `json:"elapsed_seconds"`
+	Requests        uint64  `json:"requests"`
+	Errors          uint64  `json:"errors"`
 	Dropped         uint64  `json:"dropped"`          // 没发出去的调度数，独立报告。
 	QPS             float64 `json:"qps"`              // Requests / ElapsedSeconds。
 	ErrorRate       float64 `json:"error_rate"`       // 0..1 的比例。
@@ -53,7 +42,7 @@ type report struct {
 	P99MS           int     `json:"p99_ms"`           // 一毫秒桶的百分之九十九上界。
 	ProductRequests uint64  `json:"product_requests"` // 包含所有实际商品查询尝试。
 	OrderRequests   uint64  `json:"order_requests"`   // 包含下单的超时重试。
-	ListRequests    uint64  `json:"list_requests"`    // 实际订单列表查询。
+	ListRequests    uint64  `json:"list_requests"`
 	LatencyOverflow uint64  `json:"latency_overflow"` // 不为零时最大桶不能代表真实尾延迟。
 }
 

@@ -1,9 +1,5 @@
-// Package events 把已经保存的步骤送给正在看页面的人。
+// Package events 把已经提交的步骤通知正在查看该诊断的页面。数据库保存完整历史，浏览器重连时用 Last-Event-ID 补回遗漏。
+// 从 Subscribe 读到 Publish。每个订阅有自己的缓冲，慢浏览器只会断开自己的连接。
 //
-// 数据库是完整历史，内存通道只是实时通知。一个浏览器太慢时，只断开它自己的
-// 订阅，不让诊断等它读取。它重连后按 Last-Event-ID 从数据库补齐遗漏。
-//
-// 文件清单：doc.go 是本说明；hub.go 管理订阅；hub_test.go 验证隔离和慢订阅者断开。
-// 阅读顺序：hub.go 的 Subscribe → Publish → Subscription.Close。
-// 本包不直接写 HTTP，也不负责持久化。
+//   - hub.go：管理订阅、投递与关闭，在同一把锁下保护通道。
 package events

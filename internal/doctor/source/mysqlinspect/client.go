@@ -1,15 +1,4 @@
-// 本文件：用一个最多三条连接的只读账号检查 MySQL。
-//
-// 每条查询都有明确用途，没有把用户文本交给任意 Query 的入口。只有 Explain
-// 接受经过检查的 SELECT，并且由这里加 EXPLAIN，永远不执行原 SELECT。
-//
-// 主要内容：
-//   - New、Close：建立惰性连接池，关闭多语句执行并限制连接数。
-//   - Explain、Indexes、TableStats：看查询计划和表结构。
-//   - TopQueries、LockWaits、Status：看 SQL 摘要、锁等待和运行状态。
-//   - query：统一读取有上限的元数据表格。
-//
-// 阅读建议：先读 New 的限制，再逐一看固定 SQL 取了哪些字段。
+// 本文件：在绑定库内读取 MySQL 运行状态和元数据。只有 Explain 接受调用者提供的 SELECT，校验后只取执行计划。
 
 package mysqlinspect
 

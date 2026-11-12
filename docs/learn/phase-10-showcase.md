@@ -54,7 +54,7 @@ git diff main -- internal/doctor/agent/prompts internal/doctor/tools docs/runboo
 
 你应该看到空输出。本阶段的成绩展示读取存档，不在这些地方改行为。这个命令只检查列出的路径，不是全仓库沙箱。
 
-第四步打开医生页面 `http://127.0.0.1:8090`，登录后确认“Mock 模式，不是真实诊断”，再按 README 的三分钟脚本创建一次演示任务。
+第四步打开医生页面 `http://127.0.0.1:8090`，登录后确认“Mock 模式，不是真实诊断”，再按[演示与结果](../demo-and-results.md#三分钟演示)里的“三分钟演示”创建一次演示任务。
 
 你应该看到真实工具结果和带 Mock 标记的报告。固定脚本不推断根因，不能用这份报告评判诊断正确率。真正的模型效果沿阶段 8 存档阅读，不需要再次付费。
 
@@ -148,10 +148,10 @@ alertsink 看起来像历史遗留，但阶段 3 学习材料和命令仍引用�
 
 | 函数 | 参数与返回值 | 作用与调用关系 |
 |---|---|---|
-| [Consumer.Run](../../internal/shop/events/consumer.go#L77) | `ctx` → `error` | 调用 fetchMessage；取得消息后仍沿原 process 处理并提交 |
-| [Consumer.fetchMessage](../../internal/shop/events/consumer.go#L108) | `ctx` → `kafka.Message, error` | 沿用原 Reader，只对可恢复协调器错误做有界重取 |
-| [recoverableCoordinatorError](../../internal/shop/events/consumer.go#L131) | `err` → `bool` | 用 errors.Is 识别 14、15、16，包括被上下文包装的错误 |
-| [waitFetchRetry](../../internal/shop/events/consumer.go#L136) | `ctx, delay` → `error` | 等定时器或取消；由 fetchMessage 调用 |
+| [Consumer.Run](../../internal/shop/events/consumer.go#L69) | `ctx` → `error` | 调用 fetchMessage；取得消息后仍沿原 process 处理并提交 |
+| [Consumer.fetchMessage](../../internal/shop/events/consumer.go#L96) | `ctx` → `kafka.Message, error` | 沿用原 Reader，只对可恢复协调器错误做有界重取 |
+| [recoverableCoordinatorError](../../internal/shop/events/consumer.go#L119) | `err` → `bool` | 用 errors.Is 识别 14、15、16，包括被上下文包装的错误 |
+| [waitFetchRetry](../../internal/shop/events/consumer.go#L124) | `ctx, delay` → `error` | 等定时器或取消；由 fetchMessage 调用 |
 
 初次读取后，最多额外重取三次，退避依次为 250、500、1000ms。成功取得一条消息就结束本份预算，下一条重新计数。预算限制的是连续协调器错误次数；恢复后主题暂时没有订单，是正常空闲，因此不额外给整个 Fetch 加短 deadline。
 
@@ -199,7 +199,7 @@ alertsink 看起来像历史遗留，但阶段 3 学习材料和命令仍引用�
 |---|---|---|
 | 1 | [cmd/order-worker/main.go](../../cmd/order-worker/main.go) | 入口怎样把启动错误交给进程退出状态 |
 | 2 | [orderworker/doc.go](../../internal/shop/app/orderworker/doc.go) | 先看消费者组装包的位置、接口和文件分工 |
-| 3 | [events/doc.go](../../internal/shop/events/doc.go) 与 [MessageReader](../../internal/shop/events/consumer.go#L38) | 先理解 Fetch、业务处理与 Commit 的接口边界 |
+| 3 | [events/doc.go](../../internal/shop/events/doc.go) 与 [MessageReader](../../internal/shop/events/consumer.go#L24) | 先理解 Fetch、业务处理与 Commit 的接口边界 |
 | 4 | [consumer.go](../../internal/shop/events/consumer.go) | 对照 Run、fetchMessage 和 process，确认重试没有包住业务副作用 |
 | 5 | [consumer_fetch_test.go](../../internal/shop/events/consumer_fetch_test.go) | 先读错误 16 恢复，再读预算、空闲 context、永久错误和取消反例 |
 | 6 | [架构说明](../architecture.md) | 把告警→报告、注入→评测两条路线放到一起 |
@@ -249,7 +249,7 @@ Compose 项目名决定容器、网络和命名卷的归属。本仓库写死了
 1. **打错项目名 → 观察空列表 → 改回正确名称。** 先用 `docker compose -p opsdoctor-fresh-typo --env-file .env -f deploy/docker-compose.yml ps --all`，再换成 `-p opsdoctor-fresh`。两条都是只读。解释为什么目录相同，看到的容器却不同。
 2. **暂停医生 → 观察就绪失败 → 启回原 Mock 进程。** 先确认隔离项目中没有自己的进行中任务，再运行 `docker compose -p opsdoctor-fresh --env-file .env -f deploy/docker-compose.yml stop doctor`。页面暂时不可用；随后用同一前缀执行 `start --wait doctor`，观察原有诊断历史仍在。这里不删除医生卷，也不借重建切到真实模型。
 3. **切断页面网络 → 观察加载失败 → 恢复网络。** 在已有 Mock 诊断详情页，用浏览器开发者工具暂时切 Offline，再恢复联网并刷新。步骤来自医生保存的记录，不依赖模型重新诊断。对照 SSE 的序号和页面显示，解释为什么前端连接断了不等于诊断数据丢了。
-4. **在临时副本藏掉评分失败列 → 观察分母对不上 → 恢复该列。** 把 README 评测表复制到本机临时笔记，只在副本中试改。核对三档计数为何不等于全部报告数，再恢复“有效评分”和“失败”两类信息。不要改原始报告、评分或台账。
+4. **在临时副本藏掉评分失败列 → 观察分母对不上 → 恢复该列。** 把[演示与结果](../demo-and-results.md#评测结果)里的完整评测表复制到本机临时笔记，只在副本中试改：藏掉“评分失败 / 报告数”这一列，核对机制三档的计数为什么加起来不等于 39（以 Terra E1 为例，25 + 9 + 1 = 35，再加 4 份评分失败才是 39），再把这一列恢复。不要改原始报告、评分或台账。
 
 ## 八、常见误区
 

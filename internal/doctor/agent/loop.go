@@ -1,10 +1,5 @@
-// 本文件：控制诊断从第一次询问模型到提交报告的整个过程。
-//
-// 循环不是“模型说什么就做什么”。每轮先检查预算；调用完先记录用量和步骤；
-// 只有通过报告校验才算成功。普通工具失败会作为数据回给模型，审计失败则必须停止。
-//
-// 主要内容：New 固定依赖；Run 管理总时限；ask 保存模型步骤；finish 给最后一次报告机会。
-// 阅读建议：预算触发后的那次机会只允许 submit_report，不能继续搜集新证据。
+// 本文件：推进一次诊断，从第一次问模型到交出通过校验的报告。
+// Run 给查证和整理报告分配时间，ask 先保存请求断点再调用模型，finish 只允许使用已有证据。
 
 package agent
 
@@ -21,29 +16,29 @@ import (
 
 // Agent 构造后只读；每次 Run 的消息和计数都放在独立 session 中。
 type Agent struct {
-	client   llm.Client    // 真实或脚本模型，调用方式相同。
-	model    string        // 本次进程配置的初始模型名。
+	client   llm.Client
+	model    string
 	redactor *llm.Redactor // 所有边界内容共用的脱敏规则。
-	limits   Limits        // 正常阶段的预算和总时限。
+	limits   Limits
 }
 
 // session 保存一次诊断的状态，不把历史挂在共享模型客户端上。
 type session struct {
 	parentSeq   int             // 当前工具批次所属的模型步骤。
 	completed   map[string]Step // 已保存的工具结果；恢复时只重做没有结果的查看请求。
-	agent       *Agent          // 构造依赖。
-	input       Input           // 固定系统与记录器。
-	history     []llm.Message   // 每轮只追加，不改固定前缀。
-	definitions []llm.Tool      // 本系统工具加 submit_report。
-	existing    map[int]bool    // 本次已经成功保存的步骤编号。
-	result      Result          // 用量与报告累计。
-	lastInput   int64           // 上一轮供应商计量，作为下一轮估计历史的依据。
-	lastBytes   int             // 上一轮发送的 JSON 大小，新增内容单独计算。
+	agent       *Agent
+	input       Input
+	history     []llm.Message // 每轮只追加，不改固定前缀。
+	definitions []llm.Tool    // 本系统工具加 submit_report。
+	existing    map[int]bool  // 本次可引用的步骤编号，只用初始输入时仅含告警。
+	result      Result
+	lastInput   int64 // 上一轮供应商计量，作为下一轮估计历史的依据。
+	lastBytes   int   // 上一轮发送的 JSON 大小，新增内容单独计算。
 }
 
 // New 不联网，参数错误在启动时暴露，单元测试可使用较小预算。
 func New(client llm.Client, model string, redactor *llm.Redactor, limits Limits) (*Agent, error) {
-	// 旧测试只缩小轮数或总量时，新边界仍默认开启，不能因零值悄悄失去保护。
+	// 上下文或费用限额留零时取默认值，避免调用方只设轮数就关闭了保护。
 	if limits.ContextTokens == 0 {
 		limits.ContextTokens = DefaultLimits().ContextTokens
 	}
@@ -88,25 +83,18 @@ func (agent *Agent) Run(parent context.Context, input Input) (Result, error) {
 func (run *session) execute(whole, work context.Context) (Result, error) {
 	for run.budgetReason() == "" {
 		answer, err := run.ask(work, false)
+		if errors.Is(err, llm.ErrDiagnosisBudget) {
+			if run.result.BudgetReason == "" {
+				run.result.BudgetReason = err.Error()
+			}
+			break
+		}
 		if err != nil {
-			if errors.Is(err, llm.ErrDiagnosisBudget) {
-				if run.result.BudgetReason == "" {
-					run.result.BudgetReason = err.Error()
-				}
-				return run.finish(whole)
-			}
-			// 普通阶段时间耗尽后还留有报告时间；主动取消和额度不足不能再发一次付费请求。
-			if work.Err() != nil && whole.Err() == nil {
-				return run.finish(whole)
-			}
-			return run.result, err
+			return run.afterWorkError(whole, work, err)
 		}
 		done, err := run.calls(work, answer.Message.ToolCalls, false)
 		if err != nil {
-			if work.Err() != nil && whole.Err() == nil {
-				return run.finish(whole)
-			}
-			return run.result, err
+			return run.afterWorkError(whole, work, err)
 		}
 		if done {
 			return run.result, nil
@@ -115,37 +103,22 @@ func (run *session) execute(whole, work context.Context) (Result, error) {
 	return run.finish(whole)
 }
 
+// afterWorkError 只在查证时间耗尽、总时限仍有余量时转入报告阶段；主动取消会直接结束。
+func (run *session) afterWorkError(whole, work context.Context, err error) (Result, error) {
+	if work.Err() != nil && whole.Err() == nil {
+		return run.finish(whole)
+	}
+	return run.result, err
+}
+
 // ask 把实际脱敏后的请求写进步骤；真实 HTTP 尝试另由 llm 账本在发送前保存。
 func (run *session) ask(ctx context.Context, final bool) (llm.Response, error) {
-	request := llm.Request{DiagnosisID: run.input.ID, Model: run.agent.model, Messages: run.history, Tools: run.definitions, MaxTokens: 4096, Thinking: llm.Thinking{Type: "disabled"}}
-	if final {
-		request.Tools = []llm.Tool{reportDefinition(run.input.Components)}
-	}
-	raw, _ := json.Marshal(request)
-	clean, err := run.agent.redactor.JSON(raw)
+	request, clean, err := run.prepareRequest(final)
 	if err != nil {
 		return llm.Response{}, err
 	}
-	// 再解析得到模型真正看到的内容，内存脚本与真实 HTTP 不走两套脱敏路径。
-	if err := json.Unmarshal(clean, &request); err != nil {
+	if err := run.checkRequestBudget(request, final); err != nil {
 		return llm.Response{}, err
-	}
-	request.DiagnosisID = run.input.ID
-	request.DiagnosisLimitMicros = run.agent.limits.CostMicros
-	request.InputUpperBound = run.inputBound(len(clean))
-	requestTokens := request.InputUpperBound + int64(request.MaxTokens)
-	if requestTokens > run.agent.limits.ContextTokens {
-		run.result.BudgetReason = "单次请求上下文达到上限"
-		return llm.Response{}, llm.ErrDiagnosisBudget
-	}
-	remaining := run.agent.limits.Tokens - run.result.Usage.Input - run.result.Usage.Output
-	// 累计量也是硬边界，最后的报告和修正不能越过它。普通阶段提前留一份报告额度。
-	if requestTokens > remaining || (!final && run.result.Rounds > 0 && 2*requestTokens > remaining) {
-		run.result.BudgetReason = "累计 token 余额不足，预留最后报告空间"
-		return llm.Response{}, llm.ErrDiagnosisBudget
-	}
-	if run.result.CostMicros >= run.agent.limits.CostMicros {
-		return llm.Response{}, llm.ErrDiagnosisBudget
 	}
 	started := time.Now()
 	// 先保存发送意图。若结算成功后、保存 llm 步骤前崩溃，仓储能用这个编号找回回复。
@@ -156,18 +129,62 @@ func (run *session) ask(ctx context.Context, final bool) (llm.Response, error) {
 	request.CallID = fmt.Sprintf("request:%d", pending.Seq)
 	answer, callErr := run.agent.client.Complete(ctx, request)
 	run.result.Rounds++
-	run.result.Usage.Input += answer.Usage.Input
-	run.result.Usage.Output += answer.Usage.Output
-	run.result.Usage.CacheHit += answer.Usage.CacheHit
-	run.result.Usage.CacheWrite += answer.Usage.CacheWrite
-	run.result.Usage.Reasoning += answer.Usage.Reasoning
-	run.result.Usage.CacheMiss += answer.Usage.CacheMiss
+	run.result.Usage.Add(answer.Usage)
 	run.result.CostMicros += answer.CostMicros
+	return run.recordAnswer(ctx, request.CallID, clean, started, answer, callErr)
+}
+
+func (run *session) prepareRequest(final bool) (llm.Request, json.RawMessage, error) {
+	request := llm.Request{
+		DiagnosisID: run.input.ID, Model: run.agent.model, Messages: run.history, Tools: run.definitions,
+		MaxTokens: 4096, Thinking: llm.Thinking{Type: "disabled"},
+	}
+	if final {
+		request.Tools = []llm.Tool{reportDefinition(run.input.Components)}
+	}
+	raw, _ := json.Marshal(request)
+	clean, err := run.agent.redactor.JSON(raw)
+	if err != nil {
+		return llm.Request{}, nil, err
+	}
+	// 从脱敏后的字节还原请求，脚本和 HTTP 客户端都收到审计里所见的内容。
+	if err := json.Unmarshal(clean, &request); err != nil {
+		return llm.Request{}, nil, err
+	}
+	request.DiagnosisID = run.input.ID
+	request.DiagnosisLimitMicros = run.agent.limits.CostMicros
+	request.InputUpperBound = run.inputBound(len(clean))
+	return request, clean, nil
+}
+
+func (run *session) checkRequestBudget(request llm.Request, final bool) error {
+	requestTokens := request.InputUpperBound + int64(request.MaxTokens)
+	if requestTokens > run.agent.limits.ContextTokens {
+		run.result.BudgetReason = "单次请求上下文达到上限"
+		return llm.ErrDiagnosisBudget
+	}
+	remaining := run.agent.limits.Tokens - run.result.Usage.Input - run.result.Usage.Output
+	// 累计量也是硬边界，最后的报告和修正不能越过它。普通阶段提前留一份报告额度。
+	if requestTokens > remaining || (!final && run.result.Rounds > 0 && 2*requestTokens > remaining) {
+		run.result.BudgetReason = "累计 token 余额不足，预留最后报告空间"
+		return llm.ErrDiagnosisBudget
+	}
+	if run.result.CostMicros >= run.agent.limits.CostMicros {
+		return llm.ErrDiagnosisBudget
+	}
+	return nil
+}
+
+// recordAnswer 先保存回复和状态，再把成功回复接入对话。步骤号供下一轮工具结果引用。
+func (run *session) recordAnswer(
+	ctx context.Context, callID string, clean json.RawMessage,
+	started time.Time, answer llm.Response, callErr error,
+) (llm.Response, error) {
 	if answer.Model == "" {
 		answer.Model = run.agent.model
 	}
 	response, _ := json.Marshal(answer)
-	response, err = run.agent.redactor.JSON(response)
+	response, err := run.agent.redactor.JSON(response)
 	if err != nil {
 		return answer, err
 	}
@@ -179,7 +196,10 @@ func (run *session) ask(ctx context.Context, final bool) (llm.Response, error) {
 	if errors.Is(callErr, context.Canceled) {
 		status = "cancelled"
 	}
-	step, recordErr := record(ctx, run.input.Recorder, Step{EventKey: request.CallID, CallID: request.CallID, Kind: "llm", Model: answer.Model, Args: clean, Result: string(response), Status: status, DurationMS: time.Since(started).Milliseconds(), Usage: answer.Usage, CostMicros: answer.CostMicros})
+	step, recordErr := record(ctx, run.input.Recorder, Step{
+		EventKey: callID, CallID: callID, Kind: "llm", Model: answer.Model, Args: clean, Result: string(response),
+		Status: status, DurationMS: time.Since(started).Milliseconds(), Usage: answer.Usage, CostMicros: answer.CostMicros,
+	})
 	if recordErr != nil {
 		return answer, fmt.Errorf("保存模型步骤：%w", recordErr)
 	}

@@ -3,15 +3,6 @@
 // 测试不会改数据库或容器，只用临时目录保存恢复记录。
 // 它专门覆盖取消、部分失败与第二个实验企图覆盖记录的情况。
 //
-// 主要内容：
-//   - fakeExecutor、fakeObserver：按测试安排返回结果并记录恢复情况。
-//   - TestTrialRestoresAfterCancellation：取消实验后仍有独立的恢复预算。
-//   - TestRestoreContinuesAndRetainsRecord：失败后继续清理，并保留恢复依据。
-//   - TestInjectDoesNotOverwrite：同一时刻只允许一个活动场景。
-//   - TestSelftestKeepsUnrunRows：中途停止后仍列出未执行的场景。
-//   - TestTrialUsesScenarioBudget：场景给出更短时限时不能擅自等待三分钟。
-//   - TestBurstOverridesRejected：防止通用热点参数把商品突发重新变成热点下单。
-//
 // 阅读建议：先看各测试想保护的顺序，再看假执行器如何记录调用。
 
 package app

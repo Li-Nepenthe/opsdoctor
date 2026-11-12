@@ -2,9 +2,6 @@
 //
 // 配置测试注入内存变量，不读取本机 .env。即使测试了 openai 分支，也只解析参数，
 // 不构造真实 HTTP 请求。
-//
-// 主要内容：TestAgentDefaults 检查免费默认值；TestAgentConfigRejects 检查越界配置；
-// TestKnownSecrets 检查只有连接串时也能清理密码。
 // 阅读建议：空值和未知 provider 都要失败，不能静默使用另一种模型。
 
 package app

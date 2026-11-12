@@ -1,8 +1,6 @@
 // 本文件：验证发往模型的内容边界与整数金额计算。
 //
 // 使用编造的密钥形状，不读本机环境，也不会连接任何供应商。
-// 主要内容：TestRedaction 检查所有入口的字符串形状；TestMoney 检查精度与非法配置。
-// 阅读建议：JSON 里还嵌着 JSON 文本的用例，模拟日志正文被工具包起来的情况。
 
 package llm
 
@@ -56,6 +54,28 @@ func TestMoney(t *testing.T) {
 	}
 	if got := (Prices{InputMicros: 2000000, OutputMicros: 8000000}).Cost(3, 2); got != 22 {
 		t.Fatalf("cost=%d", got)
+	}
+}
+
+// 两次调用的六项读数各不相同，能分清漏记、覆盖原值和把子项加错列。
+func TestUsageAdd(t *testing.T) {
+	total := Usage{Input: 100, Output: 30, CacheHit: 40, CacheWrite: 12, Reasoning: 7, CacheMiss: 60}
+	total.Add(Usage{Input: 21, Output: 15, CacheHit: 8, CacheWrite: 4, Reasoning: 6, CacheMiss: 13})
+
+	for _, field := range []struct {
+		name      string
+		got, want int64
+	}{
+		{"Input", total.Input, 121},
+		{"Output", total.Output, 45},
+		{"CacheHit", total.CacheHit, 48},
+		{"CacheWrite", total.CacheWrite, 16},
+		{"Reasoning", total.Reasoning, 13},
+		{"CacheMiss", total.CacheMiss, 73},
+	} {
+		if field.got != field.want {
+			t.Errorf("%s 累计得 %d，期望 %d", field.name, field.got, field.want)
+		}
 	}
 }
 

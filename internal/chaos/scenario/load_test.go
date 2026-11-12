@@ -3,12 +3,6 @@
 // 测试直接加载仓库中的十三个场景，也会构造拼错字段、越界参数和不支持的阶段编号。
 // 所有测试都只读文件，不执行场景中的动作。
 //
-// 主要内容：
-//   - TestRepositoryScenarios：确认实际交付的场景全部可加载。
-//   - TestDecodeRejectsInvalid：拒绝未知字段、超长时限和错误场景参数。
-//   - TestStepBoundary：拒绝任意 SQL、服务名和秘密配置。
-//   - TestBurstBoundary：检查有限批次与每批并发数的上下界。
-//
 // 阅读建议：每条表格用例旁的说明就是它防止的误操作。
 
 package scenario

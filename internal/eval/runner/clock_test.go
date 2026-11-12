@@ -1,6 +1,5 @@
 // 本文件：用固定样本证明时钟跳变会拦住评测，不在单元测试里启动 Docker。
 //
-// 主要内容：TestClockGuard 检查取消原因传递。
 // 阅读建议：具体采样和边界在 platform/clockcheck 测试，这里只验证执行器停止。
 
 package runner

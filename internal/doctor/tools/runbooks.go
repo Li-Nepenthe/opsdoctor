@@ -1,11 +1,5 @@
-// 本文件：从部署者提供的 Markdown 手册建立一个只读关键词索引。
-//
-// 手册是排查方法，不是当前故障的事实。检索只做文字匹配，不调用模型，不读取
-// 场景答案。文件在启动时读一次，正式评测期间不会因为宿主机修改而悄悄换内容。
-//
-// 主要内容：LoadRunbooks 读取有界文件并计算内容哈希；Search 用 BM25 排序；
-// WithRunbooks 把检索接到原有工具注册表；searchWords 处理中英文关键词。
-// 阅读建议：先看 Search 的词频、稀有程度和长度修正，再看统一入口如何限制返回大小。
+// 本文件：在启动时读取部署者的 Markdown 手册，按段建立只读关键词索引。
+// 文件名和原始正文一同参与哈希，运行期间沿用同一份内容。检索返回排查方法，判断现场情况仍需要观测证据。
 
 package tools
 
@@ -63,53 +57,15 @@ func LoadRunbooks(files fs.FS) (*Runbooks, error) {
 	total := 0
 	for _, entry := range entries {
 		if entry.Name() == "README.md" {
-			continue
-		} // 导航说明不是供模型检索的排查正文。
-		if !entry.Type().IsRegular() || !strings.HasSuffix(entry.Name(), ".md") {
-			return nil, fmt.Errorf("手册目录只能包含普通 Markdown 文件")
+			continue // 导航说明不参与检索和内容哈希。
 		}
-		file, err := files.Open(entry.Name())
+		raw, err := readRunbook(files, entry)
 		if err != nil {
 			return nil, err
 		}
-		raw, readErr := io.ReadAll(io.LimitReader(file, 32769))
-		closeErr := file.Close()
-		if readErr != nil {
-			return nil, readErr
-		}
-		if closeErr != nil {
-			return nil, closeErr
-		}
-		if len(raw) > 32768 || !utf8.Valid(raw) {
-			return nil, fmt.Errorf("手册必须是最多 32KiB 的 UTF-8 文本")
-		}
 		fmt.Fprintf(digest, "%s\x00%d\x00", entry.Name(), len(raw))
 		_, _ = digest.Write(raw)
-		body := strings.ReplaceAll(string(raw), "\r\n", "\n")
-		title := strings.TrimSpace(strings.TrimPrefix(strings.SplitN(body, "\n", 2)[0], "#"))
-		part := 0
-		for _, paragraph := range strings.Split(body, "\n\n") {
-			paragraph = strings.TrimSpace(paragraph)
-			if paragraph == "" || strings.HasPrefix(paragraph, "# ") {
-				continue
-			}
-			// 超长段分成多个完整 UTF-8 片段，后半段也进入索引，而不是被丢弃。
-			for paragraph != "" {
-				text := prefix(paragraph, 1500)
-				paragraph = paragraph[len(text):]
-				terms := searchWords(title + " " + text)
-				part++
-				counts := map[string]int{}
-				for _, term := range terms {
-					counts[term]++
-				}
-				for term := range counts {
-					index.frequency[term]++
-				}
-				index.chunks = append(index.chunks, runbookChunk{entry.Name(), title, text, counts, len(terms), part})
-				total += len(terms)
-			}
-		}
+		total += index.addRunbook(entry.Name(), raw)
 	}
 	if len(index.chunks) == 0 || total == 0 {
 		return nil, fmt.Errorf("排障手册没有可检索正文")
@@ -119,40 +75,77 @@ func LoadRunbooks(files fs.FS) (*Runbooks, error) {
 	return index, nil
 }
 
-// Search 使用固定 BM25 参数，不从当前实验的正确答案学习权重。
+func readRunbook(files fs.FS, entry fs.DirEntry) ([]byte, error) {
+	if !entry.Type().IsRegular() || !strings.HasSuffix(entry.Name(), ".md") {
+		return nil, fmt.Errorf("手册目录只能包含普通 Markdown 文件")
+	}
+	file, err := files.Open(entry.Name())
+	if err != nil {
+		return nil, err
+	}
+	raw, readErr := io.ReadAll(io.LimitReader(file, 32769))
+	closeErr := file.Close()
+	if readErr != nil {
+		return nil, readErr
+	}
+	if closeErr != nil {
+		return nil, closeErr
+	}
+	if len(raw) > 32768 || !utf8.Valid(raw) {
+		return nil, fmt.Errorf("手册必须是最多 32KiB 的 UTF-8 文本")
+	}
+	return raw, nil
+}
+
+func (index *Runbooks) addRunbook(name string, raw []byte) int {
+	total := 0
+	body := strings.ReplaceAll(string(raw), "\r\n", "\n")
+	title := strings.TrimSpace(strings.TrimPrefix(strings.SplitN(body, "\n", 2)[0], "#"))
+	part := 0
+	for _, paragraph := range strings.Split(body, "\n\n") {
+		paragraph = strings.TrimSpace(paragraph)
+		if paragraph == "" || strings.HasPrefix(paragraph, "# ") {
+			continue
+		}
+		// 超长段分成多个完整 UTF-8 片段，后半段也进入索引，而不是被丢弃。
+		for paragraph != "" {
+			text := prefix(paragraph, 1500)
+			paragraph = paragraph[len(text):]
+			part++
+			total += index.addChunk(name, title, text, part)
+		}
+	}
+	return total
+}
+
+func (index *Runbooks) addChunk(name, title, text string, part int) int {
+	terms := searchWords(title + " " + text)
+	counts := map[string]int{}
+	for _, term := range terms {
+		counts[term]++
+	}
+	for term := range counts {
+		index.frequency[term]++
+	}
+	index.chunks = append(index.chunks, runbookChunk{name, title, text, counts, len(terms), part})
+	return len(terms)
+}
+
+// Search 使用固定的 BM25 权重。相同分数按文件名和段号排序，使返回的手册片段可复现。
 func (index *Runbooks) Search(ctx context.Context, query string, limit int) ([]RunbookHit, error) {
 	if limit < 1 || limit > 3 || utf8.RuneCountInString(query) > 256 {
 		return nil, fmt.Errorf("%w：检索限一至三段，关键词最多 256 字", ErrInvalidArgument)
 	}
-	terms := map[string]bool{}
-	for _, word := range searchWords(query) {
-		terms[word] = true
-	}
-	if len(terms) == 0 {
+	ordered := queryTerms(query)
+	if len(ordered) == 0 {
 		return nil, fmt.Errorf("%w：请提供中文或英文关键词", ErrInvalidArgument)
 	}
-	ordered := make([]string, 0, len(terms))
-	for term := range terms {
-		ordered = append(ordered, term)
-	}
-	sort.Strings(ordered) // 固定浮点加法次序，重复检索不受 map 遍历顺序影响。
 	hits := []RunbookHit{}
 	for _, chunk := range index.chunks {
 		if err := ctx.Err(); err != nil {
 			return nil, err
 		}
-		score := 0.0
-		for _, term := range ordered {
-			frequency := float64(chunk.terms[term])
-			if frequency == 0 {
-				continue
-			}
-			// 正的 IDF 形式与 Lucene BM25 一致。常见词的权重较低，但不会产生负分。
-			df, count := float64(index.frequency[term]), float64(len(index.chunks))
-			idf := math.Log1p((count - df + 0.5) / (df + 0.5))
-			const k1, b = 1.2, 0.75 // 固定饱和程度和长度修正强度，正式评测不调参。
-			score += idf * frequency * (k1 + 1) / (frequency + k1*(1-b+b*float64(chunk.length)/index.average))
-		}
+		score := index.scoreChunk(chunk, ordered)
 		if score > 0 {
 			hits = append(hits, RunbookHit{chunk.file, chunk.title, chunk.part, score, chunk.text})
 		}
@@ -167,6 +160,35 @@ func (index *Runbooks) Search(ctx context.Context, query string, limit int) ([]R
 		return hits[i].Part < hits[j].Part // 同分时固定顺序，不能因 map 顺序改变返回片段。
 	})
 	return hits[:min(limit, len(hits))], nil
+}
+
+func queryTerms(query string) []string {
+	terms := map[string]bool{}
+	for _, word := range searchWords(query) {
+		terms[word] = true
+	}
+	ordered := make([]string, 0, len(terms))
+	for term := range terms {
+		ordered = append(ordered, term)
+	}
+	sort.Strings(ordered) // 固定浮点加法次序，重复检索不受 map 遍历顺序影响。
+	return ordered
+}
+
+func (index *Runbooks) scoreChunk(chunk runbookChunk, ordered []string) float64 {
+	score := 0.0
+	for _, term := range ordered {
+		frequency := float64(chunk.terms[term])
+		if frequency == 0 {
+			continue
+		}
+		// 正的 IDF 形式与 Lucene BM25 一致。常见词的权重较低，但不会产生负分。
+		df, count := float64(index.frequency[term]), float64(len(index.chunks))
+		idf := math.Log1p((count - df + 0.5) / (df + 0.5))
+		const k1, b = 1.2, 0.75 // 固定饱和程度和长度修正强度，正式评测不调参。
+		score += idf * frequency * (k1 + 1) / (frequency + k1*(1-b+b*float64(chunk.length)/index.average))
+	}
+	return score
 }
 
 // WithRunbooks 返回独立菜单；基础目录和 MCP 菜单不会因此得到 E2 专用工具。

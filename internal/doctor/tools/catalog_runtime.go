@@ -1,9 +1,5 @@
-// 本文件：登记 Redis 运行信息和 goroutine 堆栈摘要。
-//
-// 工具只捕获传入的 source 接口，调用时不能更换后端地址或账号。
-//
-// 主要内容：addRedis 登记 INFO/慢命令摘要；addProfiles 登记按服务汇总的堆栈。
-// 阅读建议：返回的是运行状态；Redis key 内容与完整 pprof 入口没有暴露。
+// 本文件：登记 Redis 运行信息和服务堆栈摘要。
+// Redis 工具只提供状态及慢命令摘要，堆栈查询也只能选已经配置的服务。
 
 package tools
 

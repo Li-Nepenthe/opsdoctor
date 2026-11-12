@@ -1,8 +1,5 @@
-// 本文件：分别核对正常流量和场景注入完成后的流量，避免把故障本身当作基线漂移。
-//
-// 主要内容：diagnosticLoad 按顺序解释场景的流量动作；scenarioLoad 从冻结文件取期望值；
-// readLoad 读取实际设置；checkLoad 比较四项；checkWorkload 检查全程不变的两项；guardLoad 持续复核。
-// 阅读建议：这里要求数值完全相等。场景没有改商品数和工作者数的权限。
+// 本文件：从冻结场景推导诊断期间的流量，分别核对正常状态和故障生效后的控制参数。
+// 请求速率和热点必须与当前阶段严格匹配，商品工作集和工作者数在全程都须符合基线。
 
 package runner
 
@@ -139,10 +136,10 @@ func guardLoad(parent context.Context, check func(context.Context) error) (conte
 			case <-ctx.Done():
 				return
 			case <-timer.C:
-				if err := check(ctx); err != nil {
-					cancel(err)
-					return
-				}
+			}
+			if err := check(ctx); err != nil {
+				cancel(err)
+				return
 			}
 		}
 	}()

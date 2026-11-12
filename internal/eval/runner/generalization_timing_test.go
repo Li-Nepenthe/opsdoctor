@@ -2,9 +2,6 @@
 //
 // 测试不访问 Docker、HTTP、数据库或模型。重点是单调时钟缺失时不造耗时、
 // 症状与恢复各记各的，以及重复写入不能覆盖原件。
-//
-// 主要内容：TestDemoTimingKnown 验证精确耗时；TestDemoTimingUnknown 验证续跑边界；
-// TestDemoTimingPreservesEvidence 和 TestDemoTimingErrors 验证独占写入与错误传播。
 
 package runner
 

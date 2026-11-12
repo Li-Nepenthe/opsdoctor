@@ -2,12 +2,6 @@
 //
 // 不开放端口，也不读取 API Key。测试里的密钥只是固定假字符串；Transport 直接
 // 返回预设 HTTP 回复，因此运行 go test 不会产生供应商费用。
-//
-// 主要内容：TestHTTPPolicy 检查错误码；TestWireAudit 检查脱敏与协议；
-// TestCancel、TestCancelBody 分别检查等待响应头和读取正文时的取消。
-// TestAttemptPrices 检查请求跨过价格时段边界仍按发送时的价格结算。
-// TestHTTPResponseBoundaries 固定非 200、重定向与回复大小的拒绝边界。
-// 阅读建议：账本的 Reserve 必须先于 Transport 被调用，这也是测试中的断言。
 
 package openai
 
@@ -58,7 +52,7 @@ func (ledger *memoryLedger) Settle(_ context.Context, _ string, value llm.Settle
 // transportFunc 让 HTTP 客户端正常构造请求，但在真正联网前把请求交给测试。
 type transportFunc func(*http.Request) (*http.Response, error)
 
-// RoundTrip 满足 net/http 接口，不需要起真实供应商连接。
+// RoundTrip 让内存账本和预设回复能够记录发送顺序，无需供应商连接。
 func (function transportFunc) RoundTrip(request *http.Request) (*http.Response, error) {
 	return function(request)
 }

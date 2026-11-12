@@ -1,10 +1,4 @@
-// 本文件：把真实模型的费用预留与结算保存到医生数据库。
-//
-// 两个诊断同时运行时，分别检查“还剩多少钱”再发送会超支。因此先在一行账本上
-// 原子扣出预留额，再发送 HTTP。拿到实际用量后退还差额；拿不到时保守保留。
-//
-// 主要内容：NewLedger 绑定账户与上限；Reserve 发送前记账；Settle 结算；Status 提供可见余额。
-// 阅读建议：测试使用独立账户名；真实进程从配置绑定账户，重启不会重新获得额度。
+// 本文件：在模型请求前预留账户和诊断额度，回复后按已知用量结算。结果不明的费用继续占用预留，进程重启不能重置上限。
 
 package store
 
@@ -69,43 +63,11 @@ func (ledger *Ledger) Reserve(ctx context.Context, value llm.Reservation) (strin
 		return "", err
 	}
 	defer tx.Rollback()
-	// 直接调用账本也不能跨过任务的绑定，防止调度之外的评委或补跑用错账户。
-	var expectedAccount string
-	if err = tx.QueryRowContext(ctx, "SELECT eval_account FROM diagnoses WHERE id=?", value.DiagnosisID).Scan(&expectedAccount); err != nil {
+	if err := ledger.reserveAccount(ctx, tx, value); err != nil {
 		return "", err
 	}
-	if expectedAccount != "" && expectedAccount != ledger.account {
-		return "", fmt.Errorf("评测诊断与模型预算账户不一致")
-	}
-	result, err := tx.ExecContext(ctx, "UPDATE llm_budget SET spent_micros=spent_micros+? WHERE account=? AND spent_micros<=? AND stopped_reason=''", value.MaximumMicros, ledger.account, ledger.limit-value.MaximumMicros)
-	if err != nil {
+	if err := ledger.checkDiagnosisLimit(ctx, tx, value); err != nil {
 		return "", err
-	}
-	count, err := result.RowsAffected()
-	if err != nil {
-		return "", err
-	}
-	if count != 1 {
-		return "", llm.ErrBudget
-	}
-	// 账户行已锁住，同账户的两次预留不能同时读到旧的诊断费用。
-	// 失败尝试和未结算请求也在 charged_micros 中，重启不能让它们从预算里消失。
-	if value.DiagnosisLimitMicros > 0 {
-		// 同一诊断即使在改账户后恢复，也只允许一份预算。锁诊断行使不同账户的预留串行。
-		var diagnosis, currency string
-		if err = tx.QueryRowContext(ctx, "SELECT id,currency FROM diagnoses WHERE id=? FOR UPDATE", value.DiagnosisID).Scan(&diagnosis, &currency); err != nil {
-			return "", err
-		}
-		if currency != ledger.currency {
-			return "", fmt.Errorf("诊断与费用账户币种不同，拒绝混记")
-		}
-		var spent int64
-		if err = tx.QueryRowContext(ctx, "SELECT COALESCE(SUM(charged_micros),0) FROM llm_attempts WHERE diagnosis_id=?", value.DiagnosisID).Scan(&spent); err != nil {
-			return "", err
-		}
-		if spent+value.MaximumMicros > value.DiagnosisLimitMicros {
-			return "", llm.ErrDiagnosisBudget
-		}
 	}
 	if owner := llm.Lease(ctx); owner != "" {
 		if err = requireLease(ctx, tx, value.DiagnosisID, owner); err != nil {
@@ -114,7 +76,7 @@ func (ledger *Ledger) Reserve(ctx context.Context, value llm.Reservation) (strin
 	}
 	// 请求已经是实际发送的脱敏 JSON，审计内容不会比线上请求多一份敏感原文。
 	id := newID()
-	_, err = tx.ExecContext(ctx, "INSERT INTO llm_attempts(id,diagnosis_id,account,requested_model,request,maximum_micros,charged_micros,input_price_micros,cache_hit_price_micros,output_price_micros,call_id,cache_write_price_micros) VALUES(?,?,?,?,?,?,?,?,?,?,?,?)", id, value.DiagnosisID, ledger.account, value.Model, clean, value.MaximumMicros, value.MaximumMicros, value.Prices.InputMicros, value.Prices.CacheHitMicros, value.Prices.OutputMicros, value.CallID, value.Prices.CacheWriteMicros)
+	_, err = tx.ExecContext(ctx, insertAttemptSQL, id, value.DiagnosisID, ledger.account, value.Model, clean, value.MaximumMicros, value.MaximumMicros, value.Prices.InputMicros, value.Prices.CacheHitMicros, value.Prices.OutputMicros, value.CallID, value.Prices.CacheWriteMicros)
 	if err != nil {
 		return "", err
 	}
@@ -125,6 +87,53 @@ func (ledger *Ledger) Reserve(ctx context.Context, value llm.Reservation) (strin
 		return "", err
 	}
 	return id, nil
+}
+
+// reserveAccount 在绑定诊断的账户上扣出预留额。条件更新使并发请求不能同时花掉同一笔余额。
+func (ledger *Ledger) reserveAccount(ctx context.Context, tx *sql.Tx, value llm.Reservation) error {
+	// 直接调用账本也不能跨过任务的绑定，防止调度之外的评委或补跑用错账户。
+	var expectedAccount string
+	if err := tx.QueryRowContext(ctx, "SELECT eval_account FROM diagnoses WHERE id=?", value.DiagnosisID).Scan(&expectedAccount); err != nil {
+		return err
+	}
+	if expectedAccount != "" && expectedAccount != ledger.account {
+		return fmt.Errorf("评测诊断与模型预算账户不一致")
+	}
+	result, err := tx.ExecContext(ctx, reserveBudgetSQL, value.MaximumMicros, ledger.account, ledger.limit-value.MaximumMicros)
+	if err != nil {
+		return err
+	}
+	count, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if count != 1 {
+		return llm.ErrBudget
+	}
+	return nil
+}
+
+// checkDiagnosisLimit 在账户行已锁住时核对诊断预算，未结算和失败尝试仍计入已花费用。
+func (ledger *Ledger) checkDiagnosisLimit(ctx context.Context, tx *sql.Tx, value llm.Reservation) error {
+	if value.DiagnosisLimitMicros <= 0 {
+		return nil
+	}
+	// 同一诊断即使在改账户后恢复，也只允许一份预算。锁诊断行使不同账户的预留串行。
+	var diagnosis, currency string
+	if err := tx.QueryRowContext(ctx, "SELECT id,currency FROM diagnoses WHERE id=? FOR UPDATE", value.DiagnosisID).Scan(&diagnosis, &currency); err != nil {
+		return err
+	}
+	if currency != ledger.currency {
+		return fmt.Errorf("诊断与费用账户币种不同，拒绝混记")
+	}
+	var spent int64
+	if err := tx.QueryRowContext(ctx, "SELECT COALESCE(SUM(charged_micros),0) FROM llm_attempts WHERE diagnosis_id=?", value.DiagnosisID).Scan(&spent); err != nil {
+		return err
+	}
+	if spent+value.MaximumMicros > value.DiagnosisLimitMicros {
+		return llm.ErrDiagnosisBudget
+	}
+	return nil
 }
 
 // Settle 可重复调用但只结算一次，避免重试数据库写入时重复退钱。
@@ -144,38 +153,16 @@ func (ledger *Ledger) Settle(ctx context.Context, id string, value llm.Settlemen
 		return err
 	}
 	defer tx.Rollback()
-	// 和 Reserve 保持相同锁顺序：先账户、后尝试，避免并发结算发生相反顺序的等待。
-	var spent, charged int64
-	if err = tx.QueryRowContext(ctx, "SELECT spent_micros FROM llm_budget WHERE account=? FOR UPDATE", ledger.account).Scan(&spent); err != nil {
+	balance, err := ledger.lockSettlement(ctx, tx, id)
+	if err != nil {
 		return err
 	}
-	var settled sql.NullTime
-	if err = tx.QueryRowContext(ctx, "SELECT charged_micros,settled_at FROM llm_attempts WHERE id=? AND account=? FOR UPDATE", id, ledger.account).Scan(&charged, &settled); err != nil {
-		return err
-	}
-	if settled.Valid {
+	if balance.settled.Valid {
 		return nil
 	}
-	actual := value.CostMicros
-	if value.Unknown {
-		actual = charged
-	}
-	// 即使供应商的计量与估算不一致，也必须把已发生的费用记全。额外保存停用原因，
-	// 让重启后的调度器仍然停止付费，而不是只让当前一次诊断失败。
-	overflow := actual > charged
-	_, err = tx.ExecContext(ctx, "UPDATE llm_budget SET spent_micros=? WHERE account=?", spent-charged+actual, ledger.account)
+	overflow, err := ledger.applySettlement(ctx, tx, id, clean, value, balance)
 	if err != nil {
 		return err
-	}
-	_, err = tx.ExecContext(ctx, "UPDATE llm_attempts SET response=?,charged_micros=?,tokens_in=?,tokens_out=?,cache_hit_tokens=?,cache_write_tokens=?,reasoning_tokens=?,status=?,settled_at=UTC_TIMESTAMP(6) WHERE id=?", clean, actual, value.Usage.Input, value.Usage.Output, value.Usage.CacheHit, value.Usage.CacheWrite, value.Usage.Reasoning, value.Status, id)
-	if err != nil {
-		return err
-	}
-	if overflow {
-		_, err = tx.ExecContext(ctx, "UPDATE llm_budget SET stopped_reason=? WHERE account=?", "实际费用超过保守预留额，需人工核对后再启用", ledger.account)
-		if err != nil {
-			return err
-		}
 	}
 	tokenOverflow, err := settleEvalTokens(ctx, tx, id, value)
 	if err != nil {
@@ -193,10 +180,55 @@ func (ledger *Ledger) Settle(ctx context.Context, id string, value llm.Settlemen
 	return nil
 }
 
+// settlementBalance 保存同一事务锁住的账户用量、尝试预留以及是否已结算。
+type settlementBalance struct {
+	spent   int64
+	charged int64
+	settled sql.NullTime
+}
+
+// lockSettlement 与 Reserve 按同一顺序锁住账户和尝试，保证重放不会再退一次差额。
+func (ledger *Ledger) lockSettlement(ctx context.Context, tx *sql.Tx, id string) (settlementBalance, error) {
+	var balance settlementBalance
+	if err := tx.QueryRowContext(ctx, "SELECT spent_micros FROM llm_budget WHERE account=? FOR UPDATE", ledger.account).Scan(&balance.spent); err != nil {
+		return balance, err
+	}
+	if err := tx.QueryRowContext(ctx, lockAttemptChargeSQL, id, ledger.account).Scan(&balance.charged, &balance.settled); err != nil {
+		return balance, err
+	}
+	return balance, nil
+}
+
+// applySettlement 在这两行仍被锁住时写入费用与审计；超支也必须据实入账并持久化停用原因。
+func (ledger *Ledger) applySettlement(ctx context.Context, tx *sql.Tx, id string, clean []byte, value llm.Settlement, balance settlementBalance) (bool, error) {
+	actual := value.CostMicros
+	if value.Unknown {
+		actual = balance.charged
+	}
+	// 即使供应商的计量与估算不一致，也必须把已发生的费用记全。额外保存停用原因，
+	// 让重启后的调度器仍然停止付费，而不是只让当前一次诊断失败。
+	overflow := actual > balance.charged
+	_, err := tx.ExecContext(ctx, "UPDATE llm_budget SET spent_micros=? WHERE account=?", balance.spent-balance.charged+actual, ledger.account)
+	if err != nil {
+		return false, err
+	}
+	_, err = tx.ExecContext(ctx, settleAttemptSQL, clean, actual, value.Usage.Input, value.Usage.Output, value.Usage.CacheHit, value.Usage.CacheWrite, value.Usage.Reasoning, value.Status, id)
+	if err != nil {
+		return false, err
+	}
+	if overflow {
+		_, err = tx.ExecContext(ctx, stopBudgetSQL, "实际费用超过保守预留额，需人工核对后再启用", ledger.account)
+		if err != nil {
+			return false, err
+		}
+	}
+	return overflow, nil
+}
+
 // Status 读的是整个真实账户，包含其他诊断预留但还没结算的钱。
 func (ledger *Ledger) Status(ctx context.Context) (run.BudgetStatus, error) {
 	value := run.BudgetStatus{LimitMicros: ledger.limit, Currency: ledger.currency}
-	err := ledger.store.database.QueryRowContext(ctx, "SELECT spent_micros,stopped_reason FROM llm_budget WHERE account=?", ledger.account).Scan(&value.SpentMicros, &value.Reason)
+	err := ledger.store.database.QueryRowContext(ctx, readBudgetStatusSQL, ledger.account).Scan(&value.SpentMicros, &value.Reason)
 	if value.Reason != "" {
 		value.Blocked = true
 		value.ReasonCode = "accounting_guard"
@@ -207,3 +239,70 @@ func (ledger *Ledger) Status(ctx context.Context) (run.BudgetStatus, error) {
 	}
 	return value, err
 }
+
+const insertAttemptSQL = `INSERT INTO llm_attempts (
+    id,
+    diagnosis_id,
+    account,
+    requested_model,
+    request,
+    maximum_micros,
+    charged_micros,
+    input_price_micros,
+    cache_hit_price_micros,
+    output_price_micros,
+    call_id,
+    cache_write_price_micros
+)
+VALUES (
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
+)`
+
+const reserveBudgetSQL = `UPDATE llm_budget
+SET spent_micros = spent_micros + ?
+WHERE account = ?
+    AND spent_micros <= ?
+    AND stopped_reason = ''`
+
+const lockAttemptChargeSQL = `SELECT
+    charged_micros,
+    settled_at
+FROM llm_attempts
+WHERE id = ?
+    AND account = ?
+    FOR
+    UPDATE`
+
+const settleAttemptSQL = `UPDATE llm_attempts
+SET
+    response = ?,
+    charged_micros = ?,
+    tokens_in = ?,
+    tokens_out = ?,
+    cache_hit_tokens = ?,
+    cache_write_tokens = ?,
+    reasoning_tokens = ?,
+    status = ?,
+    settled_at = UTC_TIMESTAMP(6)
+WHERE id = ?`
+
+const stopBudgetSQL = `UPDATE llm_budget
+SET stopped_reason = ?
+WHERE account = ?`
+
+const readBudgetStatusSQL = `SELECT
+    spent_micros,
+    stopped_reason
+FROM llm_budget
+WHERE account = ?`

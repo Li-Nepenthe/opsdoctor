@@ -1,10 +1,4 @@
-// 本文件：给页面和验收脚本提供故障开放状态，以及恢复观察期补入的告警。
-//
-// 报告可以先结束，告警稍后才到。这里单独查询这些小记录，不反复读取整份模型审计。
-// 观察期是否结束直接按数据库时间字段判断，不需要后台计时任务，也不涉及崩溃恢复。
-//
-// 主要内容：FaultState 判断系统能否开始下一场实验；DiagnosisAlerts 读取告警快照与来历。
-// 阅读建议：RecoveryUntil 为 nil 表示尚未整组恢复；Open 为 false 才表示当前没有开放故障。
+// 本文件：读取故障是否仍开放、何时结束恢复观察，以及期间补入的告警。观察期限取自数据库，报告可以先于故障结束。
 
 package store
 
@@ -36,7 +30,7 @@ type AlertHistory struct {
 // FaultState 忽略已经静默超时的旧分组；多个分组中只要一个未恢复，结束时间就还未知。
 func (store *Store) FaultState(ctx context.Context, target string) (FaultState, error) {
 	now := store.config.Now().UTC()
-	rows, err := store.database.QueryContext(ctx, "SELECT closed_at,recovery_until FROM alert_groups WHERE target=? AND diagnosis_id IS NOT NULL AND ((closed_at IS NULL AND last_seen_at>?) OR (closed_at IS NOT NULL AND recovery_until>?))", target, now.Add(-store.config.FaultSilence), now)
+	rows, err := store.database.QueryContext(ctx, openFaultGroupsSQL, target, now.Add(-store.config.FaultSilence), now)
 	if err != nil {
 		return FaultState{}, err
 	}
@@ -65,7 +59,7 @@ func (store *Store) FaultState(ctx context.Context, target string) (FaultState, 
 // DiagnosisAlerts 用左连接区分“不存在的诊断”和“没有告警的手动诊断”。
 func (store *Store) DiagnosisAlerts(ctx context.Context, id string) (AlertHistory, error) {
 	value := AlertHistory{Alerts: []json.RawMessage{}, RecoveryAlerts: []RecoveryAlert{}}
-	rows, err := store.database.QueryContext(ctx, "SELECT a.payload,a.recovery_received_at FROM diagnoses d LEFT JOIN diagnosis_alerts a ON a.diagnosis_id=d.id WHERE d.id=? ORDER BY a.fingerprint", id)
+	rows, err := store.database.QueryContext(ctx, diagnosisAlertsSQL, id)
 	if err != nil {
 		return value, err
 	}
@@ -94,3 +88,22 @@ func (store *Store) DiagnosisAlerts(ctx context.Context, id string) (AlertHistor
 	}
 	return value, nil
 }
+
+const openFaultGroupsSQL = `SELECT
+    closed_at,
+    recovery_until
+FROM alert_groups
+WHERE target = ?
+    AND diagnosis_id IS NOT NULL
+    AND ((closed_at IS NULL
+          AND last_seen_at > ?)
+         OR (closed_at IS NOT NULL
+             AND recovery_until > ?))`
+
+const diagnosisAlertsSQL = `SELECT
+    a.payload,
+    a.recovery_received_at
+FROM diagnoses d
+LEFT JOIN diagnosis_alerts a ON a.diagnosis_id = d.id
+WHERE d.id = ?
+ORDER BY a.fingerprint`

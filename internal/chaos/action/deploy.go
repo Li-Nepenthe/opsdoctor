@@ -1,14 +1,5 @@
-// 本文件：保存发布前的配置，并通过 Compose 发布与恢复服务。
-//
-// 配置改变会真正重建容器。先给原镜像留一个本地标签，再记录内容 ID，避免原引用被新构建覆盖。
-// 只保存公开配置，不把容器里的密码复制进实验记录。
-//
-// 主要内容：
-//   - Baseline、Deployment：记录恢复需要的信息。
-//   - Capture：在任何改动前读取流量与相关服务的配置。
-//   - deploy、Restore：执行发布，恢复时使用刚才的快照。
-//
-// 阅读建议：先看 Capture 的字段筛选，再看恢复为什么禁止重新构建旧镜像。
+// 本文件：发布前由 Capture 保存服务原镜像与公开配置。
+// Restore 依据内容 ID 核对保存的镜像，避免原来的标签已经被新构建覆盖。
 
 package action
 
@@ -24,9 +15,9 @@ import (
 
 // Baseline 是本机恢复记录的一部分，不含凭据。
 type Baseline struct {
-	Services map[string]Deployment `json:"services"`   // 只记录本场景会发布的服务。
-	QPS      int                   `json:"qps"`        // 恢复操作者原先的流量，而不是强行设为默认值。
-	HotSKUID int64                 `json:"hot_sku_id"` // 同时恢复选品分布。
+	Services map[string]Deployment `json:"services"` // 只记录本场景会发布的服务。
+	QPS      int                   `json:"qps"`      // 恢复操作者原先的流量，而不是强行设为默认值。
+	HotSKUID int64                 `json:"hot_sku_id"`
 }
 
 // Deployment 用镜像内容 ID 和公开环境重建原服务。
@@ -38,8 +29,34 @@ type Deployment struct {
 
 // Capture 在注入之前执行。无法可靠读取基线时不开始实验。
 func (runner *Runner) Capture(ctx context.Context, value scenario.Scenario) (Baseline, error) {
-	// 先读流量，再读取将要重建的容器；这时尚未执行任何注入动作。
+	// 先读取实际流量，再保存需要恢复的服务配置。
 	baseline := Baseline{Services: make(map[string]Deployment)}
+	if err := runner.readLoadSettings(ctx, &baseline); err != nil {
+		return baseline, err
+	}
+	for _, step := range value.Inject {
+		if step.Action != "deploy" {
+			continue
+		}
+		inspected, err := runner.inspectService(ctx, step.Service)
+		if err != nil {
+			return baseline, err
+		}
+		// 仅记内容 ID 不能保留原镜像。发布前须为旧内容留下独立的本地标签。
+		savedTag := "opsdoctor/" + step.Service + ":saved-" + strings.TrimPrefix(inspected.Image, "sha256:")
+		if _, err = runner.RunCommand(ctx, []string{"image", "tag", inspected.Image, savedTag}, nil); err != nil {
+			return baseline, fmt.Errorf("保留原镜像：%w", err)
+		}
+		baseline.Services[step.Service] = Deployment{
+			Image:       savedTag,
+			ImageID:     inspected.Image,
+			Environment: publicEnvironment(inspected.Environment),
+		}
+	}
+	return baseline, nil
+}
+
+func (runner *Runner) readLoadSettings(ctx context.Context, baseline *Baseline) error {
 	var control struct {
 		Data struct {
 			Settings *struct {
@@ -49,54 +66,53 @@ func (runner *Runner) Capture(ctx context.Context, value scenario.Scenario) (Bas
 		} `json:"data"`
 	}
 	if err := runner.request(ctx, "GET", runner.LoadURL+"/control", nil, &control); err != nil {
-		return baseline, err
+		return err
 	}
 	if control.Data.Settings == nil {
-		return baseline, fmt.Errorf("流量控制接口没有返回实际设置")
+		return fmt.Errorf("流量控制接口没有返回实际设置")
 	}
 	baseline.QPS, baseline.HotSKUID = control.Data.Settings.QPS, control.Data.Settings.Hot
-	for _, step := range value.Inject {
-		if step.Action != "deploy" {
-			continue
-		}
-		id, err := runner.compose(ctx, []string{"ps", "-q", step.Service}, nil)
-		if err != nil {
-			return baseline, err
-		}
-		if strings.TrimSpace(string(id)) == "" {
-			return baseline, fmt.Errorf("待发布服务未运行：%s", step.Service)
-		}
-		data, err := runner.RunCommand(ctx, []string{"inspect", "--format", `{"image":{{json .Image}},"environment":{{json .Config.Env}}}`, strings.TrimSpace(string(id))}, nil)
-		if err != nil {
-			return baseline, err
-		}
-		var inspected struct {
-			Image       string
-			Environment []string
-		}
-		if err = json.Unmarshal(data, &inspected); err != nil {
-			return baseline, err
-		}
-		if inspected.Image == "" {
-			return baseline, fmt.Errorf("容器信息没有返回原镜像内容 ID")
-		}
-		// 只记 ID 不会替 Docker 保留镜像。新构建覆盖原标签、旧容器又被移除后，原 ID 可能已无法使用。
-		// 在任何发布动作之前加一个独立标签，让旧内容有明确引用。重复保存同一内容会复用同一标签。
-		savedTag := "opsdoctor/" + step.Service + ":saved-" + strings.TrimPrefix(inspected.Image, "sha256:")
-		if _, err = runner.RunCommand(ctx, []string{"image", "tag", inspected.Image, savedTag}, nil); err != nil {
-			return baseline, fmt.Errorf("保留原镜像：%w", err)
-		}
-		saved := Deployment{Image: savedTag, ImageID: inspected.Image, Environment: make(map[string]string)}
-		for _, entry := range inspected.Environment {
-			// Docker 返回全部环境项，只把公开白名单留下，其余值不会落盘。
-			key, value, _ := strings.Cut(entry, "=")
-			if scenario.ValidateEnvironment(map[string]string{key: value}) == nil {
-				saved.Environment[key] = value
-			}
-		}
-		baseline.Services[step.Service] = saved
+	return nil
+}
+
+type inspectedService struct {
+	Image       string
+	Environment []string
+}
+
+func (runner *Runner) inspectService(ctx context.Context, service string) (inspectedService, error) {
+	var inspected inspectedService
+	id, err := runner.compose(ctx, []string{"ps", "-q", service}, nil)
+	if err != nil {
+		return inspected, err
 	}
-	return baseline, nil
+	containerID := strings.TrimSpace(string(id))
+	if containerID == "" {
+		return inspected, fmt.Errorf("待发布服务未运行：%s", service)
+	}
+	data, err := runner.RunCommand(ctx, []string{"inspect", "--format", `{"image":{{json .Image}},"environment":{{json .Config.Env}}}`, containerID}, nil)
+	if err != nil {
+		return inspected, err
+	}
+	if err = json.Unmarshal(data, &inspected); err != nil {
+		return inspected, err
+	}
+	if inspected.Image == "" {
+		return inspected, fmt.Errorf("容器信息没有返回原镜像内容 ID")
+	}
+	return inspected, nil
+}
+
+// 容器信息包含全部环境项，恢复记录只保存通过白名单校验的公开值。
+func publicEnvironment(entries []string) map[string]string {
+	result := make(map[string]string)
+	for _, entry := range entries {
+		key, value, _ := strings.Cut(entry, "=")
+		if scenario.ValidateEnvironment(map[string]string{key: value}) == nil {
+			result[key] = value
+		}
+	}
+	return result
 }
 
 // deploy 用真实构建版本区分配置发布。恢复时复用旧镜像，不把旧版本重新编译成当前源码。

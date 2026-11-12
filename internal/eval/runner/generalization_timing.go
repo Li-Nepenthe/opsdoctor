@@ -1,11 +1,5 @@
-// 本文件：记录外部靶场首次确认症状和恢复健康所需的实际时间。
-//
-// UTC 时间方便与其他证据对照，耗时则只使用同一进程保留下来的单调时钟。
-// 续跑无法找回原来的单调时钟，必须明确写成未知，不能用数据库时间近似替代。
-//
-// 主要内容：withDemoTiming 保存本轮锚点；rememberDemoInjection、rememberDemoRestore
-// 记录开始；observeDemoSymptom、observeDemoRecovery 独占写首次通过的证据。
-// 阅读建议：这里不查询指标，也不改变谓词、轮询或期限；恢复计时不含后续冷却。
+// 本文件：分别记录第一次确认症状和恢复健康的时刻。UTC 时间供对照，耗时只从同一进程的单调时钟计算，恢复耗时不含冷却期。
+// 续跑丢失原时钟时把耗时记为未知，避免用墙钟差伪造一次连续观察。
 
 package runner
 
@@ -32,16 +26,16 @@ type demoTimingState struct {
 
 // demoTimingObservation 分开公开 UTC 与单调耗时；未知时没有任何猜测的耗时数字。
 type demoTimingObservation struct {
-	RunID          string     `json:"run_id"`                    // 不与其他批次合并。
-	Scenario       string     `json:"scenario"`                  // 外部场景编号。
-	Iteration      int        `json:"iteration"`                 // 对应本轮恢复文件。
-	Kind           string     `json:"kind"`                      // symptom 或 recovery。
-	StartUTC       *time.Time `json:"start_utc,omitempty"`       // 只作时间对照，不用来猜耗时。
-	PassedUTC      time.Time  `json:"passed_utc"`                // 首次谓词通过后的实际观察时刻。
-	Known          bool       `json:"monotonic_elapsed_known"`   // false 表示原单调锚点不可用。
-	ElapsedNS      *int64     `json:"elapsed_ns,omitempty"`      // 只有同进程单调时钟可用时填写。
-	ElapsedSeconds *float64   `json:"elapsed_seconds,omitempty"` // 同一耗时的秒数表示。
-	Polls          int        `json:"polls"`                     // 本次等待实际执行的查询次数。
+	RunID          string     `json:"run_id"` // 不与其他批次合并。
+	Scenario       string     `json:"scenario"`
+	Iteration      int        `json:"iteration"`               // 对应本轮恢复文件。
+	Kind           string     `json:"kind"`                    // symptom 或 recovery。
+	StartUTC       *time.Time `json:"start_utc,omitempty"`     // 只作时间对照，不用来猜耗时。
+	PassedUTC      time.Time  `json:"passed_utc"`              // 首次谓词通过后的实际观察时刻。
+	Known          bool       `json:"monotonic_elapsed_known"` // false 表示原单调锚点不可用。
+	ElapsedNS      *int64     `json:"elapsed_ns,omitempty"`    // 只有同进程单调时钟可用时填写。
+	ElapsedSeconds *float64   `json:"elapsed_seconds,omitempty"`
+	Polls          int        `json:"polls"`
 }
 
 // withDemoTiming 每次运行新建状态，不能从旧恢复文件伪造单调锚点。

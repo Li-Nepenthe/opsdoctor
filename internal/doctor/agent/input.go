@@ -1,10 +1,5 @@
-// 本文件：把最初的告警输入也保存为一个可引用的审计步骤。
-//
-// 没有工具的实验组只能根据告警判断。它仍需引用真实存在的证据，不能靠随意填写
-// 步骤号通过报告校验。输入先脱敏、落库，再把数据库分配的编号交给模型。
-//
-// 主要内容：prepareInput 保存或找回输入步骤；rememberEvidence 限制无工具组的证据来源。
-// 阅读建议：恢复沿用原步骤，新的通知不会偷偷改掉这一轮比较使用的初始输入。
+// 本文件：为初始告警保存证据编号，让没有查询工具的诊断也能交出可核验的报告。
+// prepareInput 复用已保存的输入，rememberEvidence 决定这次诊断允许引用哪些记录。
 
 package agent
 
@@ -14,7 +9,7 @@ import (
 	"fmt"
 )
 
-// prepareInput 只在提供故障时间或启用输入组时记录，旧诊断的恢复格式保持可读。
+// prepareInput 在有故障开始时间或只用初始输入时保存告警。缺少这两项的历史诊断沿用已存消息。
 func (run *session) prepareInput(ctx context.Context) error {
 	if run.input.FaultStartedAt.IsZero() && !run.input.InputOnly {
 		return nil
@@ -43,7 +38,7 @@ func (run *session) prepareInput(ctx context.Context) error {
 	return nil
 }
 
-// rememberEvidence 在 E0 下拒绝把模型自己说的话当作证据，其他诊断仍沿用原来的步骤校验。
+// rememberEvidence 限定报告可引用的范围。只用初始输入时，证据必须来自保存告警的那一步。
 func (run *session) rememberEvidence(step Step) {
 	if !run.input.InputOnly || (step.EventKey == "diagnosis-input" && step.Status == "input_evidence") {
 		run.existing[step.Seq] = true

@@ -2,9 +2,6 @@
 //
 // 已取得回答但冻结校验拒收，保持评分缺失；请求失败、未知计量和本批第三份失败仍停。
 // 另检查只有primary的Mock配置与五分钟等待，原阶段8评分字段保持不变。
-//
-// 主要内容：TestGeneralizationJudgeReturn检查返回证明；TestGeneralizationJudgeFailures检查累计。
-// TestGeneralizationMockPrimary和TestGeneralizationObservationLimit分别检查配置与等待。
 
 package runner
 

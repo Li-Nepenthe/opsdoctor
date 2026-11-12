@@ -1,9 +1,5 @@
-// 本文件：在宿主机为阶段9每份诊断保存Collector窗口，不把Docker权限交给医生。
-//
-// 开始证据先于诊断保存；结束后独占写原始日志、核对容器和日志保留范围，再允许评分。
-// dropped_items是失败请求的报告和，不是去重丢失数；重试与最终丢弃分开处理。
-//
-// 主要内容：beginCollectorWindow保存起点；finish保存原件与计数；checkCollectorSummary拦截异常。
+// 本文件：在宿主机保存每份 Demo 诊断的 Collector 日志，医生没有 Docker 权限。
+// 先保存起点，再核对容器身份与日志保留范围，原件和摘要落盘后才能评分。dropped_items 是失败请求报告的数量之和，重试和最终丢弃分别计数。
 
 package runner
 
@@ -39,10 +35,10 @@ const (
 	collectorClockMargin    = time.Second // 覆盖宿主与Docker时钟的小偏差，不把边界记录遗漏成正常。
 )
 
-// collectorCommand是测试替身边界；生产实现只有固定Docker查看命令，不接受shell。
+// collectorCommand 是测试替身边界；生产实现只有固定Docker查看命令，不接受shell。
 type collectorCommand func(context.Context, ...string) ([]byte, error)
 
-// collectorIdentity只保存核对需要的身份，inspect里的环境和配置不写入证据。
+// collectorIdentity 只保存核对需要的身份，inspect里的环境和配置不写入证据。
 type collectorIdentity struct {
 	ID       string    `json:"id"`       // 容器重建后即使名称相同也不同。
 	Started  time.Time `json:"started"`  // Collector进程必须在整个诊断窗口前已运行。
@@ -50,20 +46,20 @@ type collectorIdentity struct {
 	Running  bool      `json:"running"`  // 停止的采集器不能提供完整窗口证明。
 }
 
-// collectorWindow的起点文件在任何模型任务创建前独占保存，崩溃恢复不刷新开始时间。
+// collectorWindow 的起点文件在任何模型任务创建前独占保存，崩溃恢复不刷新开始时间。
 type collectorWindow struct {
-	Key      string            `json:"key"`      // 完整槽位身份，不依赖文件名猜测。
-	Start    time.Time         `json:"start"`    // 包含任务排队及诊断执行的保守起点。
-	Identity collectorIdentity `json:"identity"` // 诊断前身份。
-	Anchor   string            `json:"anchor"`   // 起点前最后一条仍保留的Docker日志。
-	Prefix   string            `json:"-"`        // 所有证据位于宿主Temp，不挂给医生。
+	Key      string            `json:"key"`   // 完整槽位身份，不依赖文件名猜测。
+	Start    time.Time         `json:"start"` // 包含任务排队及诊断执行的保守起点。
+	Identity collectorIdentity `json:"identity"`
+	Anchor   string            `json:"anchor"` // 起点前最后一条仍保留的Docker日志。
+	Prefix   string            `json:"-"`      // 所有证据位于宿主Temp，不挂给医生。
 	run      collectorCommand  // 测试可以模拟命令失败、日志轮转和重启。
 }
 
-// collectorOutput限制查看命令的输出；达到上限就失败，不把截断内容当作完整证据。
+// collectorOutput 限制查看命令的输出；达到上限就失败，不把截断内容当作完整证据。
 type collectorOutput struct{ bytes.Buffer }
 
-// Write让os/exec把两个输出流送进同一个有界缓冲，原始字节不做重编码。
+// Write 让os/exec把两个输出流送进同一个有界缓冲，原始字节不做重编码。
 func (output *collectorOutput) Write(data []byte) (int, error) {
 	if len(data) > collectorMaximumBytes-output.Len() {
 		return 0, fmt.Errorf("Collector查看输出超过64MiB")
@@ -71,7 +67,7 @@ func (output *collectorOutput) Write(data []byte) (int, error) {
 	return output.Buffer.Write(data)
 }
 
-// runCollectorCommand始终使用参数数组；stderr也保留，命令失败不会冒充空成功。
+// runCollectorCommand 始终使用参数数组；stderr也保留，命令失败不会冒充空成功。
 func runCollectorCommand(parent context.Context, args ...string) ([]byte, error) {
 	ctx, cancel := context.WithTimeout(parent, collectorCommandTimeout)
 	defer cancel()
@@ -82,7 +78,7 @@ func runCollectorCommand(parent context.Context, args ...string) ([]byte, error)
 	return output.Bytes(), err
 }
 
-// inspectCollector只接受固定容器的最小身份，拒绝空数组与未运行状态。
+// inspectCollector 只接受固定容器的最小身份，拒绝空数组与未运行状态。
 func inspectCollector(ctx context.Context, run collectorCommand) (collectorIdentity, error) {
 	var value collectorIdentity
 	raw, err := run(ctx, "inspect", "--format", `{"id":{{json .Id}},"started":{{json .State.StartedAt}},"restarts":{{json .RestartCount}},"running":{{json .State.Running}}}`, collectorContainer)
@@ -92,7 +88,7 @@ func inspectCollector(ctx context.Context, run collectorCommand) (collectorIdent
 	return value, nil
 }
 
-// collectorLineTime只认Docker提供的首个RFC3339时间，不把消息内日期当窗口边界。
+// collectorLineTime 只认Docker提供的首个RFC3339时间，不把消息内日期当窗口边界。
 func collectorLineTime(line string) (time.Time, string, error) {
 	stamp, body, ok := strings.Cut(line, " ")
 	value, err := time.Parse(time.RFC3339Nano, stamp)
@@ -102,7 +98,7 @@ func collectorLineTime(line string) (time.Time, string, error) {
 	return value, body, nil
 }
 
-// beginCollectorWindow先核对可保留的锚点；没有证据时在创建付费任务前停止。
+// beginCollectorWindow 先核对可保留的锚点；没有证据时在创建付费任务前停止。
 func beginCollectorWindow(ctx context.Context, key, existingDiagnosis, root string, now time.Time, run collectorCommand) (*collectorWindow, error) {
 	// 槽位名只参与哈希；已有起点必须沿用，不能因进程重启而换成更短的窗口。
 	hash := sha256.Sum256([]byte(key))
@@ -124,7 +120,7 @@ func beginCollectorWindow(ctx context.Context, key, existingDiagnosis, root stri
 		return nil, fmt.Errorf("Collector未在诊断窗口前持续运行：%v", err)
 	}
 	value.Identity = identity
-	// Docker先取tail再按until过滤；只取末行会在新日志晚于起点时误得空集。
+	// Docker 先取tail再按until过滤；只取末行会在新日志晚于起点时误得空集。
 	// 固定日志轮转限制保留量，外层仍有64MiB硬上限；从全部保留行选择起点前最近一条。
 	raw, err := run(ctx, "logs", "--timestamps", "--until", value.Start.Format(time.RFC3339Nano), "--tail", "all", collectorContainer)
 	if err != nil {
@@ -155,7 +151,7 @@ func beginCollectorWindow(ctx context.Context, key, existingDiagnosis, root stri
 	return value, nil
 }
 
-// writeCollectorEvidence只独占创建；原始文件即使不完整也保留，绝不删掉后重新采一份。
+// writeCollectorEvidence 只独占创建；原始文件即使不完整也保留，绝不删掉后重新采一份。
 func writeCollectorEvidence(path string, raw []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0700); err != nil {
 		return err
@@ -171,7 +167,7 @@ func writeCollectorEvidence(path string, raw []byte) error {
 	return errors.Join(err, file.Close())
 }
 
-// finish先保存实际输出，再检查解析、容器身份和锚点；任一项失败都保留unknown证据。
+// finish 先保存实际输出，再检查解析、容器身份和锚点；任一项失败都保留unknown证据。
 func (window *collectorWindow) finish(ctx context.Context, end time.Time) *report.CollectorAudit {
 	audit := &report.CollectorAudit{WindowStart: window.Start, WindowEnd: end.UTC(), ContainerID: window.Identity.ID, Status: "failed", RawPath: window.Prefix + ".log", SignalDroppedItems: map[string]int64{}, SignalDroppingDataEvents: map[string]int64{}}
 	// 成功或失败的旧审计都直接复用，不用新窗口覆盖曾经发生的丢弃。
@@ -220,7 +216,7 @@ func (window *collectorWindow) finish(ctx context.Context, end time.Time) *repor
 	return audit
 }
 
-// parseCollectorWindow只计顶层最终丢弃，不把Will retry或error字符串中的伪事件重复计入。
+// parseCollectorWindow 只计顶层最终丢弃，不把Will retry或error字符串中的伪事件重复计入。
 func parseCollectorWindow(raw []byte, audit *report.CollectorAudit) error {
 	if len(raw) == 0 {
 		return fmt.Errorf("Collector窗口输出为空，不能证明采集正常")
@@ -252,7 +248,7 @@ func parseCollectorWindow(raw []byte, audit *report.CollectorAudit) error {
 			}
 			return fmt.Errorf("Collector窗口出现无法解释的日志格式")
 		}
-		// Zap可能省略caller，也可能带logger名；最后一列始终是消息，不靠固定列号计数。
+		// Zap 可能省略caller，也可能带logger名；最后一列始终是消息，不靠固定列号计数。
 		parts := strings.Split(body[:jsonAt], "\t")
 		if len(parts) < 3 || len(parts) > 5 {
 			return fmt.Errorf("Collector结构化日志列数无法确认")
@@ -303,7 +299,7 @@ func parseCollectorWindow(raw []byte, audit *report.CollectorAudit) error {
 	return nil
 }
 
-// verifyCollectorRaw在续跑评分前重新核对原件，不让删除或改写证据变成正常样本。
+// verifyCollectorRaw 在续跑评分前重新核对原件，不让删除或改写证据变成正常样本。
 func verifyCollectorRaw(audit *report.CollectorAudit) error {
 	if audit == nil || audit.RawPath == "" {
 		return fmt.Errorf("缺少Collector原始证据")
@@ -319,7 +315,7 @@ func verifyCollectorRaw(audit *report.CollectorAudit) error {
 	return nil
 }
 
-// checkCollectorSummary只拦阶段9；受影响和未知样本先保存，绝不进入评分或自动补跑。
+// checkCollectorSummary 只拦阶段9；受影响和未知样本先保存，绝不进入评分或自动补跑。
 func checkCollectorSummary(ctx context.Context, value report.Summary) error {
 	if ctx.Value(generalizationGuardKey{}) == nil {
 		return nil
@@ -333,7 +329,7 @@ func checkCollectorSummary(ctx context.Context, value report.Summary) error {
 	return verifyCollectorRaw(value.CollectorAudit)
 }
 
-// readCollectorSummary把第一次落盘的质量决定作为续跑依据，取消后的unknown不能被后来成功洗掉。
+// readCollectorSummary 把第一次落盘的质量决定作为续跑依据，取消后的unknown不能被后来成功洗掉。
 func readCollectorSummary(path string) (json.RawMessage, error) {
 	raw, err := os.ReadFile(path)
 	if err != nil {
@@ -346,7 +342,7 @@ func readCollectorSummary(path string) (json.RawMessage, error) {
 	return raw, nil
 }
 
-// terminalCollectorDetail在取消后短暂等真正终态，不能把仍在取消中的费用快照冒充最终结果。
+// terminalCollectorDetail 在取消后短暂等真正终态，不能把仍在取消中的费用快照冒充最终结果。
 func terminalCollectorDetail(ctx context.Context, load func(context.Context) (store.Detail, error)) (store.Detail, error) {
 	// 只读轮询不创建任务；到期仍返回最后一次详情，摘要会标unknown并保留原始状态。
 	for {
@@ -363,7 +359,7 @@ func terminalCollectorDetail(ctx context.Context, load func(context.Context) (st
 	}
 }
 
-// cancelUnattachedCollector先取消已创建却未关联成功的任务，再读终态；不能让它在后台继续收费。
+// cancelUnattachedCollector 先取消已创建却未关联成功的任务，再读终态；不能让它在后台继续收费。
 func cancelUnattachedCollector(parent context.Context, cancelDiagnosis func(context.Context) error, load func(context.Context) (store.Detail, error)) (store.Detail, error) {
 	// 两个预算相互独立，也都不继承已经取消的外层；取消失败仍读取原任务以保留费用证据。
 	cancelContext, stopCancel := context.WithTimeout(context.WithoutCancel(parent), 3*time.Second)
@@ -375,18 +371,18 @@ func cancelUnattachedCollector(parent context.Context, cancelDiagnosis func(cont
 	return detail, errors.Join(cancelErr, readErr)
 }
 
-// createCollectorTask把提交确认不确定的已知ID也当作可能已执行，先取消再返回原收费摘要。
+// createCollectorTask 把提交确认不确定的已知ID也当作可能已执行，先取消再返回原收费摘要。
 func createCollectorTask(ctx context.Context, create func(context.Context) (string, error), cancelDiagnosis func(context.Context, string) error, load func(context.Context, string) (store.Detail, error)) (string, store.Detail, error) {
 	id, err := create(ctx)
 	if err == nil || id == "" {
 		return id, store.Detail{}, err
 	}
-	// tx.Commit可能已在数据库完成却丢失确认；有ID时不能直接退出、留下付费任务。
+	// 提交确认可能在数据库生效后丢失。有诊断 ID 时先取消，以免任务在后台继续计费。
 	detail, stopErr := cancelUnattachedCollector(ctx, func(stop context.Context) error { return cancelDiagnosis(stop, id) }, func(read context.Context) (store.Detail, error) { return load(read, id) })
 	return id, detail, errors.Join(err, stopErr)
 }
 
-// executeDemoDiagnosis为阶段9加宿主采集观察，诊断输入、模型身份和原评分标准都不改变。
+// executeDemoDiagnosis 将槽位绑定到原诊断的采集窗口。已有摘要时只补数据库记录，采集失败时先保存证据再停评。
 func executeDemoDiagnosis(ctx context.Context, options command, configuration pairedConfiguration, slot store.EvalResult, expected string, repository *store.Store, client *doctorClient, output io.Writer) (store.EvalResult, error) {
 	hash := sha256.Sum256([]byte(slot.Key))
 	prefix := filepath.Join(os.TempDir(), "opsdoctor-phase09", "collector-audit", hex.EncodeToString(hash[:]))
@@ -442,7 +438,7 @@ func executeDemoDiagnosis(ctx context.Context, options command, configuration pa
 		if attachErr == nil {
 			detail, waitErr = waitDiagnosis(ctx, id, repository, client, output)
 		} else {
-			// 没有进入waitDiagnosis就没有它的deferred cancel，必须在读取和持久化之前主动取消。
+			// 关联失败时还没有进入等待流程，须先取消原任务，再读终态和保存证据。
 			detail, waitErr = cancelUnattachedCollector(ctx, func(cancel context.Context) error { return client.cancelDiagnosis(cancel, id) }, func(read context.Context) (store.Detail, error) { return repository.Detail(read, id) })
 		}
 	}
@@ -477,7 +473,7 @@ func executeDemoDiagnosis(ctx context.Context, options command, configuration pa
 	}
 	value.DataQuality = report.QualityNormal
 	value.DataQuality = report.CollectionQuality(value)
-	// Docker取证用完自己的预算后，持久化仍有新的独立时间，不能继承已取消的上下文。
+	// Docker 取证用完自己的预算后，持久化仍有新的独立时间，不能继承已取消的上下文。
 	saveContext, stopSave := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
 	defer stopSave()
 	var recoveryAttachErr error

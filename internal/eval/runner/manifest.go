@@ -1,10 +1,5 @@
-// 本文件：记录一次试跑实际使用的代码、提示和手册版本。
-//
-// Git 提交号看不到未提交的新文件。准备阶段还会计算源文件哈希；续跑前核对这份
-// 哈希，避免把两个不同实现的结果放进同一批次。凭据和运行产生的文档不参与哈希。
-//
-// 主要内容：manifest 生成可审阅配置；sourceHash 按固定顺序读取行为相关文件。
-// 阅读建议：这只是试跑版本记录，正式评测仍须在用户批准之后单独冻结。
+// 本文件：冻结提示、代码、场景、手册和模型的版本。Git 提交号不含未提交的新文件，因此同时按固定顺序计算源文件哈希。
+// 续跑核对原清单，凭据与运行生成的文档不参与哈希。
 
 package runner
 
@@ -14,6 +9,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"os/exec"
@@ -63,31 +59,34 @@ func sourceHashUsing(overrides map[string][]byte) (string, error) {
 			if !entry.Type().IsRegular() {
 				return fmt.Errorf("版本清单拒绝非普通文件")
 			}
-			data, err := os.ReadFile(path)
-			if err != nil {
-				return err
-			}
-			if prior, ok := overrides[filepath.ToSlash(path)]; ok {
-				if prior == nil {
-					return nil
-				} // 新增的批准实现不应出现在旧版本哈希里。
-				data = prior
-			}
-			fmt.Fprintf(digest, "%s\x00%d\x00", filepath.ToSlash(path), len(data))
-			_, _ = digest.Write(data)
-			return nil
+			return appendSourceFile(digest, path, overrides)
 		})
 		if err != nil {
 			return "", err
 		}
 	}
 	for _, path := range []string{"go.mod", "go.sum"} {
-		data, err := os.ReadFile(path)
-		if err != nil {
+		if err := appendSourceFile(digest, path, nil); err != nil {
 			return "", err
 		}
-		fmt.Fprintf(digest, "%s\x00%d\x00", path, len(data))
-		_, _ = digest.Write(data)
 	}
 	return hex.EncodeToString(digest.Sum(nil)), nil
+}
+
+// appendSourceFile 按路径、字节数和原始内容依次写入哈希。修订快照中值为 nil 的文件在旧版本还不存在。
+func appendSourceFile(digest io.Writer, path string, overrides map[string][]byte) error {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	name := filepath.ToSlash(path)
+	if prior, ok := overrides[name]; ok {
+		if prior == nil {
+			return nil
+		}
+		data = prior
+	}
+	fmt.Fprintf(digest, "%s\x00%d\x00", name, len(data))
+	_, _ = digest.Write(data)
+	return nil
 }

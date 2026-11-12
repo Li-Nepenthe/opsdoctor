@@ -1,14 +1,4 @@
-// 本文件：集中定义本阶段的指标名称、标签和注册方式。
-//
-// app 为每个进程创建一份 Metrics，再把需要的计数器传给适配器。
-// 注册表像一份“允许对外展示的仪表清单”。不用全局清单，测试就能分别装配多个服务。
-//
-// 主要内容：
-//   - Metrics、NewMetrics：创建独立注册表，登记业务与运行时指标。
-//   - Counter、Histogram：统一构造方式，避免各包重复写名称和标签规则。
-//   - Register、Database：给额外采集器补上 service 标签。
-//
-// 阅读建议：先对照计划书的指标表。订单号、商品 ID 只进日志，不能作为指标标签。
+// 本文件：为每个进程单独注册 Prometheus 指标，统一采集服务、运行时和数据库连接池的数据。
 
 package telemetry
 
@@ -22,7 +12,7 @@ import (
 // Version 由构建时的 -ldflags -X 写入，进程运行后不再修改。dev 表示直接 go run 的构建。
 var Version = "dev"
 
-// Metrics 保存本进程的仪表，具体在哪里加一次，由调用它的业务适配器决定。
+// Metrics 的注册表归单个进程所有。订单号、商品 ID 等无限增长的值只进日志，不能用作标签。
 type Metrics struct {
 	Registry             *prometheus.Registry     // HTTP 端点只导出这一份注册表。
 	registerer           prometheus.Registerer    // 自动为所有采集器补上同一个 service。
@@ -30,12 +20,12 @@ type Metrics struct {
 	RPCServer            *prometheus.HistogramVec // 库存实际处理一次 RPC 的时间。
 	RPCClient            *prometheus.HistogramVec // 一次真实 RPC 尝试的时间，不包含重试退避。
 	Retries              *prometheus.CounterVec   // 只统计实际发出去的额外尝试。
-	RateRejected         *prometheus.CounterVec   // 入口拒绝的请求数。
-	Idempotency          *prometheus.CounterVec   // new、replay、in_progress、needs_review 四类事件。
-	CacheRequests        *prometheus.CounterVec   // 缓存查询结果，包含防止重复回源时的再次检查。
-	CacheLoads           *prometheus.CounterVec   // 真正进入商品数据库查询的次数。
-	CacheConcurrentLoads *prometheus.CounterVec   // 开始查库时，同一商品已有查询在途的次数；只供诊断。
-	Produce              *prometheus.CounterVec   // Kafka 同步发送的确认结果。
+	RateRejected         *prometheus.CounterVec
+	Idempotency          *prometheus.CounterVec // new、replay、in_progress、needs_review 四类事件。
+	CacheRequests        *prometheus.CounterVec // 缓存查询结果，包含防止重复回源时的再次检查。
+	CacheLoads           *prometheus.CounterVec // 真正进入商品数据库查询的次数。
+	CacheConcurrentLoads *prometheus.CounterVec // 开始查库时，同一商品已有查询在途的次数；只供诊断。
+	Produce              *prometheus.CounterVec
 	Messages             *prometheus.CounterVec   // 消费处理结果，重复消息单独统计。
 	ProcessDuration      *prometheus.HistogramVec // 解析、业务处理与提交位点共用的耗时。
 	Loadgen              *prometheus.CounterVec   // 压测器每次 HTTP 尝试，不把重试藏起来。

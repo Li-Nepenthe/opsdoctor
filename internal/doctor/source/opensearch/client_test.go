@@ -2,9 +2,6 @@
 //
 // 公共查询行为在上一层的契约表里验证。这里补产品独有的失败情形：字段缺失、
 // 部分分片失败、重定向和超大响应。所有账号与响应都是测试夹具。
-//
-// 主要内容：TestConfigBoundary 验证部署配置；TestResponseBoundary 检查异常响应；
-// TestReadOnlyBoundary 证明只读路径和账号不会跟随跳转；TestLevelCaseInsensitive 验证真实级别大小写差异。
 
 package opensearch
 
@@ -181,7 +178,7 @@ func TestLevelCaseInsensitive(t *testing.T) {
 				}
 				for _, filter := range request.Query.Bool.Filter {
 					if raw, ok := filter.Term[testConfig("").Fields.Level]; ok {
-						// 后端也接受简写字符串，但它不会自动忽略大小写；旧实现因此返回空命中。
+						// 后端的简写字符串按大小写匹配，不能用来查询不同采集器发出的级别。
 						if err := json.Unmarshal(raw, &level.Value); err != nil {
 							if err := json.Unmarshal(raw, &level); err != nil {
 								t.Error(err)

@@ -2,9 +2,6 @@
 //
 // 每轮重新取得全部健康结果，查询错误和配置错误不重试；等待失败也留下原证据。
 // 测试的等待替身会确认生产仍要求五秒，短父上下文用于验证超时而不真的等五分钟。
-//
-// 主要内容：TestDemoBaselineHealthy检查同轮通过；TestDemoBaselineTimeout检查超时；
-// TestDemoBaselineQueryError和TestDemoBaselineFlags检查失败顺序，其他用例检查证据硬停。
 
 package runner
 

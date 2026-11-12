@@ -1,20 +1,14 @@
-// Package approval 把模型的建议变成人能检查、批准或拒绝的具体操作。
-//
-// 模型说“请执行”不代表已经授权。先把参数、语句、证据和撤销方法存成审批单，
-// 执行器再从数据库领取已批准的单子。真正执行时不再接受模型提供的第二份参数。
+// Package approval 保存模型建议的写操作，供人决定是否执行。
+// 申请中有具体参数、预览、证据和撤销方法。批准入口只向已登录的人开放，模型和 MCP 均不能批准。
+// 执行器从数据库领取已批准的计划。恢复同一调用时，它仍用原单的参数，先确认远端是否已经执行。
 //
 // 文件清单：
-//   - service_test.go：证明只执行原单参数，恢复先核对连接池。
-//   - permissions_integration_test.go：实测 INDEX 能力和业务读写拒绝。
-//   - prepare_test.go：检查写工具参数和已有索引的恢复路径。
-//   - doc.go：审批解决的问题与阅读入口。
-//   - model.go：审批单、依赖和执行状态。
-//   - service.go：申请、等待和领取后执行。
-//   - prepare.go：校验三个写工具的参数，生成可审阅的计划。
-//   - definitions.go：向模型说明写工具的参数和审批要求。
-//   - backend.go：绑定独立数据库账号和固定运维地址。
-//   - execute.go：执行之前核对真实状态，避免崩溃后盲目重做。
+//   - model.go：定义审批单、执行计划和持久化接口。
+//   - service.go：根据审批状态创建申请、等待决定或领取已批准的计划。
+//   - prepare.go：核验本次诊断的证据及写操作范围，生成供人审阅的计划。
+//   - definitions.go：向模型列出已配置的写操作和申请所需的字段。
+//   - backend.go：绑定独立索引账号和固定运维地址，限制连接能力。
+//   - execute.go：核对远端状态后执行已领取的计划，避免崩溃恢复时重复写入。
 //
-// 阅读顺序：Service.Handle → prepare → Repository.ClaimApproval → execute。
-// 本包没有批准接口；批准入口只提供给已登录的人，不进入模型或 MCP 工具菜单。
+// 从 Service.Handle 看申请怎样进入数据库，再读 prepare、Repository.ClaimApproval 和 execute。
 package approval

@@ -1,14 +1,5 @@
-// 本文件：等待症状和告警出现，或等待系统连续一分钟保持健康。
-//
-// 单次健康快照不足以说明恢复：队列可能还在增长，或者下一次采样又超时。
-// 所以恢复验收需要持续观察，任一条件变坏都会重新计时。
-//
-// 主要内容：
-//   - Result：保存等待耗时与真正观察到的告警。
-//   - Symptom：分别记住症状出现和相关告警触发，两个都满足才通过。
-//   - Healthy：检查流量、延迟、依赖与告警，并要求连续成立。
-//
-// 阅读建议：超时失败也返回已观察到的结果，方便保留失败轮次。
+// 本文件：监控采样决定实验是否通过，单次健康不足以证明系统恢复。
+// Symptom 分别记住症状和相关告警，Healthy 在任一坏样本后重新计时。
 
 package verify
 
@@ -23,10 +14,10 @@ import (
 
 // Result 即使失败也保留等待时间，不能只在成功时记录实验数据。
 type Result struct {
-	Elapsed     time.Duration `json:"elapsed"`                // 实际墙钟等待，非配置值。
-	SymptomSeen bool          `json:"symptom_seen"`           // 至少一次业务指标满足场景条件。
-	Alerts      []string      `json:"alerts"`                 // 实际处于 firing 的相关告警。
-	LastProblem string        `json:"last_problem,omitempty"` // 最近一次未满足的原因或查询错误。
+	Elapsed     time.Duration `json:"elapsed"`      // 实际墙钟等待，非配置值。
+	SymptomSeen bool          `json:"symptom_seen"` // 至少一次业务指标满足场景条件。
+	Alerts      []string      `json:"alerts"`
+	LastProblem string        `json:"last_problem,omitempty"`
 }
 
 // Symptom 的 ctx 由注入开始时间计算截止，部署耗时也计入三分钟，不另送三分钟。
@@ -101,7 +92,6 @@ func (client *Client) healthSample(ctx context.Context) error {
 
 // Healthy 每次坏样本都清空连续计时；不能把分散的健康时间累加成一分钟。
 func (client *Client) Healthy(ctx context.Context) (result Result, err error) {
-	// stableSince 只代表当前这一段连续健康时间，不能跨越失败采样累加。
 	start := time.Now()
 	defer func() { result.Elapsed = time.Since(start) }()
 	var stableSince time.Time

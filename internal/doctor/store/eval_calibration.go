@@ -1,7 +1,4 @@
-// 本文件：固定独立盲评抽中的二十份报告，不替用户填写分数。
-//
-// 主要内容：EvalCalibration 读取原抽样；SaveEvalCalibration 只保存第一次抽样。
-// 阅读建议：这里保存的是编号，不包含评委分数，导出表由评测器另行生成。
+// 本文件：盲评只抽一次二十份报告，保存样本编号以便人工核对。评分由用户填写，导出表由评测器另行生成。
 
 package store
 
@@ -36,7 +33,7 @@ func (store *Store) SaveEvalCalibration(ctx context.Context, id string, keys []s
 		seen[key] = true
 		// 核对归属，调用者不能把其他批次的报告移进这一轮校准。
 		var count int
-		if err := store.database.QueryRowContext(ctx, "SELECT COUNT(*) FROM eval_results r JOIN eval_runs e ON e.id=r.run_id WHERE r.result_key=? AND r.run_id=? AND r.result IS NOT NULL AND r.judgement IS NOT NULL AND e.status='completed'", key, id).Scan(&count); err != nil {
+		if err := store.database.QueryRowContext(ctx, completedCalibrationSlotSQL, key, id).Scan(&count); err != nil {
 			return nil, err
 		}
 		if count != 1 {
@@ -50,3 +47,12 @@ func (store *Store) SaveEvalCalibration(ctx context.Context, id string, keys []s
 	}
 	return store.EvalCalibration(ctx, id)
 }
+
+const completedCalibrationSlotSQL = `SELECT COUNT(*)
+FROM eval_results r
+JOIN eval_runs e ON e.id = r.run_id
+WHERE r.result_key = ?
+    AND r.run_id = ?
+    AND r.result IS NOT NULL
+    AND r.judgement IS NOT NULL
+    AND e.status = 'completed'`

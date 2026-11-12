@@ -1,13 +1,5 @@
-// 本文件：启动压测进程，管理控制端口、统计输出和退出。
-//
-// cmd 调用 Run。只有控制端口成功监听后才开始发请求，避免生成器无法被控制却已持续产生流量。
-//
-// 主要内容：
-//   - Run：读取配置，创建连接复用的 HTTP 客户端并协调各循环。
-//   - printWindows：每十秒输出真实区间统计。
-//   - logReport：统一输出统计口径和一毫秒桶精度说明。
-//
-// 阅读建议：停止时先取消调度，再等待在途请求，最后输出全程统计。
+// 本文件：启动压测进程，先绑定控制端口，再让工作者开始发送请求。
+// 停止时先结束调度，等在途请求和窗口统计结束后再输出全程报告。
 
 package loadgen
 
@@ -58,26 +50,46 @@ func Run(parent context.Context, arguments []string, reader config.Reader, outpu
 	if err != nil {
 		return err
 	}
-	transport := &http.Transport{DialContext: (&net.Dialer{Timeout: clientDialTimeout, KeepAlive: clientIdleTimeout}).DialContext,
-		MaxIdleConns: settings.Workers, MaxIdleConnsPerHost: settings.Workers, MaxConnsPerHost: settings.Workers, IdleConnTimeout: clientIdleTimeout, ResponseHeaderTimeout: settings.RequestTimeout}
+	transport := &http.Transport{
+		DialContext:  (&net.Dialer{Timeout: clientDialTimeout, KeepAlive: clientIdleTimeout}).DialContext,
+		MaxIdleConns: settings.Workers, MaxIdleConnsPerHost: settings.Workers, MaxConnsPerHost: settings.Workers,
+		IdleConnTimeout: clientIdleTimeout, ResponseHeaderTimeout: settings.RequestTimeout,
+	}
 	defer transport.CloseIdleConnections()
-	control := &controlState{settings: controlSettings{QPS: settings.QPS, ProductCount: settings.ProductCount, Workers: settings.Workers}, productCount: settings.ProductCount}
+	control := &controlState{
+		settings:     controlSettings{QPS: settings.QPS, ProductCount: settings.ProductCount, Workers: settings.Workers},
+		productCount: settings.ProductCount,
+	}
 	metrics := telemetry.NewMetrics("loadgen")
 	generator := newGenerator(settings, control, &http.Client{Transport: transport}, logger, metrics)
-	router := controlRouter(control, generator.stats, generator.bursts, logger)
-	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(metrics.Registry, promhttp.HandlerOpts{})))
-	server := &http.Server{Addr: settings.ControlAddress, Handler: router, ReadHeaderTimeout: controlRequestTimeout, ReadTimeout: controlRequestTimeout, WriteTimeout: controlRequestTimeout, IdleTimeout: clientIdleTimeout}
+	return generator.serve(parent, ctx, cancel, listener)
+}
+
+func (generator *generator) controlServer() *http.Server {
+	router := controlRouter(generator.control, generator.stats, generator.bursts, generator.logger)
+	router.GET("/metrics", gin.WrapH(promhttp.HandlerFor(generator.metrics.Registry, promhttp.HandlerOpts{})))
+	return &http.Server{
+		Addr: generator.settings.ControlAddress, Handler: router,
+		ReadHeaderTimeout: controlRequestTimeout, ReadTimeout: controlRequestTimeout,
+		WriteTimeout: controlRequestTimeout, IdleTimeout: clientIdleTimeout,
+	}
+}
+
+func (generator *generator) serve(parent, ctx context.Context, cancel context.CancelFunc, listener net.Listener) error {
+	server := generator.controlServer()
 	finished := make(chan error, 2) // HTTP 与调度循环各写一次，主流程收齐。
 	go func() { finished <- server.Serve(listener) }()
 	go func() { generator.run(ctx); finished <- nil }()
 	reportsDone := make(chan struct{})
-	go func() { printWindows(ctx, generator.stats, logger); close(reportsDone) }()
-	logger.Info("压测已启动", "version", telemetry.Version, "target_qps", settings.QPS, "products", settings.ProductCount, "workers", settings.Workers, "duration", settings.Duration.String(), "zipf_s", zipfShape, "zipf_v", zipfOffset)
+	go func() { printWindows(ctx, generator.stats, generator.logger); close(reportsDone) }()
+	generator.logger.Info("压测已启动", "version", telemetry.Version,
+		"target_qps", generator.settings.QPS, "products", generator.settings.ProductCount, "workers", generator.settings.Workers,
+		"duration", generator.settings.Duration.String(), "zipf_s", zipfShape, "zipf_v", zipfOffset)
 	var result error
 	remaining := 2
 	select {
 	case <-ctx.Done():
-		logger.Info("停止调度，等待在途压测请求")
+		generator.logger.Info("停止调度，等待在途压测请求")
 	case result = <-finished:
 		remaining--
 	}
@@ -95,7 +107,7 @@ func Run(parent context.Context, arguments []string, reader config.Reader, outpu
 		}
 	}
 	<-reportsDone // 确保十秒窗口不会在最终汇总之后又打印一次。
-	logReport(logger, "total", generator.stats.snapshot(time.Now(), false))
+	logReport(generator.logger, "total", generator.stats.snapshot(time.Now(), false))
 	return result
 }
 

@@ -1,14 +1,5 @@
-// 本文件：读取 Prometheus 的查询结果和正在触发的告警。
-//
-// 验收必须看业务指标，不能看注入器是否已经发出命令。
-// 空结果、NaN 和接口错误都不能算成功，否则监控断开反而会显示健康。
-//
-// 主要内容：
-//   - Client、New：准备有超时的只读 HTTP 客户端。
-//   - Query：解释即时查询返回的数值。
-//   - Alerts：只返回 firing 状态的告警名称。
-//
-// 阅读建议：PromQL 比较表达式不满足时通常返回空列表，不是返回 false 字符串。
+// 本文件：验收通过监控采样和已触发的告警确认业务状态。
+// Query 与 Alerts 分别检查响应，接口成功但没有有效样本时仍不能视为健康。
 
 package verify
 
@@ -25,12 +16,12 @@ import (
 	"time"
 )
 
-// Client 的间隔和持续时间集中保存，单元测试可缩短时间，不必真的等一分钟。
+// Client 复用只读监控连接，并为健康采样设置间隔和连续时限。
 type Client struct {
-	URL    string        // 只读 Prometheus 根地址。
+	URL    string
 	HTTP   *http.Client  // 每次查询最多五秒，外层 context 还可提前取消。
 	poll   time.Duration // 两次采样间隔，不影响 Prometheus 自己的抓取周期。
-	stable time.Duration // 健康条件必须连续成立的时间。
+	stable time.Duration
 }
 
 // New 使用五秒轮询，能在十秒采集周期内及时看到新样本，又不会不断空转。

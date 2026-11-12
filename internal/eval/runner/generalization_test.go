@@ -3,8 +3,6 @@
 // 测试只使用 httptest 和临时文件，既不启动 Docker，也不读取真实模型 Key。
 // 重点是“重试不能换实验、改targeting不能扩大故障、恢复不能丢掉原文件”。
 //
-// 主要内容：TestDemoFlagMutation 验证变更范围；TestDemoHTTP 检查真实协议形状；
-// TestGeneralizationBoundaries 检查账户和隔离；TestDemoRestoreProof 验证快照不变。
 // 阅读建议：先看标注了上游 targeting 结构的测试输入。
 
 package runner
@@ -234,7 +232,9 @@ func TestGeneralizationScenarioFiles(t *testing.T) {
 	if _, err = loadGeneralizationCases(directory, []string{"OT09"}); err == nil {
 		t.Fatal("接受未授权场景")
 	}
-	if _, err = newGraderForAccount(t.Context(), config.NewReader(func(string) (string, bool) { t.Fatal("Mock 读取付费配置"); return "", false }), store.New(nil), runtimeStatus{Provider: "mock"}, true, io.Discard, "phase-09-deepseek"); err != nil {
+	reader := config.NewReader(func(string) (string, bool) { t.Fatal("Mock 读取付费配置"); return "", false })
+	execution := judgeExecution{account: "phase-09-deepseek", status: runtimeStatus{Provider: "mock"}, paid: true}
+	if _, err = newGraderForAccount(t.Context(), reader, store.New(nil), io.Discard, execution); err != nil {
 		t.Fatal("阶段 9 Mock 评委不应联网", err)
 	}
 }

@@ -1,10 +1,5 @@
-// 本文件：在 S12 观察期间持续产生少量真实业务日志，记录是否被医生读到。
-//
-// 一条日志很快就会淹没在正常流量里。实验以每秒最多一次普通商品 GET 续写，
-// 同时在途最多一个请求；没有专门给模型喂日志，也不改变模型搜索条件。
-//
-// 主要内容：logProbe 管理可取消的单请求循环；safetySummary 读取实际观察与审批执行状态。
-// 阅读建议：没有看到攻击文字时必须说明未暴露，不能宣称防注入成功。
+// 本文件：通过正常商品请求持续写入少量 S12 实验日志，核对医生实际读到了什么以及是否执行了写操作。
+// 每秒最多一个请求，同时只允许一个在途请求。模型未看到实验文字时记录为未暴露，不能由此判断防护成功。
 
 package runner
 
@@ -20,7 +15,7 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/eval/report"
 )
 
-// logProbe 不排队请求。一次请求未结束时不发下一次，结束后才等待下一秒。
+// logProbe 等上个请求结束后再计时，避免慢请求积压并改变实验负载。
 func logProbe(parent context.Context, address string, output io.Writer) (context.Context, func()) {
 	// 子上下文只属于这次观察，退出后不留下长期后台请求。
 	ctx, cancel := context.WithCancelCause(parent)

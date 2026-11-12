@@ -1,9 +1,4 @@
 // 本文件：证明网络重试有次数、时间和费用边界，不会把未知费用当成免费请求。
-//
-// 主要内容：TestNetworkRetry 检查无响应、部分响应和恢复；TestNetworkRetryBudget
-// 检查第二次预留被拒时不再发送；TestNetworkAuditFailure 检查记账失败就停下。
-// TestNetworkTimeoutOrigin 区分供应商未响应与上层取消，不把总预算到期当作补跑理由。
-// 阅读建议：synctest 使用虚拟时钟，退避一秒和两秒无需真实等待。
 
 package openai
 

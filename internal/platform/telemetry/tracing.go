@@ -1,15 +1,4 @@
-// 本文件：创建进程自己的调用链提供者，并把 span 批量送到 Jaeger。
-//
-// span 可以理解成一次操作的计时记录；trace 把这些记录连成一次请求的完整路径。
-// app 持有 Runtime，并在入口、数据库和消息客户端关闭后，最后排空还没发出的记录。
-//
-// 主要内容：
-//   - Runtime、New：读取标准 OTel 环境变量，创建指标和调用链组件。
-//   - newTraceExporter：跳过不需要的 DNS 服务配置查询，保留普通地址解析。
-//   - Shutdown：在有限时间内发送剩余 span，不沿用已取消的进程上下文。
-//   - Finish：给手动创建的 span 标注成功或失败，再结束计时。
-//
-// 阅读建议：没有 OTLP 地址时仍能生成关联 ID，但不向网络发送数据，适合宿主机调试。
+// 本文件：New 为进程配置调用链，Shutdown 在业务请求排空后送出剩余记录。
 
 package telemetry
 
@@ -49,6 +38,7 @@ func New(ctx context.Context, service string) (*Runtime, error) {
 	}
 	options := []sdktrace.TracerProviderOption{sdktrace.WithResource(resource.NewSchemaless(
 		attribute.String("service.name", service), attribute.String("service.version", Version)))}
+	// 本机调试可以不设导出地址，此时仍产生可关联的 ID。
 	endpoint := strings.TrimSpace(os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"))
 	if endpoint != "" {
 		// 错误只指出变量名，不能把可能含口令的 URL 原文写到日志。
@@ -69,8 +59,7 @@ func New(ctx context.Context, service string) (*Runtime, error) {
 // newTraceExporter 的额外拨号选项用于注入测试的内存连接；生产路径不需要额外选项。
 // 禁用服务配置始终由代码保证，不依赖操作者为每个进程设置环境变量。
 func newTraceExporter(ctx context.Context, endpoint string, dialOptions ...grpc.DialOption) (sdktrace.SpanExporter, error) {
-	// OTLP 底层也用 grpc-go。查询 _grpc_config.jaeger 的 TXT 记录会耗尽五秒导出预算，
-	// 导致业务已经完成，整批 span 却没有送达。这里不使用 DNS 下发的服务配置，只解析 IP。
+	// 导出器只需要 DNS 返回 IP。跳过 Jaeger 的服务配置 TXT 查询，避免它耗尽整批记录的五秒发送预算。
 	dialOptions = append(dialOptions, grpc.WithDisableServiceConfig())
 	return otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(endpoint),
 		otlptracegrpc.WithTimeout(exportTimeout), otlptracegrpc.WithDialOption(dialOptions...))

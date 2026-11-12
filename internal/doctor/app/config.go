@@ -1,13 +1,5 @@
-// 本文件：在医生开放端口前检查必填配置和初始登录账号。
-//
-// 环境变量的名字可以进错误提示，值不可以。尤其不能为了排障把这个结构体整体打印。
-// 初始密码只用来计算摘要，装配完成后不需要继续持有明文。
-//
-// 主要内容：
-//   - settings：保存本进程使用的配置，字段保持私有。
-//   - loadConfig：检查医生库名、监听地址、JWT 密钥和初始账号。
-//
-// 阅读建议：TARGETS_DIR 中的系统账号由 target 包单独验证，这里只管医生自身。
+// 本文件：医生服务在监听前由 loadConfig 一次检查所有必填项。
+// 报错可包含变量名，初始登录密码只保留摘要。
 
 package app
 
@@ -24,10 +16,10 @@ import (
 
 // settings 不能用于结构化日志；database 和 jwtSecret 都包含敏感配置。
 type settings struct {
-	address      string // DOCTOR_ADDR，默认 :8090。
+	address      string
 	database     string // DOCTOR_MYSQL_DSN，只允许 doctor 库的独立账号。
-	targets      string // TARGETS_DIR，默认部署配置目录。
-	jwtSecret    string // 签名密钥，只用于认证模块。
+	targets      string
+	jwtSecret    string
 	email        string // 首次启动账号，已有邮箱不会被覆盖。
 	passwordHash string // 已转换为 bcrypt 摘要；不保留明文初始密码。
 }

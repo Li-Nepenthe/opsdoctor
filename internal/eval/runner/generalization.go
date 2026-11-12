@@ -1,11 +1,5 @@
-// 本文件：为 OpenTelemetry Demo 提供独立批次入口，不借用 shop 的注入或账户。
-//
-// freeze 只保存版本和随机组序；run 才执行已授权的真实诊断。两者使用同一份冻结
-// 清单，续跑不能更换场景、模型、端点或评分标准。export 仅导出已有数据。
-//
-// 主要内容：runGeneralizationCLI 解析并装配；generalizationPlan 固定批次；
-// generalizationConfigurations 核对阶段 9 的两个独立账户。
-// 阅读建议：从参数校验开始读，再进入 generalization_run.go 的状态推进。
+// 本文件：为 OpenTelemetry Demo 建立独立的场景、端点、账户和批次。freeze 固定版本和组序，run 按冻结清单执行，export 只读取已有结果。
+// 续跑须核对场景、模型和评分版本，不能借用 shop 批次的剩余额度或结果。
 
 package runner
 
@@ -35,25 +29,25 @@ import (
 
 // generalizationCommand 只接受公开实验参数；Key 和密码仍只通过环境变量读取。
 type generalizationCommand struct {
-	command                                      // 复用槽位、诊断等待与评分所需的安排。
-	groups                       []string        // 阶段 9 只运行 E1、E2。
-	directory, flagd, prometheus string          // 场景目录与本机独立 Demo 端点。
+	command                               // 复用槽位、诊断等待与评分所需的安排。
+	groups                       []string // 阶段 9 只运行 E1、E2。
+	directory, flagd, prometheus string
 	baseline                     json.RawMessage // 冻结时保存的原始开关，只在本机评测器传递。
 	versions                     json.RawMessage // 每次动作和收费之前与冻结版本重新比对。
 }
 
 // generalizationManifest 保存完整顺序和端点，模型身份与评分版本都在注入前固定。
 type generalizationManifest struct {
-	Kind          string          `json:"kind"`               // 与阶段 8 的 paired/pilot 区分。
-	Versions      json.RawMessage `json:"versions"`           // 包含提示、手册、场景和全部 profile 哈希。
-	RubricVersion string          `json:"rubric_version"`     // 沿用 rubric-v1.1。
-	RubricHash    string          `json:"rubric_hash"`        // 防止正文变化但版本号不变。
-	Iterations    int             `json:"iterations"`         // 同场景重复次数，1–3。
-	Flagd         string          `json:"flagd"`              // 宿主机注入端点，不给医生。
-	Prometheus    string          `json:"prometheus"`         // 只读验证端点。
-	Directory     string          `json:"scenario_directory"` // 冻结场景所在目录。
-	Orders        []trialOrder    `json:"orders"`             // 每次注入的随机组序。
-	Baseline      json.RawMessage `json:"baseline_flags"`     // 注入前的完整配置，用于发现中途改动。
+	Kind          string          `json:"kind"`
+	Versions      json.RawMessage `json:"versions"`       // 包含提示、手册、场景和全部 profile 哈希。
+	RubricVersion string          `json:"rubric_version"` // 沿用 rubric-v1.1。
+	RubricHash    string          `json:"rubric_hash"`    // 防止正文变化但版本号不变。
+	Iterations    int             `json:"iterations"`     // 同场景重复次数，1–3。
+	Flagd         string          `json:"flagd"`          // 宿主机注入端点，不给医生。
+	Prometheus    string          `json:"prometheus"`
+	Directory     string          `json:"scenario_directory"`
+	Orders        []trialOrder    `json:"orders"`         // 每次注入的随机组序。
+	Baseline      json.RawMessage `json:"baseline_flags"` // 注入前的完整配置，用于发现中途改动。
 }
 
 // parseGeneralization 在读取数据库或模型配置前拒绝非法参数，拼错命令不会花钱。
@@ -118,7 +112,7 @@ func runGeneralizationCLI(ctx context.Context, args []string, reader config.Read
 	if options.action == "restore" {
 		return restoreDemoRecord(ctx, options, output)
 	}
-	options.tokens, err = reader.Int("EVAL_TOKEN_BUDGET", 10000000, 1, 1000000000)
+	options.tokens, err = evalTokenBudget(reader)
 	if err != nil {
 		return err
 	}

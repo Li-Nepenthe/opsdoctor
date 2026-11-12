@@ -1,8 +1,5 @@
 // 本文件：用阻塞的假模型验证配对任务选对模型，并且不会跨账户停用。
-//
-// 主要内容：TestExecutionSelection 检查白名单和模型一致；TestExecutionBudgets
-// 检查默认账户用完后另一配置仍可运行；TestMockCannotEnablePaid 检查免费总开关。
-// 阅读建议：provider=openai 只用于测试预算分支，实际客户端仍是内存里的 blockingModel。
+// 测试只让 provider 选择不同预算分支，模型始终是内存里的阻塞替身。
 
 package run
 

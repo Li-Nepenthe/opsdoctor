@@ -1,11 +1,5 @@
-// 本文件：保存评测期间的调度边界和评测器创建的诊断。
-//
-// 告警仍然要接收，否则评测器看不到真实症状。暂停的是自动执行；捕获的通知保留
-// 为已取消记录。评测器再用同一份通知创建各组任务，任务的工具组和模型在创建时固定。
-//
-// 主要内容：SetEvaluationMode 暂停或恢复自动调度；Evaluation 创建可重试的实验任务；
-// EvaluationMode 供页面和命令行确认当前模式。
-// 阅读建议：模式切换与调度领取共用协调锁，不能在检查空闲之后偷偷启动一条付费任务。
+// 本文件：评测模式暂停自动执行，仍接收告警并把通知记在已取消的诊断里。评测器用同一份症状创建各组任务，在创建时绑定工具组和模型。
+// 模式切换与调度器领取任务共用一把锁，避免刚确认空闲便启动另一条付费任务。
 
 package store
 
@@ -28,15 +22,15 @@ type EvaluationMode struct {
 
 // EvaluationInput 只含实验安排和捕获的症状，标准答案始终留在评测器一侧。
 type EvaluationInput struct {
-	ExecutionProfile string          // 启动时已经注册的执行配置名。
-	Provider         string          // 和配置名一起保存，防止另一供应商接手。
-	Account          string          // 费用账户，不能在恢复时变更。
-	Currency         string          // USD 或 CNY；空配置沿用旧试跑入口。
-	Target           string          // 已接入的系统。
-	RunID            string          // 当前拥有评测模式的批次。
-	Key              string          // 批次、场景轮次和组的唯一编号，重试不能重复收费。
-	Group            string          // E0–E3 决定工具菜单。
-	ExpectedModel    string          // 启动时必须使用这个模型。
+	ExecutionProfile string // 启动时已经注册的执行配置名。
+	Provider         string // 和配置名一起保存，防止另一供应商接手。
+	Account          string // 费用账户，不能在恢复时变更。
+	Currency         string // USD 或 CNY；空配置沿用旧试跑入口。
+	Target           string
+	RunID            string // 当前拥有评测模式的批次。
+	Key              string // 批次、场景轮次和组的唯一编号，重试不能重复收费。
+	Group            string // E0–E3 决定工具菜单。
+	ExpectedModel    string
 	FaultStartedAt   time.Time       // 注入前保存的时间，所有配对组共用。
 	Symptoms         json.RawMessage // 告警快照或例行检查说明，不含答案。
 }
@@ -85,7 +79,7 @@ func (store *Store) SetEvaluationMode(ctx context.Context, target, runID string,
 			return fmt.Errorf("评测批次绑定了另一个系统")
 		}
 	}
-	if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM diagnoses WHERE target=? AND (status IN ('running','waiting_approval') OR (`trigger`='eval' AND status='pending'))", target).Scan(&busy); err != nil {
+	if err = tx.QueryRowContext(ctx, activeTargetDiagnosesSQL, target).Scan(&busy); err != nil {
 		return err
 	}
 	if busy != 0 {
@@ -94,19 +88,19 @@ func (store *Store) SetEvaluationMode(ctx context.Context, target, runID string,
 	if !enabled {
 		// 退出时还要等告警观察期结束，否则刚解除暂停就可能为上一场故障再次花钱。
 		now := store.config.Now().UTC()
-		if err = tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM alert_groups WHERE target=? AND diagnosis_id IS NOT NULL AND ((closed_at IS NULL AND last_seen_at>?) OR recovery_until>?)", target, now.Add(-store.config.FaultSilence), now).Scan(&busy); err != nil {
+		if err = tx.QueryRowContext(ctx, targetFaultWindowSQL, target, now.Add(-store.config.FaultSilence), now).Scan(&busy); err != nil {
 			return err
 		}
 		if busy != 0 {
 			return fmt.Errorf("故障仍开放或正在恢复观察，暂不能恢复自动诊断")
 		}
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO evaluation_targets(target,run_id,enabled) VALUES(?,?,?) ON DUPLICATE KEY UPDATE run_id=?,enabled=?,updated_at=UTC_TIMESTAMP(6)", target, runID, enabled, runID, enabled); err != nil {
+	if _, err = tx.ExecContext(ctx, setTargetModeSQL, target, runID, enabled, runID, enabled); err != nil {
 		return err
 	}
 	if enabled {
 		// 已排队的旧告警也不能留到退出模式后付费执行；保留明确原因供页面说明。
-		_, err = tx.ExecContext(ctx, "UPDATE diagnoses SET status='cancelled',error='进入评测模式，告警自动诊断已暂停',finished_at=UTC_TIMESTAMP(6) WHERE target=? AND `trigger`='alert' AND status='pending'", target)
+		_, err = tx.ExecContext(ctx, cancelPendingTargetAlertsSQL, target)
 		if err != nil {
 			return err
 		}
@@ -116,7 +110,7 @@ func (store *Store) SetEvaluationMode(ctx context.Context, target, runID string,
 
 // Evaluation 用唯一键收回同一个任务；返回旧 ID 前核对配置，不能把不同实验误认成重试。
 func (store *Store) Evaluation(ctx context.Context, value EvaluationInput) (string, error) {
-	// 老试跑的空配置仍兼容；新配对实验必须一次给全，不能留一个靠进程默认猜。
+	// 未绑定执行配置的试跑沿用默认账户；配对实验必须同时指定供应商、账户和币种。
 	if value.ExecutionProfile != "" {
 		if !regexp.MustCompile(`^[a-z][a-z0-9-]{0,31}$`).MatchString(value.ExecutionProfile) || (value.Provider != "mock" && value.Provider != "openai") || value.Account == "" || len(value.Account) > 64 || (value.Currency != "CNY" && value.Currency != "USD") {
 			return "", fmt.Errorf("评测执行配置、供应商、账户或币种不完整")
@@ -141,7 +135,7 @@ func (store *Store) Evaluation(ctx context.Context, value EvaluationInput) (stri
 	if err = tx.QueryRowContext(ctx, "SELECT id FROM scheduler_guard WHERE id=1 FOR UPDATE").Scan(&guard); err != nil {
 		return "", err
 	}
-	if err = tx.QueryRowContext(ctx, "SELECT enabled,run_id FROM evaluation_targets WHERE target=? FOR UPDATE", value.Target).Scan(&mode.Enabled, &mode.RunID); err != nil {
+	if err = tx.QueryRowContext(ctx, lockTargetModeSQL, value.Target).Scan(&mode.Enabled, &mode.RunID); err != nil {
 		return "", err
 	}
 	if !mode.Enabled || mode.RunID != value.RunID {
@@ -153,21 +147,39 @@ func (store *Store) Evaluation(ctx context.Context, value EvaluationInput) (stri
 		currency = store.config.Currency // 仅兼容原来没有配对配置的入口。
 	}
 	// 入库和下方幂等比较使用同一种精度；否则纳秒被四舍五入后会立即比较失败。
-	_, err = tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,fault_started_at,eval_group,eval_expected_model,eval_key,eval_run_id,eval_profile,eval_provider,eval_account,currency) VALUES(?,?,'eval','pending',?,'',?,?,?,?,?,?,?,?,?,?) ON DUPLICATE KEY UPDATE id=id", id, value.Target, "评测 "+value.Group, clean, value.FaultStartedAt.UTC().Truncate(time.Microsecond), value.Group, value.ExpectedModel, value.Key, value.RunID, value.ExecutionProfile, value.Provider, value.Account, currency)
+	_, err = tx.ExecContext(ctx, insertEvalDiagnosisSQL, id, value.Target, "评测 "+value.Group, clean, value.FaultStartedAt.UTC().Truncate(time.Microsecond), value.Group, value.ExpectedModel, value.Key, value.RunID, value.ExecutionProfile, value.Provider, value.Account, currency)
 	if err != nil {
 		return "", err
 	}
-	var target, group, model, runID, profile, provider, account, savedCurrency string
-	var savedInput []byte
-	var start time.Time
-	if err = tx.QueryRowContext(ctx, "SELECT id,target,eval_group,eval_expected_model,fault_started_at,input,eval_run_id,eval_profile,eval_provider,eval_account,currency FROM diagnoses WHERE eval_key=?", value.Key).Scan(&id, &target, &group, &model, &start, &savedInput, &runID, &profile, &provider, &account, &savedCurrency); err != nil {
+	var saved struct {
+		id, target, group, model                    string
+		runID, profile, provider, account, currency string
+		input                                       []byte
+		start                                       time.Time
+	}
+	if err = tx.QueryRowContext(ctx, readFrozenEvalInputSQL, value.Key).Scan(
+		&saved.id,
+		&saved.target,
+		&saved.group,
+		&saved.model,
+		&saved.start,
+		&saved.input,
+		&saved.runID,
+		&saved.profile,
+		&saved.provider,
+		&saved.account,
+		&saved.currency,
+	); err != nil {
 		return "", err
 	}
 	// MySQL 的 JSON 会调整空白，解码后比较规范编码，不能靠原始字节判断同一份输入。
-	if target != value.Target || group != value.Group || model != value.ExpectedModel || runID != value.RunID || profile != value.ExecutionProfile || provider != value.Provider || account != value.Account || (profile != "" && savedCurrency != currency) || !start.Equal(value.FaultStartedAt.UTC().Truncate(time.Microsecond)) || !sameJSON(savedInput, clean) {
+	if saved.target != value.Target || saved.group != value.Group || saved.model != value.ExpectedModel ||
+		saved.runID != value.RunID || saved.profile != value.ExecutionProfile || saved.provider != value.Provider ||
+		saved.account != value.Account || (saved.profile != "" && saved.currency != currency) ||
+		!saved.start.Equal(value.FaultStartedAt.UTC().Truncate(time.Microsecond)) || !sameJSON(saved.input, clean) {
 		return "", fmt.Errorf("同一评测编号已有不同配置，拒绝覆盖或重新收费")
 	}
-	return id, tx.Commit()
+	return saved.id, tx.Commit()
 }
 
 // sameJSON 忽略数据库的 JSON 排版变化，但保留内容差异。
@@ -180,3 +192,101 @@ func sameJSON(left, right []byte) bool {
 	y, _ := json.Marshal(b)
 	return string(x) == string(y)
 }
+
+const activeTargetDiagnosesSQL = `SELECT COUNT(*)
+FROM diagnoses
+WHERE target = ?
+    AND (status IN (
+                        'running',
+                        'waiting_approval')
+         OR (` + "`trigger`" + ` = 'eval'
+             AND status = 'pending'))`
+
+const targetFaultWindowSQL = `SELECT COUNT(*)
+FROM alert_groups
+WHERE target = ?
+    AND diagnosis_id IS NOT NULL
+    AND ((closed_at IS NULL
+          AND last_seen_at > ?)
+         OR recovery_until > ?)`
+
+const setTargetModeSQL = `INSERT INTO evaluation_targets (
+    target,
+    run_id,
+    enabled
+)
+VALUES (?, ?, ?)
+ON DUPLICATE KEY UPDATE
+    run_id = ?,
+    enabled = ?,
+    updated_at = UTC_TIMESTAMP(6)`
+
+const cancelPendingTargetAlertsSQL = `UPDATE diagnoses
+SET
+    status = 'cancelled',
+    error = '进入评测模式，告警自动诊断已暂停',
+    finished_at = UTC_TIMESTAMP(6)
+WHERE target = ?
+    AND ` + "`trigger`" + ` = 'alert'
+    AND status = 'pending'`
+
+const lockTargetModeSQL = `SELECT
+    enabled,
+    run_id
+FROM evaluation_targets
+WHERE target = ?
+    FOR
+    UPDATE`
+
+const insertEvalDiagnosisSQL = `INSERT INTO diagnoses (
+    id,
+    target,
+    ` + "`trigger`" + `,
+    status,
+    title,
+    alert_group_key,
+    input,
+    fault_started_at,
+    eval_group,
+    eval_expected_model,
+    eval_key,
+    eval_run_id,
+    eval_profile,
+    eval_provider,
+    eval_account,
+    currency
+)
+VALUES (
+    ?,
+    ?,
+    'eval',
+    'pending',
+    ?,
+    '',
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?
+)
+ON DUPLICATE KEY UPDATE id = id`
+
+const readFrozenEvalInputSQL = `SELECT
+    id,
+    target,
+    eval_group,
+    eval_expected_model,
+    fault_started_at,
+    input,
+    eval_run_id,
+    eval_profile,
+    eval_provider,
+    eval_account,
+    currency
+FROM diagnoses
+WHERE eval_key = ?`

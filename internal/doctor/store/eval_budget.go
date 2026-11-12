@@ -1,11 +1,5 @@
-// 本文件：在模型费用记账的同一个事务里限制整批评测的 token 消耗。
-//
-// 只在命令行进程里数 token 不够：进程崩溃以后，医生可能仍在完成请求。这里让
-// 每次真实发送先在数据库预留。已知用量才退差额，未知结果保留，重启不清零。
-//
-// 主要内容：CreateEvalRun 固定批次配置；EvalRun 读取额度；reserveEvalTokens 和
-// settleEvalTokens 跟随费用事务一起提交或回滚。
-// 阅读建议：token 不是钱，美元和人民币仍由原有的两个费用账户分别限制。
+// 本文件：评测命令退出后医生仍可能完成模型请求，因此批次的 token 随每次发送预留在数据库中。只有用量已知才退还差额，续跑沿用原余额。
+// token 上限与美元、人民币费用上限分别检查，预留和结算都与费用账本在同一事务提交。
 
 package store
 
@@ -22,8 +16,8 @@ import (
 
 // EvalRun 是批次的公开进度，配置只保存版本与运行安排，不保存 Key。
 type EvalRun struct {
-	ID            string          `json:"id"`             // 操作者指定的稳定批次编号，续跑沿用。
-	Target        string          `json:"target"`         // 评测的唯一系统。
+	ID            string          `json:"id"` // 操作者指定的稳定批次编号，续跑沿用。
+	Target        string          `json:"target"`
 	Config        json.RawMessage `json:"config"`         // 创建后不允许悄悄换组、模型或版本。
 	Status        string          `json:"status"`         // preparing、running、completed、interrupted。
 	TokenLimit    int64           `json:"token_limit"`    // 输入与输出合计，缓存命中也计入。
@@ -41,7 +35,7 @@ func (store *Store) CreateEvalRun(ctx context.Context, value EvalRun) error {
 	if err != nil {
 		return err
 	}
-	_, err = store.database.ExecContext(ctx, "INSERT INTO eval_runs(id,target,config,token_limit) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE id=id", value.ID, value.Target, clean, value.TokenLimit)
+	_, err = store.database.ExecContext(ctx, freezeEvalRunSQL, value.ID, value.Target, clean, value.TokenLimit)
 	if err != nil {
 		return err
 	}
@@ -58,7 +52,15 @@ func (store *Store) CreateEvalRun(ctx context.Context, value EvalRun) error {
 // EvalRun 只读这一批的 token 状态；费用必须另查对应币种的 Ledger。
 func (store *Store) EvalRun(ctx context.Context, id string) (EvalRun, error) {
 	var value EvalRun
-	err := store.database.QueryRowContext(ctx, "SELECT id,target,config,status,token_limit,tokens_used,stopped_reason FROM eval_runs WHERE id=?", id).Scan(&value.ID, &value.Target, &value.Config, &value.Status, &value.TokenLimit, &value.TokensUsed, &value.StoppedReason)
+	err := store.database.QueryRowContext(ctx, readEvalRunSQL, id).Scan(
+		&value.ID,
+		&value.Target,
+		&value.Config,
+		&value.Status,
+		&value.TokenLimit,
+		&value.TokensUsed,
+		&value.StoppedReason,
+	)
 	return value, err
 }
 
@@ -74,7 +76,7 @@ func reserveEvalTokens(ctx context.Context, tx *sql.Tx, attempt string, value ll
 	if value.MaximumTokens <= 0 || value.MaximumTokens > 1_000_000_000 {
 		return fmt.Errorf("评测请求缺少 token 预留量")
 	}
-	changed, err := tx.ExecContext(ctx, "UPDATE eval_runs SET tokens_used=tokens_used+?,updated_at=UTC_TIMESTAMP(6) WHERE id=? AND tokens_used+?<=token_limit AND stopped_reason=''", value.MaximumTokens, runID.String, value.MaximumTokens)
+	changed, err := tx.ExecContext(ctx, reserveEvalTokensSQL, value.MaximumTokens, runID.String, value.MaximumTokens)
 	if err != nil {
 		return err
 	}
@@ -85,7 +87,7 @@ func reserveEvalTokens(ctx context.Context, tx *sql.Tx, attempt string, value ll
 	if count != 1 {
 		return llm.ErrEvaluationBudget
 	}
-	_, err = tx.ExecContext(ctx, "INSERT INTO eval_attempts(attempt_id,run_id,maximum_tokens,charged_tokens) VALUES(?,?,?,?)", attempt, runID.String, value.MaximumTokens, value.MaximumTokens)
+	_, err = tx.ExecContext(ctx, insertEvalAttemptSQL, attempt, runID.String, value.MaximumTokens, value.MaximumTokens)
 	return err
 }
 
@@ -109,9 +111,52 @@ func settleEvalTokens(ctx context.Context, tx *sql.Tx, attempt string, value llm
 	if actual > charged {
 		reason = "实际 token 超过预留上界，请核对后再继续评测"
 	}
-	if _, err = tx.ExecContext(ctx, "UPDATE eval_runs SET tokens_used=tokens_used-?+?,stopped_reason=IF(?='',stopped_reason,?),updated_at=UTC_TIMESTAMP(6) WHERE id=?", charged, actual, reason, reason, runID); err != nil {
+	if _, err = tx.ExecContext(ctx, settleEvalTokensSQL, charged, actual, reason, reason, runID); err != nil {
 		return false, err
 	}
 	_, err = tx.ExecContext(ctx, "UPDATE eval_attempts SET charged_tokens=? WHERE attempt_id=?", actual, attempt)
 	return actual > charged, err
 }
+
+const freezeEvalRunSQL = `INSERT INTO eval_runs (
+    id,
+    target,
+    config,
+    token_limit
+)
+VALUES (?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE id = id`
+
+const readEvalRunSQL = `SELECT
+    id,
+    target,
+    config,
+    status,
+    token_limit,
+    tokens_used,
+    stopped_reason
+FROM eval_runs
+WHERE id = ?`
+
+const reserveEvalTokensSQL = `UPDATE eval_runs
+SET
+    tokens_used = tokens_used + ?,
+    updated_at = UTC_TIMESTAMP(6)
+WHERE id = ?
+    AND tokens_used + ? <= token_limit
+    AND stopped_reason = ''`
+
+const insertEvalAttemptSQL = `INSERT INTO eval_attempts (
+    attempt_id,
+    run_id,
+    maximum_tokens,
+    charged_tokens
+)
+VALUES (?, ?, ?, ?)`
+
+const settleEvalTokensSQL = `UPDATE eval_runs
+SET
+    tokens_used = tokens_used - ? + ?,
+    stopped_reason = IF(? = '', stopped_reason, ?),
+    updated_at = UTC_TIMESTAMP(6)
+WHERE id = ?`

@@ -1,11 +1,5 @@
-// 本文件：用人的登录身份读取医生状态和本次告警，不直接访问靶场数据源。
-//
-// 凭据只在登录正文和 Authorization 头里使用，不进 URL、参数打印或结果表。
-// 评测任务仍由医生调度器执行，因此工具、脱敏和费用记录都走原有路径。
-//
-// 主要内容：newDoctorClient 登录；request 限制 HTTP 响应并拒绝重定向；
-// runtime、fault、alerts 和 cancelDiagnosis 分别读取状态、等待开放期、抓告警和取消。
-// 阅读建议：客户端失败只给出固定说明，不把登录响应或请求正文带进错误。
+// 本文件：用操作者的登录身份向医生读取状态和告警，诊断仍由原调度器执行，以保留工具权限、脱敏和费用记录。
+// 凭据仅用于登录和请求头。错误和结果不记录请求正文、登录响应或令牌。
 
 package runner
 
@@ -157,7 +151,7 @@ func (client *doctorClient) alerts(ctx context.Context, target string) (json.Raw
 	return result.Data, nil
 }
 
-// cancelDiagnosis 用原来的取消入口，中断信号会继续传到在途模型 HTTP 请求。
+// cancelDiagnosis 通过医生取消原任务，让中断传到在途的模型请求。
 func (client *doctorClient) cancelDiagnosis(ctx context.Context, id string) error {
 	return client.request(ctx, "POST", "/api/v1/diagnoses/"+url.PathEscape(id)+"/cancel", []byte(`{}`), nil)
 }

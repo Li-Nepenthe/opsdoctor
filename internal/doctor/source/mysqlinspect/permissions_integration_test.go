@@ -2,13 +2,6 @@
 //
 // 写权限测试的 WHERE 恒为假。即使账号意外拿到写权限，也不会改动任何业务行，
 // 但测试必须失败。这样无需拿真实数据冒险来证明权限边界。
-//
-// 主要内容：
-//   - TestIntegrationMySQLPermissions：检查六类查看操作，以及写入和样例 SQL 的拒绝。
-//   - TestIntegrationMySQLConnectionLimit：占满三条连接后，服务端拒绝该账号的第四条。
-//   - integrationInspector：只在显式提供测试 DSN 时连接，避免静默使用生产配置。
-//
-// 阅读建议：连接池限制由单元测试证明，这里另测数据库账号自身的限制。
 
 package mysqlinspect
 

@@ -1,6 +1,5 @@
 // 本文件：证明流量修订的白名单不能同时更改医生提示、工具、手册或评分。
 //
-// 主要内容：TestBaselineAmendmentScope 检查源码白名单；TestBaselineBehaviorVersions 保护独立清单字段。
 // 阅读建议：只写临时目录中的虚构文件，不动仓库实际输入或Git历史。
 
 package runner

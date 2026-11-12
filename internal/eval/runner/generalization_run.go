@@ -1,11 +1,5 @@
-// 本文件：推进第二个系统的真实实验，并为每次注入保留独立恢复文件。
-//
-// 数据库先记录“正在注入”，再写完整原开关文件，最后调用 Demo。中断后先比对
-// 原文件和当前开关，不能重新注入一次更容易诊断的故障。恢复文件始终保留。
-//
-// 主要内容：runGeneralization 遍历冻结顺序；advanceDemoTrial 推进一个阶段；
-// demoMatrix 复用原诊断与评分路径；restoreDemoRecord 提供不依赖数据库的恢复入口。
-// 阅读建议：先看状态推进，再看恢复文件怎样核对同一次故障。
+// 本文件：以数据库中的轮次状态推进 Demo 实验，每次注入独立保存原开关和恢复依据。
+// 先记录注入意图、保存完整原件，再修改外部开关。中断后核对原件与现场，确认同一次实验才能继续，恢复后仍保留原件。
 
 package runner
 
@@ -30,39 +24,39 @@ import (
 
 // demoRecovery 不含密码；Original 和 Injected 是官方故障配置的完整快照。
 type demoRecovery struct {
-	RunID     string          `json:"run_id"`    // 每批独立，不能复用阶段 8 的恢复文件。
-	Scenario  string          `json:"scenario"`  // 只在评测器本机保存。
-	Iteration int             `json:"iteration"` // 本次注入的轮次。
-	Flagd     string          `json:"flagd"`     // 与冻结端点相同才允许恢复。
-	Started   time.Time       `json:"started"`   // 同组共用，续跑不刷新。
-	Original  json.RawMessage `json:"original"`  // 注入前完整 flags。
-	Injected  json.RawMessage `json:"injected"`  // 注入后应有的完整 flags。
+	RunID     string          `json:"run_id"` // 每批独立，不能复用阶段 8 的恢复文件。
+	Scenario  string          `json:"scenario"`
+	Iteration int             `json:"iteration"`
+	Flagd     string          `json:"flagd"`    // 与冻结端点相同才允许恢复。
+	Started   time.Time       `json:"started"`  // 同组共用，续跑不刷新。
+	Original  json.RawMessage `json:"original"` // 注入前完整 flags。
+	Injected  json.RawMessage `json:"injected"` // 注入后应有的完整 flags。
 }
 
-// generalizationGuardKey 区分用户要求“异常即停”的阶段 9 与阶段 8 的自动可靠性补跑。
+// generalizationGuardKey 区分 Demo 的异常暂停和 shop 的自动可靠性补跑。
 type generalizationGuardKey struct{}
 
-// 仅阶段9延长真实症状与恢复等待；shop和数据库的五分钟冷却规则保持原样。
+// Demo 症状和恢复各有观察期限，数据库另行计算五分钟冷却期。
 const (
 	demoObservationLimit  = 5 * time.Minute
 	demoJudgeFailureLimit = 3 // 本批第三份评分失败保留后暂停；前两份不重评。
 )
 
-// demoJudgeClient只观察原客户端的最终结果，不增加请求、重试或改变冻结评分。
+// demoJudgeClient 只观察原客户端的最终结果，不增加请求、重试或改变冻结评分。
 type demoJudgeClient struct {
 	llm.Client
 	mock     bool // Mock没有HTTP账本，只用于免费流程检查。
 	returned bool // 原有限重试结束后，是否取得了可确认的回答和计量。
 }
 
-// Complete保留原Response/error原样返回；有错误时即使带正文也不能当作格式失败豁免。
+// Complete 保留原Response/error原样返回；有错误时即使带正文也不能当作格式失败豁免。
 func (client *demoJudgeClient) Complete(ctx context.Context, request llm.Request) (llm.Response, error) {
 	response, err := client.Client.Complete(ctx, request)
 	client.returned = err == nil && demoJudgeResponse(response, client.mock)
 	return response, err
 }
 
-// demoJudgeResponse确认外层回答存在；内层参数是否合法仍由冻结Check判断。
+// demoJudgeResponse 确认外层回答存在；内层参数是否合法仍由冻结Check判断。
 func demoJudgeResponse(response llm.Response, mock bool) bool {
 	if response.Model == "" || response.Message.Role != "assistant" || response.CostMicros < 0 {
 		return false
@@ -184,9 +178,8 @@ func runGeneralization(parent context.Context, options generalizationCommand, ca
 	return finish(ctx, options.command, repository, client, output)
 }
 
-// runDemoTrial 每一步都先读取数据库；中断状态不会被新命令悄悄重置为 pending。
+// runDemoTrial 每次推进前重读已保存的状态。若推进失败，用独立时限保存中断原因，供下次续跑核对。
 func runDemoTrial(ctx context.Context, options generalizationCommand, cases map[string]demoScenario, order trialOrder, reader config.Reader, repository *store.Store, client *doctorClient, output io.Writer) error {
-	// 每次推进之前重新读状态，数据库已完成的步骤不能由命令重试再次执行。
 	for {
 		trial, err := repository.EvalTrial(ctx, options.runID, options.scenario, options.iteration)
 		if err != nil || trial.State == "done" {
@@ -207,7 +200,7 @@ func runDemoTrial(ctx context.Context, options generalizationCommand, cases map[
 	}
 }
 
-// advanceDemoTrial 复用原 trial 状态机，只有外部注入、验证和恢复手段不同。
+// advanceDemoTrial 每次只推进一段，注入、验证和恢复都要先取得本轮对应的证据。
 func advanceDemoTrial(ctx context.Context, options generalizationCommand, cases map[string]demoScenario, order trialOrder, trial store.EvalTrial, reader config.Reader, repository *store.Store, client *doctorClient, output io.Writer) error {
 	value := cases[options.scenario]
 	// 与外部系统之间没有分布式事务，所以先写 injecting，再依靠快照确认动作结果。
@@ -389,7 +382,10 @@ func recordDemoEvaluator(ctx context.Context, options generalizationCommand, rep
 	if len(options.versions) == 0 || !equalJSON(options.versions, versions) {
 		return fmt.Errorf("阶段 9 冻结代码、场景、说明书或手册已改变，暂停本批次")
 	}
-	return repository.RecordEvalExecution(ctx, options.runID, options.scenario, options.iteration, operation, key, versions)
+	return repository.RecordEvalExecution(ctx, store.EvalExecution{
+		RunID: options.runID, Scenario: options.scenario, Iteration: options.iteration,
+		Operation: operation, ResultKey: key, Versions: versions,
+	})
 }
 
 // coolDemoTrial 用数据库的恢复时间等五分钟，窗口结束后再检查全部服务基线。
@@ -417,7 +413,7 @@ func coolDemoTrial(ctx context.Context, options generalizationCommand, cases map
 	return repository.AdvanceEvalTrial(ctx, trial, "done", nil)
 }
 
-// demoMatrix 先保存所有槽位与同一份症状，再调用现有执行器和冻结评委。
+// demoMatrix 给所有配置保存同一份症状，再按冻结顺序执行。每个槽位开始前重新核对现场和内存，结束后检查结果。
 func demoMatrix(parent context.Context, options generalizationCommand, value demoScenario, order trialOrder, record demoRecovery, reader config.Reader, repository *store.Store, client *doctorClient, output io.Writer) (problem error) {
 	// 诊断和评分期间持续核对全部开关；有人改动时取消当前付费请求。
 	ctx, stop, err := guardLoad(parent, func(checkContext context.Context) error {
@@ -437,7 +433,9 @@ func demoMatrix(parent context.Context, options generalizationCommand, value dem
 	if err != nil {
 		return err
 	}
-	grader, err := newGraderForAccount(ctx, reader, repository, status, options.paid, output, "phase-09-deepseek")
+	grader, err := newGraderForAccount(ctx, reader, repository, output, judgeExecution{
+		account: "phase-09-deepseek", status: status, paid: options.paid,
+	})
 	if err != nil {
 		return err
 	}
@@ -497,7 +495,7 @@ func demoSlotInput(ctx context.Context, options generalizationCommand, value dem
 	return json.Marshal(map[string]any{"fault_started_at": record.Started, "alerts": alerts, "symptoms": value.Symptoms})
 }
 
-// checkDemoSlot读取本批原记录；格式评分失败可保留缺失，第三份或API异常仍暂停。
+// checkDemoSlot 读取本批原记录；格式评分失败可保留缺失，第三份或API异常仍暂停。
 func checkDemoSlot(ctx context.Context, options generalizationCommand, key string, repository *store.Store) error {
 	rows, err := repository.EvalResults(ctx, options.runID)
 	if err != nil {
@@ -506,7 +504,7 @@ func checkDemoSlot(ctx context.Context, options generalizationCommand, key strin
 	return checkDemoJudgements(options.runID, key, rows)
 }
 
-// checkDemoJudgements不调用评委也不改原文；累计只认同一run保存的judgement。
+// checkDemoJudgements 不调用评委也不改原文；累计只认同一run保存的judgement。
 func checkDemoJudgements(runID, key string, rows []store.EvalResult) error {
 	failures := 0
 	matched := key == "" // 空key用于续跑前检查，允许尚未创建任何槽位的新批次。

@@ -1,14 +1,5 @@
-// 本文件：按健康、注入、观察、恢复、恢复健康的顺序运行整套场景。
-//
-// 一次失败仍要恢复。若恢复失败，就停止后续场景，避免把前一个问题带进下一次实验。
-// 输出采用 Markdown 表格，可原样保存到 notes 和数据台账。
-//
-// 主要内容：
-//   - Row：保留一次实验的实际耗时和结果。
-//   - Trial：即使取消或症状未出现，也用独立时间预算恢复。
-//   - Selftest：依次运行，实时输出每一行，失败不删除旧行。
-//
-// 阅读建议：恢复后的三分钟从恢复动作开始计时，包含重新发布所花的时间。
+// 本文件：Trial 独立核对每次实验的初始健康、观察和恢复结果。
+// Selftest 遇到恢复失败时停止后续场景，在结果表中保留失败和未执行的行。
 
 package app
 
@@ -24,19 +15,19 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/chaos/scenario"
 )
 
-// phaseBudget 是计划书要求的上限，注入和恢复各自包含实际动作耗时。
+// 注入和恢复各自有时限，实际动作耗时计入相应阶段。
 const phaseBudget = 3 * time.Minute
 
 // Row 中的时间都来自实际时钟，尚未执行的步骤保持零值并在 Problem 中说明。
 type Row struct {
-	ID       string        // 场景编号，仅出现在宿主机结果表。
-	Before   time.Duration // 注入前等到健康基线花了多久。
-	Inject   time.Duration // 执行注入动作花了多久。
+	ID       string // 场景编号，仅出现在宿主机结果表。
+	Before   time.Duration
+	Inject   time.Duration
 	Verified time.Duration // 从注入开始到症状和告警均被看到。
 	Restore  time.Duration // 从恢复开始到连续一分钟健康。
-	Alerts   []string      // 真正触发的相关告警。
-	Problem  error         // 任一步失败都不能被后面的恢复成功覆盖。
-	Restored bool          // false 时不得继续下一场景。
+	Alerts   []string
+	Problem  error // 任一步失败都不能被后面的恢复成功覆盖。
+	Restored bool  // false 时不得继续下一场景。
 }
 
 // Trial 先确认健康，再开始计时；原本已经有故障的系统不能用来判断本次注入的效果。
@@ -69,7 +60,7 @@ func (engine *Engine) Trial(ctx context.Context, value scenario.Scenario) (row R
 		row.Problem = injectErr
 	}
 	cancel()
-	// 客户端取消不能中断恢复。WithoutCancel 保留上下文值，新的三分钟限制清理时间。
+	// 实验取消后仍要恢复，清理使用独立的有限预算。
 	// 只有本次确实创建了记录才能恢复；不能触碰开工前就存在的另一个实验。
 	saved, readErr := engine.Read()
 	if readErr != nil || !saved.Started.Equal(record.Started) {

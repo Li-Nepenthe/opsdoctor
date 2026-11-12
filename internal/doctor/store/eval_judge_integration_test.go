@@ -1,8 +1,5 @@
-// 本文件：用专用测试库证明评委走独立账户，续跑不重复创建审计记录。
-//
-// 主要内容：TestIntegrationEvalJudge 检查账户、调度隔离和不可覆盖结果；
-// TestIntegrationEvalLock 验证两个命令不能同时接手同一个批次。
-// 阅读建议：费用都是测试生成的整数，不会调用任何模型接口。
+// 本文件：专用医生库里的虚构评分应使用独立账户，医生调度器不能领取评委记录。按相同编号续跑应取回原判断和费用。
+// 另用两个持锁者验证，并发命令不能同时执行同一批次。
 
 package store
 
@@ -51,15 +48,20 @@ func TestIntegrationEvalJudge(t *testing.T) {
 	t.Cleanup(func() {
 		_, _ = repository.database.ExecContext(context.Background(), "DELETE FROM llm_budget WHERE account IN (?,?)", account, account+"-wrong")
 	})
-	value, err := repository.PrepareEvalJudge(ctx, slot.Key, "mock-judge", "mock", account, "test-v1", json.RawMessage(`{"reference":"fixture"}`))
+	request := EvalJudgeInput{
+		ResultKey: slot.Key, Model: "mock-judge", Provider: "mock", Account: account,
+		RubricVersion: "test-v1", Input: json.RawMessage(`{"reference":"fixture"}`),
+	}
+	value, err := repository.PrepareEvalJudge(ctx, request)
 	if err != nil {
 		t.Fatal(err)
 	}
-	repeated, err := repository.PrepareEvalJudge(ctx, slot.Key, "mock-judge", "mock", account, "test-v1", json.RawMessage(`{"reference":"fixture"}`))
+	repeated, err := repository.PrepareEvalJudge(ctx, request)
 	if err != nil || repeated.ID != value.ID {
 		t.Fatal("评分审计重复", err)
 	}
-	if _, err = repository.PrepareEvalJudge(ctx, slot.Key, "mock-other", "mock", account, "test-v1", value.Input); err == nil {
+	request.Model, request.Input = "mock-other", value.Input
+	if _, err = repository.PrepareEvalJudge(ctx, request); err == nil {
 		t.Fatal("评分悄悄换模型")
 	}
 	if tasks, err := repository.Pending(ctx); err != nil {
@@ -97,11 +99,16 @@ func TestIntegrationEvalJudge(t *testing.T) {
 		t.Fatalf("恢复=%+v %v", response, err)
 	}
 	for range 2 {
-		if err = repository.FinishEvalJudge(ctx, slot.Key, value.ID, json.RawMessage(`{"status":"failed","reason":"中断"}`), response, nil, "中断"); err != nil {
+		if err = repository.FinishEvalJudge(ctx, EvalJudgeResult{
+			ResultKey: slot.Key, JudgeID: value.ID, Judgement: json.RawMessage(`{"status":"failed","reason":"中断"}`),
+			Response: response, Problem: "中断",
+		}); err != nil {
 			t.Fatal(err)
 		}
 	}
-	if err = repository.FinishEvalJudge(ctx, slot.Key, value.ID, json.RawMessage(`{"status":"ok"}`), response, nil, ""); err == nil {
+	if err = repository.FinishEvalJudge(ctx, EvalJudgeResult{
+		ResultKey: slot.Key, JudgeID: value.ID, Judgement: json.RawMessage(`{"status":"ok"}`), Response: response,
+	}); err == nil {
 		t.Fatal("评分失败被覆盖")
 	}
 	status, err := ledger.Status(ctx)

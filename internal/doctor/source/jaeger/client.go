@@ -1,15 +1,4 @@
-// 本文件：读取本项目固定的 Jaeger 2.20.0 查询接口。
-//
-// 这里使用实测可用的 /api/traces JSON 接口。它是 Jaeger 的内部接口，升级时
-// 必须重跑真实样例契约测试，不能因为路径没变就假定字段也没变。
-//
-// 主要内容：
-//   - New：只为 Jaeger 接受经过严格校验的部署前缀，其他 HTTP 来源仍只接受根地址。
-//   - Search、Get：搜索请求和按 ID 读取完整调用链。
-//   - decode：合并 process 与 span，并保留父子关系和诊断属性。
-//   - tagAllowed：排除没有必要提供给诊断工具的属性。
-//
-// 阅读建议：先看 wireTrace 的后端结构，再看 decode 如何转换成通用结构。
+// 本文件：通过 Jaeger 2.20.0 的 /api/traces 查询和转换调用链。这个内部接口可能随版本变化，升级时要用真实样例检查字段和父子关系。
 
 package jaeger
 
@@ -68,28 +57,31 @@ func (client *Client) Close() { client.backend.Close() }
 
 // wireTrace 只解码用得上的字段。Jaeger 的其他内容不会自动出现在工具结果里。
 type wireTrace struct {
-	TraceID   string // 整个请求的标识。
+	TraceID   string
 	Processes map[string]struct {
 		ServiceName string // span 通过 processID 引用服务名称。
 	}
 	Spans []struct {
 		TraceID       string // 检查 span 是否属于这条调用链。
-		SpanID        string // 当前步骤标识。
-		OperationName string // 原始操作名。
+		SpanID        string
+		OperationName string
 		ProcessID     string // 对应 Processes 中的键。
 		StartTime     int64  // Unix 微秒。
 		Duration      int64  // 耗时微秒。
 		References    []struct {
 			RefType string // CHILD_OF 是当前调用树需要的父子关系。
 			TraceID string // 不把另一条 trace 的节点接进当前树。
-			SpanID  string // 被引用的父节点。
+			SpanID  string
 		}
-		Tags []struct {
-			Key   string          // 根据字段名决定是否需要保留。
-			Type  string          // string、bool、int64、float64 等真实 Jaeger 类型。
-			Value json.RawMessage // 保留 JSON 数值精度，不先转 float64。
-		}
+		Tags []wireTag
 	}
+}
+
+// wireTag 保留后端的 JSON 值，直接转为 float64 会丢失大整数的精度。
+type wireTag struct {
+	Key   string
+	Type  string
+	Value json.RawMessage
 }
 
 // Search 的起止时间和最小耗时分别使用 Jaeger 约定的微秒和时长字符串。
@@ -166,31 +158,41 @@ func decode(item wireTrace) (source.Trace, error) {
 			return trace, fmt.Errorf("调用链后端 Jaeger span 关系或字段不合法")
 		}
 		seen[span.SpanID] = true
-		value := source.Span{ID: span.SpanID, Service: process.ServiceName, Operation: span.OperationName, Start: span.StartTime, Duration: span.Duration, Tags: map[string]string{}}
+		value := source.Span{ID: span.SpanID, Service: process.ServiceName, Operation: span.OperationName, Start: span.StartTime, Duration: span.Duration}
 		for _, ref := range span.References {
 			if ref.RefType == "CHILD_OF" && ref.TraceID == item.TraceID {
 				value.ParentID = ref.SpanID
 				break
 			}
 		}
-		for _, tag := range span.Tags {
-			if !tagAllowed(tag.Key) {
-				continue
-			}
-			var text string
-			if tag.Type == "string" {
-				if json.Unmarshal(tag.Value, &text) != nil {
-					return trace, fmt.Errorf("调用链后端 Jaeger 字符串属性不合法")
-				}
-			} else {
-				// 数字和布尔值也能说明错误或状态，不能因为它们不是字符串就丢掉。
-				text = string(tag.Value)
-			}
-			value.Tags[tag.Key] = text
+		tags, err := decodeTags(span.Tags)
+		if err != nil {
+			return trace, err
 		}
+		value.Tags = tags
 		trace.Spans = append(trace.Spans, value)
 	}
 	return trace, nil
+}
+
+// decodeTags 只保留允许送入诊断的字段。数字和布尔值保留原始写法，以便核对状态码和错误标记。
+func decodeTags(tags []wireTag) (map[string]string, error) {
+	values := make(map[string]string)
+	for _, tag := range tags {
+		if !tagAllowed(tag.Key) {
+			continue
+		}
+		var text string
+		if tag.Type == "string" {
+			if json.Unmarshal(tag.Value, &text) != nil {
+				return nil, fmt.Errorf("调用链后端 Jaeger 字符串属性不合法")
+			}
+		} else {
+			text = string(tag.Value)
+		}
+		values[tag.Key] = text
+	}
+	return values, nil
 }
 
 // tagAllowed 只保留定位服务、SQL 模板、RPC 和错误状态所需的字段。

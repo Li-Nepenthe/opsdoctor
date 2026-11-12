@@ -1,10 +1,4 @@
-// 本文件：保存 MCP 客户端调用工具的审计，不把外部调用伪装成医生诊断。
-//
-// 外部客户端没有 diagnosis_id，所以单独记时间、绑定系统、工具名和参数摘要。
-// 先写 running，再更新结果；进程崩溃留下的 running 表示结果未知，不能假装未调用。
-//
-// 主要内容：BeginMCP 保存调用开始；EndMCP 仅结束仍在运行的记录。
-// 阅读建议：参数已经在入口脱敏，这里再次处理，防止以后出现漏掉入口清理的调用方。
+// 本文件：为不属于任何诊断的 MCP 调用单独保存脱敏审计。先记开始再记结果，崩溃后遗留的 running 只表示结果未知。
 
 package store
 
@@ -22,7 +16,7 @@ func (store *Store) BeginMCP(ctx context.Context, entry mcpserver.Entry) (string
 	}
 	id := newID()
 	// 主键随机生成，结果更新走主键；系统时间索引用于后续按系统查阅，不记录凭据。
-	_, err := store.database.ExecContext(ctx, "INSERT INTO mcp_audit(id,target,tool_name,arguments_summary,created_at,status) VALUES(?,?,?,?,?,'running')", id, entry.Target, entry.Tool, store.config.Redactor.Text(entry.Arguments), store.config.Now().UTC())
+	_, err := store.database.ExecContext(ctx, beginMCPAuditSQL, id, entry.Target, entry.Tool, store.config.Redactor.Text(entry.Arguments), store.config.Now().UTC())
 	return id, err
 }
 
@@ -36,3 +30,13 @@ func (store *Store) EndMCP(ctx context.Context, id, status string) error {
 	_, err := store.database.ExecContext(ctx, "UPDATE mcp_audit SET status=?,finished_at=? WHERE id=? AND status='running'", status, store.config.Now().UTC(), id)
 	return err
 }
+
+const beginMCPAuditSQL = `INSERT INTO mcp_audit (
+    id,
+    target,
+    tool_name,
+    arguments_summary,
+    created_at,
+    status
+)
+VALUES (?, ?, ?, ?, ?, 'running')`

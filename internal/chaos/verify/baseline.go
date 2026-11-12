@@ -1,13 +1,5 @@
-// 本文件：在等待健康指标之前，核对压测器实际使用的实验参数。
-//
-// 相同 QPS 下，五十万商品和一万商品的缓存未命中率不同。只看告警会把参数变化
-// 误当成故障，所以 healthy 和 selftest 要先向正在运行的 loadgen 取一份配置。
-//
-// 主要内容：
-//   - Baseline、WithBaseline：把预期商品数和工作者数交给健康检查。
-//   - Healthy、check：不一致时立即失败，给出重新创建 loadgen 的办法。
-//
-// 阅读建议：这些值来自控制接口，不是宿主机的 LOADGEN 环境变量。
+// 本文件：压测器的商品数和工作者数会影响实验观测。
+// Healthy 在连续健康检查前后核对正在运行的压测器设置，避免配置变化被误认为业务症状。
 
 package verify
 
@@ -20,16 +12,16 @@ import (
 	"strings"
 )
 
-// Baseline 在原有指标观察前加参数核对。嵌入 Client 仍提供原来的 Symptom 方法。
+// Baseline 把实际运行参数的核对接到健康检查之前和之后。
 type Baseline struct {
-	indexes  func(context.Context) ([]string, error) // 生产绑定只读元数据，测试可换成确定样例。
-	*Client                                          // 负责指标、告警和连续健康时间。
-	loadURL  string                                  // 压测器控制根地址，仅供宿主机实验使用。
-	products int                                     // 预期活跃商品数，不是数据库总商品数。
-	workers  int                                     // 预期固定工作者数，决定最大在途请求数。
+	indexes func(context.Context) ([]string, error) // 生产绑定只读元数据，测试可换成确定样例。
+	*Client
+	loadURL  string
+	products int // 预期活跃商品数，不是数据库总商品数。
+	workers  int // 预期固定工作者数，决定最大在途请求数。
 }
 
-// WithBaseline 由 app 传入校验过的配置，单元测试仍可单独验证原来的指标观察器。
+// WithBaseline 设置本次验收预期的商品数和工作者数。
 func WithBaseline(client *Client, loadURL string, products, workers int) *Baseline {
 	return &Baseline{Client: client, loadURL: strings.TrimRight(loadURL, "/"), products: products, workers: workers}
 }
@@ -53,7 +45,7 @@ func (baseline *Baseline) Healthy(ctx context.Context) (Result, error) {
 	return result, err
 }
 
-// check 只读取小型配置响应；老版本缺字段时得到零值，也必须报错，不能默认放行。
+// check 要求控制接口给出实际参数；缺少字段或数值不符都不能继续验收。
 func (baseline *Baseline) check(ctx context.Context) error {
 	request, err := http.NewRequestWithContext(ctx, http.MethodGet, baseline.loadURL+"/control", nil)
 	if err != nil {

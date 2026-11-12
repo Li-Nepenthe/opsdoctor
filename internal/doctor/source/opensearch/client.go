@@ -1,10 +1,4 @@
-// 本文件：向配置中的日志索引发送有界的只读搜索。
-//
-// OpenSearch 的查询 DSL 是描述查询的 JSON。这里用 Go 的 map 组织固定结构，再让
-// json.Marshal 转义值；不会把关键词拼进 query_string 或 URL 路径。
-//
-// 主要内容：New 固定客户端边界；expression 翻译全部条件；Search 查询并整理结果。
-// 阅读建议：先看 expression 的 filter 和 must，再看 search 怎样限制 HTTP 响应。
+// 本文件：把日志条件编码为对指定索引的只读搜索。关键词放在 JSON 查询值中，不能决定请求路径或查询结构。
 
 package opensearch
 

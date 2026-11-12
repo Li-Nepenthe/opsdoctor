@@ -1,14 +1,5 @@
-// 本文件：读取一个目录里的全部系统配置，并检查系统之间有没有共用凭据。
-//
-// 配置属于部署者，工具参数属于调用者。两者分开后，工具运行时就不能临时换主机。
-// 密码只从配置指定的环境变量读取，错误信息只写变量名，不回显内容。
-//
-// 主要内容：
-//   - Config：本阶段允许接入的数据源字段。
-//   - readConfigs、readFile：读取有大小上限的普通文件，拒绝链接和子目录路径。
-//   - validateConfigs：检查重名、账号变量共用以及系统前缀。
-//
-// 阅读建议：先看 Config，再看两个系统的配置如何一起校验。
+// 本文件：部署者的接入配置确定工具可以访问的后端。
+// readConfigs 读取普通文件后再统一校验系统名和凭据变量，报错不回显凭据值。
 
 package target
 
@@ -26,26 +17,26 @@ import (
 
 // Config 只保存地址、允许范围和变量名；凭据值仅从环境变量读取。
 type Config struct {
-	MySQLDDLEnv         string            `yaml:"mysql_ddl_dsn_env"`      // INDEX 专用账号，不兼作只读来源。
-	Ops                 opsConfig         `yaml:"ops_api"`                // 固定服务地址与每系统独立令牌。
-	WriteTimeout        string            `yaml:"write_timeout"`          // DDL 使用独立时限，默认两分钟。
-	MCPTokenEnv         string            `yaml:"mcp_token_env"`          // 独立长期令牌，留空表示不开这个系统的 MCP。
-	AlertRecoveryWindow string            `yaml:"alert_recovery_window"`  // 整组恢复后继续接收迟到症状的时间，由各系统的告警规则决定。
-	Name                string            `yaml:"name"`                   // 在目录中唯一，之后成为任务绑定的系统名。
-	Profile             string            `yaml:"profile"`                // 同目录的架构说明文件名。
-	AlertTokenEnv       string            `yaml:"alert_token_env"`        // 本系统的推送令牌变量。
-	Prometheus          string            `yaml:"prometheus"`             // 指标后端根地址。
-	Jaeger              string            `yaml:"jaeger"`                 // 调用链查询根地址。
-	Loki                string            `yaml:"loki"`                   // 日志查询根地址。
-	OpenSearch          *openSearchConfig `yaml:"opensearch"`             // 第二种日志后端；与 Loki 只能配置一个。
-	MySQLDSNEnv         string            `yaml:"mysql_readonly_dsn_env"` // 只读 MySQL 连接配置的变量名。
-	RedisURLEnv         string            `yaml:"redis_readonly_url_env"` // 只读 Redis 连接配置的变量名。
-	Pprof               map[string]string `yaml:"pprof"`                  // 服务名到堆栈端点的固定映射。
+	MySQLDDLEnv         string            `yaml:"mysql_ddl_dsn_env"`     // INDEX 专用账号，不兼作只读来源。
+	Ops                 opsConfig         `yaml:"ops_api"`               // 固定服务地址与每系统独立令牌。
+	WriteTimeout        string            `yaml:"write_timeout"`         // DDL 使用独立时限，默认两分钟。
+	MCPTokenEnv         string            `yaml:"mcp_token_env"`         // 独立长期令牌，留空表示不开这个系统的 MCP。
+	AlertRecoveryWindow string            `yaml:"alert_recovery_window"` // 整组恢复后继续接收迟到症状的时间，由各系统的告警规则决定。
+	Name                string            `yaml:"name"`                  // 在目录中唯一，之后成为任务绑定的系统名。
+	Profile             string            `yaml:"profile"`
+	AlertTokenEnv       string            `yaml:"alert_token_env"`
+	Prometheus          string            `yaml:"prometheus"`
+	Jaeger              string            `yaml:"jaeger"`
+	Loki                string            `yaml:"loki"`
+	OpenSearch          *openSearchConfig `yaml:"opensearch"` // 第二种日志后端；与 Loki 只能配置一个。
+	MySQLDSNEnv         string            `yaml:"mysql_readonly_dsn_env"`
+	RedisURLEnv         string            `yaml:"redis_readonly_url_env"`
+	Pprof               map[string]string `yaml:"pprof"` // 服务名到堆栈端点的固定映射。
 }
 
 // openSearchConfig 把公开地址与凭据变量名分开；账号只有在环境变量里才有真实值。
 type openSearchConfig struct {
-	URL         string            `yaml:"url"`          // 固定 HTTP(S) 根地址。
+	URL         string            `yaml:"url"`
 	Index       string            `yaml:"index"`        // 一个日志索引，或明确前缀的通配符。
 	Fields      opensearch.Fields `yaml:"fields"`       // 实际索引的字段名，由接入时检查 mapping 后填写。
 	UsernameEnv string            `yaml:"username_env"` // 安全插件开启时填写只读用户名的环境变量。
@@ -98,13 +89,28 @@ func readFile(directory, name string, limit int64) ([]byte, error) {
 	return data, nil
 }
 
-// validateConfigs 先查跨系统冲突，再查前缀，错误能直接说明两个系统共用了哪个变量。
+var (
+	targetNamePattern         = regexp.MustCompile(`^[a-z][a-z0-9-]{0,31}$`)
+	credentialVariablePattern = regexp.MustCompile(`^[A-Z][A-Z0-9_]+$`)
+)
+
+// validateConfigs 先检查所有系统的重名和凭据冲突，再按配置检查各自的接入边界。
 func validateConfigs(configs []Config) error {
-	// 先查重，再查命名规则。这样报错可以直接指出哪两个系统共用了同一个变量。
-	names, variables := map[string]bool{}, map[string]string{}
-	namePattern := regexp.MustCompile(`^[a-z][a-z0-9-]{0,31}$`)
+	if err := validateConfigNames(configs); err != nil {
+		return err
+	}
 	for _, config := range configs {
-		if !namePattern.MatchString(config.Name) {
+		if err := config.validateSettings(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func validateConfigNames(configs []Config) error {
+	names, variables := map[string]bool{}, map[string]string{}
+	for _, config := range configs {
+		if !targetNamePattern.MatchString(config.Name) {
 			return fmt.Errorf("系统名必须是小写字母开头，且只含字母、数字或短横线")
 		}
 		if names[config.Name] {
@@ -121,34 +127,36 @@ func validateConfigs(configs []Config) error {
 			variables[variable] = config.Name
 		}
 	}
-	for _, config := range configs {
-		prefix := strings.ToUpper(strings.ReplaceAll(config.Name, "-", "_")) + "_"
-		for _, variable := range config.variables() {
-			if variable != "" && (!strings.HasPrefix(variable, prefix) || !regexp.MustCompile(`^[A-Z][A-Z0-9_]+$`).MatchString(variable)) {
-				return fmt.Errorf("系统 %s 的凭据变量必须以 %s 开头", config.Name, prefix)
-			}
+	return nil
+}
+
+func (config Config) validateSettings() error {
+	prefix := strings.ToUpper(strings.ReplaceAll(config.Name, "-", "_")) + "_"
+	for _, variable := range config.variables() {
+		if variable != "" && (!strings.HasPrefix(variable, prefix) || !credentialVariablePattern.MatchString(variable)) {
+			return fmt.Errorf("系统 %s 的凭据变量必须以 %s 开头", config.Name, prefix)
 		}
-		if config.AlertTokenEnv == "" || !strings.HasSuffix(config.Profile, ".profile.md") {
-			return fmt.Errorf("系统 %s 缺少告警令牌变量或 .profile.md 说明文件", config.Name)
-		}
-		if err := config.validateLogs(); err != nil {
-			return fmt.Errorf("系统 %s：%w", config.Name, err)
-		}
-		// 不能用全局默认掩盖缺项：每个系统的告警持续时间可能不同。
-		window, err := time.ParseDuration(config.AlertRecoveryWindow)
-		if err != nil || window <= 0 || window > 24*time.Hour {
-			return fmt.Errorf("系统 %s 的 alert_recovery_window 必须是大于 0、且不超过 24h 的时长", config.Name)
-		}
-		for service := range config.Pprof {
-			if !namePattern.MatchString(service) {
-				return fmt.Errorf("系统 %s 的 pprof 服务名不合法", config.Name)
-			}
+	}
+	if config.AlertTokenEnv == "" || !strings.HasSuffix(config.Profile, ".profile.md") {
+		return fmt.Errorf("系统 %s 缺少告警令牌变量或 .profile.md 说明文件", config.Name)
+	}
+	if err := config.validateLogs(); err != nil {
+		return fmt.Errorf("系统 %s：%w", config.Name, err)
+	}
+	// 不能用全局默认掩盖缺项：每个系统的告警持续时间可能不同。
+	window, err := time.ParseDuration(config.AlertRecoveryWindow)
+	if err != nil || window <= 0 || window > 24*time.Hour {
+		return fmt.Errorf("系统 %s 的 alert_recovery_window 必须是大于 0、且不超过 24h 的时长", config.Name)
+	}
+	for service := range config.Pprof {
+		if !targetNamePattern.MatchString(service) {
+			return fmt.Errorf("系统 %s 的 pprof 服务名不合法", config.Name)
 		}
 	}
 	return nil
 }
 
-// variables 只包含本阶段真正使用的凭据，不提前向医生传递写账号。
+// variables 列出当前系统使用的凭据变量，供启动时检查隔离。
 func (config Config) variables() []string {
 	values := []string{config.AlertTokenEnv, config.MySQLDSNEnv, config.RedisURLEnv, config.MCPTokenEnv, config.MySQLDDLEnv, config.Ops.TokenEnv}
 	if config.OpenSearch != nil {

@@ -1,10 +1,5 @@
-// 本文件：阻止把医生修过的环境误当成下一场实验的原始基线。
-//
-// 多留一个索引就可能让原来的慢查询不再出现。连接池在运行时被调整过，也会改变
-// 排队症状。因此 healthy 不替人撤销，只说明残留了什么以及怎样恢复。
-//
-// 主要内容：WithRepairs 加入真实状态核对；repairIndexes 读全部架构表的索引；checkRepairs 检查池修改指标。
-// 阅读建议：索引核对使用只读账号，绝不会为了让验收通过而自动 DROP INDEX。
+// 本文件：健康验收在下一场实验前检查服务是否留有已审批的改动。
+// WithRepairs 把只读检查接入基线核对，出现残留时交给操作者恢复。
 
 package verify
 
@@ -17,7 +12,7 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/platform/mysqlx"
 )
 
-// WithRepairs 与旧参数检查串联；生产 healthy 和 selftest 都必须装配这条检查。
+// WithRepairs 增加对索引与连接池状态的核对。
 func (baseline *Baseline) WithRepairs(dsn string) *Baseline {
 	baseline.indexes = func(ctx context.Context) ([]string, error) { return repairIndexes(ctx, dsn) }
 	return baseline
@@ -68,7 +63,6 @@ func (baseline *Baseline) checkRepairs(ctx context.Context) error {
 	if len(names) > 0 {
 		return fmt.Errorf("发现医生残留索引 %s。请由人按审批单的 DROP INDEX 撤销方法处理，再运行 chaos restore 和 healthy；本命令不会自动删除", strings.Join(names, ","))
 	}
-	// 缺少一条采集也会使条件为假，不让监控缺失掩盖被修改的连接池。
 	clean, err := baseline.Query(ctx, `count(db_pool_runtime_changed{service=~"order-service|inventory-service|order-worker"}) == 3 and sum(db_pool_runtime_changed{service=~"order-service|inventory-service|order-worker"}) == 0`)
 	if err != nil {
 		return err

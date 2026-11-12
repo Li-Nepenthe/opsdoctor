@@ -1,11 +1,5 @@
-// 本文件：读取外部靶场的实验定义，并把故障开关与给医生的症状分开。
-//
-// 开关名称、标准答案和恢复内容只留在宿主机。医生只收到 symptoms 和故障时间。
-// 查询表达式由已冻结的场景提供，用来确认真正出现了症状，而不是只确认开关已写入。
-//
-// 主要内容：loadGeneralizationCases 校验场景；demoHTTP 有界访问本机 Demo；
-// changeDemoFlag 只改指定开关；waitDemoQuery 用真实指标验证故障或恢复。
-// 阅读建议：先看 demoScenario，再对照 eval/scenarios/otel-demo/ 中的 YAML。
+// 本文件：读取 Demo 的冻结场景，用场景中的查询确认症状或恢复情况。
+// 开关设置、标准答案和恢复内容只留在宿主机，医生只收到症状与故障开始时间。
 
 package runner
 
@@ -31,9 +25,9 @@ import (
 
 // demoScenario 把公开出处、注入参数、真实验证与评分答案保存在同一个冻结文件里。
 type demoScenario struct {
-	ID                string           `yaml:"id"`                  // OT01–OT08，与 shop 编号分开。
-	Title             string           `yaml:"title"`               // 给操作者看的实验标题。
-	SourceURL         string           `yaml:"source_url"`          // 固定版本文档或官方说明的出处。
+	ID                string           `yaml:"id"` // OT01–OT08，与 shop 编号分开。
+	Title             string           `yaml:"title"`
+	SourceURL         string           `yaml:"source_url"`
 	Flag              string           `yaml:"flag"`                // Demo 已有的开关名，不接受脚本。
 	Variant           string           `yaml:"variant"`             // 必须在上游开关的 variants 中存在。
 	OverrideTargeting bool             `yaml:"override_targeting"`  // 只改三元 if 的命中分支，保留原条件。

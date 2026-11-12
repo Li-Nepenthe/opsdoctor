@@ -1,10 +1,5 @@
-// 本文件：把一次模型写工具调用接到持久化审批流程。
-//
-// 同一轮的调用 ID 与诊断 ID 决定唯一审批编号。保存后崩溃再恢复，仍找到原单，
-// 不会因为重新走到这一行就多出第二张申请。
-//
-// 主要内容：New 绑定系统；Handle 处理申请和恢复；result 产生明确的工具结果。
-// 阅读建议：只有 ClaimApproval 返回 executing 后，才可能进入真正的写操作。
+// 本文件：把模型的写操作申请保存到当前诊断，并根据审批状态决定下一步。
+// 同一诊断、同一轮里的同一个调用总是找到原审批单。只有从库里领取到 executing 状态的单子才能执行。
 
 package approval
 
@@ -56,16 +51,7 @@ func (service *Service) Handle(ctx context.Context, diagnosis string, parent int
 			return false, result(call.Function.Name, "invalid_argument", problem.Error()), nil
 		}
 		prepared.ID, prepared.DiagnosisID, prepared.Target, prepared.ParentSeq, prepared.CallID = id, diagnosis, service.target, parent, call.ID
-		// 理由、预览与原始参数也可能包含敏感文字，入库前使用同一个脱敏器。
-		raw, _ := json.Marshal(prepared)
-		raw, err = service.redactor.JSON(raw)
-		if err != nil {
-			return false, tools.Result{}, err
-		}
-		if err = json.Unmarshal(raw, &prepared); err != nil {
-			return false, tools.Result{}, err
-		}
-		record, err = service.repository.CreateApproval(ctx, prepared)
+		record, err = service.saveProposal(ctx, prepared)
 	}
 	if err != nil {
 		return false, tools.Result{}, err
@@ -83,31 +69,50 @@ func (service *Service) Handle(ctx context.Context, diagnosis string, parent int
 	case "executed", "failed":
 		return false, record.Result, nil
 	case "approved", "executing":
-		// 领取只使用库中记录。就算模型这次换了参数，也不会传到执行器里。
-		record, err = service.repository.ClaimApproval(ctx, diagnosis, id)
-		if err != nil {
-			return false, tools.Result{}, err
-		}
-		started := time.Now()
-		out := service.backend.execute(ctx, record, func(connection int64) error {
-			return service.repository.ApprovalConnection(ctx, diagnosis, id, connection)
-		})
-		out.DurationMS = time.Since(started).Milliseconds()
-		raw, _ := json.Marshal(out)
-		clean, cleanErr := service.redactor.JSON(raw)
-		if cleanErr != nil {
-			return false, tools.Result{}, cleanErr
-		}
-		_ = json.Unmarshal(clean, &out)
-		cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 500*time.Millisecond)
-		defer cancel()
-		if err = service.repository.FinishApproval(cleanup, diagnosis, id, out); err != nil {
-			return false, tools.Result{}, err
-		}
-		return false, out, nil
+		out, err := service.executeApproved(ctx, diagnosis, id)
+		return false, out, err
 	default:
 		return false, tools.Result{}, fmt.Errorf("审批状态不支持执行")
 	}
+}
+
+// saveProposal 在入库前对整张申请脱敏，理由、预览和原始参数都有可能含敏感文字。
+func (service *Service) saveProposal(ctx context.Context, prepared Record) (Record, error) {
+	raw, _ := json.Marshal(prepared)
+	clean, err := service.redactor.JSON(raw)
+	if err != nil {
+		return Record{}, err
+	}
+	if err := json.Unmarshal(clean, &prepared); err != nil {
+		return Record{}, err
+	}
+	return service.repository.CreateApproval(ctx, prepared)
+}
+
+// executeApproved 只执行本次从库中领取的参数，忽略模型在恢复时给出的新参数。
+func (service *Service) executeApproved(ctx context.Context, diagnosis, id string) (tools.Result, error) {
+	record, err := service.repository.ClaimApproval(ctx, diagnosis, id)
+	if err != nil {
+		return tools.Result{}, err
+	}
+	started := time.Now()
+	out := service.backend.execute(ctx, record, func(connection int64) error {
+		return service.repository.ApprovalConnection(ctx, diagnosis, id, connection)
+	})
+	out.DurationMS = time.Since(started).Milliseconds()
+	raw, _ := json.Marshal(out)
+	clean, err := service.redactor.JSON(raw)
+	if err != nil {
+		return tools.Result{}, err
+	}
+	_ = json.Unmarshal(clean, &out)
+	// 外层请求取消后，仍留半秒保存脱敏的执行结果。
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 500*time.Millisecond)
+	defer cancel()
+	if err := service.repository.FinishApproval(cleanup, diagnosis, id, out); err != nil {
+		return tools.Result{}, err
+	}
+	return out, nil
 }
 
 // result 只生成固定的小结果，不把数据库错误、后端地址或账号回传给模型。

@@ -1,10 +1,5 @@
-// 本文件：为浏览器提供 Cookie 登录和防跨站请求保护，命令行继续使用 Bearer。
-//
-// EventSource 不能设置 Authorization 头，令牌又不能放进地址。因此浏览器只通过
-// HttpOnly Cookie 携带身份；修改请求另带 CSRF 值，外站读不到这个值就不能冒用登录。
-//
-// 主要内容：sameOrigin 拒绝跨站来源；csrfToken 绑定会话；session 支持刷新页面；logout 退出。
-// 阅读建议：页面不保存 JWT 到 localStorage，也不会把它放进 SSE 地址。
+// 本文件：为浏览器提供 Cookie 登录和跨站请求保护，命令行继续使用 Bearer。
+// EventSource 无法加 Authorization 头。页面用 HttpOnly Cookie 携带身份，修改请求另验 CSRF 值，令牌不会出现在地址和本地存储里。
 
 package httpapi
 

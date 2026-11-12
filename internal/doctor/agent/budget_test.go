@@ -1,11 +1,5 @@
-// 本文件：验证新预算不会把重复发送的历史过早算成调查结束。
-//
-// 这里用脚本精确指定每轮用量，不依赖供应商速度或真实费用。既检查允许继续的
-// 路径，也检查越界后没有再执行工具，最后报告只能修正一次。
-//
-// 主要内容：TestBudgetRevision 检查累计用量；TestFinalCorrection 检查纠错次数；
-// TestInputBound、TestHardBudget 检查上下文估计和发送前限制。
-// 阅读建议：token 测试给出的是供应商用量，context 测试检查的是发送前的保守估计。
+// 本文件：用脚本设置每轮用量，核对查证、最后报告和一次修正各自能花多少预算。
+// TestInputBound 测发送前的上界，TestBudgetRevision 核对回答后记录的供应商计量。
 
 package agent
 
@@ -19,7 +13,7 @@ import (
 	"github.com/Li-Nepenthe/opsdoctor/internal/doctor/tools"
 )
 
-// TestBudgetRevision 第九轮仍能继续取证，不会再被旧的八万 token 触发线打断。
+// TestBudgetRevision 每轮脚本使用一万输入 token，核对到第十轮仍能主动交报告。
 func TestBudgetRevision(t *testing.T) {
 	calls := 0
 	model := modelFunc(func(_ context.Context, request llm.Request) (llm.Response, error) {

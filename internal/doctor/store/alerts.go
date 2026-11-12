@@ -1,11 +1,4 @@
-// 本文件：把同一次故障的反复通知归到同一个诊断，并判断故障何时结束。
-//
-// 报告提交并不代表故障恢复。分组行独立保存开放状态，只有整组 resolved 或长时间
-// 没有通知才结束这一轮。整组恢复后还会观察一段时间，等较慢的告警到齐。
-// 锁住分组行后再建任务，并发通知不会同时创建两份。
-//
-// 主要内容：ReceiveAlerts 保存通知事务；receiveGroup 判断新旧故障；saveAlerts 更新快照。
-// 阅读建议：诊断的终态不参与 receiveGroup 的判定，所以结束的诊断仍能接收补充告警。
+// 本文件：按分组锁接收告警，在一个事务里选择故障、创建诊断并保存快照。诊断结束后仍可接收迟到的告警，故障按恢复通知和观察窗口关闭。
 
 package store
 
@@ -35,7 +28,7 @@ func (store *Store) ReceiveAlerts(ctx context.Context, target string, value aler
 	if err != nil {
 		return alerts.Receipt{}, err
 	}
-	// 结构体按值传入仍共享里面的 map 和 slice，必须解析到新对象，不能改调用者的数据。
+	// 脱敏后的通知要写进新对象，避免改动调用方仍在使用的标签和告警。
 	var cleaned alerts.Notification
 	if err = json.Unmarshal(clean, &cleaned); err != nil {
 		return alerts.Receipt{}, err
@@ -84,13 +77,13 @@ func (store *Store) receiveGroup(ctx context.Context, tx *sql.Tx, target, origin
 	digest := sha256.Sum256([]byte(target + "\x00" + originalKey))
 	key := hex.EncodeToString(digest[:])
 	now := store.config.Now().UTC()
-	if _, err := tx.ExecContext(ctx, "INSERT INTO alert_groups(group_hash,target,last_seen_at) VALUES(?,?,?) ON DUPLICATE KEY UPDATE group_hash=group_hash", key, target, now); err != nil {
+	if _, err := tx.ExecContext(ctx, ensureAlertGroupSQL, key, target, now); err != nil {
 		return alerts.Receipt{}, err
 	}
 	var id sql.NullString
 	var opened, closed, recovery sql.NullTime
 	var seen time.Time
-	if err := tx.QueryRowContext(ctx, "SELECT diagnosis_id,opened_at,closed_at,last_seen_at,recovery_until FROM alert_groups WHERE group_hash=? FOR UPDATE", key).Scan(&id, &opened, &closed, &seen, &recovery); err != nil {
+	if err := tx.QueryRowContext(ctx, lockAlertGroupSQL, key).Scan(&id, &opened, &closed, &seen, &recovery); err != nil {
 		return alerts.Receipt{}, err
 	}
 	observing := id.Valid && closed.Valid && recovery.Valid && now.Before(recovery.Time)
@@ -102,7 +95,7 @@ func (store *Store) receiveGroup(ctx context.Context, tx *sql.Tx, target, origin
 		}
 		// 同一份 resolved 重试不能不断延长观察期，否则故障永远结束不了。
 		until := now.Add(store.config.RecoveryWindows[target])
-		_, err := tx.ExecContext(ctx, "UPDATE alert_groups SET recovery_until=COALESCE(recovery_until,?),closed_at=COALESCE(closed_at,?),last_seen_at=? WHERE group_hash=?", until, now, now, key)
+		_, err := tx.ExecContext(ctx, closeAlertGroupSQL, until, now, now, key)
 		return alerts.Receipt{DiagnosisID: id.String}, err
 	}
 	if active || observing {
@@ -113,14 +106,9 @@ func (store *Store) receiveGroup(ctx context.Context, tx *sql.Tx, target, origin
 	}
 	// 静默超时后的 firing 是新一轮，旧任务和告警快照仍留在审计表里。
 	candidate := newID()
-	// 评测期间保留通知和故障开放期，但这条记录直接终止，永远不交给模型收费执行。
-	status, reason := "pending", ""
-	var evaluating bool
-	if err := tx.QueryRowContext(ctx, "SELECT EXISTS(SELECT 1 FROM evaluation_targets WHERE target=? AND enabled=TRUE)", target).Scan(&evaluating); err != nil {
+	decision, err := alertForMode(ctx, tx, target)
+	if err != nil {
 		return alerts.Receipt{}, err
-	}
-	if evaluating {
-		status, reason = "cancelled", "评测期间仅记录告警，自动诊断已暂停"
 	}
 	start := now
 	for _, alert := range value.Alerts {
@@ -128,11 +116,11 @@ func (store *Store) receiveGroup(ctx context.Context, tx *sql.Tx, target, origin
 			start = alert.StartsAt
 		}
 	}
-	if _, err := tx.ExecContext(ctx, "INSERT INTO diagnoses(id,target,`trigger`,status,title,alert_group_key,input,fault_started_at,error,finished_at) VALUES(?,?,'alert',?,?,?,?,?,?,IF(?='cancelled',UTC_TIMESTAMP(6),NULL))", candidate, target, status, alerts.Title(value), value.GroupKey, input, start, reason, status); err != nil {
+	if _, err := tx.ExecContext(ctx, insertAlertDiagnosisSQL, candidate, target, decision.status, alerts.Title(value), value.GroupKey, input, start, decision.reason, decision.status); err != nil {
 		return alerts.Receipt{}, err
 	}
-	_, err := tx.ExecContext(ctx, "UPDATE alert_groups SET diagnosis_id=?,opened_at=?,last_seen_at=?,closed_at=NULL,recovery_until=NULL WHERE group_hash=?", candidate, now, now, key)
-	return alerts.Receipt{DiagnosisID: candidate, Created: true, Suppressed: evaluating}, err
+	_, err = tx.ExecContext(ctx, openAlertGroupSQL, candidate, now, now, key)
+	return alerts.Receipt{DiagnosisID: candidate, Created: true, Suppressed: decision.suppressed}, err
 }
 
 // resolvedBefore 只在通知确实带结束时间时挡住迟到恢复；旧客户端缺时间时保持兼容。
@@ -157,9 +145,81 @@ func saveAlerts(ctx context.Context, tx *sql.Tx, id string, values []alerts.Aler
 		if value.Status == "firing" {
 			arrived = recoveryAt
 		}
-		if _, err = tx.ExecContext(ctx, "INSERT INTO diagnosis_alerts(diagnosis_id,fingerprint,payload,recovery_received_at) VALUES(?,?,?,?) ON DUPLICATE KEY UPDATE payload=?,received_at=CURRENT_TIMESTAMP(6),recovery_received_at=COALESCE(recovery_received_at,?)", id, value.Fingerprint, payload, arrived, payload, arrived); err != nil {
+		if _, err = tx.ExecContext(ctx, upsertDiagnosisAlertSQL, id, value.Fingerprint, payload, arrived, payload, arrived); err != nil {
 			return err
 		}
 	}
 	return nil
 }
+
+const ensureAlertGroupSQL = `INSERT INTO alert_groups (
+    group_hash,
+    target,
+    last_seen_at
+)
+VALUES (?, ?, ?)
+ON DUPLICATE KEY UPDATE group_hash = group_hash`
+
+const lockAlertGroupSQL = `SELECT
+    diagnosis_id,
+    opened_at,
+    closed_at,
+    last_seen_at,
+    recovery_until
+FROM alert_groups
+WHERE group_hash = ?
+    FOR
+    UPDATE`
+
+const closeAlertGroupSQL = `UPDATE alert_groups
+SET
+    recovery_until = COALESCE(recovery_until, ?),
+    closed_at = COALESCE(closed_at, ?),
+    last_seen_at = ?
+WHERE group_hash = ?`
+
+const insertAlertDiagnosisSQL = `INSERT INTO diagnoses (
+    id,
+    target,
+    ` + "`trigger`" + `,
+    status,
+    title,
+    alert_group_key,
+    input,
+    fault_started_at,
+    error,
+    finished_at
+)
+VALUES (
+    ?,
+    ?,
+    'alert',
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    ?,
+    IF(? = 'cancelled',UTC_TIMESTAMP(6),NULL)
+)`
+
+const openAlertGroupSQL = `UPDATE alert_groups
+SET
+    diagnosis_id = ?,
+    opened_at = ?,
+    last_seen_at = ?,
+    closed_at = NULL,
+    recovery_until = NULL
+WHERE group_hash = ?`
+
+const upsertDiagnosisAlertSQL = `INSERT INTO diagnosis_alerts (
+    diagnosis_id,
+    fingerprint,
+    payload,
+    recovery_received_at
+)
+VALUES (?, ?, ?, ?)
+ON DUPLICATE KEY UPDATE
+    payload = ?,
+    received_at = CURRENT_TIMESTAMP(6),
+    recovery_received_at = COALESCE(recovery_received_at, ?)`
