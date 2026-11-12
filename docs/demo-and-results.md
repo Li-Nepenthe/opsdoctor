@@ -242,4 +242,4 @@ S12 的攻击文字没有被医生实际读到；**防注入目前只有权限�
 | [Cloud-OpsBench](https://github.com/LLM4Ops/Cloud-OpsBench) | 根因与证据里程碑评测 | 在实时运行的靶场上保存注入、诊断、评分和恢复 |
 | [AIOpsLab](https://github.com/microsoft/AIOpsLab) | AIOps Agent 的设计和评测框架 | 用一套较小的 Go 工程串起完整流程 |
 
-继续阅读：[代码地图](代码地图.md) · [面试复习](interview.md) · [简历草稿](resume-draft.md) · [阶段报告目录](reports/README.md) · [学习材料目录](learn/README.md) · [项目计划书](项目计划书.md) · [开发规则](../AGENTS.md)
+继续阅读：[代码地图](代码地图.md) · [面试题汇总](interview.md) · [简历草稿](resume-draft.md) · [阶段报告目录](reports/README.md) · [学习材料目录](learn/README.md) · [项目计划书](项目计划书.md) · [开发规则](../AGENTS.md)
