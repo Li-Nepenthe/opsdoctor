@@ -363,7 +363,7 @@ stateDiagram-v2
 
 **改记录时要比较整条内容。** 假设请求 A 处理得特别慢，它的占位过期了，请求 B 用同一个键占了新的位。这时 A 终于处理完，要把记录改成“已完成”。如果只判断“这个键还存在”，A 就会把 B 的记录覆盖掉。所以每条记录里都有一个随机的“所有者”标识，修改前先比较整条记录是否还是自己当初写的那条，是才修改。“先比较、再修改”必须一步完成，所以用 Lua 脚本在 Redis 服务器里执行：Redis 执行一段 Lua 脚本时，中间不会插进别的命令。
 
-**Redis 不可用时，宁可拒绝下单。** 这时没法检查重复，如果照常下单，就失去了防重复的保护，所以直接返回 503。实测 Redis 停机时，已经完成的键返回 503、不新建订单；Redis 带着原来的数据卷重启后，返回原来的订单（数据台账 P2-7）。
+**带幂等键的请求，Redis 不可用时宁可拒绝。** 请求带了 `Idempotency-Key`，占位或读取记录却失败了，就没法检查重复；如果照常下单，就失去了防重复的保护，所以直接返回 503。不带键的请求本来就不在保护范围内，Redis 是否可用不影响它。实测 Redis 停机时，已经完成的键返回 503、不新建订单；Redis 带着原来的数据卷重启后，返回原来的订单（数据台账 P2-7）。
 
 **Redis 的两个配置。** 这里的 Redis 存的不是可有可无的缓存，而是防重复的凭据，丢了就可能重复下单。所以配置了 `noeviction`（内存满了就拒绝新的写入，而不是把旧记录删掉腾地方），并开启 AOF 持久化、每条写命令都刷到磁盘（`--appendfsync always`），Redis 重启后记录还在。
 
@@ -386,22 +386,23 @@ stateDiagram-v2
 
 | 失败发生在哪一步 | 已经发生了什么 | 怎么处理 |
 |---|---|---|
-| 扣库存之前（参数不对、商品不存在） | 什么都没发生 | 删掉占位，客户端可以重试 |
+| 参数不对 | 什么都没发生，还没有占位 | 直接返回错误 |
+| 占位以后、扣库存之前（比如商品不存在） | 什么都没发生 | 删掉占位，客户端可以重试 |
 | 扣库存**明确失败**（比如库存不足） | 什么都没发生 | 删掉占位，返回错误 |
 | 扣库存**超时** | 不知道扣了没有 | 保留占位，标记“待核对”，不能重试 |
 | 扣库存成功，写订单明确失败，**归还库存成功** | 已经撤销干净 | 删掉占位，客户端可以重试 |
-| 扣库存成功，写订单明确失败，**归还库存也失败** | 库存少了一件，但没有订单 | 保留占位，标记“待核对”，等人工处理 |
+| 扣库存成功，写订单明确失败，**归还库存没有确认成功** | 确定没有订单；库存可能少了一件，也可能已经还回去了（归还的回复丢了） | 保留占位，标记“待核对”，等人工核对库存 |
 | 订单提交时**超时** | 不知道订单写进去没有 | 保留占位，标记“待核对” |
 | 订单写成功，**发消息失败** | 订单已经存在 | 照常返回“下单成功”，记一条告警日志（销量可能少算一笔，5.8 节） |
-| 订单写成功，**保存结果到 Redis 失败** | 订单已经存在，但 Redis 里没有记下结果 | 保留占位，标记“待核对” |
+| 订单写成功，**保存结果到 Redis 没有确认成功** | 订单已经存在；Redis 里的记录可能已经是“已完成”，也可能还是“处理中”（回复丢了） | 尽力把记录改成“待核对”，记告警 |
 
 代码里，“确定没发生”的路径都走 `safeFailure`（删占位、返回原错误），“不知道”的路径都走 `unknown`（标记待核对、记告警和计数）。
 
-**补基础：补偿。** “扣库存成功、写订单失败”时，调用 Release 把库存还回去。这种“做一个反向操作，把已经发生的事撤销”的办法叫**补偿**。补偿本身也可能失败，所以表里才有“归还库存也失败”那一行。
+**补基础：补偿。** “扣库存成功、写订单失败”时，调用 Release 把库存还回去。这种“做一个反向操作，把已经发生的事撤销”的办法叫**补偿**。补偿本身也可能失败，或者执行了却没收到回复，所以表里才有“归还库存没有确认成功”那一行。
 
 **怎样判断“确定”还是“不知道”。** 库存客户端和订单仓储返回的错误，如果实现了 `OutcomeUnknown() bool` 方法，order 就用它来判断。**没有实现这个方法的写错误，一律当成“不知道”。** 这是故意的保守默认：以后接入一个新的下游，开发者忘了说明错误的含义，系统也不会因此允许重复扣库存。
 
-**“待核对”和“处理中”用不同的错误码。** 两者都返回 409，但错误码不同：`REQUEST_IN_PROGRESS` 让客户端等一会儿、用同一个键再问；`REQUEST_OUTCOME_UNKNOWN` 表示再怎么问都不会有结果了，需要人工核对，客户端也**不能换一个新键重新下单**，因为原来那笔可能已经成功了。每次进入“待核对”，都会写一条带订单号、商品 ID、幂等键的告警日志，并把 `idempotency_requests_total{result="needs_review"}` 加 1。
+**“待核对”和“处理中”用不同的错误码。** 两者都返回 409，但错误码不同：`REQUEST_IN_PROGRESS` 让客户端等一会儿、用同一个键再问；`REQUEST_OUTCOME_UNKNOWN` 表示这笔请求已经确认进入“待核对”，在记录的有效期内再问也是同样的答复，需要人工核对，客户端也**不能换一个新键重新下单**，因为原来那笔可能已经成功了。每次进入“待核对”，都会写一条带订单号、商品 ID、幂等键的告警日志，并把 `idempotency_requests_total{result="needs_review"}` 加 1。
 
 **遗留的“处理中”。** 订单服务在处理到一半时崩溃，Redis 里会留下一条永远不会完成的“处理中”记录。每条记录都带着一个处理期限，超过期限还没完成，下一个看到它的请求会通过 `reviewIfExpired` 把它转成“待核对”。
 
@@ -460,7 +461,7 @@ stateDiagram-v2
 
 **问题。** 订单已经提交，发消息失败了。这时如果当成下单失败、让用户重来，库存会再扣一次，订单会再写一笔，问题更大。
 
-**做法。** 照常返回“下单成功”，同时记一条告警日志，带上错误类别和等了多久。代价是这笔订单的销量少算了，`shopctl check` 会发现差额。
+**做法。** 照常返回“下单成功”，同时记一条告警日志，带上错误类别和等了多久。代价是这笔订单的销量可能少算：消息其实可能已经发出去了（见下一段），只有最终没有投递或没有被消费，才真的形成缺口，`shopctl check` 会发现差额。
 
 **超时也不等于没发出去。** 项目用的 kafka-go 会把消息交给后台批量发送；调用方的等待时间到了可以先返回，但后台那一批仍可能成功。所以“调用方没收到确认，消息后来却被消费了”是可能的。告警只能写“确认超时”，不能写成“消息丢了”。
 
@@ -478,7 +479,7 @@ stateDiagram-v2
 
 | 时限 | 默认值 | 管什么 |
 |---|---|---|
-| HTTP 请求预算 `HTTP_REQUEST_TIMEOUT` | 3 秒 | 整个请求最多处理多久 |
+| HTTP 请求预算 `HTTP_REQUEST_TIMEOUT` | 3 秒 | 请求里可以被取消的那部分工作（查价、扣库存、写订单）最多做多久。下面的收尾和发消息另有时限、不受它取消，所以完整的响应可能更晚 |
 | 库存调用 `INVENTORY_CALL_TIMEOUT` | 800 毫秒 | 一次库存调用（含查询的全部重试） |
 | 收尾预算 `ORDER_CLEANUP_TIMEOUT` | 2 秒 | 归还库存、写 Redis 状态这类收尾工作 |
 | 消息确认 `ORDER_PUBLISH_TIMEOUT` | 5 秒 | 等 Kafka 确认收到 |
@@ -520,7 +521,7 @@ stateDiagram-v2
 
 - 扣库存超时后，结果仍然可能不确定。根本的解决办法是让扣库存本身带请求编号去重，这个阶段没有做，所以不能说做到了端到端的“恰好一次”。
 - 归还库存本身也可能失败。进入“待核对”的订单，需要人工核对库存和订单。
-- 订单写成功但消息发送失败时，销量会少算一笔。没有实现 Outbox。
+- 订单写成功但消息没有确认发送时，销量可能少算一笔；消息最终没有投递或没有被消费时才真的少算，要靠消费记录和 `shopctl check` 核对。没有实现 Outbox。
 - 幂等记录保存 24 小时。过期以后重发、不带键、换了新键、或者 Redis 的数据丢了，都不在保护范围内。
 - Kafka 和 MySQL 都是单节点。遇到格式损坏的消息，消费会停下来，需要人工处理。
 - singleflight 只合并同一个进程里的请求。
@@ -609,7 +610,7 @@ stateDiagram-v2
 
 #### 一分钟口述版
 
-跨系统没法用一个本地事务，常见的方案有几类。2PC 由协调者让所有参与方一起提交或回滚，一致性强，但要求参与方都支持，性能差，协调者是单点。TCC 让每个参与方实现预留、确认、取消三个接口，业务改动大。Saga 按顺序执行，失败了对已经完成的步骤做反向补偿，最终一致。本地消息表，也叫 Outbox，把要发的消息和业务数据写在同一个本地事务里，再异步投递，解决“数据写了、消息没发”。我的下单流程接近 Saga：扣库存成功、写订单失败时调用归还库存做补偿。关键是区分“确定没发生”和“不知道发生了没有”：前者可以补偿或重试，后者只能标记待核对交给人。我没有做 Outbox，所以消息发送失败时销量会少算，这是已知缺口。
+跨系统没法用一个本地事务，常见的方案有几类。2PC 由协调者让所有参与方一起提交或回滚，一致性强，但要求参与方都支持，性能差，协调者是单点。TCC 让每个参与方实现预留、确认、取消三个接口，业务改动大。Saga 按顺序执行，失败了对已经完成的步骤做反向补偿，最终一致。本地消息表，也叫 Outbox，把要发的消息和业务数据写在同一个本地事务里，再异步投递，解决“数据写了、消息没发”。我的下单流程接近 Saga：扣库存成功、写订单失败时调用归还库存做补偿。关键是区分“确定没发生”和“不知道发生了没有”：前者可以补偿或重试，后者只能标记待核对交给人。我没有做 Outbox，所以消息没确认发出去时销量可能少算，要靠核对发现，这是已知缺口。
 
 #### 要点
 
@@ -758,129 +759,34 @@ func main() {
 
 ### 7.5 Gin 入门：订单服务的 HTTP 接口是怎么写出来的
 
-**Gin 是什么。** Gin 是 Go 里最常用的 HTTP Web 框架，建在标准库 `net/http` 之上，替你做三件事：**路由**（哪个地址交给哪个函数处理）、**中间件**（每个请求都要经过的公共逻辑）、**取参数和写响应的便捷方法**。
+**Gin 是什么。** Gin 是 Go 里最常用的 HTTP Web 框架，建在标准库 `net/http` 之上，替你做三件事：**路由**（哪个地址交给哪个函数处理）、**中间件**（每个请求都要经过的公共逻辑）、**取参数和写响应的便捷方法**。从零开始的入门例子看 Gin 官方的 [Quickstart](https://gin-gonic.com/en/docs/quickstart/)，这里只讲读项目代码要用到的部分。
 
-| 概念 | 是什么 | 在下面例子里的样子 |
+| 概念 | 是什么 | 在项目里的样子 |
 |---|---|---|
 | Engine | 路由器本身，所有路由和中间件都挂在它上面 | `router := gin.New()` |
-| HandlerFunc | 处理函数，形状固定是 `func(c *gin.Context)` | 每个 `router.GET(...)` 的最后一个参数 |
+| HandlerFunc | 处理函数，形状固定是 `func(c *gin.Context)` | 每个 `router.GET(...)`、`router.POST(...)` 的最后一个参数 |
 | `*gin.Context` | 每个请求一个，装着请求、响应、路径参数。它不是标准库的 `context.Context`；要后者，用 `c.Request.Context()` | 处理函数的参数 `c` |
 | 路径参数 | 路由里的 `:id` 是占位符 | `c.Param("id")` |
-| 路由组 | 一组共用前缀和中间件的路由 | `router.Group("/admin", requireToken())` |
-| 中间件 | 也是 HandlerFunc；`c.Next()` 交给下一个，`c.Abort()` 让后面的都不再执行 | `requestLog`、`requireToken` |
+| 中间件 | 也是 HandlerFunc；`c.Next()` 交给下一个，`c.Abort()` 让后面的都不再执行 | 请求编号、Recovery、限流 |
 
-下面是一个完整的小程序，用 `httptest` 把请求直接交给路由，不占端口。在仓库外新建一个目录，保存为 `main.go`，执行 `go mod init ginexample`、`go get github.com/gin-gonic/gin@v1.12.0`（和本项目同一版本），再执行 `go run .`。
+一个最小的中间件长这样，`c.Next()` 前后各做一半：
 
 ```go
-package main
-
-import (
-	"fmt"
-	"net/http"
-	"net/http/httptest"
-	"strings"
-
-	"github.com/gin-gonic/gin"
-)
-
-// requestLog 是最小的中间件：c.Next() 之前的代码在处理函数之前执行，之后的代码在处理函数返回后执行。
-func requestLog() gin.HandlerFunc {
+func timing() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		fmt.Println("进入中间件：", c.Request.Method, c.Request.URL.Path)
-		c.Next()
-		fmt.Println("离开中间件：route =", c.FullPath(), "status =", c.Writer.Status())
+		started := time.Now()
+		c.Next() // 后面的中间件和处理函数都在这里执行完
+		fmt.Println(c.FullPath(), c.Writer.Status(), time.Since(started))
 	}
-}
-
-// requireToken 演示 Abort：令牌不对就直接返回 401，后面的处理函数不会执行。
-func requireToken() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		if c.GetHeader("Authorization") != "Bearer demo" {
-			c.AbortWithStatusJSON(http.StatusUnauthorized, gin.H{"code": "UNAUTHORIZED"})
-			return
-		}
-		c.Next()
-	}
-}
-
-// createOrder 的 binding 标签交给 Gin 自带的校验器检查。
-type createOrder struct {
-	SKUID    int64 `json:"sku_id" binding:"required"`
-	Quantity int32 `json:"quantity" binding:"required,min=1"`
-}
-
-func newRouter() *gin.Engine {
-	gin.SetMode(gin.ReleaseMode) // 关掉 Gin 自己的调试输出，只看示例的打印。
-	router := gin.New()          // 不带任何默认中间件，需要什么自己 Use。
-	router.Use(requestLog())
-	router.GET("/orders/:id", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"id": c.Param("id")})
-	})
-	secured := router.Group("/admin", requireToken()) // 这一组路由都先过令牌检查。
-	secured.POST("/orders", func(c *gin.Context) {
-		var input createOrder
-		if err := c.ShouldBindJSON(&input); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"code": "INVALID_ARGUMENT"})
-			return
-		}
-		c.JSON(http.StatusCreated, gin.H{"sku_id": input.SKUID, "quantity": input.Quantity})
-	})
-	return router
-}
-
-// send 不开端口，直接把请求交给路由处理，再打印响应。
-func send(router *gin.Engine, method, path, token, body string) {
-	request := httptest.NewRequest(method, path, strings.NewReader(body))
-	if token != "" {
-		request.Header.Set("Authorization", token)
-	}
-	recorder := httptest.NewRecorder()
-	router.ServeHTTP(recorder, request)
-	fmt.Println("响应：", recorder.Code, recorder.Body.String())
-	fmt.Println()
-}
-
-func main() {
-	router := newRouter()
-	send(router, "GET", "/orders/42", "", "")
-	send(router, "POST", "/admin/orders", "", `{"sku_id":1,"quantity":1}`)
-	send(router, "POST", "/admin/orders", "Bearer demo", `{"sku_id":1,"quantity":0}`)
-	send(router, "POST", "/admin/orders", "Bearer demo", `{"sku_id":1,"quantity":2}`)
-	send(router, "GET", "/not-found", "", "")
 }
 ```
 
-本机实际输出（gin v1.12.0）：
+读项目代码时要知道的四件事：
 
-```text
-进入中间件： GET /orders/42
-离开中间件：route = /orders/:id status = 200
-响应： 200 {"id":"42"}
-
-进入中间件： POST /admin/orders
-离开中间件：route = /admin/orders status = 401
-响应： 401 {"code":"UNAUTHORIZED"}
-
-进入中间件： POST /admin/orders
-离开中间件：route = /admin/orders status = 400
-响应： 400 {"code":"INVALID_ARGUMENT"}
-
-进入中间件： POST /admin/orders
-离开中间件：route = /admin/orders status = 201
-响应： 201 {"quantity":2,"sku_id":1}
-
-进入中间件： GET /not-found
-离开中间件：route =  status = 404
-响应： 404 404 page not found
-```
-
-逐个看结果：
-
-1. **第一个请求**：中间件的前半段先执行，再到处理函数，最后回到中间件的后半段。`c.FullPath()` 拿到的是路由模板 `/orders/:id`，不是实际地址 `/orders/42`。阶段 3 的指标标签用的就是它。
-2. **第二个请求**：没带令牌，`requireToken` 直接返回 401，后面的处理函数没有执行；但外层 `requestLog` 的后半段照样执行了，所以它看得到最终的 401。这就是项目把计时、指标这类中间件放在最外层的原因。
-3. **第三个请求**：`quantity` 传了 0，被 `binding:"required"` 拒绝。对数字来说，`required` 的意思是“不能是零值”，所以合法的 0 也会被当成“没填”。真要允许 0，就把字段改成指针 `*int32`，原理和 7.3 节一样。
-4. **第四个请求**：校验通过，返回 201。`gin.H` 就是 `map[string]any`，编码成 JSON 时键按字母顺序排列。
-5. **第五个请求**：没有匹配的路由，`FullPath()` 是空字符串。项目用 `router.NoRoute(...)` 改成统一的 JSON 错误。
+1. **`c.FullPath()` 是路由模板。** 请求 `/orders/42` 时，它返回 `/orders/:id`，不是实际地址。阶段 3 的指标标签用的就是它，所以订单号不会变成标签。没有匹配的路由时它是空字符串。
+2. **内层中间件 `Abort` 以后，外层中间件的后半段照样执行。** 比如限流在内层拒绝了请求、返回 429，外层的计时和指标仍然看得到这个 429。这就是项目把记录类中间件放在最外层的原因。
+3. **Gin 自带的 `binding:"required"` 对数字的意思是“不能是零值”**，合法的 0 也会被当成“没填”。项目不用 Gin 的绑定，原因见下表。
+4. **没有匹配的路由时，Gin 默认返回纯文本 `404 page not found`。** 项目用 `router.NoRoute(...)` 改成统一的 JSON 错误。
 
 **项目里是怎样用的。** 打开 [orderservice/app.go](../../internal/shop/app/orderservice/app.go) 的 `routes` 函数对照着看：
 
@@ -1044,13 +950,13 @@ func main() {
 
 **写的顺序：** 先更新计划书和决定记录，再写模型、幂等记录的接口、下单流程、Redis 实现、SQL 和 HTTP 接口。最后用一张表格，把每一种失败情况都在测试里走一遍。
 
-**怎么验证：** 单元测试分别模拟扣库存结果不明、订单提交结果不明、归还库存失败、消息发送失败、保存结果失败；真实 Redis 测试里 20 个请求同时占位，只有一个成功；旧请求不能修改新请求的占位；处理时间超过上限的遗留占位会转成“待核对”。
+**怎么验证：** 单元测试分别模拟扣库存结果不明、订单提交结果不明、归还库存失败、消息发送失败、保存结果失败；真实 Redis 测试里多个请求同时用同一个键占位，只有一个成功；旧请求不能修改新请求的占位；处理时间超过上限的遗留占位会转成“待核对”。
 
 ### 11.5 组装服务，真实请求发现了首次连接的问题
 
 **要做什么：** 把业务代码、管理端口和资源的关闭接起来，用 Compose 启动，发真实请求。
 
-**遇到的问题：** 服务刚启动后的第一笔真实订单，等了约 800 毫秒后进入了“结果待核对”。原因是 gRPC 客户端创建以后并没有立刻建立连接，第一个请求要等连接建立，超过了时限。当时的修复是：启动时先等库存服务的连接真正建立好（`connectInventory`），再开始接受请求。阶段 3 又发现了一个更深的原因：DNS 查询会卡 5 秒，见阶段 3 学习材料。
+**遇到的问题：** 服务刚启动后的第一笔真实订单，等满了库存调用的时限，进入了“结果待核对”。原因是 gRPC 客户端创建以后并没有立刻建立连接，第一个请求要等连接建立，超过了时限。当时的修复是：启动时先等库存服务的连接真正建立好（`connectInventory`），再开始接受请求。阶段 3 又发现了一个更深的原因：DNS 查询会卡 5 秒，见阶段 3 学习材料。
 
 那笔进入“待核对”的订单没有被删掉重来：同一个键再请求，返回的仍然是“待核对”，库存也没有变化。这说明幂等规则在真实情况下按设计工作了。
 
@@ -1072,7 +978,7 @@ func main() {
 
 ### 11.7 可读性改造（2026-11-11）
 
-OpsDoctor 可读性改造的第 2 批改了 shop 的全部代码，代码由 GPT 改，Claude 审核。和本阶段有关的改动：
+OpsDoctor 可读性改造的第 2 批改了工单范围内的 shop 代码（按工单没动 `inventoryservice/app.go` 和迁移 SQL），代码由 GPT 改，Claude 审核。和本阶段有关的改动：
 
 1. **拆开 `Service.Create`。** 原来一个函数里写完了全部步骤，现在 `Create` 只保留顺序，每一步拆成一个有名字的函数（`reserve`、`replay`、`orderPrice`、`deductStock`、`writeOrder`、`publishCreated`、`saveResult`）。每一步失败时调用 `safeFailure` 还是 `unknown`，和原来逐个分支对照过，完全一致。
 2. **`NewService` 改成接收一个 `Dependencies` 结构体。** 原来要按顺序传九个参数，其中两个时限的类型相同，传反了编译器也发现不了。
@@ -1080,7 +986,7 @@ OpsDoctor 可读性改造的第 2 批改了 shop 的全部代码，代码由 GPT
 4. **配置读取拆小。** 订单服务的库存配置提成了 `inventoryConfig`；查库存时“哪些错误可以重试”提成了有名字的 `retryableStockErrors`；order-worker 读配置的代码提成了 `loadConfig`，Kafka 地址的解析和订单服务共用 `app.KafkaBrokers`，并补了一份环境变量 golden。
 5. **组装层收窄。** 订单服务启动时组装的东西分成 `shopServices`（业务服务）和 `httpServers`（两个 HTTP 服务器）两个结构体返回。
 
-**怎么验证：** 改造前先用 golden 把 HTTP 响应、环境变量等对外行为逐字节固定下来，改完以后全部 golden 不变；`Create` 的拆分逐个分支对照；CI 的集成测试在真实 MySQL、Redis、Kafka 上全部通过。
+**怎么验证：** 改造前先用 golden 把 HTTP 响应、环境变量等对外行为逐字节固定下来，改完以后全部 golden 不变；`Create` 的拆分逐个分支对照；CI 的集成测试在真实 MySQL、Redis 上全部通过；Kafka 的真实收发由 CI 里的订单冒烟和全新卷冷启动步骤验证。
 
 ## 12. 核对来源
 
@@ -1091,7 +997,7 @@ OpsDoctor 可读性改造的第 2 批改了 shop 的全部代码，代码由 GPT
 | `SET` 的 `NX`、`EX`、`KEEPTTL` 选项 | Redis 文档 [SET](https://redis.io/docs/latest/commands/set/) |
 | Lua 脚本执行期间不会插入其他命令 | Redis 文档 [Scripting with Lua](https://redis.io/docs/latest/develop/programmability/eval-intro/) |
 | `noeviction` 内存淘汰策略；AOF 的 `appendfsync always` | Redis 文档 [Key eviction](https://redis.io/docs/latest/develop/reference/eviction/)、[Persistence](https://redis.io/docs/latest/operate/oss_and_stack/management/persistence/) |
-| Kafka 只保证分区内有序；同一消费组内一个分区同一时刻只分给一个消费者；acks=all 等所有同步副本确认 | Apache Kafka 文档 [Introduction](https://kafka.apache.org/documentation/#introduction)、[Producer configs: acks](https://kafka.apache.org/documentation/#producerconfigs_acks) |
+| Kafka 只保证分区内有序；同一消费组内一个分区同一时刻只分给一个消费者；acks=all 等所有同步副本确认 | Apache Kafka 文档 [Introduction](https://kafka.apache.org/documentation/#introduction)、[Producer configs: acks](https://kafka.apache.org/44/configuration/producer-configs/#acks)（部署用的是 4.4 版） |
 | kafka-go v0.4.51 的 Writer 在调用方 context 到期后可以先返回，后台批次仍可能成功 | 本仓库[决定记录](../decisions.md) 2026-10-24 一节，引用了 kafka-go 源码 |
 | MySQL 主键重复的错误码是 1062 | MySQL 8.4 [Server Error Message Reference](https://dev.mysql.com/doc/mysql-errors/8.4/en/server-error-reference.html) |
 | singleflight 合并同一个键的并发调用，只在一个进程内有效 | [golang.org/x/sync/singleflight](https://pkg.go.dev/golang.org/x/sync/singleflight) |

@@ -301,9 +301,9 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 | Breaker | [internal/platform/resilience/breaker.go:36](../../internal/platform/resilience/breaker.go#L36) | Breaker 隐藏第三方的结果泛型 | inventoryclient.Client |
 | NewBreaker | [internal/platform/resilience/breaker.go:42](../../internal/platform/resilience/breaker.go#L42) | NewBreaker 由调用方说明哪些错误算下游故障，避免库存不足也把服务“熔断” | inventoryclient.New |
 | *Breaker.Execute | [internal/platform/resilience/breaker.go:60](../../internal/platform/resilience/breaker.go#L60) | Execute 在关闭或半开时调用 operation | inventoryclient.GetStock、Deduct |
-| *Breaker.State | [internal/platform/resilience/breaker.go:71](../../internal/platform/resilience/breaker.go#L71) | State 读取底层状态，测试用它检查恢复过程，而不是猜测内部计数 | 熔断恢复测试 |
+| *Breaker.State | [internal/platform/resilience/breaker.go:71](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/platform/resilience/breaker.go#L71) | State 读取底层状态，测试用它检查恢复过程，而不是猜测内部计数 | 熔断恢复测试 |
 | RateLimit | [internal/platform/resilience/http.go:26](../../internal/platform/resilience/http.go#L26) | RateLimit 为整个服务创建一个桶 | orderservice.routes |
-| RequestBudget | [internal/platform/resilience/http.go:42](../../internal/platform/resilience/http.go#L42) | RequestBudget 把总预算放进请求 context | orderservice.routes |
+| RequestBudget | [internal/platform/resilience/http.go:42](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/platform/resilience/http.go#L42) | RequestBudget 把总预算放进请求 context | orderservice.routes |
 | TestBreakerRecovery | [internal/platform/resilience/resilience_test.go:109](../../internal/platform/resilience/resilience_test.go#L109) | TestBreakerRecovery 用短窗口观察完整状态变化，确认打开期间没有偷偷执行下游回调 | go test |
 | TestRateLimit | [internal/platform/resilience/resilience_test.go:30](../../internal/platform/resilience/resilience_test.go#L30) | TestRateLimit 用一个几乎不会在测试期间补满的桶，明确看到“放行一次，再拒绝一次” | go test |
 | TestRetryPolicy | [internal/platform/resilience/resilience_test.go:52](../../internal/platform/resilience/resilience_test.go#L52) | TestRetryPolicy 固定随机增量，让指数退避的每一步都可以直接核对 | go test |
@@ -312,7 +312,7 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 | Retrier | [internal/platform/resilience/retry.go:31](../../internal/platform/resilience/retry.go#L31) | Retrier 保存固定策略 | inventoryclient.Client |
 | NewRetrier | [internal/platform/resilience/retry.go:41](../../internal/platform/resilience/retry.go#L41) | NewRetrier 在启动时拒绝不合理的策略，不把配置问题留到第一次请求 | inventoryclient.New |
 | *Retrier.Do | [internal/platform/resilience/retry.go:55](../../internal/platform/resilience/retry.go#L55) | Do 只根据调用方提供的 retryable 判断重试资格 | inventoryclient.GetStock |
-| waitContext | [internal/platform/resilience/retry.go:78](../../internal/platform/resilience/retry.go#L78) | waitContext 不使用 Sleep，因为调用方取消时，不应该继续睡到退避时间结束 | Retrier.Do 经 wait 回调 |
+| waitContext | [internal/platform/resilience/retry.go:78](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/platform/resilience/retry.go#L78) | waitContext 不使用 Sleep，因为调用方取消时，不应该继续睡到退避时间结束 | Retrier.Do 经 wait 回调 |
 
 #### internal/shop/app/orderservice
 
@@ -320,8 +320,8 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 |---|---|---|---|
 | connectInventory | [internal/shop/app/orderservice/app.go:146](../../internal/shop/app/orderservice/app.go#L146) | connectInventory 把首次 DNS 查询和握手放进启动预算，避免第一位用户替服务承担建连等待 | Run、连接测试 |
 | routes | [internal/shop/app/orderservice/app.go:164](../../internal/shop/app/orderservice/app.go#L164) | routes 先安装请求标识和恢复，再限流、限制正文与时间，最后才进入业务 | Run |
-| serve | [internal/shop/app/orderservice/app.go:181](../../internal/shop/app/orderservice/app.go#L181) | serve 等两个端口都绑定成功才开始接流量，避免只启动了半个进程 | Run |
-| normalHTTPError | [internal/shop/app/orderservice/app.go:215](../../internal/shop/app/orderservice/app.go#L215) | normalHTTPError 只忽略标准的正常关闭错误，绑定后的监听故障仍交给入口返回失败码 | serve |
+| serve | [internal/shop/app/orderservice/app.go:181](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/shop/app/orderservice/app.go#L181) | serve 等两个端口都绑定成功才开始接流量，避免只启动了半个进程 | Run |
+| normalHTTPError | [internal/shop/app/orderservice/app.go:215](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/shop/app/orderservice/app.go#L215) | normalHTTPError 只忽略标准的正常关闭错误，绑定后的监听故障仍交给入口返回失败码 | serve |
 | Run | [internal/shop/app/orderservice/app.go:61](../../internal/shop/app/orderservice/app.go#L61) | Run 的 result 是具名返回值，defer 可以把关闭连接的错误一并交给入口 | cmd/order-service.main |
 | Config | [internal/shop/app/orderservice/config.go:29](../../internal/shop/app/orderservice/config.go#L29) | Config 中的 Database 含密码，禁止把整个结构体写进日志 | loadConfig 返回；Run 和 routes 使用 |
 | loadConfig | [internal/shop/app/orderservice/config.go:47](../../internal/shop/app/orderservice/config.go#L47) | loadConfig 用局部读取函数收集错误，用户一次就能看到多个配置问题 | Run、配置测试 |
@@ -330,7 +330,7 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 | TestConnectInventory | [internal/shop/app/orderservice/connection_test.go:26](../../internal/shop/app/orderservice/connection_test.go#L26) | TestConnectInventory 对照真实内存握手与持续拒绝拨号，启动不能把未就绪当成成功 | go test |
 | reviewRecorder | [internal/shop/app/orderservice/metrics.go:22](../../internal/shop/app/orderservice/metrics.go#L22) | reviewRecorder 把日志与计数放在同一个动作里，避免某个失败分支只做其中一项 | newReviewRecorder 构造；order.Service 使用 |
 | newReviewRecorder | [internal/shop/app/orderservice/metrics.go:28](../../internal/shop/app/orderservice/metrics.go#L28) | newReviewRecorder 使用 app 自己的注册表，不污染全局注册表，也便于测试重复创建服务 | Run、指标测试 |
-| *reviewRecorder.RecordReview | [internal/shop/app/orderservice/metrics.go:39](../../internal/shop/app/orderservice/metrics.go#L39) | RecordReview 使用固定原因分类，不把原始连接错误、DSN 或请求体写入告警 | order.Service.unknown、Create 的遗留占位分支 |
+| *reviewRecorder.RecordReview | [internal/shop/app/orderservice/metrics.go:39](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/shop/app/orderservice/metrics.go#L39) | RecordReview 使用固定原因分类，不把原始连接错误、DSN 或请求体写入告警 | order.Service.unknown、Create 的遗留占位分支 |
 | TestReviewRecorder | [internal/shop/app/orderservice/metrics_test.go:22](../../internal/shop/app/orderservice/metrics_test.go#L22) | TestReviewRecorder 验证调用一次便同时产生告警和计数，避免接口接上了却没有实际记录 | go test |
 
 #### internal/shop/app/orderworker
@@ -367,7 +367,7 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 | testConsumer | [internal/shop/events/consumer_test.go:72](../../internal/shop/events/consumer_test.go#L72) | testConsumer 把日志送到 Discard，让预期失败不会混进测试输出 | 本包测试函数及其注入的业务接口 |
 | TestConsumerCommitOrder | [internal/shop/events/consumer_test.go:82](../../internal/shop/events/consumer_test.go#L82) | TestConsumerCommitOrder 分别模拟数据库失败、位点提交失败和重复消息 | go test |
 | OrderCreated | [internal/shop/events/model.go:20](../../internal/shop/events/model.go#L20) | OrderCreated 对应 order.created 的消息体，去重依据是 OrderID | order.Service.Create、sales.Service.Handle |
-| OrderCreated.Validate | [internal/shop/events/model.go:30](../../internal/shop/events/model.go#L30) | Validate 在写入销量之前挡住损坏消息，避免错误数据污染汇总表 | Publisher.Publish、Consumer.process、sales.Service.Handle |
+| OrderCreated.Validate | [internal/shop/events/model.go:30](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/shop/events/model.go#L30) | Validate 在写入销量之前挡住损坏消息，避免错误数据污染汇总表 | Publisher.Publish、Consumer.process、sales.Service.Handle |
 | Publisher | [internal/shop/events/publisher.go:25](../../internal/shop/events/publisher.go#L25) | Publisher 使用 kafka.Writer 自带的连接复用，不为每个订单重新连接 broker | orderservice.Run 创建；order.Service 借用 |
 | NewPublisher | [internal/shop/events/publisher.go:39](../../internal/shop/events/publisher.go#L39) | NewPublisher 禁用自动建主题 | orderservice.Run |
 | *Publisher.Publish | [internal/shop/events/publisher.go:48](../../internal/shop/events/publisher.go#L48) | Publish 收到错误时不声称发送成功 | order.Service.Create |
@@ -442,9 +442,9 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 | Error | [internal/shop/order/model.go:50](../../internal/shop/order/model.go#L50) | Error 是可比较的业务分类，调用者使用 errors.Is 判断 | 领域错误常量与 errors.Is |
 | Error.Error | [internal/shop/order/model.go:53](../../internal/shop/order/model.go#L53) | Error 让具名字符串可以作为标准 error 返回 | 标准 error 接口 |
 | PersistenceError | [internal/shop/order/model.go:65](../../internal/shop/order/model.go#L65) | PersistenceError 区分“事务尚未提交”与“提交答复丢失”，后者不能立即归还库存 | MySQLRepository.Create；Service 读取结果确定性 |
-| *PersistenceError.Error | [internal/shop/order/model.go:71](../../internal/shop/order/model.go#L71) | Error 返回具体失败原因，HTTP 层仍只输出安全的固定消息 | 标准 error 接口 |
-| *PersistenceError.Unwrap | [internal/shop/order/model.go:74](../../internal/shop/order/model.go#L74) | Unwrap 让标准错误匹配能够穿过这一层包装 | errors.Is、errors.As |
-| *PersistenceError.OutcomeUnknown | [internal/shop/order/model.go:77](../../internal/shop/order/model.go#L77) | OutcomeUnknown 让业务流程用同一个小接口判断库存写入与订单写入的不确定性 | outcomeUnknown |
+| *PersistenceError.Error | [internal/shop/order/model.go:71](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/shop/order/model.go#L71) | Error 返回具体失败原因，HTTP 层仍只输出安全的固定消息 | 标准 error 接口 |
+| *PersistenceError.Unwrap | [internal/shop/order/model.go:74](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/shop/order/model.go#L74) | Unwrap 让标准错误匹配能够穿过这一层包装 | errors.Is、errors.As |
+| *PersistenceError.OutcomeUnknown | [internal/shop/order/model.go:77](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/shop/order/model.go#L77) | OutcomeUnknown 让业务流程用同一个小接口判断库存写入与订单写入的不确定性 | outcomeUnknown |
 | MySQLRepository | [internal/shop/order/repository.go:34](../../internal/shop/order/repository.go#L34) | MySQLRepository 只借用连接池 | orderservice.Run 创建；Service 借用 |
 | NewMySQLRepository | [internal/shop/order/repository.go:37](../../internal/shop/order/repository.go#L37) | NewMySQLRepository 让订单与商品查询复用服务级连接池，不为每个包创建新池 | orderservice.Run、真实 MySQL 测试 |
 | *MySQLRepository.Create | [internal/shop/order/repository.go:42](../../internal/shop/order/repository.go#L42) | Create 即使提交响应丢失也返回已分配的编号，人工核对可以按这个编号查数据库 | Service.Create |
@@ -502,7 +502,7 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 | *RedisCache.Get | [internal/shop/product/cache.go:48](../../internal/shop/product/cache.go#L48) | Get 遇到损坏的 JSON 也按未命中处理，让数据库有机会修复这条缓存 | Service.Get、load |
 | decodeProduct | [internal/shop/product/cache.go:60](../../internal/shop/product/cache.go#L60) | decodeProduct 验证缓存编号，避免错误写入的值让一个商品返回另一个商品的价格 | RedisCache.Get |
 | *RedisCache.Set | [internal/shop/product/cache.go:75](../../internal/shop/product/cache.go#L75) | Set 用 JSON null 表示确实查不到，后续请求就不必反复查询同一个不存在的编号 | Service.load |
-| *RedisCache.expiration | [internal/shop/product/cache.go:88](../../internal/shop/product/cache.go#L88) | expiration 对空值始终使用三十秒 | RedisCache.Set、TTL 测试 |
+| *RedisCache.expiration | [internal/shop/product/cache.go:88](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/shop/product/cache.go#L88) | expiration 对空值始终使用三十秒 | RedisCache.Set、TTL 测试 |
 | TestIntegrationRedisCache | [internal/shop/product/cache_integration_test.go:24](../../internal/shop/product/cache_integration_test.go#L24) | TestIntegrationRedisCache 先写正常商品再覆盖为空值，两种状态都必须能被下一次读取识别 | go test |
 | TestDecodeProduct | [internal/shop/product/cache_test.go:20](../../internal/shop/product/cache_test.go#L20) | TestDecodeProduct 防止损坏内容被当成价格为零的有效商品 | go test |
 | TestExpiration | [internal/shop/product/cache_test.go:43](../../internal/shop/product/cache_test.go#L43) | TestExpiration 多取几次随机值检查范围，不要求随机数恰好出现某个特定值 | go test |
@@ -514,7 +514,7 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 | StockView | [internal/shop/product/model.go:23](../../internal/shop/product/model.go#L23) | StockView 用指针区分“库存是零”和“没有查到库存数值” | Service.Detail、HTTP 响应 |
 | Detail | [internal/shop/product/model.go:29](../../internal/shop/product/model.go#L29) | Detail 通过匿名嵌入 Product 复用商品字段，JSON 编码时这些字段仍位于最外层 | Service.Detail 返回；Handler 输出 |
 | Error | [internal/shop/product/model.go:35](../../internal/shop/product/model.go#L35) | Error 是可比较的字符串类型，业务层用 errors.Is 判断它 | 领域错误常量与 errors.Is |
-| Error.Error | [internal/shop/product/model.go:38](../../internal/shop/product/model.go#L38) | Error 让具名字符串满足 Go 的 error 接口 | 标准 error 接口 |
+| Error.Error | [internal/shop/product/model.go:38](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/shop/product/model.go#L38) | Error 让具名字符串满足 Go 的 error 接口 | 标准 error 接口 |
 | MySQLRepository | [internal/shop/product/repository.go:24](../../internal/shop/product/repository.go#L24) | MySQLRepository 不创建连接池，也不关闭它 | orderservice.Run 创建；Service 借用 |
 | NewMySQLRepository | [internal/shop/product/repository.go:27](../../internal/shop/product/repository.go#L27) | NewMySQLRepository 复用已有连接池，避免每个业务包重复占用数据库连接 | orderservice.Run |
 | *MySQLRepository.Get | [internal/shop/product/repository.go:32](../../internal/shop/product/repository.go#L32) | Get 只在 sql.ErrNoRows 时返回不存在，其他错误保留给调用方判断 | Service.load |
@@ -544,7 +544,7 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 
 | 名称 | 位置（文件:行号） | 作用 | 被谁调用 / 使用 |
 |---|---|---|---|
-| Summary | [internal/shop/sales/model.go:13](../../internal/shop/sales/model.go#L13) | Summary 是一次数据库快照里的总量 | MySQLRepository.Check 返回；shopctl.writeCheck 输出 |
+| Summary | [internal/shop/sales/model.go:13](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/shop/sales/model.go#L13) | Summary 是一次数据库快照里的总量 | MySQLRepository.Check 返回；shopctl.writeCheck 输出 |
 | MySQLRepository | [internal/shop/sales/repository.go:38](../../internal/shop/sales/repository.go#L38) | MySQLRepository 复用服务级连接池 | orderworker.Run、shopctl.runCheck 创建 |
 | NewMySQLRepository | [internal/shop/sales/repository.go:41](../../internal/shop/sales/repository.go#L41) | NewMySQLRepository 不执行查询，启动时的探活和迁移由 app 完成 | orderworker.Run、shopctl.runCheck、真实 MySQL 测试 |
 | *MySQLRepository.Apply | [internal/shop/sales/repository.go:46](../../internal/shop/sales/repository.go#L46) | Apply 的 result 是具名返回值 | Service.Handle |
@@ -556,7 +556,7 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、golang:1.27.1-alpine3.24
 | Repository | [internal/shop/sales/service.go:21](../../internal/shop/sales/service.go#L21) | Repository 的 Apply 必须把去重与加销量作为一件事完成，不能只成功一半 | Service；MySQLRepository 实现 |
 | Service | [internal/shop/sales/service.go:26](../../internal/shop/sales/service.go#L26) | Service 只持有仓储，不直接认识 Kafka 或数据库驱动 | orderworker.Run 创建；Consumer 使用 |
 | NewService | [internal/shop/sales/service.go:29](../../internal/shop/sales/service.go#L29) | NewService 由 app 把真实仓储传入，测试可以传入替身 | orderworker.Run |
-| *Service.Handle | [internal/shop/sales/service.go:32](../../internal/shop/sales/service.go#L32) | Handle 只有在数据库处理成功后才返回 nil，消费者据此决定是否提交位点 | events.Consumer.process 经 handle 回调 |
+| *Service.Handle | [internal/shop/sales/service.go:32](https://github.com/Li-Nepenthe/opsdoctor/blob/4a467008d4da5968342523cf43530b879433ae94/internal/shop/sales/service.go#L32) | Handle 只有在数据库处理成功后才返回 nil，消费者据此决定是否提交位点 | events.Consumer.process 经 handle 回调 |
 <!-- SYMBOLS_END -->
 
 ### 3.4 数据库变更

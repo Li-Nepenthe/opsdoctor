@@ -9,7 +9,7 @@
 1. **怎样设计一个可复现、可验证、可恢复的故障实验**（第 5 节）。这是 chaos 工具本身的系统设计。
 2. **每种故障从原因传到用户的症状链，以及人工怎样一步步查**（4.4 节起）。这是面试最常问的“线上 X 变慢了你怎么查”。
 
-阶段 4 已完成：连续两轮自测共 22/22 通过（数据台账 P4-18、P4-19），失败的轮次同样保留在台账和[实测记录](../notes.md#phase-04)里。Go 语法见第 7 节和 [Mini-Redis 的学习文档](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/README.md)。
+阶段 4 已完成：当时的 11 个场景连续两轮自测共 22/22 通过（数据台账 P4-18、P4-19）；后来改了缓存告警规则，又完整跑了一轮 11/11（P4-37）。现在场景已经增加到 13 个。失败的轮次同样保留在台账和[实测记录](../notes.md#phase-04)里。Go 语法见第 7 节和 [Mini-Redis 的学习文档](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/README.md)。
 
 ## 1. 本阶段能回答的面试题
 
@@ -18,12 +18,12 @@
 | 怎么设计一次故障演练？为什么改真实原因，而不是让应用返回假错误？ | 5.1、5.2、八股 1 |
 | 故障实验做完，怎样保证系统一定能恢复干净？ | 5.4、八股 1 |
 | 怎样判断故障真的发生了、真的恢复了？ | 5.5 |
-| 线上一条 SQL 突然变慢，你怎么排查？缺索引、网络慢、连接池小、行锁竞争怎样区分？ | 4.4–4.6、4.10、4.12、八股 2 |
-| 连接池满了，一定是连接池太小吗？ | 4.6、4.12、八股 2 |
-| 缓存击穿和雪崩，防护效果怎样量化？告警怎样不误报正常的冷启动？ | 4.7、4.8、5.6、八股 5 |
-| 重试为什么会把系统打垮？重试应该怎样设计？ | 4.3、4.13、八股 3 |
-| goroutine 泄漏怎么发现、怎么定位？ | 4.11、八股 4 |
-| 消息积压了怎么排查？ | 4.9 |
+| 线上一条 SQL 突然变慢，你怎么排查？缺索引、网络慢、连接池小、行锁竞争怎样区分？ | 4.4–4.7、4.11、4.12、4.14、八股 2 |
+| 连接池满了，一定是连接池太小吗？ | 4.7、4.12、4.14、八股 2 |
+| 缓存击穿和雪崩，防护效果怎样量化？告警怎样不误报正常的冷启动？ | 4.8、4.9、5.6、八股 5 |
+| 重试为什么会把系统打垮？重试应该怎样设计？ | 4.3、4.15、八股 3 |
+| goroutine 泄漏怎么发现、怎么定位？ | 4.13、八股 4 |
+| 消息积压了怎么排查？ | 4.10 |
 
 ## 2. 故障实验在系统里的位置
 
@@ -66,6 +66,16 @@ chaos 负责制造原因和恢复环境；医生以后负责根据外部证据�
 ## 3. 跑起来看什么
 
 从仓库根目录操作，先按[操作手册](../operations.md#阶段-4准备与运行故障实验)准备本机环境和完整业务数据。密码来自环境变量，不能复制到笔记或截图中。
+
+操作手册的宿主机示例只导出了实验账号的 `CHAOS_MYSQL_DSN`。阶段 7 以后，`healthy` 和 `selftest` 还要用一个只读账号检查有没有残留的医生索引，所以还要把只读基线账号也读进当前终端，否则会报“缺少 CHAOS_BASELINE_MYSQL_DSN”：
+
+```powershell
+Get-Content .env | ForEach-Object {
+    if ($_ -match '^(CHAOS_BASELINE_MYSQL_DSN)=(.*)$') {
+        [Environment]::SetEnvironmentVariable($Matches[1], $Matches[2], 'Process')
+    }
+}
+```
 
 本阶段健康基线的目标是 200 QPS，使用 10000 个活跃商品、64 个工作者。数据库里仍然保留五十万商品；“活跃”只表示压测器会选它们。扩大活跃范围后，缓存命中率也会改变，告警门槛必须重新核对。开发中确实发生过遗漏这个参数、健康检查被回源告警拦住的情况（数据台账 P4-16）。
 
@@ -112,7 +122,7 @@ go run ./cmd/chaos restore-all
 go run ./cmd/chaos selftest
 ```
 
-每个场景输出一行实际结果，包括注入前健康、注入、发现症状与告警、恢复健康的时间。失败行同样保留。两遍完整自测需要较长时间（一轮约 45 分钟，P4-18），执行期间不要另开一次场景，也不要手工修改同一服务的配置。
+每个场景输出一行实际结果，包括注入前健康、注入、发现症状与告警、恢复健康的时间。失败行同样保留。两遍完整自测需要较长时间（当时 11 个场景一轮约 45 分钟，P4-18；现在 13 个场景会更久），执行期间不要另开一次场景，也不要手工修改同一服务的配置。
 
 ## 4. 代码走读与场景
 
@@ -140,11 +150,11 @@ go run ./cmd/chaos selftest
 
 | 顺序 | 在哪里 | 做了什么 |
 |---|---|---|
-| 1 | `Engine.Inject` 开头的 `Executor.Capture` | 先记下将要改动的东西原来是什么样：订单服务当前镜像的内容 ID、公开配置和流量设置。这一步还没改任何东西，失败了可以直接退出 |
+| 1 | `Engine.Inject` 开头的 `Executor.Capture` | 先记下将要改动的东西原来是什么样：订单服务当前镜像的内容 ID、公开配置和流量设置。这一步还没注入故障；但涉及部署的场景会先给原镜像打一个保留标签，防止恢复时找不到它。失败了可以直接退出 |
 | 2 | 同上：`os.OpenFile` 带上 `O_CREATE` 和 `O_EXCL` | 独占创建 `.opsdoctor-chaos.json`。文件已经存在，说明上一场实验还没恢复，直接拒绝，不会覆盖（7.2 节） |
 | 3 | 同上：写入后 `Sync` | 把完整场景和基线写进文件，要求操作系统刷到磁盘，然后才开始改外部环境 |
 | 4 | 同上：依次执行 inject 步骤 | S13 先用新的环境变量重新发布订单服务（关熔断、最多重试 10 次、不退避、单次 50ms），再让代理把库存服务的响应推迟 80ms |
-| 5 | verify（[verify/wait.go](../../internal/chaos/verify/wait.go) 的 `Symptom`） | 在 3 分钟内等症状查询成立，并且相关告警 `InventoryRequestsAmplified` 真正 firing |
+| 5 | verify（[verify/wait.go](../../internal/chaos/verify/wait.go) 的 `Symptom`） | 从记录的注入开始时间算起，3 分钟内等症状查询成立，并且看到相关告警 `InventoryRequestsAmplified` 真正 firing；两件事可以在不同的采样轮次里先后看到 |
 | 6 | `Engine.Restore` | 按 restore 列表逐条恢复：先去掉延迟，再按原来的镜像和配置发布订单服务。某一步失败也继续做后面的，最后把错误合在一起报告 |
 | 7 | 同上 | 全部恢复成功才删除记录文件；有一步失败就保留它，之后 `restore-all` 还能接着恢复 |
 | 8 | `Healthy` | 健康条件要连续成立一分钟；中间有一次不健康，就从头计时 |
@@ -165,7 +175,7 @@ go run ./cmd/chaos selftest
 
 一次商品查询，库存服务收到了 11 次查询，每次都要照常处理。入口的 HTTP 请求速率不变，库存的 RPC 速率却变成好几倍。告警 `InventoryRequestsAmplified` 比较的正是这两个速率。两轮实测，库存 RPC 和订单 HTTP 的比值最高到 8.7 倍（P4-22）。
 
-对照默认配置：单次时限是 0，表示每次尝试都直接用 800ms 的总时限，80ms 的延迟根本不会超时，第一次就成功。即使需要重试，重试逻辑（[resilience/retry.go](../../internal/platform/resilience/retry.go) 的 `Do`）也会先等一会儿：第一次重试前等 50ms 再加一个随机数，第二次等 100ms 再加随机数；最多重试 2 次，熔断器也在统计失败比例。下单时的 `Deduct` 不经过这段重试逻辑，任何配置下都只发 1 次。
+对照默认配置：单次时限是 0，表示每次尝试都直接用 800ms 的总时限，80ms 的延迟根本不会超时，第一次就成功。即使需要重试，重试逻辑（[resilience/retry.go](../../internal/platform/resilience/retry.go) 的 `Do`）也会先等一会儿：第一次重试前等 50ms 再加一个随机数，第二次等 100ms 再加随机数；最多重试 2 次，熔断器也在统计失败比例。下单时的 `Deduct` 不经过这段重试逻辑，最多发 1 次，失败也不重试（context 已经取消、或者熔断器打开时，一次也不发）。
 
 ### 4.4 先看用户，再找耗时落在哪里
 
@@ -181,7 +191,7 @@ go run ./cmd/chaos selftest
 
 **人工调查。** 先比较下单与商品查询，再找慢下单的库存 span。沿着它定位 UPDATE 模板，对这条 SQL 做 EXPLAIN，检查使用的索引和预计扫描行数，再用 SHOW INDEX 确认 `sku_id` 上的唯一索引确实不存在。最后结合锁等待数据，解释为什么其他请求也被拖慢。
 
-开发中对真实 UPDATE 得到的是 `type=index`、`key=PRIMARY`、预计扫描 498780 行。这里仍出现了一个索引名，但它是在遍历主键目录，不能按商品编号直接定位。只检查 key 是否为空，会漏掉这个问题。
+开发中对真实 UPDATE 做 EXPLAIN，得到的是 `type=index`、`key=PRIMARY`，预计要扫描几十万行（[实测记录](../notes.md#phase-04)）。这里仍出现了一个索引名，但它是在遍历主键目录，不能按商品编号直接定位。只检查 key 是否为空，会漏掉这个问题。
 
 **补基础：EXPLAIN 先看哪几列。** `key` 是实际用到的索引，`rows` 是预计要检查多少行，`type` 是怎样找数据。`type` 常见的几种，从慢到快大致是：`ALL`（全表扫描）、`index`（把整个索引从头到尾扫一遍）、`range`（在索引里扫一段范围）、`ref`（用普通索引找等值）、`eq_ref` 和 `const`（借助唯一索引，最多找到一行）。正常时按 `sku_id` 扣库存应该走 `uk_stock_sku`、预计一行；删掉索引后变成 `index` 加 `PRIMARY`、近五十万行：key 虽然不为空，扫描量却和全表扫描差不多。
 
@@ -195,9 +205,9 @@ go run ./cmd/chaos selftest
 
 **症状链。** 用户筛选不能有效缩小扫描 → 大量订单参与读取和排序 → GET 列表耗时上升。它与库存索引问题的受影响接口不同。
 
-**人工调查。** 先按 HTTP 方法和路由分开看，确认是 GET `/orders`。从慢调用链提取查询模板，检查 EXPLAIN 的扫描和排序，再核对 `user_id, created_at` 的索引列顺序。开发中的 EXPLAIN 返回 `type=ALL`、预计 1991940 行，以及 `Using where; Using filesort`。filesort 表示排序不能直接借用索引顺序，并不单凭这个名字就说明发生了磁盘读写。
+**人工调查。** 先按 HTTP 方法和路由分开看，确认是 GET `/orders`。从慢调用链提取查询模板，检查 EXPLAIN 的扫描和排序，再核对 `user_id, created_at` 的索引列顺序。开发中的 EXPLAIN 返回 `type=ALL`，也就是把近两百万条订单全部扫一遍，以及 `Using where; Using filesort`（[实测记录](../notes.md#phase-04)）。filesort 表示排序不能直接借用索引顺序，并不单凭这个名字就说明发生了磁盘读写。
 
-**补基础：联合索引为什么讲究列的顺序。** 联合索引 `(user_id, created_at)` 先按 `user_id` 排，同一个用户的订单再按 `created_at` 排。所以“找某个用户的订单，再按时间排序”时，MySQL 能直接找到这个用户的那一段，取出来的顺序已经排好了。如果建成 `(created_at, user_id)`，同一个用户的订单就散落在整个索引里，既找得慢，又要另外排序。这就是“最左匹配”：查询要从索引最左边的列开始用起。
+**补基础：联合索引为什么讲究列的顺序。** 联合索引 `(user_id, created_at)` 先按 `user_id` 排，同一个用户的订单再按 `created_at` 排。所以“找某个用户的订单，再按时间排序”时，MySQL 能直接找到这个用户的那一段，取出来的顺序已经排好了。如果建成 `(created_at, user_id)`，同一个用户的订单就散落在整个索引里，没法直接定位到这个用户的那一段。这就是“最左匹配”：查询要从索引最左边的列开始用起。至于能不能省掉排序，还要看排序键、等值条件和执行计划，以 EXPLAIN 为准；上面实测到的 `Using filesort`，是缺少这个索引时的结果。
 
 **修复。** 按原顺序恢复联合索引。只建一个名称相同、列顺序不同的索引不算恢复，所以 chaos 删除和恢复前都要检查列顺序和唯一性（`expectedIndex`）。
 
@@ -415,7 +425,7 @@ go run ./cmd/chaos selftest
 
 **做法。**
 
-- **症状要同时满足两件事。** 场景文件里写了一个 PromQL 症状条件和一组相关告警，`Symptom` 要在 3 分钟内等到条件成立、并且相关告警真正 firing（不是 pending）。只看到告警、业务指标没变，或者反过来，都不算。
+- **症状要满足两件事。** 场景文件里写了一个 PromQL 症状条件和一组相关告警。`Symptom` 从记录的注入开始时间算起，在 3 分钟内既要看到条件成立，也要看到列表里任意一条相关告警真正 firing（不是 pending）。两件事可以在不同的采样轮次里先后看到，看到过的会记住。只看到告警、业务指标没变，或者反过来，都不算。没有注入故障的对照场景 S11 不走这条路，改为检查系统健康。
 - **健康要连续一分钟。** `Healthy` 检查延迟、错误比例、消费积压、采集与后端连接，以及没有正在触发的告警；要连续成立一分钟，中间有一次不健康就从头计时。
 - **没有数据不等于正常。** 监控没数据时查询也会返回空，所以健康判断还要求流量与采集都正常。
 - **删索引和恢复索引之前都核对结构。** `expectedIndex` 不只看索引名，还核对列顺序和唯一性；名字相同、结构不同的索引，既不会被误删，也不算恢复成功。
@@ -423,7 +433,9 @@ go run ./cmd/chaos selftest
 
 **放弃了什么。** 注入后等固定的时间就认为症状出现了。简单，但症状可能根本没出现（S04 第一版就是这样），这样的实验结果没有意义。
 
-**代价。** 每个场景都要设计一个准确的症状条件；健康检查要等至少一分钟，一轮自测要 45 分钟左右。
+**代价。** 每个场景都要设计一个准确的症状条件；健康检查要等至少一分钟，11 个场景的一轮自测要 45 分钟左右。
+
+**规模变大十倍。** 场景多十倍，串行跑一轮就要十倍的时间。能并行的只有互不影响的部分，比如只读的查询检查；共用同一套实验环境时，注入、症状判断和恢复必须一场一场串行，否则一个场景的故障会混进另一个场景的症状和健康判断。真要扩大规模，得给每组场景准备独立的环境。
 
 ### 5.6 告警门槛：故障测过了，正常冷启动不能误报
 
@@ -508,7 +520,7 @@ go run ./cmd/chaos selftest
 #### 项目里的例子
 
 - 4.5 S01、4.7 S03、4.12 S08、4.14 S10。
-- S01 实测：删索引后 `type=index`、`key=PRIMARY`、预计扫描 498780 行。
+- S01 实测：删索引后，扣减的 UPDATE 是 `type=index`、`key=PRIMARY`，沿主键索引扫描几十万行（[实测记录](../notes.md#phase-04)）。
 
 #### 常见追问
 
@@ -548,7 +560,7 @@ go run ./cmd/chaos selftest
 
 #### 要点
 
-- 常见原因：channel 没有接收方或发送方、等待一个永远不会取消的 context、忘了关闭的 Ticker。
+- 常见原因：channel 没有接收方或发送方、等待一个永远不会取消的 context、循环一直等 Ticker 的通道却不监听取消或别的退出信号（调用 `Ticker.Stop` 也不会关闭通道，循环不会因此退出）。
 - 两次快照对比，看同一堆栈的增长。
 - pprof 的 goroutine profile；Go 1.27 起还有专门找泄漏的 goroutineleak profile（Go 1.26 要加 `GOEXPERIMENT=goroutineleakprofile`）。
 
@@ -595,7 +607,7 @@ go run ./cmd/chaos selftest
 | context 的父子时限 | S13 的单次时限包在总时限里，子时限不会延长父时限 | [Mini-Redis 第 07 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/07-channel-context与WaitGroup.md)“context”和“八股 4” |
 | 无缓冲 channel 的交接；goroutine 泄漏 | S09 的发送方永远等不到接收方 | [Mini-Redis 第 07 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/07-channel-context与WaitGroup.md)“channel 的基本操作”和“八股 3” |
 | 关闭 channel 同时放行所有等待者 | loadgen 的 `/burst` 让已有工作者一起出发 | [Mini-Redis 第 07 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/07-channel-context与WaitGroup.md)“八股 2：对已关闭的 channel 和 nil channel 操作会怎样？” |
-| WaitGroup | `/burst` 等工作者都就位、再等它们都结束 | [Mini-Redis 第 02 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/02-goroutine与调度.md)“等 goroutine 结束：sync.WaitGroup” |
+| WaitGroup | 压测器关闭时，等整个工作池的 goroutine 都退出 | [Mini-Redis 第 02 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/02-goroutine与调度.md)“等 goroutine 结束：sync.WaitGroup” |
 | 构建标签 | S09 的另一份订单服务用 `//go:build leakbug` 编译 | [Mini-Redis 第 06 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/06-错误处理.md)“只在某些平台编译的代码” |
 | `errors.Join` 合并多个错误 | 恢复时每一步都尝试，最后合并报告 | [Mini-Redis 第 06 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/06-错误处理.md)“合并多个错误：errors.Join” |
 | goroutine profile 和 pprof | 定位 S09 的泄漏 | [Mini-Redis 第 08 章](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/08-测试.md)“八股 3：怎样用 pprof 排查性能问题？” |
@@ -674,7 +686,7 @@ func main() {
 2. **看消费者追赶。** 注入 S06，记录三个分区的 lag；恢复后观察回落，再暂停流量核对销量。
 3. **数一次查询发了几次 GetStock。** 注入 S13，在 Jaeger 里找一笔商品查询，数它下面的 GetStock span，对照 4.3 节的时间线。解释为什么缩短单次时限不等于延长总时限。
 4. **追踪后台任务。** 注入 S09，间隔一段时间读取两份 goroutine profile，数相同发送堆栈；恢复原镜像后确认数量稳定。
-5. **练习中断恢复。** 运行 selftest，在某个场景等待症状时按 Ctrl+C，观察恢复流程。另开终端检查活动记录是否已清除，最后运行 healthy。
+5. **练习中断恢复。** 运行 selftest，在某个场景等待症状时按 Ctrl+C，观察恢复流程。另开终端检查活动记录是否已清除，最后运行 healthy。这一步是按代码推出来的，开发时没有手动这样跑过；取消和恢复的逻辑由单元测试（用假执行器）覆盖。
 
 ## 9. 常见误区与已知限制
 
@@ -707,7 +719,7 @@ func main() {
 <details>
 <summary>参考要点（先自己回答）</summary>
 
-1. `Capture` 失败时什么都还没改，可以直接退出；记录文件写好并刷到磁盘以后再动手，动作做到一半被打断，也知道原来是什么样、怎样恢复。
+1. `Capture` 失败时故障还没注入（涉及部署的场景最多多出一个原镜像的保留标签），可以直接退出；记录文件写好并刷到磁盘以后再动手，动作做到一半被打断，也知道原来是什么样、怎样恢复。
 2. 恢复要尽量把环境改回去，一步失败就停下会留下更多没恢复的部分；错误最后合并报告。全部成功才删除记录，否则保留给 `restore-all`。
 3. 配置发布覆盖了原镜像的标签，容器重建后旧的镜像没有引用了，恢复时按内容 ID 找不到。现在发布前先给原镜像打一个独立的标签保留引用，恢复前比较内容 ID，对不上就拒绝。
 4. 动作只能是删除或恢复两个指定的索引之一，并且表名和索引名必须是那两对之一。分别合法不够：`stock` 表配上 `idx_orders_user_created` 是错的组合。

@@ -220,7 +220,7 @@
 
 | 名称 | 位置 | 作用 | 被谁调用 / 使用 |
 |---|---|---|---|
-| `*Breaker.State` | [breaker.go:71](../../internal/platform/resilience/breaker.go#L71) | State 读取底层状态，测试用它检查恢复过程，而不是猜测内部计数 | 熔断状态 GaugeFunc |
+| `*Breaker.State` | [breaker.go:71](https://github.com/Li-Nepenthe/opsdoctor/blob/482aa2217dfcc1a1c2d0408c2a8a4ce67169c380/internal/platform/resilience/breaker.go#L71) | State 读取底层状态，测试用它检查恢复过程，而不是猜测内部计数 | 熔断状态 GaugeFunc |
 
 #### internal/platform/telemetry
 
@@ -229,21 +229,21 @@
 | `KafkaHeaders` | [kafka.go:21](../../internal/platform/telemetry/kafka.go#L21) | KafkaHeaders 借用当前消息的切片，只在发送前修改，不能与写入 Kafka 的动作并发 | Kafka Publisher / Consumer |
 | `*KafkaHeaders.Get` | [kafka.go:24](../../internal/platform/telemetry/kafka.go#L24) | Get 按 HTTP/W3C 头的习惯忽略大小写，不要求发送端恰好使用小写 | 传播器 Extract |
 | `*KafkaHeaders.Set` | [kafka.go:34](../../internal/platform/telemetry/kafka.go#L34) | Set 分配自己的切片，既替换重复键，也不修改别人还持有的旧消息头 | 传播器 Inject |
-| `*KafkaHeaders.Keys` | [kafka.go:45](../../internal/platform/telemetry/kafka.go#L45) | Keys 只暴露字段名，传播器通过 Get 读取对应值 | 传播器与测试 |
+| `*KafkaHeaders.Keys` | [kafka.go:45](https://github.com/Li-Nepenthe/opsdoctor/blob/482aa2217dfcc1a1c2d0408c2a8a4ce67169c380/internal/platform/telemetry/kafka.go#L45) | Keys 只暴露字段名，传播器通过 Get 读取对应值 | 传播器与测试 |
 | `Metrics` | [metrics.go:26](../../internal/platform/telemetry/metrics.go#L26) | Metrics 保存本进程的仪表，具体在哪里加一次，由调用它的业务适配器决定 | 各 app 与观测包装 |
 | `NewMetrics` | [metrics.go:44](../../internal/platform/telemetry/metrics.go#L44) | NewMetrics 的名称都由本包固定，重复注册说明代码有错，所以用 MustRegister 尽早暴露 | telemetry.New、loadgen、alertsink |
 | `*Metrics.Counter` | [metrics.go:68](../../internal/platform/telemetry/metrics.go#L68) | Counter 的标签名由代码固定；调用处还要保证标签值来自有限的分类，不能塞入用户输入 | NewMetrics |
 | `*Metrics.Histogram` | [metrics.go:75](../../internal/platform/telemetry/metrics.go#L75) | Histogram 用从毫秒到十秒的桶覆盖正常请求和超时，特别保留告警门槛 1 秒 | NewMetrics |
-| `*Metrics.Register` | [metrics.go:83](../../internal/platform/telemetry/metrics.go#L83) | Register 允许 app 登记熔断状态等按需读取的采集器，仍统一添加服务标签 | Database、inventoryclient.RegisterMetrics |
-| `*Metrics.Database` | [metrics.go:88](../../internal/platform/telemetry/metrics.go#L88) | Database 读取 database/sql 已有的池统计，不另外发 SQL，也不会占用一个数据库连接 | 三个业务 app |
+| `*Metrics.Register` | [metrics.go:83](https://github.com/Li-Nepenthe/opsdoctor/blob/482aa2217dfcc1a1c2d0408c2a8a4ce67169c380/internal/platform/telemetry/metrics.go#L83) | Register 允许 app 登记熔断状态等按需读取的采集器，仍统一添加服务标签 | Database、inventoryclient.RegisterMetrics |
+| `*Metrics.Database` | [metrics.go:88](https://github.com/Li-Nepenthe/opsdoctor/blob/482aa2217dfcc1a1c2d0408c2a8a4ce67169c380/internal/platform/telemetry/metrics.go#L88) | Database 读取 database/sql 已有的池统计，不另外发 SQL，也不会占用一个数据库连接 | 三个业务 app |
 | `*Metrics.HTTPMiddleware` | [middleware.go:29](../../internal/platform/telemetry/middleware.go#L29) | HTTPMiddleware 放在恢复和限流之前，这样被拒绝的请求也能进入总请求数 | orderservice.routes |
 | `*Metrics.Server` | [middleware.go:53](../../internal/platform/telemetry/middleware.go#L53) | Server 包在恢复拦截器外层，panic 转成 Internal 后也会被记录 | inventoryservice.serve |
 | `*Metrics.Client` | [middleware.go:63](../../internal/platform/telemetry/middleware.go#L63) | Client 的 target 使用 app 提供的服务名称，不能直接使用包含任意地址的请求参数 | orderservice.openInventory |
-| `rpcCode` | [middleware.go:73](../../internal/platform/telemetry/middleware.go#L73) | rpcCode 避免本地 deadline 被笼统地记为 Unknown，方便区分超时与服务端故障 | Server、Client |
+| `rpcCode` | [middleware.go:73](https://github.com/Li-Nepenthe/opsdoctor/blob/482aa2217dfcc1a1c2d0408c2a8a4ce67169c380/internal/platform/telemetry/middleware.go#L73) | rpcCode 避免本地 deadline 被笼统地记为 Unknown，方便区分超时与服务端故障 | Server、Client |
 | `Runtime` | [tracing.go:38](../../internal/platform/telemetry/tracing.go#L38) | Runtime 不写 OTel 全局变量，插件都显式接收 Provider，测试之间因此不会串到另一套调用链 | 三个业务 app、Kafka 适配器 |
 | `New` | [tracing.go:46](../../internal/platform/telemetry/tracing.go#L46) | New 的采样方式交给 SDK 读取 OTEL_TRACES_SAMPLER 与 OTEL_TRACES_SAMPLER_ARG | 对应 app 或入口 |
 | `*Runtime.Shutdown` | [tracing.go:80](../../internal/platform/telemetry/tracing.go#L80) | Shutdown 在业务排空后执行，给最后一批 span 自己的发送预算 | 三个业务 app 的 defer |
-| `Finish` | [tracing.go:87](../../internal/platform/telemetry/tracing.go#L87) | Finish 只记录固定的失败描述，原始错误可能含业务值，不能整段复制进追踪后端 | Kafka Publish / process |
+| `Finish` | [tracing.go:87](https://github.com/Li-Nepenthe/opsdoctor/blob/5687c3386b5997c89efa0129a454981aa39ee22f/internal/platform/telemetry/tracing.go#L87) | Finish 只记录固定的失败描述，原始错误可能含业务值，不能整段复制进追踪后端 | Kafka Publish / process |
 | `newTraceExporter` | [tracing.go:71](../../internal/platform/telemetry/tracing.go#L71) | newTraceExporter 的额外拨号选项用于注入测试的内存连接；生产路径不需要额外选项 | telemetry.New、OTLP 内存回归 |
 
 
@@ -268,7 +268,7 @@
 | `openRedis` | [dependencies.go:90](../../internal/shop/app/orderservice/dependencies.go#L90) | openRedis 不记录命令参数，因为幂等键和缓存正文可能包含请求数据 | openDependencies |
 | `reviewRecorder` | [metrics.go:24](../../internal/shop/app/orderservice/metrics.go#L24) | reviewRecorder 把日志与计数放在同一个动作里，避免某个失败分支只做其中一项 | services、Create 的待核对分支 |
 | `newReviewRecorder` | [metrics.go:30](../../internal/shop/app/orderservice/metrics.go#L30) | newReviewRecorder 使用 app 自己的注册表，不污染全局注册表，也便于测试重复创建服务 | services |
-| `*reviewRecorder.RecordReview` | [metrics.go:37](../../internal/shop/app/orderservice/metrics.go#L37) | RecordReview 使用固定原因分类，不把原始连接错误、DSN 或请求体写入告警 | order.Service.unknown |
+| `*reviewRecorder.RecordReview` | [metrics.go:37](https://github.com/Li-Nepenthe/opsdoctor/blob/482aa2217dfcc1a1c2d0408c2a8a4ce67169c380/internal/shop/app/orderservice/metrics.go#L37) | RecordReview 使用固定原因分类，不把原始连接错误、DSN 或请求体写入告警 | order.Service.unknown |
 | `observedCache` | [observations.go:25](../../internal/shop/app/orderservice/observations.go#L25) | observedCache 统计每次缓存读取，第二次检查缓存也会计数，因此它不等于 HTTP 请求数 | services |
 | `observedCache.Get` | [observations.go:31](../../internal/shop/app/orderservice/observations.go#L31) | Get 把读取失败单独记为 error，不让 Redis 故障看起来只是普通未命中 | product.Service.Get |
 | `observedProducts` | [observations.go:47](../../internal/shop/app/orderservice/observations.go#L47) | observedProducts 放在 singleflight 后面的仓储接口上，合并后的查询只计一次回源 | services |
@@ -325,7 +325,7 @@
 |---|---|---|---|
 | `*MySQLRepository.Apply` | [repository.go:47](../../internal/shop/sales/repository.go#L47) | Apply 返回的 duplicate 表示已经记过这笔订单，消费者因此能区分“新增”和“重复” | sales.Service.Handle |
 | `Repository` | [service.go:22](../../internal/shop/sales/service.go#L22) | Repository 的 Apply 必须把去重与加销量作为一件事完成，不能只成功一半 | sales.Service 的构造参数 |
-| `*Service.Handle` | [service.go:33](../../internal/shop/sales/service.go#L33) | Handle 的 error 为 nil 时，消费者才可以提交位点；bool 用来单独统计重复消息 | Consumer.process |
+| `*Service.Handle` | [service.go:33](https://github.com/Li-Nepenthe/opsdoctor/blob/482aa2217dfcc1a1c2d0408c2a8a4ce67169c380/internal/shop/sales/service.go#L33) | Handle 的 error 为 nil 时，消费者才可以提交位点；bool 用来单独统计重复消息 | Consumer.process |
 
 
 #### internal/shop/app/shopctl

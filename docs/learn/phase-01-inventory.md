@@ -49,7 +49,7 @@ flowchart LR
     OPS["Compose 健康检查<br/>阶段 3 的 Prometheus"] -->|"HTTP：/health、/metrics"| ADMIN["库存服务<br/>管理端口 6062"]
 ```
 
-库存服务开了两个端口：**9001** 是 gRPC 端口，处理业务请求；**6062** 是管理端口，提供健康检查 `/health`，阶段 3 以后还提供指标 `/metrics`。
+阶段 1 时库存服务开了两个端口：**9001** 是 gRPC 端口，处理业务请求；**6062** 是管理端口，提供健康检查 `/health`，阶段 3 以后还提供指标 `/metrics`。阶段 7 起又多了一个内部运维端口 **6064**，只在容器网络里监听，不映射到你的电脑。
 
 库存服务只被别的程序调用，它自己不调用任何业务服务。主要的调用方是阶段 2 的订单服务：下单时扣库存，订单写失败时把库存还回去。
 
@@ -93,11 +93,11 @@ docker compose --env-file .env -f deploy/docker-compose.yml ps
 Invoke-RestMethod http://127.0.0.1:6062/health
 ```
 
-库存服务依赖 MySQL，Compose 会先把 shop-mysql 启动起来。你应该看到两个服务都是 `healthy`，健康检查返回 `ok`。这个健康检查会真的 Ping 一次数据库，不只是看进程活着没有。
+库存服务依赖 MySQL。阶段 1 时它直连 shop-mysql；阶段 4 起改成经过 toxiproxy（`toxiproxy:13306`，故障实验用它给数据库连接加延迟），所以 Compose 会先把 shop-mysql 和 toxiproxy 启动起来。你应该看到这三个服务都是 `healthy`，健康检查返回 `ok`。这个健康检查会真的 Ping 一次数据库，不只是看进程活着没有。
 
-服务启动时会自动执行迁移（建表），但不会自动造数。只启动这两个服务时，日志里可能出现“导出调用链失败”一类的报错，那是阶段 3 加的调用链在找 Jaeger，这里没启动它，可以忽略。
+服务启动时会自动执行迁移（建表），但不会自动造数。只启动这几个服务时，日志里可能出现“导出调用链失败”一类的报错，那是阶段 3 加的调用链在找 Jaeger，这里没启动它，可以忽略。
 
-**第 2 步：查询和扣减库存。** shopctl 需要两个环境变量：数据库地址和库存服务地址。Go 程序不会自动读取 `.env`，所以先把这两个变量读进当前终端：
+**第 2 步：查询和扣减库存。** `shopctl stock` 只需要库存服务的地址 `INVENTORY_GRPC_TARGET`，不设时默认是 `127.0.0.1:9001`；`seed` 和 `check` 才需要数据库地址 `MYSQL_DSN`。Go 程序不会自动读取 `.env`，下面把这两个变量一起读进当前终端，第 4 步造数时也要用：
 
 ```powershell
 Get-Content .env | ForEach-Object {
@@ -110,7 +110,7 @@ go run ./cmd/shopctl stock deduct --sku 1 --quantity 1
 go run ./cmd/shopctl stock get --sku 1
 ```
 
-你应该看到：第一次输出 `sku_id=1 available=某个数`；扣减输出 `sku_id=1 deducted=1`；再查一次，库存比第一次少 1。
+你应该看到：第一次输出 `sku_id=1 available=某个数`；扣减输出 `sku_id=1 deducted=1`；再查一次，库存比第一次少 1。前提是库里已经有 1 号商品而且还有库存；如果你的 shop 库是全新的空库，先做第 4 步造数。
 
 **第 3 步：看库存服务的日志。**
 
@@ -120,7 +120,7 @@ docker compose --env-file .env -f deploy/docker-compose.yml logs --tail 15 inven
 
 每次 gRPC 调用都有一条 JSON 日志，包括服务名、请求编号、调用的方法、状态码和耗时。日志里不应该出现数据库密码，也不应该出现请求的具体内容。
 
-**第 4 步：关于造数。** 你的数据库里已经有数据了（阶段 2、3 又产生了很多新订单），所以**不要再运行 `shopctl seed`**。它会检查五张表是不是最初的造数状态，发现对不上就拒绝继续，防止误把业务数据重置掉。在全新的空数据库上运行它，会看到类似 `products=500000 stock=500000 orders=2000000 ... skipped=false` 的输出，开发时实测耗时 75.651 秒（数据台账 P1-3）。
+**第 4 步：关于造数。** 如果你已经跟着后面的阶段做过实验，数据库里已经有数据了（阶段 2、3 又产生了很多新订单），这时**不要再运行 `shopctl seed`**，保留已有的数据卷就行。seed 会检查五张表的行数和编号是否符合造数的规律，对不上就拒绝继续，防止误把业务数据重置掉。只有全新的空库才需要造数：运行 `go run ./cmd/shopctl seed`（需要 `MYSQL_DSN`），会看到类似 `products=500000 stock=500000 orders=2000000 ... skipped=false` 的输出，开发时实测耗时 75.651 秒（数据台账 P1-3）。
 
 **第 5 步：运行测试。** 按[操作手册](../operations.md#运行真实-mysql-与-redis-集成测试)的“运行真实 MySQL 与 Redis 集成测试”一节，把测试库的地址设到当前终端，然后运行：
 
@@ -155,7 +155,7 @@ go test -race ./internal/shop/inventory ./internal/shop/seed ./internal/platform
 | 10 | [adminserver/server.go](../../internal/platform/adminserver/server.go) | `/health` 怎样调用传进来的检查函数 |
 | 11 | [shopctl/stock_client.go](../../internal/shop/app/shopctl/stock_client.go) | 从调用方的角度看：`parseStock` 检查参数，`stockTarget` 读出库存服务的地址，`runStock` 建立连接、发起一次调用 |
 | 12 | [seed/seed.go](../../internal/shop/seed/seed.go)、[seed/repository.go](../../internal/shop/seed/repository.go) | 分批、每批一个事务、怎样接着造 |
-| 13 | [repository_integration_test.go](../../internal/shop/inventory/repository_integration_test.go) | 100 个 goroutine 怎样同时开始抢库存；超时测试怎样证明数据库那边也停了 |
+| 13 | [repository_integration_test.go](../../internal/shop/inventory/repository_integration_test.go) | 100 个 goroutine 怎样同时开始抢库存；超时测试怎样证明库存服务不再等数据库（MySQL 那边是否停止执行，测试没有观察，见 5.6） |
 
 ### 4.2 一次扣减，从 shopctl 到 MySQL 再回来
 
@@ -294,7 +294,7 @@ WHERE sku_id = ? AND available >= ?
 
 | 做法 | 怎么做 | 为什么没选 |
 |---|---|---|
-| Go 代码里加一把锁 | `sync.Mutex` 包住“查 + 扣” | 只能管住当前这一个进程。库存服务可能有多个实例，shopctl 也会调用接口，Go 的锁管不到它们 |
+| Go 代码里加一把锁 | `sync.Mutex` 包住“查 + 扣” | 只能管住当前这一个进程。库存服务可能有多个实例，也可能有人绕过服务直接写库，Go 的锁管不到它们 |
 | 悲观锁 | 开事务，`SELECT ... FOR UPDATE` 锁住这一行，判断够不够，再 UPDATE，提交 | 能用，但要多一次往返，锁持有的时间更长。扣减前需要做复杂判断时才值得 |
 | 乐观锁 | 表里加版本号，`UPDATE ... WHERE version = 读到的版本`，失败就重新读、重试 | 热门商品冲突多，大量请求在重试。而“够不够”本身就能写成条件，不需要版本号 |
 | Redis 预扣 | 库存放进 Redis，用 Lua 脚本原子地判断和扣减，再异步写回 MySQL | 最快，适合秒杀。但 Redis 和 MySQL 有两份库存，要对账；Redis 宕机可能丢掉扣减记录。本项目的并发量用不到 |
@@ -346,7 +346,7 @@ WHERE sku_id = ? AND available >= ?
 
 **放弃了什么。** 直接把 `sku_id` 设成主键。这样按 `sku_id` 查不用回表，少一步。没有这样做，是因为唯一索引可以删掉再恢复，正好用来做 S01 的故障实验；主键就不能随便删。这是为了实验做的选择，正常的生产系统两种设计都可以。
 
-**代价。** 每次插入和更新都要同时维护两棵树；按 `sku_id` 查询多一次回表。
+**代价。** 插入新商品、或者改动 `sku_id` 时，要同时维护两棵树；扣减只改 `available` 和 `updated_at`，不动二级索引。按 `sku_id` 查询多一次回表。
 
 **规模变大十倍。** 500 万行时 B+ 树也只多一层，按索引查一行的代价几乎不变；但全表扫描的代价变成十倍。所以规模越大，“某个改动让查询不再走索引”的后果越严重。上线前用 EXPLAIN 检查关键 SQL，比事后排查便宜得多。
 
@@ -385,9 +385,9 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql s
 
 **问题。** 客户端收到超时错误，只说明它没等到结果。数据库可能已经扣成功了，只是响应没来得及传回来。如果客户端自动重试，同一件商品可能被扣两次。
 
-**做法。** 库存接口不做防重复：`.proto` 的注释写明“扣减和归还没有幂等键，调用方不能自动重试写操作”。shopctl 创建连接时用 `grpc.WithDisableRetry()` 关掉了 gRPC 的自动重试。“同一个订单不能重复扣库存”这件事，交给调用方订单服务处理（阶段 2 的接口幂等）。
+**做法。** 库存接口不做防重复：`.proto` 的注释写明“扣减和归还没有幂等键，调用方不能自动重试写操作”。shopctl 创建连接时用 `grpc.WithDisableRetry()` 关掉了 gRPC 按服务配置做的自动重试。gRPC 还保留一种“透明重试”，但它只在能确定服务端没有处理这个请求时才重发，不会造成重复扣减。“同一个订单不能重复扣库存”这件事，交给调用方订单服务处理（阶段 2 的接口幂等）。
 
-**放弃了什么。** 在库存服务里做幂等：调用方每次扣减带一个唯一编号（比如订单号），库存服务把“这个编号扣过多少”记进一张流水表，用唯一键防止重复。这是更完整的做法，但要多一张表、每次扣减多写一行。本项目只有订单服务一个调用方，它已经有订单级的幂等。
+**放弃了什么。** 在库存服务里做幂等：调用方每次扣减带一个唯一编号（比如订单号），库存服务把“这个编号扣过多少”记进一张流水表，用唯一键防止重复。这是更完整的做法，但要多一张表、每次扣减多写一行。本项目线上的业务调用方只有订单服务，它已经有订单级的幂等；另一个调用方 shopctl 是运维时手工使用的命令。
 
 **代价。** 调用方必须清楚“超时不等于没执行”，不能随手重试。归还接口 `Release` 也一样：同一个请求执行两次，会把库存加两次。
 
@@ -424,12 +424,13 @@ docker compose --env-file .env -f deploy/docker-compose.yml exec -T shop-mysql s
 
 **做法。** 收到退出信号后：
 
-1. 两个端口都停止接受新请求，等正在处理的请求做完。
-2. 两个端口都关掉以后，再关数据库连接池。
+1. 先排空 gRPC 端口：停止接受新请求，等正在处理的请求做完。
+2. 再关管理端口。两步由 `lifecycle.Shutdown` 依次执行，共用同一个时限。
+3. 两个端口都关掉以后，再关数据库连接池。
 
 gRPC 的 `GracefulStop` 会一直等到所有请求做完，但它不接受时限。万一某个请求卡住了，服务就永远退不出去。所以 `grpcx.Shutdown` 另开一个 goroutine 调用 `GracefulStop`，自己同时等两件事：`GracefulStop` 做完了，或者时限到了。时限到了，就调用 `Stop` 强制断开所有请求。库存服务给停机的时限是 10 秒（`shutdownTimeout`）。
 
-两个端口的 `Serve` 退出时都会返回错误，其中“正常关闭”也算一种错误。`serve` 函数逐个判断，只去掉“正常关闭”那一个，其他错误都保留。
+两个端口的 `Serve` 正常结束时，返回的东西不一样：HTTP 的 `Serve` 返回 `http.ErrServerClosed`，正常关闭也算一种错误；gRPC 的 `Serve` 因 `GracefulStop` 或 `Stop` 结束时返回 nil，在服务器停止以后才调用它，会返回 `grpc.ErrServerStopped`。`normalServeError` 对每个结果单独判断，只去掉这两种正常关闭的结果，其他错误都保留。
 
 **放弃了什么。** 收到信号直接退出。简单，但正在执行的扣减会被打断，调用方只能收到连接断开，不知道扣成功没有。
 
@@ -449,11 +450,11 @@ gRPC 的 `GracefulStop` 会一直等到所有请求做完，但它不接受时�
 
 | 方式 | 问题 |
 |---|---|
-| 每行一个事务 | 太慢：200 多万次提交，每次都要等磁盘写完 |
+| 每行一个事务 | 太慢：每个商品要写 11 行（商品、库存各 1 行，订单 4 行，销量 1 行，已处理消息 4 行），50 万个商品就是 550 万次提交，每次都要等磁盘写完 |
 | 全部放进一个大事务 | 事务太大：占用大量内存，长时间持有锁，失败了要整体回滚 |
 | **分批，每批一个事务** | 折中：每批要么全部写入，要么全部不写；失败了从已经写好的批次后面接着造 |
 
-**补基础：为什么每次提交都要等磁盘？** 事务提交成功，就要保证断电以后数据也不丢。InnoDB 的做法是：提交时先把这次修改记进 redo log（重做日志），并把它写到磁盘上；数据页本身可以晚一点再写。默认配置（`innodb_flush_log_at_trx_commit=1`）下每次提交都要写一次磁盘，所以 200 多万次提交会很慢。
+**补基础：为什么每次提交都要等磁盘？** 事务提交成功，就要保证断电以后数据也不丢。InnoDB 的做法是：提交时先把这次修改记进 redo log（重做日志），并把它写到磁盘上；数据页本身可以晚一点再写。默认配置（`innodb_flush_log_at_trx_commit=1`）下每次提交都要写一次磁盘，所以 550 万次提交会很慢。
 
 **SQL 里只有问号。** 代码只拼出 `(?, ?, ?)` 这样的占位符，实际的值作为参数单独交给驱动。即使某个值里有引号等特殊字符，也不会破坏 SQL 语句，这是防止 SQL 注入的标准做法。
 
@@ -465,8 +466,10 @@ gRPC 的 `GracefulStop` 会一直等到所有请求做完，但它不接受时�
 
 ### 5.11 金额用整数分，时间用 UTC
 
-- **金额：** 价格存的是“分”（`price_cents BIGINT`），不是“元”（小数）。浮点数不能精确表示 0.1 这样的小数，累加多了就会出现误差。用整数分，所有计算都是精确的。代价是显示时要换算，而且要约定好所有服务都用分。
-- **时间：** 所有时间都用 UTC 保存，显示给用户时再转成本地时间。阶段 0 的 mysqlx 已经把驱动和数据库会话的时区都设成了 UTC。
+这两条是数据约定，不像前面几节那样有几种方案要权衡，所以写得短一些。
+
+- **金额：** 价格存的是“分”（`price_cents BIGINT`），不是“元”（小数）。浮点数不能精确表示 0.1 这样的小数，累加多了就会出现误差。用整数分，所有计算都是精确的。放弃的做法是 MySQL 的 `DECIMAL`：它也精确，但 Go 没有对应的内置类型，要引入十进制库，或者用字符串传来传去。代价是显示时要换算，而且所有服务都要约定用分。规模变大十倍不影响这个选择；只有要支持多币种，或者出现小于一分的单价时，才需要换成更小的单位或 `DECIMAL`。
+- **时间：** 所有时间都用 UTC 保存，显示给用户时再转成本地时间。阶段 0 的 mysqlx 已经把驱动和数据库会话的时区都设成了 UTC。放弃的做法是存服务器的本地时间：机器换了时区，同一个时刻就有两种写法，排序和比较都会出错。代价是排查问题时，要自己把日志里的时间换算成北京时间（加 8 小时）。规模和这个选择无关；服务部署到多个地区时，UTC 是唯一不需要额外约定的写法。
 
 ## 6. 系统设计八股
 
@@ -541,7 +544,7 @@ InnoDB 的表按主键组织成一棵 B+ 树，叶子上就是完整的行，这
 
 #### 常见追问
 
-1. **唯一索引和普通索引，按等值查询加锁有什么不同？** 唯一索引上的等值查询、记录存在时，只锁这一条记录；普通索引还要锁住相邻的间隙，防止插入新的同值记录。
+1. **唯一索引和普通索引，按等值查询加锁有什么不同？** 唯一索引上的等值查询、记录存在时，只锁这一条索引记录，不锁它前面的间隙（经二级索引加排他锁时，对应的主键记录也会被锁上）；普通索引还要锁住相邻的间隙，防止插入新的同值记录。
 2. **为什么不用 UUID 做主键？** UUID 无序，插入会落在 B+ 树的随机位置，导致页分裂和碎片；而且每个二级索引都要存一份主键，长主键让所有二级索引变大。
 3. **索引越多越好吗？** 不是。每次写入都要维护所有索引，写多读少的表索引要少；索引也占磁盘和内存。
 
@@ -549,7 +552,7 @@ InnoDB 的表按主键组织成一棵 B+ 树，叶子上就是完整的行，这
 
 #### 一分钟口述版
 
-超时应该在请求的入口定一个总时限，然后让剩余时间跟着请求往下传，每一层只用剩下的时间，而不是各设各的固定超时。在 Go 里就是把同一个带截止时间的 context 一路传下去，gRPC 客户端会把剩余时间放进 `grpc-timeout` 请求头，服务端据此重建 context，最后传给 `ExecContext`，时间到了驱动就停止等待。但要注意两点：第一，驱动只是断开连接，并不会通知 MySQL 停止那条查询；第二，超时不等于没执行，数据库可能已经扣成功了，只是响应没传回来。所以读操作可以重试，写操作不能盲目重试，要先有幂等。我的库存接口没有幂等键，就关掉了客户端的自动重试，防重复交给订单服务。
+超时应该在请求的入口定一个总时限，然后让剩余时间跟着请求往下传，每一层只用剩下的时间，而不是各设各的固定超时。在 Go 里就是把同一个带截止时间的 context 一路传下去，gRPC 客户端会把剩余时间放进 `grpc-timeout` 请求头，服务端据此重建 context，最后传给 `ExecContext`，时间到了驱动就停止等待。但要注意两点：第一，驱动只是断开连接，并不会通知 MySQL 停止那条查询；第二，超时不等于没执行，数据库可能已经扣成功了，只是响应没传回来。所以读操作可以重试，写操作不能盲目重试，要先有幂等。我的库存接口没有幂等键，就关掉了客户端按配置做的自动重试，防重复交给订单服务。
 
 #### 要点
 
@@ -574,7 +577,7 @@ InnoDB 的表按主键组织成一棵 B+ 树，叶子上就是完整的行，这
 
 #### 一分钟口述版
 
-关键是减少两样东西：程序和数据库之间的来回次数，以及事务提交的次数。一行一条 INSERT、一行一个事务最慢，因为每次提交都要把 redo log 写到磁盘；全部放进一个大事务也不行，它占大量内存、长时间持锁，失败了要整体回滚。所以我的项目分批写：每批 1000 个商品，一个事务里用多行 INSERT 写完五张表，50 万商品和 200 万订单花了 75 秒。还要考虑中途失败：造数会检查已经写到哪一批，重新运行时接着造；发现数据被改过就拒绝继续，防止覆盖业务数据。所有值都用占位符传，不拼进 SQL。更大的规模可以用 `LOAD DATA` 从文件导入，或者先去掉二级索引、导入后再建。
+关键是减少两样东西：程序和数据库之间的来回次数，以及事务提交的次数。一行一条 INSERT、一行一个事务最慢，因为每次提交都要把 redo log 写到磁盘；全部放进一个大事务也不行，它占大量内存、长时间持锁，失败了要整体回滚。所以我的项目分批写：每批 1000 个商品，一个事务里用多行 INSERT 写完五张表，50 万商品和 200 万订单花了 75 秒。还要考虑中途失败：造数会检查已经写到哪一批，重新运行时接着造；表的行数或编号不符合造数的规律就拒绝继续，防止覆盖业务数据。它不检查已有行的内容，所以也不会把改过的库存改回去。所有值都用占位符传，不拼进 SQL。更大的规模可以用 `LOAD DATA` 从文件导入，或者先去掉二级索引、导入后再建。
 
 #### 要点
 
@@ -699,7 +702,7 @@ EXPLAIN SELECT sku_id, available FROM stock WHERE sku_id=250000 AND available>=1
 }
 ```
 
-重点看 EXPLAIN 输出里的三列：`type`（`const` 表示通过唯一索引直接定位，`ALL` 表示全表扫描）、`key`（用到的索引）、`rows`（预计要扫描的行数）。结果应该和 5.5 节的表格一致。这里用 SELECT 来观察：它的 WHERE 条件和扣减的 UPDATE 一样，所以访问路径一样。
+重点看 EXPLAIN 输出里的三列：`type`（`const` 表示通过唯一索引直接定位，`ALL` 表示全表扫描）、`key`（用到的索引）、`rows`（预计要扫描的行数）。结果应该和 5.5 节的表格一致。这里用 SELECT 来观察，因为它不改数据。注意 WHERE 条件相同，不代表执行计划相同：开发时删掉索引以后，单独对扣减的 UPDATE 做过 EXPLAIN，结果是 `type=index, key=PRIMARY, rows=498780`，也就是沿主键索引扫描，而不是 SELECT 的全表扫描 `ALL`。两者都要扫描几十万条记录，结论一样，但访问方式不同。
 
 如果删除索引那一步就失败了，恢复时会报“索引已存在”，这不要紧。看 `SHOW INDEX` 的输出，确认 `uk_stock_sku` 还在就行。
 
@@ -791,7 +794,7 @@ commentcheck 要求 [inventory/doc.go](../../internal/shop/inventory/doc.go) 提
 5. Internal。语法错误、权限错误重试也不会好，标成 Unavailable 会诱导调用方无意义地重试。
 6. 另开一个 goroutine 调用 `GracefulStop`，做完时关闭一个 channel；主流程用 select 同时等这个 channel 和 ctx 的时限，时限先到就调用 `Stop` 强制断开。
 7. 关闭端口时还在处理的请求要用数据库。先关连接池，这些请求会突然失败。
-8. 测试先启动 100 个 goroutine，让它们都等在同一个信号上，准备好以后统一放行，再用 WaitGroup 等它们全部结束、收集结果。具体写法见测试文件。
+8. 测试启动 100 个 goroutine，每个都先等同一个 channel；100 个都启动以后关闭这个 channel，大家几乎同时开始扣减。谁先谁后由调度决定，测试也不确认 100 个是否都已经在等。最后用 WaitGroup 等它们全部结束、收集结果。具体写法见测试文件。
 9. shop-mysql 的连接上限是 100，还要留给另外两个服务、shopctl 和迁移，所以每个服务默认 20。这是一个起始值，不是压测得出的最优值（阶段 0 八股 3）。
 10. 这些历史订单没有经过真正的下单流程，也没有发过消息。不写对应的销量和处理记录，阶段 2 的一致性检查会以为它们漏统计了。
 
@@ -841,11 +844,11 @@ commentcheck 要求 [inventory/doc.go](../../internal/shop/inventory/doc.go) 提
 - 用表格测试检查每种业务错误对应的状态码。
 - 故意让业务代码 panic，确认 Recovery 能接住。
 - 让一个请求一直卡住，配合很短的停机时限，确认 Shutdown 会强制停止。
-- 在真实 MySQL 上执行一条要 5 秒的查询，客户端设 100 毫秒超时：客户端实际等了 100.5 毫秒就收到 `DeadlineExceeded`，库存服务这边的数据库调用也立刻返回了取消错误（MySQL 服务端是否同时停止执行，测试没有验证，见 5.6 节）。
+- 在真实 MySQL 上执行一条要 5 秒的查询，客户端设 100 毫秒超时：客户端实际等了 100.5 毫秒就收到 `DeadlineExceeded`（数据台账 P1-4），库存服务这边的数据库调用也立刻返回了取消错误（MySQL 服务端是否同时停止执行，测试没有验证，见 5.6 节）。
 
 **遇到的问题：**
 
-1. 两个端口各有一个 `Serve` 调用，退出时都会返回错误，其中“正常关闭”也算一种错误。一开始的写法是先把两个错误合并，再判断“如果包含正常关闭就忽略”，但这样会把同时发生的真实故障也一起忽略掉。改成逐个判断：只去掉正常关闭的那个，其他错误都保留。
+1. 两个端口各有一个 `Serve` 调用，退出时各返回一个结果，正常关闭也可能是一个错误值（HTTP 的 `http.ErrServerClosed`）。一开始的写法是先把两个错误合并，再判断“如果包含正常关闭就忽略”，但这样会把同时发生的真实故障也一起忽略掉。改成逐个判断：只去掉正常关闭的那个，其他错误都保留。
 2. gRPC 的 `GracefulStop` 不接受时限，可能一直等下去。于是另开一个 goroutine 调用它，主流程等它结束或者等时限到，时限到了就调用 `Stop` 强制停止（5.9 节）。
 
 ### 11.3 造数
@@ -865,7 +868,7 @@ commentcheck 要求 [inventory/doc.go](../../internal/shop/inventory/doc.go) 提
 - `--small` 模式：从 2 个商品接着造到 100 个，最终得到 400 条订单。
 - 把某个商品的库存改成 7，重新运行 seed，库存仍然是 7。
 - 故意让一批里后面某张表的插入失败，确认同一批前面几张表写入的数据也被回滚了。
-- 在正式的 shop 库上全量造数，实测 75.651 秒；再运行一次，538 毫秒后跳过。
+- 在正式的 shop 库上全量造数，实测 75.651 秒；再运行一次，538 毫秒后跳过（数据台账 P1-3）。
 
 **取舍：** 历史订单要同时写好销量和“已处理消息”记录，否则阶段 2 的一致性检查会把它们当成“漏统计”。这里直接写好这些数据，而不是真的去发消息、启动消费者。
 
@@ -873,7 +876,7 @@ commentcheck 要求 [inventory/doc.go](../../internal/shop/inventory/doc.go) 提
 
 **要做什么：** 一条 Compose 命令启动库存服务；实际删掉索引看看执行计划的变化。
 
-**注意的细节：** 在容器里，数据库地址是 `shop-mysql:3306`；在你的电脑上运行 shopctl 时，地址是 `127.0.0.1:3306`。
+**注意的细节：** 当时在容器里，数据库地址是 `shop-mysql:3306`（阶段 4 起改成经过 `toxiproxy:13306`）；在你的电脑上运行 shopctl 时，地址是 `127.0.0.1:3306`。
 
 **结果：** 四个容器都 healthy；用 shopctl 实际扣减，库存从 100 变成 97；停机日志显示先关端口、再关连接池；删掉索引后，EXPLAIN 从“按索引找到 1 行”变成“全表扫描 49.9 万行”，恢复索引后又变回来（第 8 节实验一）。阶段结束时，43 个顶层测试全部通过，0 跳过（数据台账 P1-5）。
 
@@ -887,9 +890,9 @@ commentcheck 要求 [inventory/doc.go](../../internal/shop/inventory/doc.go) 提
 
 ### 11.6 可读性改造（2026-11-11）
 
-OpsDoctor 可读性改造的第 2 批改了 shop 的全部代码和 grpcx，代码由 GPT 改，Claude 审核。和本阶段有关的改动：
+OpsDoctor 可读性改造的第 1 批改了 platform 下的公共包（其中有 adminserver），第 2 批改了 shop 和 grpcx，代码由 GPT 改，Claude 审核。第 2 批按工单没有动 `inventoryservice/app.go` 和迁移 SQL。和本阶段有关的改动：
 
-1. **注释只写思路和设计。** inventory、inventoryservice、grpcx、adminserver、seed、migrations 的注释重写，讲 Go 语法和复述代码的句子删掉了。
+1. **注释只写思路和设计。** 第 2 批重写了 inventory、grpcx、seed、migrations 的注释，以及 inventoryservice 里除 `app.go` 以外的文件；adminserver 在第 1 批重写。讲 Go 语法和复述代码的句子删掉了。
 2. **MySQL 错误码起了名字。** `classifyDatabaseError` 里原来直接写 `1040`、`1205` 这样的数字，现在改成 `errTooManyConnections`、`errLockWaitTimeout` 等常量，判断逻辑不变。
 3. **shopctl 读库存服务地址的代码提成了 `stockTarget` 函数**，并补了一份环境变量 golden（`shopctl/testdata/environment.golden.txt`），把默认值和覆盖值固定下来。这是第 0 批发现的测试缺口：改造前，没有测试能证明 shopctl 读配置的行为。
 
@@ -901,17 +904,17 @@ OpsDoctor 可读性改造的第 2 批改了 shop 的全部代码和 grpcx，代�
 
 | 说法 | 出处 |
 |---|---|
-| UPDATE 会给扫描到的每条索引记录加锁；没有合适的索引、必须扫描全表时，表里每一行都会被锁住；唯一索引上的等值查询只锁这一条记录 | MySQL 8.4 参考手册 [Locks Set by Different SQL Statements in InnoDB](https://dev.mysql.com/doc/refman/8.4/en/innodb-locks-set.html) |
+| UPDATE 会给扫描到的每条索引记录加锁；没有合适的索引、必须扫描全表时，表里每一行都会被锁住；唯一索引上的等值查询、记录存在时只锁这条记录，不锁间隙；经二级索引加排他锁时，对应的聚簇索引记录也会被锁 | MySQL 8.4 参考手册 [Locks Set by Different SQL Statements in InnoDB](https://dev.mysql.com/doc/refman/8.4/en/innodb-locks-set.html) |
 | 普通 SELECT 是一致性非锁定读（快照读）；`FOR UPDATE` 和 UPDATE 读最新数据并加锁 | MySQL 8.4 参考手册 [Consistent Nonlocking Reads](https://dev.mysql.com/doc/refman/8.4/en/innodb-consistent-read.html)、[Locking Reads](https://dev.mysql.com/doc/refman/8.4/en/innodb-locking-reads.html) |
 | InnoDB 默认隔离级别是 REPEATABLE READ | MySQL 8.4 参考手册 [Transaction Isolation Levels](https://dev.mysql.com/doc/refman/8.4/en/innodb-transaction-isolation-levels.html) |
 | 聚簇索引与二级索引的结构，二级索引记录包含主键列 | MySQL 8.4 参考手册 [Clustered and Secondary Indexes](https://dev.mysql.com/doc/refman/8.4/en/innodb-index-types.html) |
-| `CHECK` 约束从 MySQL 8.0.16 起会被执行 | MySQL 8.4 参考手册 [CHECK Constraints](https://dev.mysql.com/doc/refman/8.4/en/create-table-check-constraints.html) |
+| `CHECK` 约束从 MySQL 8.0.16 起会被执行 | MySQL 8.0 参考手册 [CHECK Constraints](https://dev.mysql.com/doc/refman/8.0/en/create-table-check-constraints.html)（写明 8.0.16 以前只解析、不执行）；当前语义见 [8.4 版同名页面](https://dev.mysql.com/doc/refman/8.4/en/create-table-check-constraints.html) |
 | `innodb_flush_log_at_trx_commit` 默认是 1，每次提交都把日志写到磁盘 | MySQL 8.4 参考手册 [innodb_flush_log_at_trx_commit](https://dev.mysql.com/doc/refman/8.4/en/innodb-parameters.html#sysvar_innodb_flush_log_at_trx_commit) |
 | 1040、1205、1213、2002、2003、2006、2013 这几个错误码的含义 | MySQL 8.4 [Server Error Message Reference](https://dev.mysql.com/doc/mysql-errors/8.4/en/server-error-reference.html)、[Client Error Message Reference](https://dev.mysql.com/doc/mysql-errors/8.4/en/client-error-reference.html) |
 | 剩余时间通过 `grpc-timeout` 请求头传给服务端 | gRPC [PROTOCOL-HTTP2](https://github.com/grpc/grpc/blob/master/doc/PROTOCOL-HTTP2.md)；[Deadlines](https://grpc.io/docs/guides/deadlines/) |
 | 字段编号是字段在编码中的身份，不能改，删掉的编号应保留 | Protocol Buffers [Language Guide (proto 3)](https://protobuf.dev/programming-guides/proto3/#assigning) |
 | `ChainUnaryInterceptor` 的第一个拦截器在最外层；`GracefulStop` 等所有请求结束，`Stop` 立即断开 | [google.golang.org/grpc](https://pkg.go.dev/google.golang.org/grpc#ChainUnaryInterceptor) 的 `ChainUnaryInterceptor`、[Server.GracefulStop](https://pkg.go.dev/google.golang.org/grpc#Server.GracefulStop) |
-| 嵌入 `Unimplemented...Server` 是为了以后新增方法时保持兼容 | [gRPC Go 生成代码说明](https://grpc.io/docs/languages/go/generated-code/) |
+| 嵌入 `Unimplemented...Server` 是为了以后新增方法时保持兼容 | protoc-gen-go-grpc 的 [Future-proofing services](https://github.com/grpc/grpc-go/blob/master/cmd/protoc-gen-go-grpc/README.md#future-proofing-services)；生成代码里的说明见 [inventory_grpc.pb.go](../../gen/inventory/v1/inventory_grpc.pb.go) |
 | go-sql-driver/mysql v1.10.1 在 ctx 取消时关闭连接，不发送 `KILL QUERY` | 驱动源码 [connection.go](https://github.com/go-sql-driver/mysql/blob/v1.10.1/connection.go) 的 `watchCancel`、`cleanup` |
 
 ### 12.2 对照阅读（小林coding）
@@ -922,7 +925,7 @@ OpsDoctor 可读性改造的第 2 批改了 shop 的全部代码和 grpcx，代�
 |---|---|---|
 | 5.1 为什么用 gRPC | 《图解网络》[既然有 HTTP 协议，为什么还要有 RPC？](https://www.xiaolincoding.com/network/2_http/http_rpc.html) | RPC 和 HTTP 的关系；序列化；为什么 RPC 可以用 Protobuf |
 | 5.3 防止超卖 | 《图解MySQL》[MySQL 可重复读隔离级别，完全解决幻读了吗？](https://www.xiaolincoding.com/mysql/transaction/phantom.html#当前读是如何避免幻读的) | 快照读和当前读的区别，幻读部分可以先略过 |
-| 5.3 防止超卖 | 《图解MySQL》[MySQL 是怎么加锁的？](https://www.xiaolincoding.com/mysql/lock/how_to_lock.html#唯一索引-主键索引-等值查询) | “唯一索引（主键索引）等值查询”：记录存在时只锁这一行。小林的例子用主键，本项目按唯一二级索引 `uk_stock_sku` 扣减，结论相同 |
+| 5.3 防止超卖 | 《图解MySQL》[MySQL 是怎么加锁的？](https://www.xiaolincoding.com/mysql/lock/how_to_lock.html#唯一索引-主键索引-等值查询) | “唯一索引（主键索引）等值查询”：记录存在时只锁这一行。小林的例子用主键，本项目按唯一二级索引 `uk_stock_sku` 扣减，同样不锁间隙；区别是除了二级索引上的记录，对应的主键记录也会被锁 |
 | 5.5 索引 | 《图解MySQL》[索引常见面试题](https://www.xiaolincoding.com/mysql/index/index_interview.html#通过二级索引查询商品数据的过程) | 二级索引和回表；B+ 树为什么矮；后半部分 EXPLAIN 的 type 字段 |
 | 5.5 索引 | 《图解MySQL》[为什么 MySQL 采用 B+ 树作为索引？](https://www.xiaolincoding.com/mysql/index/why_index_chose_bpuls_tree.html) | 从二分查找一步步推到 B+ 树，想深入再读 |
 | 5.5、实验一 删掉索引 | 《图解MySQL》[update 没加索引会锁全表？](https://www.xiaolincoding.com/mysql/lock/update_index.html) | 全表扫描时，为什么所有记录都会被加锁；这就是阶段 4 的 S01 |

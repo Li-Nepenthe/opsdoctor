@@ -2,7 +2,7 @@
 
 **面试时怎样一分钟讲清这个阶段。** 这份材料证据很多，先记住下面这段，再回头看细节：
 
-> 为了检验医生是不是只会做自己出的题，我把它接到一个从没见过的开源系统 OpenTelemetry Demo 上。它的日志存在 OpenSearch 里，我按原来的日志接口写了第二个实现，工具和 Agent 的代码一行没改，并用同一张契约测试表验证两种后端行为一致。接入时发现采集器因为字段类型冲突，正在拒收一部分日志；于是先修采集，再给每份诊断单独审计它用到的日志窗口，然后才开始评测。在 5 个官方故障上跑 E1 和 E2，组件定位从自建系统的约 92% 降到 60%（3/5）。失败分析找到了具体原因：一次是工具结果的 4 KB 上限截掉了关键错误，一次是推理少走了一步，加上组件按字符串精确比对。我没有为了提高分数去改提示或补答案，而是把它们记为下一版的改进方向。
+> 为了检验医生是不是只会做自己出的题，我把它接到一个从没见过的开源系统 OpenTelemetry Demo 上。它的日志存在 OpenSearch 里，我按原来的日志接口写了第二个实现，工具和 Agent 的代码一行没改，并用同一张契约测试表验证两种后端行为一致。接入时发现采集器因为字段类型冲突，正在拒收一部分日志；于是先修采集，再给每份诊断单独审计它用到的日志窗口，然后才开始评测。用 Terra 在 5 个官方故障上跑 E1 和 E2，组件定位从自建系统的约 92%（各 36/39，数据台账 P10-2、P10-3）降到 60%（各 3/5，P9-77）。失败分析找到了具体原因：一次是很长的调用链被工具结果的 4 KB 上限截断，医生没看到出错的地址，只能报原因未知；一次是推理少走了一步，加上组件按字符串精确比对。我没有为了提高分数去改提示或补答案，而是把它们记为下一版的改进方向。
 
 | 交付 | 作用 |
 |---|---|
@@ -74,7 +74,7 @@ OpenTelemetry Demo（下面简称 Demo）是 OpenTelemetry 官方的一个多语
 
 先按[第二系统部署说明](../../deploy/opentelemetry/README.md)检查资源、取得固定源码并配置环境。不要同时启动两套靶场；切换时停止对应的业务和观测组件，保留医生及医生数据库。
 
-**第 1 步：独立部署医生。** 医生现在可以只启动它自己和它的 MySQL。通用步骤见[医生部署说明](../../deploy/doctor/README.md)，自己的系统怎样写配置见[接入指南](../onboarding.md)。阶段 9 用通用的双服务文件，再加一份只覆盖本阶段身份、预算和端口的文件：
+**第 1 步：独立部署医生。** 医生现在可以只启动它自己和它的 MySQL。通用步骤见[医生部署说明](../../deploy/doctor/README.md)，自己的系统怎样写配置见[接入指南](../onboarding.md)。阶段 9 用通用的双服务文件，再加一份只覆盖本阶段身份、预算、端口，以及免费预检程序要用的 `/tmp` 内存挂载的文件：
 
 ```text
 docker compose --env-file .env.phase09-doctor -p opsdoctor-phase09-doctor -f deploy/doctor/compose.yaml -f deploy/opentelemetry/doctor.phase09.yaml up -d --build --wait --wait-timeout 240
@@ -151,14 +151,14 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 
 | 顺序 | 做了什么 |
 |---|---|
-| 1 | 保存 Demo 完整的原功能开关配置和本轮预期配置（`changeDemoFlag` 只改选定开关的命中分支） |
+| 1 | 把 Demo 完整的原功能开关配置、本轮预期配置和故障开始时间一起写进恢复记录（`changeDemoFlag` 只改选定开关的命中分支） |
 | 2 | 写入开关并读回（`writeDemoFlags`），HTTP 成功不等于行为已经生效 |
-| 3 | 等症状查询成立（最多五分钟），保存故障开始时间 |
+| 3 | 等症状查询成立（从开始时间算，最多五分钟），另外记下症状第一次被观察到的时间 |
 | 4 | 创建诊断之前，先保存 Collector 的容器身份和一条已有日志作为锚点（`beginCollectorWindow`） |
 | 5 | 医生诊断；结束后保存 Collector 的原始日志窗口，核对身份、锚点和计数（`collectorWindow.finish`），得出采集质量 normal、affected 或 unknown |
 | 6 | 采集质量 normal 才交给评委评分；否则单列，暂停后续槽位 |
 | 7 | 恢复完整的原配置并读回核对（`restoreDemoRecord`）；当前状态既不是原配置也不是本轮配置，就不覆盖 |
-| 8 | 等健康：五分钟内必须出现一轮全部场景同时健康；再冷却五分钟 |
+| 8 | 等恢复：先等当前场景的健康查询成立，再等数据库里记录的冷却期结束，最后检查全部场景，要在同一轮里全部健康才放行 |
 
 和阶段 8 一样，每一步都有断点，状态用条件更新推进；同一个故障也用固定的诊断编号，续跑不会重复花钱。
 
@@ -227,6 +227,8 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 
 **代价。** 每接一个系统，都要先从真实的映射和样本确认字段。
 
+**规模变大十倍。** 接的系统多十倍，字段映射也多十倍，每一份都要从真实映射和样本核验。启动时的校验能挡住写错的配置，挡不住“配置没错、数据变了”：采集链路升级后字段改了名，要靠定期用真实样本回归来发现。
+
 ### 5.3 缺数据时减少能力，而不是跨系统补证据
 
 **问题。** Demo 用 PostgreSQL，现有的 MySQL 检查器解释不了它的执行计划；Valkey 没有配只读账号；大部分服务不是 Go，也没有 pprof 地址。
@@ -247,6 +249,8 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 
 **代价。** 代码约束不能替代服务账号的权限。这次官方 Demo 禁用了安全插件；真实集群开启认证时，应配置只读账号，账号和密码仍从环境变量取得。不能因为本机查询成功就声称已经验证了生产集群的账号授权。
 
+**规模变大十倍。** 接的后端多了，每个都要单独确认哪些路径是只读的，不能按 HTTP 方法一刀切；只读账号也要每个后端各配一个，并有权限测试证明写不进去。
+
 ### 5.5 医生独立部署，不依赖 shop
 
 **问题。** 原来的完整演示 Compose 逐项列出 `SHOP_` 变量、默认挂载全部系统配置。接一个新系统时，还要先填 shop 的整套账号，这让演示环境变成了部署依赖。
@@ -254,12 +258,14 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 **做法。** 先核对真实的启动配置：Go 程序只要求医生自身的库、登录与 JWT，系统凭据由各系统的 YAML 引用，本来就没有 shop 必填。所以这次只补部署入口，没有改 Go 代码：
 
 - [deploy/doctor/compose.yaml](../../deploy/doctor/compose.yaml) 只定义医生和医生的 MySQL 两个服务；
-- 阶段 9 的 [doctor.phase09.yaml](../../deploy/opentelemetry/doctor.phase09.yaml) 只覆盖容器名、本阶段的两个预算账户和宿主端口；
+- 阶段 9 的 [doctor.phase09.yaml](../../deploy/opentelemetry/doctor.phase09.yaml) 只覆盖容器名、本阶段的两个预算账户、宿主端口，以及一个可执行、32 MiB 的 `/tmp` 内存挂载（免费预检程序在里面运行）；
 - 医生自己的配置放 `.env.phase09-doctor`，各系统引用的凭据放另一个文件，由 `DOCTOR_TARGET_ENV_FILE` 交给医生进程。加载器仍会检查每份 YAML 声明的变量，缺了就拒绝启动。
 
 **新库不等于新预算。** 新的医生库不会继承旧账。切换之前先核对了旧库阶段 9 的生成请求和美元支出都是 0，旧账证据保留（P9-27），才没有把部署隔离变成预算重置。
 
 **代价。** 更换系统配置文件后要重启医生才会重新加载。
+
+**规模变大十倍。** 接的系统多十倍，改任何一个系统的配置都要重启医生，所有系统的诊断都受影响。那时值得支持不重启就重新加载，并且新配置加载失败时继续用旧配置运行。
 
 ### 5.6 外部场景控制：先保存原状，只改命中分支
 
@@ -275,6 +281,8 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 - **症状要按真实行为写。** 购物车清空错误不一定让结账 HTTP 返回失败：上游实现忽略了这个返回值。所以这场的症状查的是购物车的错误 span，不能把自己想象的症状写成验收条件。
 
 **代价。** 每接一个外部系统，都要读它的开关配置和上游源码，才知道“只改一处”应该改在哪里。
+
+**规模变大十倍。** 外部系统和故障开关多了，每一个都要有“先保存原状、写入后读回、只改一处”的控制代码和对应的恢复测试。外部开关服务和评测器不在同一个事务里，所以“当前状态既不是原配置也不是本轮配置就不覆盖”这条保护要一直保留。
 
 ### 5.7 采集质量要先于诊断评分
 
@@ -298,6 +306,8 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 
 **代价。** 每份诊断多一份审计；审计本身失败也会让实验中断（首轮试跑就是因为读不到锚点而在创建任务前停下，11.7 节）。
 
+**规模变大十倍。** 诊断多十倍，采集审计也多十倍，要保存的原始日志窗口跟着变多。日志量再大，原始窗口可能大到存不下，那时只能改成保存计数和摘要，并接受审计变粗。
+
 ### 5.8 Jaeger 的部署前缀：只给这一个产品放开
 
 **问题。** Demo 把 Jaeger 放在 `/jaeger/ui` 之下。原适配器只接受站点根地址，单改配置会被共享的 HTTP 校验拒绝；把共享校验直接放宽，又会影响其他数据源的边界。
@@ -306,6 +316,8 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 
 **代价。** 每遇到一种部署差异，都要单独判断能不能放开、放开多少。
 
+**规模变大十倍。** 部署差异多了，“只给一个产品放开”的特例也会变多，每个特例都要有测试证明没有影响其他数据源。特例多到一定程度，就该把“允许带路径前缀”做成每个数据源可以单独声明的配置，而不是继续在代码里加特例。
+
 ### 5.9 健康基线：同一轮全部通过，没有调用的点不能删
 
 **问题。** 正式评测前回放历史指标，发现有些时刻同时是“调用增量为零、错误增量也为零”。健康条件要求“有调用且没有错误”，这些点确实不健康。
@@ -313,6 +325,8 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 **做法。** 不删这些点，也不改健康判据。用户批准的办法只改变等待方式：恢复后每五秒重新检查全部场景，五分钟内必须出现一轮**全部同时健康**；不同轮次的成功不能拼起来；查询报错立即停止。真实运行时，OT04 冷却后的健康轮询用了约 35 秒、八轮才出现一轮全部通过（P9-71）。原生指标显示 spanmetrics 的样本间隔中位数约 60 秒（P9-73），短窗口内已完成的调用计数会出现平台，需要等到下一批增量。
 
 **代价。** 健康检查变慢；而且“首次观察到健康”不等于“业务在那一刻恢复”。
+
+**规模变大十倍。** 场景多十倍，“同一轮全部健康”更难出现，等待会变长，也更容易被一个不相关的场景卡住。那时可以只检查和下一场实验有关的服务，但哪些服务算“有关”要事先写清楚，不能临时决定。
 
 ### 5.10 适配成功和泛化效果是两个结论
 
@@ -327,17 +341,19 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 | E1：工具 | 3/5 | 2 / 2 / 1 | 0.75 |
 | E2：工具与通用手册 | 3/5 | 2 / 2 / 1 | 0.75 |
 
-同为 Terra 的 E1/E2，阶段 8 各为 36/39（P10-2、P10-3），这次各为 3/5，描述性地下降约 32 个百分点（[两阶段并列结果](../reports/phase-09-results-summary.md)）。但阶段 8 是十三场景各三次，这次是五场景各一次，故障类型和可用工具（8 个对 16 个）都不同，不能把差值全算在“泛化能力”上。
+同为 Terra 的 E1/E2，阶段 8 各为 36/39（P10-2、P10-3），这次各为 3/5（P9-77），描述性地下降约 32 个百分点（[两阶段并列结果](../reports/phase-09-results-summary.md)）。但阶段 8 是十三场景各三次，这次是五场景各一次，故障类型和可用工具（8 个对 16 个）都不同，不能把差值全算在“泛化能力”上。
 
 **失败分析**（[失败分析](../reports/phase-09-failure-analysis.md)）：
 
 - **OT02 购物车清空失败**：两份报告的组件写的是 `cart->valkey-cart`，标准答案是 `cart`，字符串精确比较不相等。报告找到了 EmptyCart 的连接异常方向，但没识别出它的专用存储客户端连向了错误地址、其他购物车操作仍用正常客户端，机制评为部分正确；证据覆盖度却是 1。不能因为字符串里含有 cart，就事后改成命中。
-- **OT04 结账的支付调用无法连接**：两组都选了 unknown，并在报告里说明失败链路的后半段被截断，确认不了下游组件。完整的工具结果确认 `get_trace` 返回了 `truncated=true`：写着“连不上错误支付地址”的那一段正好在被截掉的后半截（阶段 5 的 5.4 节）。诚实写出缺少证据是对的，但没找出根因，机制仍是错误。
+- **OT04 结账的支付调用无法连接**：两组都选了 unknown，并在报告里说明失败链路的后半段被截断，确认不了下游组件。完整的工具结果确认 `get_trace` 返回了 `truncated=true`，保留下来的可见内容里没有支付地址或端口（数据台账 P9-82）。冻结场景的答案知道真实机制，但现有材料确认不了那条错误当时是不是在被截掉的部分里，只能说“当时可见的调用树已截断，看不到根因”（阶段 5 的 5.4 节）。诚实写出缺少证据是对的，但没找出根因，机制仍是错误。
 - **OT05 部分商品详情查询失败**：定位到 product-catalog，却没确认具体商品和完整错误详情，机制部分正确。
 
 **放弃了什么：看着错题改提示再重跑。** 那样测到的是“对这套题有多熟”。正确做法是把改进（比如摘要优先保留出错的 span）做成新版本，在 shop 和 Demo 两个系统上全量重跑，旧结果和失败都保留。
 
 **费用。** 正式批次 USD $0.325033、CNY ¥0.196047（P9-78），按项目用量账本计，两个币种不相加。每份诊断平均 5.4 轮、约 21 次工具、约 26 秒（P9-81）。
+
+**规模变大十倍。** 外部场景从 5 个变成 50 个，3/5 这样的数字才开始有统计意义；但每个场景都要读开关配置、写症状和标准答案，准备成本也涨十倍。更现实的做法是挑几个不同类型的开源系统，各接少量场景。
 
 ### 5.11 HTTP 成功不等于评分成功
 
@@ -346,6 +362,8 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 **做法。** API 响应有两层：外层告诉客户端模型回复和用量，内层工具参数才是要采纳的评分。外层能解析、费用能结算，内层仍可能是不合法的 JSON。冻结校验拒绝这份评分，记为“评分失败”：原文里出现 `correct` 不等于有效评分，默认的 `coverage=0` 也不是测出了零覆盖率。原回答、原失败和费用都保留，不修一下 JSON 或再问一次来让门槛变绿。
 
 之后用户批准按阶段 8 的方式处理评分失败：同一批次里前两份评分失败可以继续，累计到第三份才暂停（P9-58）。API 失败、回答或费用无法确认，以及诊断、采集异常仍会停止。
+
+**规模变大十倍。** 评分多十倍，评分失败的次数也多十倍，“累计到第三份才暂停”的门槛要按比例重定，或者改成按失败率判断。每一份失败仍要保留原文和费用，不能因为数量多就只记一个总数。
 
 ## 6. 系统设计八股
 
@@ -378,7 +396,7 @@ go test -race ./internal/doctor/source/opensearch -run TestIntegrationSearchLogs
 
 #### 一分钟口述版
 
-首先说明自建靶场上的成绩有“主场优势”，不能直接外推：同样是 Terra 完整工具组，自建靶场组件定位 36/39，开源 Demo 是 3/5。但我不会把差距全归因于泛化能力，因为两边的场景数、运行次数、故障类型和可用工具都不一样，Demo 只有 8 个工具。更有价值的是逐个看失败原因：一个是工具结果的 4KB 上限把调用链后半段截掉了，关键错误正好在后面，医生如实写了原因未知；一个是推理少走了一步，找到了连接异常的方向，但没识别出是专用客户端连错了地址，加上组件按字符串精确比对；还有一个定位对了服务，没确认具体商品。这些都记成下一版的改进方向，比如摘要优先保留出错的步骤；我没有看着错题改提示再重跑，因为那样测的是对题目的熟悉程度。
+首先说明自建靶场上的成绩有“主场优势”，不能直接外推：同样是 Terra 完整工具组，自建靶场组件定位 36/39，开源 Demo 是 3/5。但我不会把差距全归因于泛化能力，因为两边的场景数、运行次数、故障类型和可用工具都不一样，Demo 只有 8 个工具。更有价值的是逐个看失败原因：一个是工具结果的 4KB 上限把很长的调用链截断了，医生没看到出错的地址，如实写了原因未知；一个是推理少走了一步，找到了连接异常的方向，但没识别出是专用客户端连错了地址，加上组件按字符串精确比对；还有一个定位对了服务，没确认具体商品。这些都记成下一版的改进方向，比如摘要优先保留出错的步骤；我没有看着错题改提示再重跑，因为那样测的是对题目的熟悉程度。
 
 #### 要点
 
@@ -424,18 +442,18 @@ ES 和 OpenSearch 快在倒排索引：写入时先把正文切成词，记录�
 
 #### 一分钟口述版
 
-契约测试是用同一份行为要求去测一个接口的多个实现，或者测服务的提供方和调用方是否遵守同一份约定。我的项目里，日志接口有 Loki 和 OpenSearch 两个实现，我写了一张用例表，覆盖服务、级别、关键词、特殊字符、trace、时间范围、条数上限、空结果和超时，两个实现跑同一张表，期望结果完全相同，同时分别检查各自发出的请求是否正确。它证明的是“换实现不用改调用方”这个承诺在这些用例下成立。它证明不了真实集群已经接通，那要靠集成测试；也证明不了所有语言的任意文本检索结果逐字一样。后来真实样本里发现日志级别有大小写差异，契约表原来没覆盖到，就补了进去。
+契约测试是用同一份行为要求去测一个接口的多个实现，或者测服务的提供方和调用方是否遵守同一份约定。我的项目里，日志接口有 Loki 和 OpenSearch 两个实现，我写了一张用例表，覆盖服务、级别、关键词、特殊字符、trace、时间范围、条数上限、空结果和超时，两个实现跑同一张表，期望结果完全相同，同时分别检查各自发出的请求是否正确。它证明的是“换实现不用改调用方”这个承诺在这些用例下成立。它证明不了真实集群已经接通，那要靠集成测试；也证明不了所有语言的任意文本检索结果逐字一样。后来真实样本里发现日志级别有大小写差异：共享的契约表约定翻译出的查询要带 `case_insensitive`，不同大小写的真实数据由 OpenSearch 适配器自己的回归测试单独测。
 
 #### 要点
 
 - 同一张表，多个实现，相同期望。
 - 同时检查结果和发出的请求。
 - 和集成测试分工：契约测行为约定，集成测真实连通。
-- 发现新差异就补进契约表。
+- 发现新差异，共同的约定补进契约表，某个后端特有的细节放进它自己的回归测试。
 
 #### 项目里的例子
 
-- [log_contract_test.go](../../internal/doctor/source/log_contract_test.go)；数据台账 P9-21。
+- [log_contract_test.go](../../internal/doctor/source/log_contract_test.go)、[opensearch/client_test.go](../../internal/doctor/source/opensearch/client_test.go)；数据台账 P9-21。
 
 #### 常见追问
 
@@ -620,7 +638,7 @@ go test ./internal/eval/report -run 'TestCollectionQuality|TestMarkdownCollectio
 OpsDoctor 可读性改造的第 4 批改了数据源，第 7 批改了评测器：
 
 1. 原来写在 OpenSearch 适配器注释里的历史（“工具只接受大写级别，精确匹配曾查到 0 条”）挪进了本材料 11.5 节，代码注释只保留“为什么只放宽级别的大小写”。
-2. 评测器的泛化部分有 9 个长函数和 `runGeneralization` 只改了注释：它们的函数体在现有 Mock 测试下覆盖率是 0，没法证明拆分以后行为不变。
+2. 整个 `eval/runner` 的 9 个长函数（其中也有阶段 8 的 `pilot`、`executeSlot`、`advanceTrial` 等），以及泛化入口 `runGeneralization`，都只改了注释：它们的函数体在现有 Mock 测试下覆盖率是 0，没法证明拆分以后行为不变。
 3. 配对、账户和续跑的约束仍在原处：E1/E2 共用同一次注入；医生和评委各用本阶段的独立账户；续跑先核对原记录再推进。
 
 **怎么验证：** 工具结果的 golden、评分和命令行的 golden 逐字节不变；只改注释的文件去掉注释后逐个 token 比较，完全相同。
@@ -632,11 +650,11 @@ OpsDoctor 可读性改造的第 4 批改了数据源，第 7 批改了评测器�
 | 说法 | 出处 |
 |---|---|
 | OpenTelemetry Demo 的架构、服务语言和官方故障开关 | [OpenTelemetry Demo 文档](https://opentelemetry.io/docs/demo/)、[Feature Flags](https://opentelemetry.io/docs/demo/feature-flags/) |
-| OpenSearch 的 term、match_phrase、range 查询；term 的 `case_insensitive` 参数 | OpenSearch 文档 [Term query](https://docs.opensearch.org/latest/query-dsl/term/term/)、[Match phrase](https://docs.opensearch.org/latest/query-dsl/full-text/match-phrase/) |
+| OpenSearch 的 term、match_phrase、range 查询；term 的 `case_insensitive` 参数 | OpenSearch 文档 [Term query](https://docs.opensearch.org/latest/query-dsl/term/term/)、[Match phrase](https://docs.opensearch.org/latest/query-dsl/full-text/match-phrase/)、[Range query](https://docs.opensearch.org/latest/query-dsl/term/range/) |
 | text 与 keyword 字段、多字段（`.keyword` 子字段） | OpenSearch 文档 [Keyword field type](https://docs.opensearch.org/latest/field-types/supported-field-types/keyword/) |
 | 默认用 BM25 计算相关度 | OpenSearch 文档 [Similarity](https://docs.opensearch.org/latest/field-types/mapping-parameters/similarity/) |
 | Loki 只给标签建索引，正文在查询时过滤 | Grafana Loki 文档 [Loki overview](https://grafana.com/docs/loki/latest/get-started/overview/) |
-| LogQL 的行过滤 `|=` 和标签过滤 | Grafana Loki 文档 [Log queries](https://grafana.com/docs/loki/latest/query/log_queries/) |
+| LogQL 的行过滤 `\|=` 和标签过滤 | Grafana Loki 文档 [Log queries](https://grafana.com/docs/loki/latest/query/log_queries/) |
 | OpenTelemetry Collector 的 transform 处理器 | [opentelemetry-collector-contrib transformprocessor](https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/processor/transformprocessor) |
 | 采集修复、正式结果和失败分析的全部数字 | 本仓库[日志修复专项报告](../reports/phase-09-logging-fix.md)、[失败分析](../reports/phase-09-failure-analysis.md)、[两阶段并列结果](../reports/phase-09-results-summary.md)、[数据台账](../数据台账.md) P9 段 |
 

@@ -2,7 +2,7 @@
 
 每个阶段一份，按阶段顺序读。后一个阶段会用到前一个阶段的代码。
 
-**先学 Mini-Redis。** OpsDoctor 的学习材料以系统设计为主线，Go 语法只给链接，讲解在 [Mini-Redis 的学习文档](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/README.md)里。
+**先学 Mini-Redis。** OpsDoctor 的学习材料以系统设计为主线。Mini-Redis 已经讲过的 Go 写法只给链接，讲解在 [Mini-Redis 的学习文档](https://github.com/Li-Nepenthe/mini-redis/blob/main/docs/learn/README.md)里；项目特有的用法，在相应阶段用短例讲解。
 
 **想先看全貌**，读[系统设计总览](system-overview.md)：两分钟项目介绍、模块划分、两条核心流程和最重要的五个取舍。
 

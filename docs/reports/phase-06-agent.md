@@ -227,8 +227,8 @@
 | reportSchema | [internal/doctor/agent/report.go:20:1](../../internal/doctor/agent/report.go#L20) | reportSchema 对象字段全部显式必填，unknowns 可为空，但不能省略 | app 装配；run 调用 Run；其余由会话内部使用 |
 | reportDefinition | [internal/doctor/agent/report.go:48:1](../../internal/doctor/agent/report.go#L48) | reportDefinition 让模型看到的 Schema 与 validateReport 使用的 Schema 来自同一函数 | app 装配；run 调用 Run；其余由会话内部使用 |
 | validateReport | [internal/doctor/agent/report.go:54:1](../../internal/doctor/agent/report.go#L54) | validateReport 不接受超过 16 KiB 的报告，字段范围和真实步骤均通过后才返回原始 JSON | app 装配；run 调用 Run；其余由会话内部使用 |
-| *schema.check | [internal/doctor/agent/schema.go:101:1](../../internal/doctor/agent/schema.go#L101) | check 返回具体字段路径，让模型知道该改报告的哪一处 | app 装配；run 调用 Run；其余由会话内部使用 |
-| *schema.checkObject | [internal/doctor/agent/schema.go:140:1](../../internal/doctor/agent/schema.go#L140) | checkObject 先检查必填字段，再检查多余字段，不把缺项悄悄当作空字符串 | app 装配；run 调用 Run；其余由会话内部使用 |
+| *schema.check | [internal/doctor/agent/schema.go:101:1](https://github.com/Li-Nepenthe/opsdoctor/blob/7feb4a8d6dfa71ae027a6d6a76da515c4df014a1/internal/doctor/agent/schema.go#L101) | check 返回具体字段路径，让模型知道该改报告的哪一处 | app 装配；run 调用 Run；其余由会话内部使用 |
+| *schema.checkObject | [internal/doctor/agent/schema.go:140:1](https://github.com/Li-Nepenthe/opsdoctor/blob/7feb4a8d6dfa71ae027a6d6a76da515c4df014a1/internal/doctor/agent/schema.go#L140) | checkObject 先检查必填字段，再检查多余字段，不把缺项悄悄当作空字符串 | app 装配；run 调用 Run；其余由会话内部使用 |
 | schema | [internal/doctor/agent/schema.go:22:6](../../internal/doctor/agent/schema.go#L22) | schema 只用于本包拥有的报告格式，不是任意外部 Schema 的解释器 | app 装配；run 调用 Run；其余由会话内部使用 |
 | decodeJSON | [internal/doctor/agent/schema.go:38:1](../../internal/doctor/agent/schema.go#L38) | decodeJSON 用 Token 逐项读取，以便发现重复字段；普通 Unmarshal 会保留最后一次值 | app 装配；run 调用 Run；其余由会话内部使用 |
 | readValue | [internal/doctor/agent/schema.go:52:1](../../internal/doctor/agent/schema.go#L52) | readValue 限制嵌套层数，恶意 JSON 不能让递归无限深入 | app 装配；run 调用 Run；其余由会话内部使用 |
@@ -329,7 +329,7 @@
 | decodeResponse | [internal/doctor/llm/openai/protocol.go:24:1](../../internal/doctor/llm/openai/protocol.go#L24) | decodeResponse 限制回复大小，保留接口 model；缺少该字段时才用请求模型 | app 创建；agent 经 llm.Client 调用 |
 | httpProblem | [internal/doctor/llm/openai/protocol.go:62:1](../../internal/doctor/llm/openai/protocol.go#L62) | httpProblem 的白名单不包含网络错误，避免无法确认是否计费时盲目重复生成 | app 创建；agent 经 llm.Client 调用 |
 | retryAfter | [internal/doctor/llm/openai/protocol.go:80:1](../../internal/doctor/llm/openai/protocol.go#L80) | retryAfter 支持秒数和 HTTP 日期；未提供时等待一秒，避免立即重试形成突发 | app 创建；agent 经 llm.Client 调用 |
-| wait | [internal/doctor/llm/openai/protocol.go:92:1](../../internal/doctor/llm/openai/protocol.go#L92) | wait 用 select 同时等待计时器和取消，不使用无法提前结束的 Sleep | app 创建；agent 经 llm.Client 调用 |
+| wait | [internal/doctor/llm/openai/protocol.go:92:1](https://github.com/Li-Nepenthe/opsdoctor/blob/7feb4a8d6dfa71ae027a6d6a76da515c4df014a1/internal/doctor/llm/openai/protocol.go#L92) | wait 用 select 同时等待计时器和取消，不使用无法提前结束的 Sleep | app 创建；agent 经 llm.Client 调用 |
 | *Scheduler.Wake | [internal/doctor/run/scheduler.go:111:1](../../internal/doctor/run/scheduler.go#L111) | Wake 合并高频通知，后台仍定期轮询，因此丢掉重复唤醒不会丢任务 | app 启停；HTTP 发起/取消；仓储实现接口 |
 | *Scheduler.Close | [internal/doctor/run/scheduler.go:119:1](../../internal/doctor/run/scheduler.go#L119) | Close 先阻止分配新名额，再取消所有在途任务，最后等待 goroutine 退出 | app 启停；HTTP 发起/取消；仓储实现接口 |
 | *Scheduler.loop | [internal/doctor/run/scheduler.go:133:1](../../internal/doctor/run/scheduler.go#L133) | loop 每秒检查队列；通知只是加快响应，不承担持久化职责 | app 启停；HTTP 发起/取消；仓储实现接口 |
@@ -349,8 +349,8 @@
 | New | [internal/doctor/run/scheduler.go:87:1](../../internal/doctor/run/scheduler.go#L87) | New 只检查配置，Start 完成数据库清理后才真正接受任务 | app 启停；HTTP 发起/取消；仓储实现接口 |
 | *Scheduler.Start | [internal/doctor/run/scheduler.go:95:1](../../internal/doctor/run/scheduler.go#L95) | Start 先失败化遗留 running，再清理过时告警；任何一步失败都不启动后台诊断 | app 启停；HTTP 发起/取消；仓储实现接口 |
 | Transition | [internal/doctor/run/state.go:24:1](../../internal/doctor/run/state.go#L24) | Transition 的表只允许向前推进，不能把终态重新排队 | app 启停；HTTP 发起/取消；仓储实现接口 |
-| QueryError | [internal/doctor/source/query_error.go:12:6](../../internal/doctor/source/query_error.go#L12) | QueryError 的文本必须已去掉敏感上下文；不要直接用原始网络错误构造它 | 工具与适配器的参数检查 |
-| *QueryError.Error | [internal/doctor/source/query_error.go:17:1](../../internal/doctor/source/query_error.go#L17) | Error 让工具注册表通过 errors.As 认出这类可公开的错误 | 工具与适配器的参数检查 |
+| QueryError | [internal/doctor/source/query_error.go:12:6](https://github.com/Li-Nepenthe/opsdoctor/blob/7feb4a8d6dfa71ae027a6d6a76da515c4df014a1/internal/doctor/source/query_error.go#L12) | QueryError 的文本必须已去掉敏感上下文；不要直接用原始网络错误构造它 | 工具与适配器的参数检查 |
+| *QueryError.Error | [internal/doctor/source/query_error.go:17:1](https://github.com/Li-Nepenthe/opsdoctor/blob/7feb4a8d6dfa71ae027a6d6a76da515c4df014a1/internal/doctor/source/query_error.go#L17) | Error 让工具注册表通过 errors.As 认出这类可公开的错误 | 工具与适配器的参数检查 |
 | quotedEnd | [internal/doctor/source/select.go:114:1](../../internal/doctor/source/select.go#L114) | quotedEnd 跳过一段带引号的内容，避免把字符串里的词误当 SQL 指令 | 工具与适配器的参数检查 |
 | SelectStatement | [internal/doctor/source/select.go:21:1](../../internal/doctor/source/select.go#L21) | SelectStatement 返回规范化后的单条 SELECT；工具和 MySQL 适配器都要调用 | 工具与适配器的参数检查 |
 | selectTextProblem | [internal/doctor/source/select.go:46:1](../../internal/doctor/source/select.go#L46) | selectTextProblem 分别解释拒绝原因，让模型知道应删注释、拆语句，还是缩短输入 | 工具与适配器的参数检查 |
@@ -362,7 +362,7 @@
 | *Client.query | [internal/doctor/source/mysqlinspect/client.go:136:1](../../internal/doctor/source/mysqlinspect/client.go#L136) | query 的 context 同时覆盖等池连接和读结果；最多十秒，不额外给排队续时 | 绑定系统的 MySQL 查看工具 |
 | explainError | [internal/doctor/source/mysqlinspect/client.go:184:1](../../internal/doctor/source/mysqlinspect/client.go#L184) | explainError 只放行未知列、表不存在和语法错误，它们包含标识符或调用者自己写的 SQL， | 绑定系统的 MySQL 查看工具 |
 | safeError | [internal/doctor/source/mysqlinspect/client.go:210:1](../../internal/doctor/source/mysqlinspect/client.go#L210) | safeError 保留错误号方便排查授权，不回显可能带 SQL 或账号信息的数据库原文 | 绑定系统的 MySQL 查看工具 |
-| tableName | [internal/doctor/source/mysqlinspect/client.go:222:1](../../internal/doctor/source/mysqlinspect/client.go#L222) | tableName 接受常规表名；真正的库名只来自构造配置 | 绑定系统的 MySQL 查看工具 |
+| tableName | [internal/doctor/source/mysqlinspect/client.go:222:1](https://github.com/Li-Nepenthe/opsdoctor/blob/7feb4a8d6dfa71ae027a6d6a76da515c4df014a1/internal/doctor/source/mysqlinspect/client.go#L222) | tableName 接受常规表名；真正的库名只来自构造配置 | 绑定系统的 MySQL 查看工具 |
 | Client | [internal/doctor/source/mysqlinspect/client.go:31:6](../../internal/doctor/source/mysqlinspect/client.go#L31) | Client 不暴露底层 sql.DB，调用者只能使用下面六种查看方法 | 绑定系统的 MySQL 查看工具 |
 | New | [internal/doctor/source/mysqlinspect/client.go:37:1](../../internal/doctor/source/mysqlinspect/client.go#L37) | New 不立即联网 | 绑定系统的 MySQL 查看工具 |
 | prepare | [internal/doctor/source/mysqlinspect/client.go:55:1](../../internal/doctor/source/mysqlinspect/client.go#L55) | prepare 把连接串中的选项收窄到查看工具需要的范围，防止部署误配打开多语句执行 | 绑定系统的 MySQL 查看工具 |

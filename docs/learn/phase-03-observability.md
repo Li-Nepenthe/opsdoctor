@@ -219,7 +219,7 @@ http_server_request_duration_seconds_count{method="POST",route="/orders",service
 
 **问题。** 出了问题要回答三个层次的问题：整体有没有问题、问题出在哪一步、那一步具体发生了什么。没有哪一种数据能同时回答这三个问题。
 
-**做法。** 指标看全局，调用链看一笔请求的路径，日志看细节；三者用同一个 trace_id 关联。典型的排查路线：看板显示下单变慢了（指标）→ 找一笔慢的下单，看它的调用链，发现慢在扣库存那一步（调用链）→ 用这笔请求的 trace_id 查日志，看库存服务当时报了什么错（日志）。
+**做法。** 指标看全局，调用链看一笔请求的路径，日志看细节。指标里没有 trace_id，只能按时间、服务和路由圈出范围；调用链和带调用链上下文的日志之间，才用同一个 trace_id 对照。典型的排查路线：看板显示下单变慢了（指标）→ 找一笔慢的下单，看它的调用链，发现慢在扣库存那一步（调用链）→ 用这笔请求的 trace_id 查日志，看库存服务当时报了什么错（日志）。
 
 **放弃了什么。** 只要日志。日志细节最多，但量大、难聚合：算 P99 要扫描所有日志；告警要不停地查日志。指标是预先聚合好的数字，便宜得多。
 
@@ -260,7 +260,7 @@ http_server_request_duration_seconds_count{method="POST",route="/orders",service
 
 Counter 的值本身没什么意义（“从启动到现在一共重试了 37 次”），有意义的是它增长的速度，所以查询时通常用 `rate()`：每秒增加了多少。程序重启后 Counter 归零，`rate()` 会自动处理这种情况。
 
-**补基础：rate 和 increase。** `rate(x[2m])` 是“最近 2 分钟里平均每秒增加多少”；`increase(x[2m])` 是“最近 2 分钟一共增加了多少”，大约等于 `rate` 乘以 120。两者都只用窗口里实际采到的点来算，再按比例推算到整个窗口，所以 `increase` 的结果经常不是整数。阶段 9 就碰到过：外部 Demo 的业务指标大约每 60 秒才更新一次，2 分钟的窗口里只有两个点，`increase` 把这一分钟的增量按比例放大成两倍，查出来的几乎都是偶数。所以不能把 `increase` 的结果直接当成“发生了几次”。
+**补基础：rate 和 increase。** `rate(x[2m])` 是“最近 2 分钟里平均每秒增加多少”；`increase(x[2m])` 是“最近 2 分钟一共增加了多少”，大约等于 `rate` 乘以 120。两者都只用窗口里实际采到的点来算，再按比例推算到整个窗口，所以 `increase` 的结果经常不是整数。阶段 9 就碰到过：外部 Demo 的业务指标大约每 60 秒才采一个点（数据台账 P9-73），2 分钟的窗口里往往只有两个点，`increase` 按比例外推出来的数不能当实际次数。所以不能把 `increase` 的结果直接当成“发生了几次”。
 
 **P99 怎样从直方图算出来。** Histogram 不保存每一个请求的耗时，而是预先划分好一组区间，只记“落在每个区间里的有多少个”。本项目的区间边界是：1ms、5ms、10ms、25ms、50ms、100ms、250ms、500ms、1s、2s、5s、10s。查询写法：
 
@@ -290,7 +290,7 @@ histogram_quantile(0.99,
 
 **为什么不能把几个实例的 P99 平均。** 实例 A 处理了 100 个请求，全都是 10 毫秒，P99 是 10 毫秒。实例 B 也是 100 个，其中 2 个用了 2 秒，P99 是 2 秒。两个 P99 平均，大约是 1 秒。可是把 200 个请求放在一起，慢的只有 2 个，第 198 个（0.99 × 200）仍然是 10 毫秒的快请求，真实的 P99 还是 10 毫秒左右。正确的做法是先把各实例的区间计数加起来，再算 P99。
 
-**放弃了什么。** Summary 类型：在服务端直接算好分位数。精确，但各实例算好的分位数没法再合并。直方图可以先合并再算，适合多实例。
+**放弃了什么。** Summary 类型：在被监控的服务里直接算好分位数。它也是估计值，误差按配置控制；更大的问题是各实例算好的分位数没法再合并。直方图可以先合并再算，适合多实例。
 
 **代价。** P99 只是估计值；区间边界定死以后，想看更细的分布就得改代码。区间越多，时间序列越多（每个区间一条）。
 
@@ -345,7 +345,7 @@ histogram_quantile(0.99,
 
 **问题。** 日志和调用链要能互相跳转。
 
-**做法。** 每条日志都会自动带上 `trace_id` 和 `span_id`。日志包每次写日志时，都会从 context 里取**当前的** span，而不是请求进来时存下的那个。一次请求进来时有一个入口 span，执行 SQL 时又会创建子 span。如果一直用入口 span 的 ID，SQL 出错时写的日志就会指向错误的位置。trace_id 在整条链上都一样，span_id 精确指向具体是哪一步。
+**做法。** 只要 context 里有有效的 span，日志就会自动带上 `trace_id` 和 `span_id`；没有调用链的后台任务，日志里就没有这两个字段。日志包每次写日志时，都会从 context 里取**当前的** span，而不是请求进来时存下的那个。一次请求进来时有一个入口 span，执行 SQL 时又会创建子 span。如果一直用入口 span 的 ID，SQL 出错时写的日志就会指向错误的位置。trace_id 在整条链上都一样，span_id 精确指向具体是哪一步。
 
 没有被采样的请求，日志里也有 trace_id（ID 照样生成，只是 span 不发给 Jaeger）。所以日志能串起每一笔请求，调用链只能看被采样的那些。
 
@@ -525,7 +525,7 @@ P99 是把一段时间里所有请求的耗时排序后，第 99% 位置上的�
 
 #### 一分钟口述版
 
-先看指标定范围：是哪个接口、从什么时候开始、P99 和错误率怎么变、是所有实例还是一个实例。然后找一笔同一时段的慢请求，看它的调用链，确定慢在哪一步。再用它的 trace_id 查那一步的日志，看具体发生了什么。最后用底层数据验证猜想，比如数据库的慢查询、网络、DNS。我做过一次真实的排障：闲置半小时后恢复流量，调用库存服务全部超时。调用链里没有 gRPC 的 span，说明卡在发出调用之前；在容器里分别测 DNS 的 A 记录和 TXT 记录，A 记录 0.19 秒返回，TXT 记录 5 秒才超时；再读 grpc-go 的源码，确认它要等两种记录都查完才发调用。修复是关掉从 DNS 读服务配置，而不是把超时调大。修复后在同样条件下复测，失败从 228 个降到 0。
+先看指标定范围：是哪个接口、从什么时候开始、P99 和错误率怎么变、是所有实例还是一个实例。然后找一笔同一时段的慢请求，看它的调用链，确定慢在哪一步。再用它的 trace_id 查那一步的日志，看具体发生了什么。最后用底层数据验证猜想，比如数据库的慢查询、网络、DNS。我做过一次真实的排障：闲置半小时后恢复流量，调用库存服务全部超时。调用链里没有 gRPC 的 span，说明卡在发出调用之前；在容器里分别测 DNS 的 A 记录和 TXT 记录，A 记录 0.19 秒返回，TXT 记录 5 秒才超时；再读 grpc-go 的源码，确认它要等两种记录都查完才发调用。修复是关掉从 DNS 读服务配置，而不是把超时调大。为了快速复现，修复前后都用同一个加速条件：连接空闲 10 秒就回收、停 25 秒不发请求。500 次请求里，失败或降级从 228 次降到 0（数据台账 P3-21、P3-23）。
 
 #### 要点
 
@@ -582,7 +582,7 @@ func main() {
 }
 ```
 
-项目里的 `KafkaHeaders` 就是这样定义的：`type KafkaHeaders []kafka.Header`。给它加上 `Get`、`Set`、`Keys` 三个方法后，它就满足了 OpenTelemetry 要求的接口，调用链信息就能写进 Kafka 消息头了。`Set` 用指针接收者，是因为 `append` 在容量不够时会换一块新的数组，值接收者改的只是一份拷贝。
+项目里的 `KafkaHeaders` 就是这样定义的：`type KafkaHeaders []kafka.Header`。给它加上 `Get`、`Set`、`Keys` 三个方法后，它就满足了 OpenTelemetry 要求的接口，调用链信息就能写进 Kafka 消息头了。`Set` 用指针接收者，是因为它要换掉整个切片：值接收者拿到的是切片头的拷贝，长度变了也传不回去，容量不够时 `append` 换了一块新数组更是如此。项目的 `Set` 先拼出一个去掉同名键的新切片，再加上新值，最后写回 `*headers`，所以转发时不会出现两个 `traceparent`。
 
 ### 7.3 装饰器：包一层，加点东西
 
@@ -773,7 +773,7 @@ http_server_request_duration_seconds_count{service="order-service", route="unmat
 **遇到的问题：**
 
 1. **Loki 的健康检查失败。** Loki 的官方精简镜像里没有 `wget` 命令，健康检查执行不了。改成从宿主机和 CI 里检查它的 `/ready` 地址。
-2. **Grafana 查不了 Jaeger。** 实测发现 Jaeger 2.22.0 去掉了 Grafana 还在用的一个接口，返回 404。Astra 按规则先停下来问你，你同意后把 Jaeger 固定在 2.20.0，同样的配置就能用了。对照证据和以后什么时候可以升级，都记录在 [decisions](../decisions.md#jaeger-compatibility) 里。
+2. **Grafana 查不了 Jaeger。** 实测发现 Jaeger 2.22.0 去掉了 Grafana 还在用的一个接口，返回 404（数据台账 P3-9）。Astra 按规则先停下来问你，你同意后把 Jaeger 固定在 2.20.0，同样的配置就能用了（P3-11）。对照证据和以后什么时候可以升级，都记录在 [decisions](../decisions.md#jaeger-compatibility) 里。
 3. **旧数据卷没有监控账号。** MySQL 的监控账号由初始化脚本创建，但旧数据卷不会重新执行初始化脚本，于是在已有的数据卷上手动执行了一次。
 
 **结果：** 8 个采集目标都是 UP，12 个面板都有数据。200 QPS 下停掉 order-worker，167 秒后收到了 ConsumerLagHigh 告警，恢复后收到了 resolved 通知。暂停流量后积压归零，订单件数和销量件数相等（P3-1 到 P3-7）。
@@ -861,10 +861,10 @@ OpsDoctor 可读性改造的第 3 批改了 telemetry 和 alertsink，代码由 
 | 说法 | 出处 |
 |---|---|
 | Counter、Gauge、Histogram、Summary 的区别；直方图可以跨实例聚合，Summary 不行 | Prometheus 文档 [Metric types](https://prometheus.io/docs/concepts/metric_types/)、[Histograms and summaries](https://prometheus.io/docs/practices/histograms/) |
-| `histogram_quantile` 假设区间内均匀分布并线性插值；`rate`、`increase` 按窗口外推 | Prometheus 文档 [Query functions](https://prometheus.io/docs/prometheus/latest/querying/functions/) |
+| `histogram_quantile` 对本项目用的经典直方图，假设桶内均匀分布并线性插值（原生直方图的指数桶用另一种插值）；`rate`、`increase` 按窗口外推 | Prometheus 文档 [Query functions](https://prometheus.io/docs/prometheus/latest/querying/functions/) |
 | 每个标签组合是一条时间序列，不要用无界的值做标签 | Prometheus 文档 [Metric and label naming](https://prometheus.io/docs/practices/naming/#labels) |
 | 告警规则的 `for` 和 pending、firing 状态 | Prometheus 文档 [Alerting rules](https://prometheus.io/docs/prometheus/latest/configuration/alerting_rules/) |
-| Alertmanager 的分组、`group_wait`、抑制 | Prometheus 文档 [Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/) |
+| Alertmanager 的分组、`group_wait`、抑制 | Prometheus 文档 [Alertmanager](https://prometheus.io/docs/alerting/latest/alertmanager/)；`group_wait` 等路由参数的含义和默认值见 [Configuration: route](https://prometheus.io/docs/alerting/latest/configuration/#route) |
 | `traceparent` 请求头的格式和标志位 | W3C [Trace Context](https://www.w3.org/TR/trace-context/) |
 | `parentbased_traceidratio` 采样器和 `OTEL_TRACES_SAMPLER` 环境变量 | OpenTelemetry [SDK 环境变量](https://opentelemetry.io/docs/specs/otel/configuration/sdk-environment-variables/) |
 | 批量发送的 span 处理器在队列满时丢弃记录 | OpenTelemetry Go [sdk/trace](https://pkg.go.dev/go.opentelemetry.io/otel/sdk/trace#WithBatcher) |

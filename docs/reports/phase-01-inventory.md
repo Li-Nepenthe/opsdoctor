@@ -294,7 +294,7 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、staticcheck 0.8.2 与 ub
 
 | 名称 | 位置（文件:行号） | 作用 | 被谁调用 / 使用 |
 |---|---|---|---|
-| Apply | [internal/shop/migrations/migrations.go:23](../../internal/shop/migrations/migrations.go#L23) | Apply 使用阶段 0 的命名锁和校验和机制应用迁移；调用方负责提供启动超时并关闭连接池 | inventoryservice.Run、shopctl.runSeed、两组业务集成测试 |
+| Apply | [internal/shop/migrations/migrations.go:23](https://github.com/Li-Nepenthe/opsdoctor/blob/54bd24f024001b57a5b4faa9d974c619957c24d8/internal/shop/migrations/migrations.go#L23) | Apply 使用阶段 0 的命名锁和校验和机制应用迁移；调用方负责提供启动超时并关闭连接池 | inventoryservice.Run、shopctl.runSeed、两组业务集成测试 |
 
 #### internal/shop/seed
 
@@ -327,10 +327,10 @@ Go 1.27.1、MySQL 8.4.13、Redis 8.10.2、Kafka 4.4.0、staticcheck 0.8.2 与 ub
 | inspectFunction | [tools/commentcheck/check.go:148](../../tools/commentcheck/check.go#L148) | inspectFunction 检查文档和长函数内部注释，并记录方法接收者，防止同名方法在清单里混淆 | inspectFile |
 | receiverName | [tools/commentcheck/check.go:181](../../tools/commentcheck/check.go#L181) | receiverName 直接读取 AST 类型表达式；支持指针和泛型接收者，不引入反射或类型加载依赖 | inspectFunction |
 | inspectDeclaration | [tools/commentcheck/check.go:202](../../tools/commentcheck/check.go#L202) | inspectDeclaration 检查包级类型、常量、变量；常量和变量允许组注释，局部变量不在机器检查范围 | inspectFile |
-| hasDoc | [tools/commentcheck/check.go:235](../../tools/commentcheck/check.go#L235) | hasDoc 不把空白注释或单独的 go: 指令当成说明，防止只有形式却没有可读内容 | packageDocument、函数/声明校验 |
-| firstSentence | [tools/commentcheck/check.go:238](../../tools/commentcheck/check.go#L238) | firstSentence 以换行或中文句号结束第一句；清单是初稿，不替代完整文档注释 | inspectFunction、inspectDeclaration、describeFile、fileDescription |
+| hasDoc | [tools/commentcheck/check.go:235](https://github.com/Li-Nepenthe/opsdoctor/blob/54bd24f024001b57a5b4faa9d974c619957c24d8/tools/commentcheck/check.go#L235) | hasDoc 不把空白注释或单独的 go: 指令当成说明，防止只有形式却没有可读内容 | packageDocument、函数/声明校验 |
+| firstSentence | [tools/commentcheck/check.go:238](https://github.com/Li-Nepenthe/opsdoctor/blob/54bd24f024001b57a5b4faa9d974c619957c24d8/tools/commentcheck/check.go#L238) | firstSentence 以换行或中文句号结束第一句；清单是初稿，不替代完整文档注释 | inspectFunction、inspectDeclaration、describeFile、fileDescription |
 | symbol | [tools/commentcheck/check.go:24](../../tools/commentcheck/check.go#L24) | symbol 是 -list 的一行；字段只保存源码信息，不执行或反射被检查的对象 | inspectFunction/inspectDeclaration 构造，writeList 读取 |
-| writeList | [tools/commentcheck/check.go:253](../../tools/commentcheck/check.go#L253) | writeList 按包和位置稳定排序，输出 Markdown 表格；写入错误会返回，避免生成不完整的汇报书 | run、清单测试 |
+| writeList | [tools/commentcheck/check.go:253](https://github.com/Li-Nepenthe/opsdoctor/blob/54bd24f024001b57a5b4faa9d974c619957c24d8/tools/commentcheck/check.go#L253) | writeList 按包和位置稳定排序，输出 Markdown 表格；写入错误会返回，避免生成不完整的汇报书 | run、清单测试 |
 | scanResult | [tools/commentcheck/check.go:32](../../tools/commentcheck/check.go#L32) | scanResult 把诊断、符号和文件导航放在一次扫描结果中，让三种输出模式使用同一份源码信息 | scan/inspectFile 累积，run 输出 |
 | scan | [tools/commentcheck/check.go:40](../../tools/commentcheck/check.go#L40) | scan 遍历 patterns 指定的目录（支持 ./...）；语法错误和读取错误直接返回，不静默漏检 | run、检查器测试 |
 | inspectFile | [tools/commentcheck/check.go:95](../../tools/commentcheck/check.go#L95) | inspectFile 解析单个文件并检查声明；标准生成标记由 ast.IsGenerated 识别，生成物跳过 | scan |
