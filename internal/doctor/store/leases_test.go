@@ -1,11 +1,11 @@
 // 本文件：用锁内可读到的诊断行与名额计数核对租约决定。
-// TestDecideClaim 逐项改变评测绑定、恢复条件和剩余名额，并检查多项条件同时不满足时先返回哪个错误。
+// 诊断行不满足领取条件时不会查询名额；多项条件同时不满足时，第一个错误决定调用方看到的原因。
 
 package store
 
 import "testing"
 
-func TestDecideClaim(t *testing.T) {
+func TestClaimRowEligible(t *testing.T) {
 	config := Config{ExecutionProfile: "primary", BudgetAccount: "operations", Currency: "CNY"}
 	request := claimRequest{model: "script", provider: "mock"}
 	pending := claimRow{status: "pending", currency: "CNY"}
@@ -28,6 +28,7 @@ func TestDecideClaim(t *testing.T) {
 		wantErr string
 	}{
 		{"普通待领取", pending, nil, true, ""},
+		{"等待审批可继续核对名额", waiting, nil, true, ""},
 		{"评测中跳过普通诊断", pending, func(r *claimRow) { r.evaluating = true }, false, ""},
 		{"评测绑定相符", eval, nil, true, ""},
 		{"评测已关闭", eval, func(r *claimRow) { r.evaluating = false }, false, wrongModel},
@@ -47,24 +48,39 @@ func TestDecideClaim(t *testing.T) {
 		{"运行中租约仍有效", running, func(r *claimRow) { r.available = false }, false, ""},
 		{"运行中证据过时", running, func(r *claimRow) { r.recent = false }, false, ""},
 		{"租约过期且证据仍新", running, nil, true, ""},
-		{"仍有待决定审批", waiting, func(r *claimRow) { r.undecided = 1 }, false, ""},
-		{"审批全部已有决定", waiting, nil, true, ""},
-		{"同系统名额已占", pending, func(r *claimRow) { r.sameTarget = 1 }, false, ""},
-		{"全局还剩一个名额", pending, func(r *claimRow) { r.active = 1 }, true, ""},
-		{"全局两个名额已满", pending, func(r *claimRow) { r.active = 2 }, false, ""},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			row := tc.row
 			if tc.change != nil {
 				tc.change(&row)
 			}
-			ok, err := decideClaim(row, config, request)
+			ok, err := claimRowEligible(row, config, request)
 			gotErr := ""
 			if err != nil {
 				gotErr = err.Error()
 			}
 			if ok != tc.want || gotErr != tc.wantErr {
 				t.Fatalf("决定=(%v, %q)，期望=(%v, %q)", ok, gotErr, tc.want, tc.wantErr)
+			}
+		})
+	}
+}
+
+func TestClaimSlotsAvailable(t *testing.T) {
+	for _, tc := range []struct {
+		name string
+		row  claimRow
+		want bool
+	}{
+		{"仍有待决定审批", claimRow{status: "waiting_approval", currency: "CNY", undecided: 1}, false},
+		{"审批全部已有决定", claimRow{status: "waiting_approval", currency: "CNY"}, true},
+		{"同系统名额已占", claimRow{status: "pending", currency: "CNY", sameTarget: 1}, false},
+		{"全局还剩一个名额", claimRow{status: "pending", currency: "CNY", active: 1}, true},
+		{"全局两个名额已满", claimRow{status: "pending", currency: "CNY", active: 2}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := claimSlotsAvailable(tc.row); got != tc.want {
+				t.Fatalf("名额可用=%v，期望=%v", got, tc.want)
 			}
 		})
 	}

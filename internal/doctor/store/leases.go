@@ -51,21 +51,24 @@ func (store *Store) claimLease(ctx context.Context, id, model, prompt, provider 
 	}
 	defer tx.Rollback()
 
-	row, err := store.readClaim(ctx, tx, request)
-	if err != nil {
+	row, eligible, err := store.readClaim(ctx, tx, request)
+	if err != nil || !eligible {
 		return false, err
 	}
-	if ok, err := decideClaim(row, store.config, request); !ok {
+	if err := row.readSlots(ctx, tx, request.id); err != nil {
 		return false, err
+	}
+	if !claimSlotsAvailable(row) {
+		return false, nil
 	}
 	return store.commitClaim(ctx, tx, request, row)
 }
 
-func (store *Store) readClaim(ctx context.Context, tx *sql.Tx, request claimRequest) (claimRow, error) {
+func (store *Store) readClaim(ctx context.Context, tx *sql.Tx, request claimRequest) (claimRow, bool, error) {
 	var row claimRow
 	var guard int
 	if err := tx.QueryRowContext(ctx, "SELECT id FROM scheduler_guard WHERE id=1 FOR UPDATE").Scan(&guard); err != nil {
-		return row, err
+		return row, false, err
 	}
 	err := tx.QueryRowContext(ctx, lockLeaseDiagnosisSQL,
 		-store.config.ResumeMaxAge.Microseconds(), request.id,
@@ -74,18 +77,14 @@ func (store *Store) readClaim(ctx context.Context, tx *sql.Tx, request claimRequ
 		&row.trigger, &row.expectedModel, &row.profile, &row.expectedProvider, &row.account,
 	)
 	if err != nil {
-		return row, err
+		return row, false, err
 	}
 	row.evaluating, err = evaluationEnabled(ctx, tx, row.target)
 	if err != nil {
-		return row, err
+		return row, false, err
 	}
-	// 此时名额计数仍为零。如果诊断行本身已不准领取，后续名额查询不会改变结论。
-	if ok, err := decideClaim(row, store.config, request); !ok {
-		return row, err
-	}
-	err = row.readSlots(ctx, tx, request.id)
-	return row, err
+	eligible, err := claimRowEligible(row, store.config, request)
+	return row, eligible, err
 }
 
 func (row *claimRow) readSlots(ctx context.Context, tx *sql.Tx, id string) error {
@@ -104,7 +103,7 @@ func (row *claimRow) readSlots(ctx context.Context, tx *sql.Tx, id string) error
 	return tx.QueryRowContext(ctx, "SELECT COUNT(*) FROM diagnoses WHERE id<>? AND status='running' AND lease_until>UTC_TIMESTAMP(6)", id).Scan(&row.active)
 }
 
-func decideClaim(row claimRow, config Config, request claimRequest) (bool, error) {
+func claimRowEligible(row claimRow, config Config, request claimRequest) (bool, error) {
 	if ok, err := claimEvaluationAllowed(row, config, request); !ok {
 		return false, err
 	}
@@ -116,15 +115,17 @@ func decideClaim(row claimRow, config Config, request claimRequest) (bool, error
 	}
 	switch row.status {
 	case "pending", "waiting_approval":
+		return true, nil
 	case "running":
 		// 即使调度器尚未清理，过时证据也不能用于接手。
-		if !row.available || !row.recent {
-			return false, nil
-		}
+		return row.available && row.recent, nil
 	default:
 		return false, nil
 	}
-	return row.undecided <= 0 && row.sameTarget <= 0 && row.active < 2, nil
+}
+
+func claimSlotsAvailable(row claimRow) bool {
+	return row.undecided <= 0 && row.sameTarget <= 0 && row.active < 2
 }
 
 func (store *Store) commitClaim(ctx context.Context, tx *sql.Tx, request claimRequest, row claimRow) (bool, error) {
