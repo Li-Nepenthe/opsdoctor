@@ -522,7 +522,7 @@ func main() {
 		panic(err)
 	}
 	_, injected := data["role"]
-	fmt.Println("字段数:", len(data))            // 字段数: 2
+	fmt.Println("字段数:", len(data))           // 字段数: 2
 	fmt.Println("伪造了角色:", injected)          // 伪造了角色: false
 	fmt.Println("原文完整保留:", restored == text) // 原文完整保留: true
 }
