@@ -369,7 +369,7 @@ CI 从空数据卷冷启动时，消费订单消息的 worker 偶尔以退出码
 
 #### 一分钟口述版
 
-Kafka 的消费者是主动去 broker 拉消息的。同一个消费组里的消费者分摊一个主题的分区，一个分区同一时刻只分给组里的一个消费者，所以组内消费者比分区多时，多出来的会闲着；不同的组各自保存位点、互不影响，每个组都能读到全部分区，从哪里开始读由已提交的位点或重置策略决定，过期删除的消息读不到。每个组有一个协调器，是某一台 broker，负责管理成员、触发再均衡、保存这个组提交的位点。消费者加入、离开、心跳超时，或者分区数变化，都会触发 Rebalance，也就是重新分配分区。传统的 eager 方式要求所有成员先放下手上的分区再重新分配，这段时间整个组都停止消费；而且如果某个消费者处理完消息、还没提交位点，分区就被分给了别人，这条消息会被再消费一次，所以消费端必须幂等。协作式再均衡只撤回需要转移的分区，其他分区照常消费，代价是交接可能要多一轮；Kafka 4.0 起还有一种新的消费组协议，把分配放到 broker 上做，Java 消费者要配置 `group.protocol=consumer` 才会用它。我的项目用的 kafka-go 走经典协议，订单主题 3 个分区，一个 order-worker 组；冷启动时协调器还没准备好，就是这次错误 16 的来源。
+Kafka 的消费者是主动去 broker 拉消息的。同一个消费组里的消费者分摊一个主题的分区，一个分区同一时刻只分给组里的一个消费者，所以组内消费者比分区多时，多出来的会闲着；不同的组各自保存位点、互不影响，每个组都能读到全部分区，从哪里开始读由已提交的位点或重置策略决定，过期删除的消息读不到。每个组有一个协调器，是某一台 broker，负责管理成员、触发再均衡、保存这个组提交的位点。消费者加入、离开、心跳超时，或者分区数变化，都会触发 Rebalance，也就是重新分配分区。传统的 eager 方式要求所有成员先放下手上的分区再重新分配，这段时间整个组都停止消费；而且如果某个消费者处理完消息、还没提交位点，分区就被分给了别人，这条消息会被再消费一次，所以消费端必须幂等。协作式再均衡只撤回需要转移的分区，其他分区照常消费，代价是交接可能要多一轮；Kafka 4.0 起还有一种新的消费组协议，把分配放到 broker 上做，Kafka 官方的消费者客户端要配置 `group.protocol=consumer` 才会用它。我的项目用的 kafka-go 走经典协议，订单主题 3 个分区，一个 order-worker 组；冷启动时协调器还没准备好，就是这次错误 16 的来源。
 
 #### 要点
 
@@ -555,7 +555,7 @@ worker 的健康接口只 Ping MySQL，健康不说明消费者已经入组。�
 | kafka-go 的错误常量 `GroupLoadInProgress`、`GroupCoordinatorNotAvailable`、`NotCoordinatorForGroup`；读取器在后台入组 | kafka-go v0.4.51 的 [error.go](https://github.com/segmentio/kafka-go/blob/v0.4.51/error.go)、[reader.go](https://github.com/segmentio/kafka-go/blob/v0.4.51/reader.go) |
 | 协作式再均衡 | [KIP-429](https://cwiki.apache.org/confluence/display/KAFKA/KIP-429%3A+Kafka+Consumer+Incremental+Rebalance+Protocol) |
 | 静态成员 | [KIP-345](https://cwiki.apache.org/confluence/display/KAFKA/KIP-345%3A+Introduce+static+membership+protocol+to+reduce+consumer+rebalances) |
-| 新一代消费组协议在 Kafka 4.0 正式可用；Java 消费者用 `group.protocol=consumer` 选择它 | [KIP-848](https://cwiki.apache.org/confluence/display/KAFKA/KIP-848%3A+The+Next+Generation+of+the+Consumer+Rebalance+Protocol)、[Kafka 4.0 发布公告](https://kafka.apache.org/blog/2025/03/18/apache-kafka-4.0.0-release-announcement/)、Kafka 文档 [Consumer Rebalance Protocol](https://kafka.apache.org/40/operations/consumer-rebalance-protocol/) |
+| 新一代消费组协议在 Kafka 4.0 正式可用；官方消费者客户端用 `group.protocol=consumer` 选择它 | [KIP-848](https://cwiki.apache.org/confluence/display/KAFKA/KIP-848%3A+The+Next+Generation+of+the+Consumer+Rebalance+Protocol)、[Kafka 4.0 发布公告](https://kafka.apache.org/blog/2025/03/18/apache-kafka-4.0.0-release-announcement/)、Kafka 文档 [Consumer Rebalance Protocol](https://kafka.apache.org/40/operations/consumer-rebalance-protocol/) |
 | kafka-go 走经典入组流程，由组 leader 计算分区分配 | kafka-go v0.4.51 的 [consumergroup.go](https://github.com/segmentio/kafka-go/blob/v0.4.51/consumergroup.go) |
 | Compose 项目名决定容器、网络和数据卷的归属；`-p`、`name` 和 `COMPOSE_PROJECT_NAME` | Docker 文档 [Specify a project name](https://docs.docker.com/compose/how-tos/project-name/) |
 | `depends_on` 的 `service_healthy` 只控制启动顺序；`up --wait` 等服务 running 或 healthy | Docker 文档 [Control startup order](https://docs.docker.com/compose/how-tos/startup-order/)、[docker compose up](https://docs.docker.com/reference/cli/docker/compose/up/) |
