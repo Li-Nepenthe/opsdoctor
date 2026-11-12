@@ -148,10 +148,10 @@ alertsink 看起来像历史遗留，但阶段 3 学习材料和命令仍引用�
 
 | 函数 | 参数与返回值 | 作用与调用关系 |
 |---|---|---|
-| [Consumer.Run](../../internal/shop/events/consumer.go#L77) | `ctx` → `error` | 调用 fetchMessage；取得消息后仍沿原 process 处理并提交 |
-| [Consumer.fetchMessage](../../internal/shop/events/consumer.go#L108) | `ctx` → `kafka.Message, error` | 沿用原 Reader，只对可恢复协调器错误做有界重取 |
-| [recoverableCoordinatorError](../../internal/shop/events/consumer.go#L131) | `err` → `bool` | 用 errors.Is 识别 14、15、16，包括被上下文包装的错误 |
-| [waitFetchRetry](../../internal/shop/events/consumer.go#L136) | `ctx, delay` → `error` | 等定时器或取消；由 fetchMessage 调用 |
+| [Consumer.Run](../../internal/shop/events/consumer.go#L69) | `ctx` → `error` | 调用 fetchMessage；取得消息后仍沿原 process 处理并提交 |
+| [Consumer.fetchMessage](../../internal/shop/events/consumer.go#L96) | `ctx` → `kafka.Message, error` | 沿用原 Reader，只对可恢复协调器错误做有界重取 |
+| [recoverableCoordinatorError](../../internal/shop/events/consumer.go#L119) | `err` → `bool` | 用 errors.Is 识别 14、15、16，包括被上下文包装的错误 |
+| [waitFetchRetry](../../internal/shop/events/consumer.go#L124) | `ctx, delay` → `error` | 等定时器或取消；由 fetchMessage 调用 |
 
 初次读取后，最多额外重取三次，退避依次为 250、500、1000ms。成功取得一条消息就结束本份预算，下一条重新计数。预算限制的是连续协调器错误次数；恢复后主题暂时没有订单，是正常空闲，因此不额外给整个 Fetch 加短 deadline。
 
@@ -199,7 +199,7 @@ alertsink 看起来像历史遗留，但阶段 3 学习材料和命令仍引用�
 |---|---|---|
 | 1 | [cmd/order-worker/main.go](../../cmd/order-worker/main.go) | 入口怎样把启动错误交给进程退出状态 |
 | 2 | [orderworker/doc.go](../../internal/shop/app/orderworker/doc.go) | 先看消费者组装包的位置、接口和文件分工 |
-| 3 | [events/doc.go](../../internal/shop/events/doc.go) 与 [MessageReader](../../internal/shop/events/consumer.go#L38) | 先理解 Fetch、业务处理与 Commit 的接口边界 |
+| 3 | [events/doc.go](../../internal/shop/events/doc.go) 与 [MessageReader](../../internal/shop/events/consumer.go#L24) | 先理解 Fetch、业务处理与 Commit 的接口边界 |
 | 4 | [consumer.go](../../internal/shop/events/consumer.go) | 对照 Run、fetchMessage 和 process，确认重试没有包住业务副作用 |
 | 5 | [consumer_fetch_test.go](../../internal/shop/events/consumer_fetch_test.go) | 先读错误 16 恢复，再读预算、空闲 context、永久错误和取消反例 |
 | 6 | [架构说明](../architecture.md) | 把告警→报告、注入→评测两条路线放到一起 |
